@@ -158,7 +158,18 @@ public class MainActivity extends FullscreenActivity
                 image.setImageBitmap(bmp);
             }
 
-            text.setText(b.book.authorsString(" ") + " - " + b.book.getTitle());
+            String a = b.book.authorsString(" ");
+            String t = b.book.getTitle();
+            String m = "";
+            if (a == null && m == null)
+                m = b.md5;
+            else if (a == null)
+                m = t;
+            else if (t == null)
+                m = a;
+            else
+                m = a + " - " + t;
+            text.setText(m);
 
             return book;
         }
