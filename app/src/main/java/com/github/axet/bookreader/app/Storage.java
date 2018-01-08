@@ -518,7 +518,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             return ff;
         }
 
-        public void store(File s) {
+        public void store(File s, boolean tmp) {
             File f = new File(s, md5 + "." + ext);
             if (f.equals(file))
                 return;
@@ -538,7 +538,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     }
                 }
                 if (same) { // delete temp file
-                    file.delete();
+                    if (tmp) {
+                        file.delete();
+                    }
                     file = f;
                 } else {
                     for (File e : ee) {
@@ -710,7 +712,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             throw new RuntimeException(e);
         }
         File storage = getLocalStorage();
-        fbook.store(storage);
+        fbook.store(storage, f == null);
         return fbook;
     }
 
