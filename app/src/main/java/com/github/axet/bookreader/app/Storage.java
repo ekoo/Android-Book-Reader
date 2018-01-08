@@ -4,6 +4,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.AssetFileDescriptor;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 import android.preference.PreferenceManager;
@@ -13,7 +14,14 @@ import com.github.axet.bookreader.widgets.FBReaderView;
 
 import org.geometerplus.fbreader.book.Book;
 import org.geometerplus.fbreader.book.BookUtil;
+import org.geometerplus.fbreader.bookmodel.BookModel;
+import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
+import org.geometerplus.zlibrary.core.image.ZLFileImage;
+import org.geometerplus.zlibrary.core.image.ZLImage;
+import org.geometerplus.zlibrary.text.model.ZLImageEntry;
+import org.geometerplus.zlibrary.text.model.ZLTextModel;
+import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.json.JSONArray;
@@ -33,6 +41,7 @@ import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -46,6 +55,8 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 public class Storage extends com.github.axet.androidlibrary.app.Storage {
+
+    public static final int MD5_SIZE = 32;
 
     Storage.Recents recents;
 
@@ -458,47 +469,11 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         public Book book;
         public String ext;
         public Storage.RecentInfo info;
+        public String title;
+        public ZLFileImage bm;
 
-        public void load(InputStream is) {
-            try {
-                file = File.createTempFile("book", ".tmp");
-
-                FileOutputStream os = new FileOutputStream(file);
-                MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
-                FileTypeDetectorXml xml = new FileTypeDetectorXml();
-                FileTypeDetectorZip zip = new FileTypeDetectorZip();
-                FileTypeDetector bin = new FileTypeDetector();
-
-                byte[] buf = new byte[1024];
-                int len;
-                while ((len = is.read(buf)) > 0) {
-                    digest.update(buf, 0, len);
-                    os.write(buf, 0, len);
-                    xml.write(buf, 0, len);
-                    zip.write(buf, 0, len);
-                    bin.write(buf, 0, len);
-                }
-
-                os.close();
-                bin.close();
-                zip.close();
-                xml.close();
-
-                for (Detector d : DETECTORS) {
-                    if (d.detected) {
-                        ext = d.ext;
-                        break; // priority first - more imporant
-                    }
-                }
-
-                byte messageDigest[] = digest.digest();
-
-                md5 = toHex(messageDigest);
-            } catch (Exception e) {
-                if (file != null)
-                    file.delete();
-                throw new RuntimeException(e);
-            }
+        public boolean isLoaded() {
+            return book != null;
         }
 
         public File exists(File s) {
@@ -621,15 +596,14 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public StoredBook load(Uri uri) {
-        StoredBook fbook = new StoredBook();
-
+        StoredBook fbook;
         String s = uri.getScheme();
         if (s.equals(ContentResolver.SCHEME_CONTENT)) {
             ContentResolver resolver = context.getContentResolver();
             try {
                 AssetFileDescriptor fd = resolver.openAssetFileDescriptor(uri, "r");
                 AssetFileDescriptor.AutoCloseInputStream is = new AssetFileDescriptor.AutoCloseInputStream(fd);
-                fbook.load(is);
+                fbook = load(is);
                 is.close();
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -640,7 +614,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
                 try {
                     InputStream is = new BufferedInputStream(urlConnection.getInputStream());
-                    fbook.load(is);
+                    fbook = load(is);
                 } finally {
                     urlConnection.disconnect();
                 }
@@ -651,19 +625,92 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             File f = new File(uri.getPath());
             try {
                 FileInputStream is = new FileInputStream(f);
-                fbook.load(is);
+                fbook = load(is);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
+        load(fbook);
+        return fbook;
+    }
 
+    public StoredBook load(InputStream is) {
+        StoredBook fbook = new StoredBook();
+        try {
+            fbook.file = File.createTempFile("book", ".tmp");
+
+            FileOutputStream os = new FileOutputStream(fbook.file);
+            MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
+            FileTypeDetectorXml xml = new FileTypeDetectorXml();
+            FileTypeDetectorZip zip = new FileTypeDetectorZip();
+            FileTypeDetector bin = new FileTypeDetector();
+
+            byte[] buf = new byte[1024];
+            int len;
+            while ((len = is.read(buf)) > 0) {
+                digest.update(buf, 0, len);
+                os.write(buf, 0, len);
+                xml.write(buf, 0, len);
+                zip.write(buf, 0, len);
+                bin.write(buf, 0, len);
+            }
+
+            os.close();
+            bin.close();
+            zip.close();
+            xml.close();
+
+            for (Detector d : DETECTORS) {
+                if (d.detected) {
+                    fbook.ext = d.ext;
+                    break; // priority first - more imporant
+                }
+            }
+
+            byte messageDigest[] = digest.digest();
+
+            fbook.md5 = toHex(messageDigest);
+        } catch (Exception e) {
+            if (fbook.file != null)
+                fbook.file.delete();
+            throw new RuntimeException(e);
+        }
         File storage = getLocalStorage();
         fbook.store(storage);
+        return fbook;
+    }
+
+    public ZLFileImage loadCover(StoredBook book) {
+        try {
+            final PluginCollection pluginCollection = PluginCollection.Instance(new FBReaderView.Info(context));
+            FormatPlugin plugin = BookUtil.getPlugin(pluginCollection, book.book);
+            BookModel Model = BookModel.createModel(book.book, plugin);
+            ZLTextModel text = Model.getTextModel();
+            for (int i = 0; i < text.getParagraphsNumber(); i++) {
+                ZLTextParagraph p = text.getParagraph(i);
+                ZLTextParagraph.EntryIterator ei = p.iterator();
+                while (ei.next()) {
+                    ZLImageEntry image = ei.getImageEntry();
+                    if (image != null && image.IsCover) {
+                        ZLImage img = image.getImage();
+                        if (img instanceof ZLFileImage) {
+                            ZLFileImage z = (ZLFileImage) img;
+                            return z;
+                        }
+                    }
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void load(StoredBook fbook) {
         fbook.info = recents.get(fbook.md5);
         if (fbook.info == null)
             fbook.info = new Storage.RecentInfo();
         fbook.info.md5 = fbook.md5;
-
         try {
             final PluginCollection pluginCollection = PluginCollection.Instance(new FBReaderView.Info(context));
             fbook.book = new Book(-1, fbook.file.getPath(), null, null, null);
@@ -671,7 +718,27 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        fbook.bm = loadCover(fbook);
+    }
 
-        return fbook;
+    public ArrayList<StoredBook> list() {
+        File storage = getLocalStorage();
+        File[] ff = storage.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                String n = Storage.getNameNoExt(name);
+                return n.length() == MD5_SIZE;
+            }
+        });
+        if (ff == null)
+            return null;
+        ArrayList<StoredBook> list = new ArrayList<>();
+        for (File f : ff) {
+            StoredBook b = new StoredBook();
+            b.md5 = getNameNoExt(f);
+            b.file = f;
+            list.add(b);
+        }
+        return list;
     }
 }

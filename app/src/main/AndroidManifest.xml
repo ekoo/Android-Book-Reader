@@ -12,6 +12,7 @@
         tools:replace="android:icon">
         <activity
             android:name=".activities.MainActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize"
             android:label="@string/app_name"
             android:launchMode="singleTop"
             android:theme="@style/AppTheme.NoActionBar">

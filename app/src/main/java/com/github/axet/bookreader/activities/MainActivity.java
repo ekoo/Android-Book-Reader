@@ -7,6 +7,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.database.DataSetObserver;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.BatteryManager;
 import android.os.Bundle;
@@ -17,9 +20,14 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.widget.Toolbar;
 import android.text.ClipboardManager;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ImageView;
+import android.widget.ListAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -52,6 +60,8 @@ import org.geometerplus.zlibrary.core.resources.ZLResource;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
 
+import java.util.ArrayList;
+
 public class MainActivity extends FullscreenActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
@@ -59,6 +69,7 @@ public class MainActivity extends FullscreenActivity
     Toolbar toolbar;
     Storage storage;
     HeaderGridView grid;
+    BooksAdapter books;
 
     private BroadcastReceiver myBatteryInfoReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -67,6 +78,92 @@ public class MainActivity extends FullscreenActivity
             view.battery = level * 100 / scale;
         }
     };
+
+    public class BooksAdapter implements ListAdapter {
+        ArrayList<Storage.StoredBook> list;
+        DataSetObserver listener;
+
+        public BooksAdapter() {
+            list = storage.list();
+        }
+
+        @Override
+        public boolean areAllItemsEnabled() {
+            return true;
+        }
+
+        @Override
+        public boolean isEnabled(int position) {
+            return true;
+        }
+
+        @Override
+        public void registerDataSetObserver(DataSetObserver observer) {
+            listener = observer;
+        }
+
+        @Override
+        public void unregisterDataSetObserver(DataSetObserver observer) {
+            listener = null;
+        }
+
+        @Override
+        public int getCount() {
+            return list.size();
+        }
+
+        @Override
+        public Storage.StoredBook getItem(int position) {
+            return list.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public boolean hasStableIds() {
+            return true;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            LayoutInflater inflater = getLayoutInflater();
+            View book = inflater.inflate(R.layout.book_view, null, false);
+            ImageView image = (ImageView) book.findViewById(R.id.imageView);
+            TextView text = (TextView) book.findViewById(R.id.textView);
+
+            Storage.StoredBook b = list.get(position);
+
+            if (!b.isLoaded())
+                storage.load(b);
+
+            if (b.bm != null) {
+                Bitmap bmp = BitmapFactory.decodeStream(b.bm.inputStream());
+                image.setImageBitmap(bmp);
+            }
+
+            text.setText(b.book.authorsString(" ") + " - " + b.book.getTitle());
+
+            return book;
+        }
+
+        @Override
+        public int getItemViewType(int position) {
+            return 0;
+        }
+
+        @Override
+        public int getViewTypeCount() {
+            return 1;
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return list.isEmpty();
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -260,6 +357,10 @@ public class MainActivity extends FullscreenActivity
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
+            if (view.book != null) {
+                openLibrary();
+                return;
+            }
             super.onBackPressed();
         }
     }
@@ -350,6 +451,15 @@ public class MainActivity extends FullscreenActivity
         grid.setVisibility(View.VISIBLE);
         view.setVisibility(View.GONE);
         navigationView.getMenu().findItem(R.id.nav_library).setChecked(true);
+        books = new BooksAdapter();
+        grid.setAdapter(books);
+        grid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Storage.StoredBook b = books.getItem(position);
+                loadBook(b);
+            }
+        });
     }
 
     @Override
@@ -363,5 +473,6 @@ public class MainActivity extends FullscreenActivity
     protected void onPause() {
         super.onPause();
     }
+
 
 }
