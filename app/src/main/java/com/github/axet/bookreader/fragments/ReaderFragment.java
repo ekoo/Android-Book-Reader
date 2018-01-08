@@ -74,7 +74,7 @@ public class ReaderFragment extends Fragment {
         super.onCreate(savedInstanceState);
         storage = new Storage(getContext());
         final MainActivity main = (MainActivity) getActivity();
-        main.navigationView.getMenu().findItem(R.id.nav_library).setChecked(true);
+        main.navigationView.getMenu().findItem(R.id.nav_library).setChecked(false);
     }
 
     @Override
