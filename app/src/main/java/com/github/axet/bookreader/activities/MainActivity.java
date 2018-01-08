@@ -39,6 +39,7 @@ import android.widget.Toast;
 import com.github.axet.androidlibrary.services.FileProvider;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.HeaderGridView;
+import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.FBReaderView;
@@ -97,6 +98,10 @@ public class MainActivity extends FullscreenActivity
 
         public void refresh() {
             list = storage.list();
+            notifyDataSetChanged();
+        }
+
+        public void notifyDataSetChanged() {
             if (listener != null)
                 listener.onChanged();
         }
@@ -150,26 +155,12 @@ public class MainActivity extends FullscreenActivity
 
             Storage.StoredBook b = list.get(position);
 
-            if (!b.isLoaded())
-                storage.load(b);
-
-            if (b.bm != null) {
-                Bitmap bmp = BitmapFactory.decodeStream(b.bm.inputStream());
+            if (b.cover != null) {
+                Bitmap bmp = BitmapFactory.decodeFile(b.cover.getPath());
                 image.setImageBitmap(bmp);
             }
 
-            String a = b.book.authorsString(" ");
-            String t = b.book.getTitle();
-            String m = "";
-            if (a == null && m == null)
-                m = b.md5;
-            else if (a == null)
-                m = t;
-            else if (t == null)
-                m = a;
-            else
-                m = a + " - " + t;
-            text.setText(m);
+            text.setText(b.info.title);
 
             return book;
         }
@@ -450,6 +441,8 @@ public class MainActivity extends FullscreenActivity
     }
 
     void loadBook(Storage.StoredBook book) {
+        if (!book.isLoaded())
+            storage.load(book);
         grid.setVisibility(View.GONE);
         view.setVisibility(View.VISIBLE);
         toolbar.setTitle(book.book.getTitle());
@@ -490,6 +483,22 @@ public class MainActivity extends FullscreenActivity
                 popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                     @Override
                     public boolean onMenuItemClick(MenuItem item) {
+                        if (item.getItemId() == R.id.action_rename) {
+                            final OpenFileDialog.EditTextDialog e = new OpenFileDialog.EditTextDialog(MainActivity.this);
+                            e.setTitle("Rename Book");
+                            e.setText(b.info.title);
+                            e.setPositiveButton(new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    String name = e.getText();
+                                    b.info.title = name;
+                                    storage.save(b);
+                                    books.notifyDataSetChanged();
+                                }
+                            });
+                            AlertDialog d = e.create();
+                            d.show();
+                        }
                         if (item.getItemId() == R.id.action_open) {
                             String ext = Storage.getExt(b.file);
                             String type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
@@ -507,7 +516,7 @@ public class MainActivity extends FullscreenActivity
                             Uri uri = FileProvider.getUriForFile(MainActivity.this, type, name, b.file);
                             Intent intent = new Intent(Intent.ACTION_SEND);
                             intent.putExtra(Intent.EXTRA_EMAIL, "");
-                            intent.putExtra(Intent.EXTRA_SUBJECT, b.book.getTitle());
+                            intent.putExtra(Intent.EXTRA_SUBJECT, b.info.title);
                             intent.putExtra(Intent.EXTRA_TEXT, getString(R.string.shared_via, getString(R.string.app_name)));
                             intent.putExtra(Intent.EXTRA_STREAM, uri);
                             FileProvider.grantPermissions(MainActivity.this, intent, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
@@ -525,7 +534,7 @@ public class MainActivity extends FullscreenActivity
                             builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
-                                    b.file.delete();
+                                    storage.delete(b);
                                     books.refresh();
                                 }
                             });
