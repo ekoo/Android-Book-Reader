@@ -1,20 +1,48 @@
 apply plugin: 'com.android.application'
 
+import com.android.build.OutputFile
+
 android {
     compileSdkVersion 25
     defaultConfig {
         applicationId "com.github.axet.bookreader"
         minSdkVersion 9
         targetSdkVersion 25
-        versionCode 2
-        versionName "0.0.1"
+        versionCode 3
+        versionName "0.0.2"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
+    signingConfigs {
+        release {
+            storeFile file(RELEASE_STORE_FILE)
+            storePassword RELEASE_STORE_PASSWORD
+            keyAlias RELEASE_KEY_ALIAS
+            keyPassword RELEASE_KEY_PASSWORD
+        }
+    }
     buildTypes {
         release {
-            minifyEnabled false
+            shrinkResources true
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+    applicationVariants.all { variant ->
+        variant.outputs.each { output ->
+            def abi = output.getFilter(OutputFile.ABI)
+            if (abi == null)
+                abi = "universal";
+            output.outputFileName = org.apache.commons.io.FilenameUtils.getExtension(android.defaultConfig.applicationId) + "-" + abi + "-" + android.defaultConfig.versionName + "-" + variant.buildType.name + ".apk"
+        }
+    }
+    splits {
+        abi {
+            enable true
+            reset()
+            include "x86", "armeabi-v7a", "mips"
+            universalApk true
         }
     }
 }
