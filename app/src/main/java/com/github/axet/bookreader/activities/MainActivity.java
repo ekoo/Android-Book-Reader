@@ -24,6 +24,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
+import com.github.axet.androidlibrary.widgets.HeaderGridView;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.FBReaderView;
@@ -56,8 +57,8 @@ public class MainActivity extends FullscreenActivity
 
     FBReaderView view;
     Toolbar toolbar;
-    Storage.StoredBook book;
     Storage storage;
+    HeaderGridView grid;
 
     private BroadcastReceiver myBatteryInfoReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -88,6 +89,9 @@ public class MainActivity extends FullscreenActivity
         registerReceiver(myBatteryInfoReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
 
         view = (FBReaderView) findViewById(R.id.main_view);
+        grid = (HeaderGridView) findViewById(R.id.grid);
+
+        openLibrary();
 
         TextView ver = (TextView) navigationHeader.findViewById(R.id.textView);
         try {
@@ -290,7 +294,7 @@ public class MainActivity extends FullscreenActivity
         int id = item.getItemId();
 
         if (id == R.id.nav_library) {
-
+            openLibrary();
         } else if (id == R.id.nav_share) {
 
         } else if (id == R.id.nav_send) {
@@ -324,27 +328,28 @@ public class MainActivity extends FullscreenActivity
     }
 
     void loadBook(Storage.StoredBook book) {
-        this.book = book;
-        if (book != null) {
-            toolbar.setTitle(book.book.getTitle());
-        } else {
-            toolbar.setTitle(R.string.app_name);
-        }
-        view.load(book);
+        grid.setVisibility(View.GONE);
+        view.setVisibility(View.VISIBLE);
+        toolbar.setTitle(book.book.getTitle());
+        navigationView.getMenu().findItem(R.id.nav_library).setChecked(false);
+        view.loadBook(book);
     }
 
     void closeBook() {
-        if (book == null)
-            return;
-        savePosition();
-        loadBook(null);
-    }
-
-    void savePosition() {
+        Storage.StoredBook book = view.book;
         if (book == null)
             return;
         book.info.position = view.getPosition();
+        view.closeBook();
         storage.save(book);
+    }
+
+    void openLibrary() {
+        closeBook();
+        toolbar.setTitle(R.string.app_name);
+        grid.setVisibility(View.VISIBLE);
+        view.setVisibility(View.GONE);
+        navigationView.getMenu().findItem(R.id.nav_library).setChecked(true);
     }
 
     @Override
@@ -357,7 +362,6 @@ public class MainActivity extends FullscreenActivity
     @Override
     protected void onPause() {
         super.onPause();
-        savePosition();
     }
 
 }

@@ -14,7 +14,6 @@ import com.github.axet.bookreader.widgets.FBReaderView;
 import org.geometerplus.fbreader.book.Book;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.formats.PluginCollection;
-import org.geometerplus.zlibrary.core.util.SystemInfo;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.json.JSONArray;
@@ -85,7 +84,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
         public static class Handler extends Detector {
             byte[] first;
-            ByteArrayOutputStream os;
+            ByteArrayOutputStream os; // no need to close
 
             public Handler(String ext) {
                 super(ext);
@@ -142,12 +141,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
             public void clear() {
                 super.clear();
-                if (os != null) {
-                    try {
-                        os.close();
-                    } catch (IOException e) {
-                    }
-                }
                 os = new ByteArrayOutputStream();
             }
         }
@@ -163,7 +156,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
 
         public void write(byte[] buf, int off, int len) {
-            for (Handler h : new ArrayList<Handler>(list)) {
+            for (Handler h : new ArrayList<>(list)) {
                 h.write(buf, off, len);
                 if (h.done)
                     list.remove(h);
@@ -434,7 +427,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     os.write(i);
                 }
                 b = os.toByteArray();
-                os.close();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

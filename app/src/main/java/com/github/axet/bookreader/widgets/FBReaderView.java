@@ -40,6 +40,7 @@ public class FBReaderView extends RelativeLayout {
     public int battery;
     public String title;
     public Window w;
+    public Storage.StoredBook book;
 
     public static class Info implements SystemInfo {
         Context context;
@@ -198,24 +199,26 @@ public class FBReaderView extends RelativeLayout {
         view = (FBView) ZLApplication.Instance().getCurrentView();
     }
 
-    public void load(Storage.StoredBook book) {
+    public void loadBook(Storage.StoredBook book) {
         try {
-            if (book != null) {
-                final PluginCollection pluginCollection = PluginCollection.Instance(info);
-                FormatPlugin plugin = BookUtil.getPlugin(pluginCollection, book.book);
-                BookModel Model = BookModel.createModel(book.book, plugin);
-                ZLTextHyphenator.Instance().load(book.book.getLanguage());
-                view.setModel(Model.getTextModel());
-                app.Model = Model;
-                if (book.info != null)
-                    view.gotoPosition(book.info.position);
-            } else {
-                view.setModel(null);
-                app.Model = null;
-            }
+            this.book = book;
+            final PluginCollection pluginCollection = PluginCollection.Instance(info);
+            FormatPlugin plugin = BookUtil.getPlugin(pluginCollection, book.book);
+            BookModel Model = BookModel.createModel(book.book, plugin);
+            ZLTextHyphenator.Instance().load(book.book.getLanguage());
+            view.setModel(Model.getTextModel());
+            app.Model = Model;
+            if (book.info != null)
+                view.gotoPosition(book.info.position);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void closeBook() {
+        view.setModel(null);
+        app.Model = null;
+        book = null;
     }
 
     public ZLTextFixedPosition getPosition() {

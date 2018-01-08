@@ -8,6 +8,14 @@
     tools:context="com.github.axet.bookreader.activities.MainActivity"
     tools:showIn="@layout/app_bar_main">
 
+    <com.github.axet.androidlibrary.widgets.HeaderGridView
+        android:id="@+id/grid"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:numColumns="4"
+        android:stretchMode="columnWidth"
+        android:verticalSpacing="2dp" />
+
     <com.github.axet.bookreader.widgets.FBReaderView
         android:id="@+id/main_view"
         android:layout_width="match_parent"
