@@ -2,16 +2,16 @@ package com.github.axet.bookreader.app;
 
 import android.content.ContentResolver;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
-import android.preference.PreferenceManager;
 
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.widgets.FBReaderView;
 
+import org.apache.commons.io.IOUtils;
 import org.geometerplus.fbreader.book.Book;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.bookmodel.BookModel;
@@ -38,16 +38,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Array;
+import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -57,8 +57,8 @@ import javax.xml.parsers.SAXParserFactory;
 public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public static final int MD5_SIZE = 32;
-
-    Storage.Recents recents;
+    public static final String COVER_EXT = "png";
+    public static final String JSON_EXT = "json";
 
     public static Detector[] DETECTORS = new Detector[]{new FileFB2(), new FileEPUB(), new FileHTML(),
             new FilePDF(), new FileRTF(), new FileMobi(), new FileTxt()};
@@ -72,6 +72,35 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             hexString.append(h);
         }
         return hexString.toString();
+    }
+
+    public static String getTitle(StoredBook book) {
+        String a = book.book.authorsString(", ");
+        String t = book.book.getTitle();
+        if (t.equals(book.md5))
+            t = null;
+        String m;
+        if (a == null && t == null) {
+            m = book.info.title;
+            if (m == null)
+                m = book.md5;
+        } else if (a == null)
+            m = t;
+        else if (t == null)
+            m = a;
+        else
+            m = a + " - " + t;
+        return m;
+    }
+
+    public static File coverFile(StoredBook book) {
+        File p = book.file.getParentFile();
+        return new File(p, book.md5 + "." + COVER_EXT);
+    }
+
+    public static File recentFile(StoredBook book) {
+        File p = book.file.getParentFile();
+        return new File(p, book.md5 + "." + JSON_EXT);
     }
 
     public static class Detector {
@@ -469,14 +498,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         public Book book;
         public String ext;
         public Storage.RecentInfo info;
-        public String title;
-        public ZLFileImage bm;
+        public File cover;
 
         public boolean isLoaded() {
             return book != null;
         }
 
-        public File exists(File s) {
+        public File[] exists(File s) {
             File[] ff = s.listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
@@ -487,23 +515,19 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 return null;
             if (ff.length == 0)
                 return null;
-            return ff[0];
+            return ff;
         }
 
         public void store(File s) {
             File f = new File(s, md5 + "." + ext);
-            File e = exists(s);
-            if (e == null) {
+            File[] ee = exists(s);
+            if (ee == null) {
                 file = com.github.axet.androidlibrary.app.Storage.move(file, f);
             } else {
-                String ee = Storage.getExt(e);
-                if (!ee.equals(ext)) { // different ext same md5?
+                for (File e : ee) {
                     e.delete();
-                    file = com.github.axet.androidlibrary.app.Storage.move(file, f);
-                } else {
-                    file.delete();
-                    file = f;
                 }
+                file = com.github.axet.androidlibrary.app.Storage.move(file, f);
             }
         }
 
@@ -513,8 +537,21 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         public String md5;
         public long last;
         public ZLTextPosition position;
+        public String title;
 
         public RecentInfo() {
+        }
+
+        public RecentInfo(File f) {
+            try {
+                FileInputStream is = new FileInputStream(f);
+                String json = IOUtils.toString(is, Charset.defaultCharset());
+                JSONObject j = new JSONObject(json);
+                load(j);
+                is.close();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
 
         public RecentInfo(JSONObject o) throws JSONException {
@@ -524,6 +561,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         public void load(JSONObject o) throws JSONException {
             md5 = o.getString("md5");
             last = o.getLong("last");
+            title = o.optString("title", null);
             JSONArray a = o.getJSONArray("position");
             position = new ZLTextFixedPosition(a.getInt(0), a.getInt(1), a.getInt(2));
         }
@@ -532,6 +570,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             JSONObject o = new JSONObject();
             o.put("md5", md5);
             o.put("last", last);
+            o.put("title", title);
             JSONArray a = new JSONArray();
             a.put(position.getParagraphIndex());
             a.put(position.getElementIndex());
@@ -541,58 +580,22 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
     }
 
-    public static class Recents extends HashMap<String, RecentInfo> {
-        public Context context;
-
-        public Recents(Context context) {
-            this.context = context;
-            load();
-        }
-
-        public void load() {
-            SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
-            String json = shared.getString(MainApplication.PREFERENCE_RECENTS, null);
-            if (json == null || json.isEmpty())
-                return;
-            try {
-                JSONArray j = new JSONArray(json);
-                for (int i = 0; i < j.length(); i++) {
-                    JSONObject o = (JSONObject) j.get(i);
-                    RecentInfo info = new RecentInfo(o);
-                    put(info.md5, info);
-                }
-            } catch (JSONException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public void save() {
-            SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
-            shared.getString(MainApplication.PREFERENCE_RECENTS, "");
-            SharedPreferences.Editor editor = shared.edit();
-            try {
-                JSONArray o = new JSONArray();
-                for (String key : keySet()) {
-                    RecentInfo info = get(key);
-                    o.put(info.save());
-                }
-                editor.putString(MainApplication.PREFERENCE_RECENTS, o.toString());
-            } catch (JSONException e) {
-                throw new RuntimeException(e);
-            }
-            editor.commit();
-        }
-    }
-
     public Storage(Context context) {
         super(context);
-        recents = new Storage.Recents(context);
     }
 
     public void save(StoredBook book) {
         book.info.last = System.currentTimeMillis();
-        recents.put(book.md5, book.info);
-        recents.save();
+        File p = book.file.getParentFile();
+        File f = recentFile(book);
+        try {
+            String json = book.info.save().toString();
+            Writer w = new FileWriter(f);
+            IOUtils.write(json, w);
+            w.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public StoredBook load(Uri uri) {
@@ -630,6 +633,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 throw new RuntimeException(e);
             }
         }
+        File f = recentFile(fbook);
+        if (f.exists()) {
+            fbook.info = new RecentInfo(f);
+        }
+        if (fbook.info == null)
+            fbook.info = new RecentInfo();
+        fbook.info.title = Storage.getNameNoExt(uri.getLastPathSegment());
         load(fbook);
         return fbook;
     }
@@ -686,17 +696,28 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             FormatPlugin plugin = BookUtil.getPlugin(pluginCollection, book.book);
             BookModel Model = BookModel.createModel(book.book, plugin);
             ZLTextModel text = Model.getTextModel();
+            ZLImage first = null;
             for (int i = 0; i < text.getParagraphsNumber(); i++) {
                 ZLTextParagraph p = text.getParagraph(i);
                 ZLTextParagraph.EntryIterator ei = p.iterator();
                 while (ei.next()) {
                     ZLImageEntry image = ei.getImageEntry();
-                    if (image != null && image.IsCover) {
-                        ZLImage img = image.getImage();
-                        if (img instanceof ZLFileImage) {
-                            ZLFileImage z = (ZLFileImage) img;
-                            return z;
+                    if (image != null) {
+                        if (first == null)
+                            first = image.getImage();
+                        if (image.IsCover) {
+                            ZLImage img = image.getImage();
+                            if (img instanceof ZLFileImage) {
+                                ZLFileImage z = (ZLFileImage) img;
+                                return z;
+                            }
                         }
+                    }
+                }
+                if (first != null) {
+                    if (first instanceof ZLFileImage) {
+                        ZLFileImage z = (ZLFileImage) first;
+                        return z;
                     }
                 }
             }
@@ -707,38 +728,81 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public void load(StoredBook fbook) {
-        fbook.info = recents.get(fbook.md5);
+        if (fbook.info == null) {
+            File r = recentFile(fbook);
+            if (r.exists())
+                fbook.info = new RecentInfo(r);
+        }
         if (fbook.info == null)
             fbook.info = new Storage.RecentInfo();
         fbook.info.md5 = fbook.md5;
         try {
+            FBReaderView.getApp(context);
             final PluginCollection pluginCollection = PluginCollection.Instance(new FBReaderView.Info(context));
             fbook.book = new Book(-1, fbook.file.getPath(), null, null, null);
             BookUtil.reloadInfoFromFile(fbook.book, pluginCollection);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        fbook.bm = loadCover(fbook);
+        fbook.info.title = getTitle(fbook);
+        ZLFileImage image = loadCover(fbook);
+        if (image != null) {
+            fbook.cover = coverFile(fbook);
+            Bitmap bm = BitmapFactory.decodeStream(image.inputStream());
+            try {
+                FileOutputStream os = new FileOutputStream(fbook.cover);
+                bm.compress(Bitmap.CompressFormat.PNG, 100, os);
+                os.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     public ArrayList<StoredBook> list() {
-        File storage = getLocalStorage();
+        ArrayList<StoredBook> list = new ArrayList<>();
+        list(list, getLocalInternal());
+        list(list, getLocalExternal());
+        return list;
+    }
+
+    public void list(ArrayList<StoredBook> list, File storage) {
         File[] ff = storage.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
                 String n = Storage.getNameNoExt(name);
+                String e = getExt(name);
+                e = e.toLowerCase();
+                if (e.equals(COVER_EXT))
+                    return false;
+                if (e.equals(JSON_EXT))
+                    return false;
                 return n.length() == MD5_SIZE;
             }
         });
         if (ff == null)
-            return null;
-        ArrayList<StoredBook> list = new ArrayList<>();
+            return;
         for (File f : ff) {
             StoredBook b = new StoredBook();
             b.md5 = getNameNoExt(f);
             b.file = f;
+            File cover = coverFile(b);
+            if (cover.exists())
+                b.cover = cover;
+            File r = recentFile(b);
+            if (r.exists())
+                b.info = new RecentInfo(r);
+            if (b.info == null)
+                b.info = new Storage.RecentInfo();
             list.add(b);
         }
-        return list;
+    }
+
+    public void delete(StoredBook book) {
+        book.file.delete();
+        if (book.cover != null)
+            book.cover.delete();
+        File r = recentFile(book);
+        r.delete();
     }
 }

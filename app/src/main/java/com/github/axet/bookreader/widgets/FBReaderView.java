@@ -30,10 +30,10 @@ import org.geometerplus.zlibrary.core.view.ZLViewWidget;
 import org.geometerplus.zlibrary.text.hyphenation.ZLTextHyphenator;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
+import org.geometerplus.zlibrary.ui.android.library.ZLAndroidLibrary;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 public class FBReaderView extends RelativeLayout {
-    public SystemInfo info;
     public FBReaderApp app;
     public FBView view;
     public ZLAndroidWidget widget;
@@ -41,6 +41,15 @@ public class FBReaderView extends RelativeLayout {
     public String title;
     public Window w;
     public Storage.StoredBook book;
+
+    public static FBReaderApp getApp(Context context) {
+        FBReaderView.Info info = new FBReaderView.Info(context);
+        FBReaderApp app = (FBReaderApp) FBReaderApp.Instance();
+        if (app == null) {
+            app = new FBReaderApp(info, new BookCollectionShadow());
+        }
+        return app;
+    }
 
     public static class Info implements SystemInfo {
         Context context;
@@ -121,8 +130,6 @@ public class FBReaderView extends RelativeLayout {
                     return (myColorLevel - 0x60) * 25 / (0xFF - 0x60);
                 }
 
-                final Context context = getContext();
-
                 float level = w.getAttributes().screenBrightness;
                 level = level >= 0 ? level : .5f;
 
@@ -133,12 +140,7 @@ public class FBReaderView extends RelativeLayout {
         widget.setFocusable(true);
         addView(widget, new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-        info = new Info(getContext());
-
-        app = (FBReaderApp) FBReaderApp.Instance();
-        if (app == null) {
-            app = new FBReaderApp(info, new BookCollectionShadow());
-        }
+        app = getApp(getContext());
 
         app.setWindow(new ZLApplicationWindow() {
             @Override
@@ -201,8 +203,10 @@ public class FBReaderView extends RelativeLayout {
 
     public void loadBook(Storage.StoredBook book) {
         try {
+            setEnabled(true);
+            widget.setEnabled(true);
             this.book = book;
-            final PluginCollection pluginCollection = PluginCollection.Instance(info);
+            final PluginCollection pluginCollection = PluginCollection.Instance(app.SystemInfo);
             FormatPlugin plugin = BookUtil.getPlugin(pluginCollection, book.book);
             BookModel Model = BookModel.createModel(book.book, plugin);
             ZLTextHyphenator.Instance().load(book.book.getLanguage());
@@ -219,6 +223,8 @@ public class FBReaderView extends RelativeLayout {
         view.setModel(null);
         app.Model = null;
         book = null;
+        widget.setEnabled(false);
+        setEnabled(false);
     }
 
     public ZLTextFixedPosition getPosition() {
