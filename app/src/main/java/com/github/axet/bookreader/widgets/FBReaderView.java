@@ -5,11 +5,13 @@ import android.content.Context;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.RelativeLayout;
 
-import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.Storage;
 
+import org.geometerplus.android.fbreader.FBReaderMainActivity;
 import org.geometerplus.android.fbreader.NavigationPopup;
 import org.geometerplus.android.fbreader.SelectionPopup;
 import org.geometerplus.android.fbreader.TextSearchPopup;
@@ -27,14 +29,35 @@ import org.geometerplus.zlibrary.core.util.SystemInfo;
 import org.geometerplus.zlibrary.core.view.ZLViewWidget;
 import org.geometerplus.zlibrary.text.hyphenation.ZLTextHyphenator;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
+import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 public class FBReaderView extends RelativeLayout {
     public SystemInfo info;
     public FBReaderApp app;
     public FBView view;
-    public ZLAndroidWidget w;
+    public ZLAndroidWidget widget;
     public int battery;
+    public String title;
+    public Window w;
+
+    public static class Info implements SystemInfo {
+        Context context;
+
+        public Info(Context context) {
+            this.context = context;
+        }
+
+        @Override
+        public String tempDirectory() {
+            return context.getFilesDir().getPath();
+        }
+
+        @Override
+        public String networkCacheDirectory() {
+            return context.getFilesDir().getPath();
+        }
+    }
 
     public FBReaderView(Context context) {
         super(context);
@@ -58,37 +81,58 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void create() {
-//        android:layout_width="fill_parent"
-//        android:layout_height="fill_parent"
 //        android:fadeScrollbars="false"
-//        android:focusable="true"
 //        android:scrollbarAlwaysDrawVerticalTrack="true"
 //        android:scrollbars="vertical"
-
-        w = new ZLAndroidWidget(getContext()) {
+        widget = new ZLAndroidWidget(getContext()) {
             @Override
             public void setScreenBrightness(int percent) {
-                super.setScreenBrightness(percent);
+                if (percent < 1) {
+                    percent = 1;
+                } else if (percent > 100) {
+                    percent = 100;
+                }
+
+                final float level;
+                final Integer oldColorLevel = myColorLevel;
+                if (percent >= 25) {
+                    // 100 => 1f; 25 => .01f
+                    level = .01f + (percent - 25) * .99f / 75;
+                    myColorLevel = null;
+                } else {
+                    level = .01f;
+                    myColorLevel = 0x60 + (0xFF - 0x60) * Math.max(percent, 0) / 25;
+                }
+
+                final WindowManager.LayoutParams attrs = w.getAttributes();
+                attrs.screenBrightness = level;
+                w.setAttributes(attrs);
+
+                if (oldColorLevel != myColorLevel) {
+                    updateColorLevel();
+                    postInvalidate();
+                }
             }
 
             @Override
             public int getScreenBrightness() {
-                return super.getScreenBrightness();
+                if (myColorLevel != null) {
+                    return (myColorLevel - 0x60) * 25 / (0xFF - 0x60);
+                }
+
+                final Context context = getContext();
+
+                float level = w.getAttributes().screenBrightness;
+                level = level >= 0 ? level : .5f;
+
+                // level = .01f + (percent - 25) * .99f / 75;
+                return 25 + (int) ((level - .01f) * 75 / .99f);
             }
         };
-        addView(w, new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        widget.setFocusable(true);
+        addView(widget, new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-        info = new SystemInfo() {
-            @Override
-            public String tempDirectory() {
-                return getContext().getFilesDir().getPath();
-            }
-
-            @Override
-            public String networkCacheDirectory() {
-                return getContext().getFilesDir().getPath();
-            }
-        };
+        info = new Info(getContext());
 
         app = (FBReaderApp) FBReaderApp.Instance();
         if (app == null) {
@@ -98,6 +142,7 @@ public class FBReaderView extends RelativeLayout {
         app.setWindow(new ZLApplicationWindow() {
             @Override
             public void setWindowTitle(String title) {
+                FBReaderView.this.title = title;
             }
 
             @Override
@@ -123,7 +168,7 @@ public class FBReaderView extends RelativeLayout {
 
             @Override
             public ZLViewWidget getViewWidget() {
-                return w;
+                return widget;
             }
 
             @Override
@@ -147,15 +192,10 @@ public class FBReaderView extends RelativeLayout {
             new SelectionPopup(app);
         }
 
-        app.MiscOptions.AllowScreenBrightnessAdjustment.setValue(true);
         app.ViewOptions.ScrollbarType.setValue(FBView.SCROLLBAR_SHOW_AS_FOOTER);
         app.ViewOptions.getFooterOptions().ShowProgress.setValue(FooterOptions.ProgressDisplayType.asPages);
 
         view = (FBView) ZLApplication.Instance().getCurrentView();
-    }
-
-    public void addAction(String action, ZLApplication.ZLAction a) {
-        app.addAction(action, a);
     }
 
     public void load(Storage.StoredBook book) {
@@ -180,6 +220,11 @@ public class FBReaderView extends RelativeLayout {
 
     public ZLTextFixedPosition getPosition() {
         return new ZLTextFixedPosition(view.getStartCursor());
+    }
+
+    public void setWindow(Window w) {
+        this.w = w;
+        app.MiscOptions.AllowScreenBrightnessAdjustment.setValue(true);
     }
 
 }

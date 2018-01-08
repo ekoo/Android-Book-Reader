@@ -1,9 +1,15 @@
 package com.github.axet.bookreader.app;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.AssetFileDescriptor;
+import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 import android.preference.PreferenceManager;
+
+import com.github.axet.androidlibrary.widgets.WebViewCustom;
+import com.github.axet.bookreader.widgets.FBReaderView;
 
 import org.geometerplus.fbreader.book.Book;
 import org.geometerplus.fbreader.book.BookUtil;
@@ -20,12 +26,16 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -37,6 +47,8 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 public class Storage extends com.github.axet.androidlibrary.app.Storage {
+
+    Storage.Recents recents;
 
     public static Detector[] DETECTORS = new Detector[]{new FileFB2(), new FileEPUB(), new FileHTML(),
             new FilePDF(), new FileRTF(), new FileMobi(), new FileTxt()};
@@ -449,15 +461,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public static class StoredBook {
-        public Context context;
         public File file;
         public String md5;
         public Book book;
         public String ext;
         public Storage.RecentInfo info;
 
-        public StoredBook(Context context, InputStream is) {
-            this.context = context;
+        public void load(InputStream is) {
             try {
                 file = File.createTempFile("book", ".tmp");
 
@@ -527,16 +537,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     file.delete();
                     file = f;
                 }
-            }
-        }
-
-        public void load(SystemInfo info) {
-            try {
-                final PluginCollection pluginCollection = PluginCollection.Instance(info);
-                book = new Book(-1, file.getPath(), null, null, null);
-                BookUtil.reloadInfoFromFile(book, pluginCollection);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
             }
         }
 
@@ -619,6 +619,67 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public Storage(Context context) {
         super(context);
+        recents = new Storage.Recents(context);
     }
 
+    public void save(StoredBook book) {
+        book.info.last = System.currentTimeMillis();
+        recents.put(book.md5, book.info);
+        recents.save();
+    }
+
+    public StoredBook load(Uri uri) {
+        StoredBook fbook = new StoredBook();
+
+        String s = uri.getScheme();
+        if (s.equals(ContentResolver.SCHEME_CONTENT)) {
+            ContentResolver resolver = context.getContentResolver();
+            try {
+                AssetFileDescriptor fd = resolver.openAssetFileDescriptor(uri, "r");
+                AssetFileDescriptor.AutoCloseInputStream is = new AssetFileDescriptor.AutoCloseInputStream(fd);
+                fbook.load(is);
+                is.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else if (s.startsWith(WebViewCustom.SCHEME_HTTP)) {
+            try {
+                URL url = new URL(uri.toString());
+                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                try {
+                    InputStream is = new BufferedInputStream(urlConnection.getInputStream());
+                    fbook.load(is);
+                } finally {
+                    urlConnection.disconnect();
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else { // file:// or /path/file
+            File f = new File(uri.getPath());
+            try {
+                FileInputStream is = new FileInputStream(f);
+                fbook.load(is);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        File storage = getLocalStorage();
+        fbook.store(storage);
+        fbook.info = recents.get(fbook.md5);
+        if (fbook.info == null)
+            fbook.info = new Storage.RecentInfo();
+        fbook.info.md5 = fbook.md5;
+
+        try {
+            final PluginCollection pluginCollection = PluginCollection.Instance(new FBReaderView.Info(context));
+            fbook.book = new Book(-1, fbook.file.getPath(), null, null, null);
+            BookUtil.reloadInfoFromFile(fbook.book, pluginCollection);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        return fbook;
+    }
 }

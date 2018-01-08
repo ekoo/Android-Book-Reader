@@ -2,13 +2,11 @@ package com.github.axet.bookreader.activities;
 
 import android.app.Application;
 import android.content.BroadcastReceiver;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.content.res.AssetFileDescriptor;
 import android.net.Uri;
 import android.os.BatteryManager;
 import android.os.Bundle;
@@ -26,7 +24,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
-import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.FBReaderView;
@@ -54,21 +51,13 @@ import org.geometerplus.zlibrary.core.resources.ZLResource;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-
 public class MainActivity extends FullscreenActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
     FBReaderView view;
     Toolbar toolbar;
-    Storage.Recents recents;
     Storage.StoredBook book;
+    Storage storage;
 
     private BroadcastReceiver myBatteryInfoReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -94,7 +83,7 @@ public class MainActivity extends FullscreenActivity
         navigationView.setNavigationItemSelectedListener(this);
         View navigationHeader = navigationView.getHeaderView(0);
 
-        recents = new Storage.Recents(this);
+        storage = new Storage(this);
 
         registerReceiver(myBatteryInfoReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
 
@@ -110,6 +99,8 @@ public class MainActivity extends FullscreenActivity
         }
 
         final FBReaderApp app = view.app;
+
+        view.setWindow(getWindow());
 
         app.addAction(ActionCode.SHOW_MENU, new FBAction(app) {
             @Override
@@ -328,56 +319,17 @@ public class MainActivity extends FullscreenActivity
             u = intent.getData();
         if (u == null)
             return;
-        loadBook(u);
-    }
-
-    void loadBook(Uri uri) {
-        Storage.StoredBook fbook = null;
-        String s = uri.getScheme();
-        if (s.equals(ContentResolver.SCHEME_CONTENT)) {
-            ContentResolver resolver = getContentResolver();
-            try {
-                AssetFileDescriptor fd = resolver.openAssetFileDescriptor(uri, "r");
-                AssetFileDescriptor.AutoCloseInputStream is = new AssetFileDescriptor.AutoCloseInputStream(fd);
-                fbook = new Storage.StoredBook(this, is);
-                is.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        } else if (s.startsWith(WebViewCustom.SCHEME_HTTP)) {
-            try {
-                URL url = new URL(uri.toString());
-                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
-                try {
-                    InputStream is = new BufferedInputStream(urlConnection.getInputStream());
-                    fbook = new Storage.StoredBook(this, is);
-                } finally {
-                    urlConnection.disconnect();
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        } else { // file:// or /path/file
-            File f = new File(uri.getPath());
-            try {
-                FileInputStream is = new FileInputStream(f);
-                fbook = new Storage.StoredBook(this, is);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        File storage = getFilesDir();
-        fbook.store(storage);
-        fbook.info = recents.get(fbook.md5);
-
-        fbook.load(view.info);
-
+        Storage.StoredBook fbook = storage.load(u);
         loadBook(fbook);
     }
 
     void loadBook(Storage.StoredBook book) {
         this.book = book;
+        if (book != null) {
+            toolbar.setTitle(book.book.getTitle());
+        } else {
+            toolbar.setTitle(R.string.app_name);
+        }
         view.load(book);
     }
 
@@ -385,20 +337,14 @@ public class MainActivity extends FullscreenActivity
         if (book == null)
             return;
         savePosition();
-        loadBook((Storage.StoredBook) null);
+        loadBook(null);
     }
 
     void savePosition() {
         if (book == null)
             return;
-        Storage.RecentInfo info = recents.get(book.md5);
-        if (info == null)
-            info = new Storage.RecentInfo();
-        info.md5 = book.md5;
-        info.last = System.currentTimeMillis();
-        info.position = view.getPosition();
-        recents.put(book.md5, info);
-        recents.save();
+        book.info.position = view.getPosition();
+        storage.save(book);
     }
 
     @Override
@@ -406,7 +352,6 @@ public class MainActivity extends FullscreenActivity
         super.onDestroy();
         unregisterReceiver(myBatteryInfoReceiver);
         closeBook();
-        recents.save();
     }
 
     @Override

@@ -11,6 +11,6 @@
     <com.github.axet.bookreader.widgets.FBReaderView
         android:id="@+id/main_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"></com.github.axet.bookreader.widgets.FBReaderView>
+        android:layout_height="match_parent" />
 
 </android.support.constraint.ConstraintLayout>
