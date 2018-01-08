@@ -524,10 +524,20 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (ee == null) {
                 file = com.github.axet.androidlibrary.app.Storage.move(file, f);
             } else {
+                boolean same = false;
                 for (File e : ee) {
-                    e.delete();
+                    if (getExt(e).equals(ext))
+                        same = true;
                 }
-                file = com.github.axet.androidlibrary.app.Storage.move(file, f);
+                if (same) { // delete temp file
+                    file.delete();
+                    file = f;
+                } else {
+                    for (File e : ee) {
+                        e.delete();
+                    }
+                    file = com.github.axet.androidlibrary.app.Storage.move(file, f);
+                }
             }
         }
 
@@ -586,7 +596,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public void save(StoredBook book) {
         book.info.last = System.currentTimeMillis();
-        File p = book.file.getParentFile();
         File f = recentFile(book);
         try {
             String json = book.info.save().toString();
