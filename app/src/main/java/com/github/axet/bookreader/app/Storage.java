@@ -2,13 +2,11 @@ package com.github.axet.bookreader.app;
 
 import android.content.ContentResolver;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
-import android.preference.PreferenceManager;
 
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.widgets.FBReaderView;
@@ -45,13 +43,11 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
-import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -741,6 +737,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             fbook.info = new Storage.RecentInfo();
         fbook.info.md5 = fbook.md5;
         try {
+            FBReaderView.getApp(context);
             final PluginCollection pluginCollection = PluginCollection.Instance(new FBReaderView.Info(context));
             fbook.book = new Book(-1, fbook.file.getPath(), null, null, null);
             BookUtil.reloadInfoFromFile(fbook.book, pluginCollection);

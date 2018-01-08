@@ -75,9 +75,9 @@ public class FullscreenActivity extends AppCompatActivity {
         }
     };
 
-    View decorView;
-    DrawerLayout drawer;
-    NavigationView navigationView;
+    public View decorView;
+    public DrawerLayout drawer;
+    public NavigationView navigationView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
