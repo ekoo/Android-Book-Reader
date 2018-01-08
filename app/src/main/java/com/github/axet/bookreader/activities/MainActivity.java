@@ -3,6 +3,7 @@ package com.github.axet.bookreader.activities;
 import android.app.Application;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
@@ -17,7 +18,10 @@ import android.os.Parcelable;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v4.widget.PopupMenuCompat;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.Toolbar;
 import android.text.ClipboardManager;
 import android.view.LayoutInflater;
@@ -25,12 +29,14 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.axet.androidlibrary.services.FileProvider;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.HeaderGridView;
 import com.github.axet.bookreader.R;
@@ -62,6 +68,8 @@ import org.geometerplus.zlibrary.text.view.ZLTextView;
 
 import java.util.ArrayList;
 
+import group.pals.android.lib.ui.filechooser.utils.MimeTypes;
+
 public class MainActivity extends FullscreenActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
@@ -84,7 +92,13 @@ public class MainActivity extends FullscreenActivity
         DataSetObserver listener;
 
         public BooksAdapter() {
+            refresh();
+        }
+
+        public void refresh() {
             list = storage.list();
+            if (listener != null)
+                listener.onChanged();
         }
 
         @Override
@@ -396,10 +410,6 @@ public class MainActivity extends FullscreenActivity
 
         if (id == R.id.nav_library) {
             openLibrary();
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
-
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -460,6 +470,63 @@ public class MainActivity extends FullscreenActivity
                 loadBook(b);
             }
         });
+        grid.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                final Storage.StoredBook b = books.getItem(position);
+                PopupMenu popup = new PopupMenu(MainActivity.this, view);
+                popup.inflate(R.menu.book_menu);
+                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem item) {
+                        if (item.getItemId() == R.id.action_open) {
+                            String ext = Storage.getExt(b.file);
+                            String type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+                            String name = Storage.getNameNoExt(b.file);
+                            Uri uri = FileProvider.getUriForFile(MainActivity.this, type, name, b.file);
+                            Intent intent = new Intent(Intent.ACTION_VIEW);
+                            intent.setDataAndType(uri, type);
+                            FileProvider.grantPermissions(MainActivity.this, intent, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                            startActivity(intent);
+                        }
+                        if (item.getItemId() == R.id.action_share) {
+                            String ext = Storage.getExt(b.file);
+                            String type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+                            String name = Storage.getNameNoExt(b.file);
+                            Uri uri = FileProvider.getUriForFile(MainActivity.this, type, name, b.file);
+                            Intent intent = new Intent(Intent.ACTION_SEND);
+                            intent.putExtra(Intent.EXTRA_EMAIL, "");
+                            intent.putExtra(Intent.EXTRA_SUBJECT, b.book.getTitle());
+                            intent.putExtra(Intent.EXTRA_TEXT, getString(R.string.shared_via, getString(R.string.app_name)));
+                            intent.putExtra(Intent.EXTRA_STREAM, uri);
+                            FileProvider.grantPermissions(MainActivity.this, intent, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                            startActivity(intent);
+                        }
+                        if (item.getItemId() == R.id.action_delete) {
+                            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                            builder.setTitle("Delete Book?");
+                            builder.setMessage(R.string.are_you_sure);
+                            builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                }
+                            });
+                            builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    b.file.delete();
+                                    books.refresh();
+                                }
+                            });
+                            builder.show();
+                        }
+                        return true;
+                    }
+                });
+                popup.show();
+                return true;
+            }
+        });
     }
 
     @Override
@@ -473,6 +540,5 @@ public class MainActivity extends FullscreenActivity
     protected void onPause() {
         super.onPause();
     }
-
 
 }
