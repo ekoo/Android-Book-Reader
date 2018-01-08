@@ -520,14 +520,22 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
         public void store(File s) {
             File f = new File(s, md5 + "." + ext);
+            if (f.equals(file))
+                return;
             File[] ee = exists(s);
             if (ee == null) {
                 file = com.github.axet.androidlibrary.app.Storage.move(file, f);
             } else {
                 boolean same = false;
                 for (File e : ee) {
-                    if (getExt(e).equals(ext))
+                    if (e.equals(file)) {
                         same = true;
+                        break;
+                    }
+                    if (getExt(e).equals(ext)) {
+                        same = true;
+                        break;
+                    }
                 }
                 if (same) { // delete temp file
                     file.delete();
@@ -615,7 +623,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             try {
                 AssetFileDescriptor fd = resolver.openAssetFileDescriptor(uri, "r");
                 AssetFileDescriptor.AutoCloseInputStream is = new AssetFileDescriptor.AutoCloseInputStream(fd);
-                fbook = load(is);
+                fbook = load(is, null);
                 is.close();
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -626,7 +634,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
                 try {
                     InputStream is = new BufferedInputStream(urlConnection.getInputStream());
-                    fbook = load(is);
+                    fbook = load(is, null);
                 } finally {
                     urlConnection.disconnect();
                 }
@@ -637,7 +645,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             File f = new File(uri.getPath());
             try {
                 FileInputStream is = new FileInputStream(f);
-                fbook = load(is);
+                fbook = load(is, f);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -653,12 +661,17 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return fbook;
     }
 
-    public StoredBook load(InputStream is) {
+    public StoredBook load(InputStream is, File f) {
         StoredBook fbook = new StoredBook();
         try {
-            fbook.file = File.createTempFile("book", ".tmp");
+            FileOutputStream os = null;
 
-            FileOutputStream os = new FileOutputStream(fbook.file);
+            fbook.file = f;
+            if (fbook.file == null) {
+                fbook.file = File.createTempFile("book", ".tmp");
+                os = new FileOutputStream(fbook.file);
+            }
+
             MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
             FileTypeDetectorXml xml = new FileTypeDetectorXml();
             FileTypeDetectorZip zip = new FileTypeDetectorZip();
@@ -668,13 +681,15 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             int len;
             while ((len = is.read(buf)) > 0) {
                 digest.update(buf, 0, len);
-                os.write(buf, 0, len);
+                if (os != null)
+                    os.write(buf, 0, len);
                 xml.write(buf, 0, len);
                 zip.write(buf, 0, len);
                 bin.write(buf, 0, len);
             }
 
-            os.close();
+            if (os != null)
+                os.close();
             bin.close();
             zip.close();
             xml.close();
