@@ -257,8 +257,18 @@ public class ReaderFragment extends Fragment {
     }
 
     @Override
+    public void onPause() {
+        super.onPause();
+        savePosition();
+    }
+
+    @Override
     public void onDetach() {
         super.onDetach();
+        savePosition();
+    }
+
+    void savePosition() {
         view.book.info.position = view.getPosition();
         storage.save(view.book);
     }

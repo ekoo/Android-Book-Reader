@@ -1,10 +1,12 @@
 package com.github.axet.bookreader.activities;
 
+import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -22,6 +24,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
+import com.github.axet.androidlibrary.widgets.OpenChoicer;
+import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.Storage;
@@ -31,8 +35,13 @@ import com.github.axet.bookreader.fragments.ReaderFragment;
 public class MainActivity extends FullscreenActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
+    public static final int RESULT_FILE = 1;
+
+    public static final String[] PERMISSIONS = new String[]{Manifest.permission.READ_EXTERNAL_STORAGE};
+
     public Toolbar toolbar;
     Storage storage;
+    OpenChoicer choicer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,6 +110,18 @@ public class MainActivity extends FullscreenActivity
             return true;
         }
 
+        if (id == R.id.action_file) {
+            choicer = new OpenChoicer(OpenFileDialog.DIALOG_TYPE.FILE_DIALOG, true) {
+                @Override
+                public void onResult(Uri uri) {
+                    loadBook(uri);
+                }
+            };
+            choicer.setStorageAccessFramework(this, RESULT_FILE);
+            choicer.setPermissionsDialog(this, PERMISSIONS, RESULT_FILE);
+            choicer.show(null);
+        }
+
         return super.onOptionsItemSelected(item);
     }
 
@@ -136,7 +157,10 @@ public class MainActivity extends FullscreenActivity
             u = intent.getData();
         if (u == null)
             return;
+        loadBook(u);
+    }
 
+    void loadBook(final Uri u) {
         int dp10 = ThemeUtils.dp2px(this, 10);
 
         ProgressBar v = new ProgressBar(this);
@@ -150,12 +174,10 @@ public class MainActivity extends FullscreenActivity
         final AlertDialog d = builder.create();
         d.show();
 
-        final Uri uri = u;
-
         Thread thread = new Thread() {
             @Override
             public void run() {
-                final Storage.StoredBook fbook = storage.load(uri);
+                final Storage.StoredBook fbook = storage.load(u);
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -189,4 +211,23 @@ public class MainActivity extends FullscreenActivity
         super.onPause();
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case RESULT_FILE:
+                choicer.onRequestPermissionsResult(permissions, grantResults);
+                break;
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        switch (requestCode) {
+            case RESULT_FILE:
+                choicer.onActivityResult(resultCode, data);
+                break;
+        }
+    }
 }
