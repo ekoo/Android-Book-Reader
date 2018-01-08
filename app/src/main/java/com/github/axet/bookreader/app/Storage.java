@@ -4,9 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.ParcelFileDescriptor;
 import android.preference.PreferenceManager;
-import android.util.Log;
 
-import org.geometerplus.fbreader.Paths;
 import org.geometerplus.fbreader.book.Book;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.formats.PluginCollection;
@@ -22,10 +20,8 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -487,8 +483,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 xml.close();
 
                 for (Detector d : DETECTORS) {
-                    if (d.detected)
+                    if (d.detected) {
                         ext = d.ext;
+                        break; // priority first - more imporant
+                    }
                 }
 
                 byte messageDigest[] = digest.digest();
