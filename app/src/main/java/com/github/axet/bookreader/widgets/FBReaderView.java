@@ -121,8 +121,6 @@ public class FBReaderView extends RelativeLayout {
                     return (myColorLevel - 0x60) * 25 / (0xFF - 0x60);
                 }
 
-                final Context context = getContext();
-
                 float level = w.getAttributes().screenBrightness;
                 level = level >= 0 ? level : .5f;
 
@@ -130,7 +128,6 @@ public class FBReaderView extends RelativeLayout {
                 return 25 + (int) ((level - .01f) * 75 / .99f);
             }
         };
-        widget.setFocusable(true);
         addView(widget, new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         info = new Info(getContext());
@@ -219,6 +216,7 @@ public class FBReaderView extends RelativeLayout {
         view.setModel(null);
         app.Model = null;
         book = null;
+        widget.clearFocus();
     }
 
     public ZLTextFixedPosition getPosition() {

@@ -18,7 +18,6 @@ import android.os.Parcelable;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
-import android.support.v4.widget.PopupMenuCompat;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.PopupMenu;
@@ -68,8 +67,6 @@ import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
 
 import java.util.ArrayList;
-
-import group.pals.android.lib.ui.filechooser.utils.MimeTypes;
 
 public class MainActivity extends FullscreenActivity
         implements NavigationView.OnNavigationItemSelectedListener {
