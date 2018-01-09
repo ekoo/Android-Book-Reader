@@ -30,6 +30,8 @@ import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 public class LibraryFragment extends Fragment {
     public static final String TAG = LibraryFragment.class.getSimpleName();
@@ -37,6 +39,15 @@ public class LibraryFragment extends Fragment {
     BooksAdapter books;
     HeaderGridView grid;
     Storage storage;
+
+    public static class LatestFirst implements Comparator<Storage.StoredBook> {
+
+        @Override
+        public int compare(Storage.StoredBook o1, Storage.StoredBook o2) {
+            return Long.valueOf(o2.info.last).compareTo(o1.info.last);
+        }
+
+    }
 
     public class BooksAdapter implements ListAdapter {
         ArrayList<Storage.StoredBook> list;
@@ -48,6 +59,7 @@ public class LibraryFragment extends Fragment {
 
         public void refresh() {
             list = storage.list();
+            Collections.sort(list, new LatestFirst());
             notifyDataSetChanged();
         }
 
