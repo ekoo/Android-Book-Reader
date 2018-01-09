@@ -555,6 +555,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public static class RecentInfo {
         public String md5;
+        public long created;
         public long last;
         public ZLTextPosition position;
         public String title;
@@ -580,6 +581,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
         public void load(JSONObject o) throws JSONException {
             md5 = o.getString("md5");
+            created = o.optLong("created", 0);
             last = o.getLong("last");
             title = o.optString("title", null);
             JSONArray a = o.getJSONArray("position");
@@ -589,6 +591,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         public JSONObject save() throws JSONException {
             JSONObject o = new JSONObject();
             o.put("md5", md5);
+            o.put("created", created);
             o.put("last", last);
             o.put("title", title);
             JSONArray a = new JSONArray();
@@ -656,8 +659,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         if (f.exists()) {
             fbook.info = new RecentInfo(f);
         }
-        if (fbook.info == null)
+        if (fbook.info == null) {
             fbook.info = new RecentInfo();
+            fbook.info.created = System.currentTimeMillis();
+        }
         fbook.info.title = Storage.getNameNoExt(uri.getLastPathSegment());
         load(fbook);
         return fbook;
@@ -818,8 +823,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             File r = recentFile(b);
             if (r.exists())
                 b.info = new RecentInfo(r);
-            if (b.info == null)
+            if (b.info == null) {
                 b.info = new Storage.RecentInfo();
+                b.info.created = System.currentTimeMillis();
+            }
             list.add(b);
         }
     }
