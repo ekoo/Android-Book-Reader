@@ -225,7 +225,7 @@ public class LibraryFragment extends Fragment {
                         }
                         if (item.getItemId() == R.id.action_share) {
                             String ext = Storage.getExt(b.file);
-                            String type = MainApplication.getTypeByName(b.file.getName());
+                            String type = Storage.getTypeByName(b.file.getName());
                             Uri uri = FileProvider.getUriForFile(getContext(), type, b.info.title + "." + ext, b.file);
                             Intent intent = new Intent(Intent.ACTION_SEND);
                             intent.setType(type);
