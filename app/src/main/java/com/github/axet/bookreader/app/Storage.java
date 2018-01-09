@@ -61,8 +61,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public static final String COVER_EXT = "png";
     public static final String JSON_EXT = "json";
 
-    public static Detector[] DETECTORS = new Detector[]{new FileFB2(), new FileEPUB(), new FileHTML(),
-            new FilePDF(), new FileRTF(), new FileMobi(), new FileTxt()};
+    public static Detector[] supported() {
+        return new Detector[]{new FileFB2(), new FileEPUB(), new FileHTML(),
+                new FilePDF(), new FileRTF(), new FileMobi(), new FileTxt()};
+    }
 
     public static String toHex(byte[] messageDigest) {
         StringBuilder hexString = new StringBuilder();
@@ -186,8 +188,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             }
         }
 
-        public FileTypeDetector() {
-            for (Detector d : DETECTORS) {
+        public FileTypeDetector(Detector[] dd) {
+            for (Detector d : dd) {
                 if (d instanceof Handler) {
                     Handler h = (Handler) d;
                     h.clear();
@@ -225,8 +227,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             }
         }
 
-        public FileTypeDetectorZip() {
-            for (Detector d : DETECTORS) {
+        public FileTypeDetectorZip(Detector[] dd) {
+            for (Detector d : dd) {
                 if (d instanceof Handler) {
                     Handler h = (Handler) d;
                     h.clear();
@@ -325,8 +327,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             }
         }
 
-        public FileTypeDetectorXml() {
-            for (Detector d : DETECTORS) {
+        public FileTypeDetectorXml(Detector[] dd) {
+            for (Detector d : dd) {
                 if (d instanceof Handler) {
                     Handler h = (Handler) d;
                     h.clear();
@@ -697,10 +699,12 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 os = new FileOutputStream(fbook.file);
             }
 
+            Detector[] dd = supported();
+
             MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
-            FileTypeDetectorXml xml = new FileTypeDetectorXml();
-            FileTypeDetectorZip zip = new FileTypeDetectorZip();
-            FileTypeDetector bin = new FileTypeDetector();
+            FileTypeDetectorXml xml = new FileTypeDetectorXml(dd);
+            FileTypeDetectorZip zip = new FileTypeDetectorZip(dd);
+            FileTypeDetector bin = new FileTypeDetector(dd);
 
             byte[] buf = new byte[1024];
             int len;
@@ -719,7 +723,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             zip.close();
             xml.close();
 
-            for (Detector d : DETECTORS) {
+            for (Detector d : dd) {
                 if (d.detected) {
                     fbook.ext = d.ext;
                     break; // priority first - more imporant
@@ -748,7 +752,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public ZLFileImage loadCover(StoredBook book) {
         try {
             final PluginCollection pluginCollection = PluginCollection.Instance(new FBReaderView.Info(context));
-            FormatPlugin plugin = BookUtil.getPlugin(pluginCollection, book.book);
+            FormatPlugin plugin = FBReaderView.getPlugin(pluginCollection, book.book);
             BookModel Model = BookModel.createModel(book.book, plugin);
             ZLTextModel text = Model.getTextModel();
             ZLImage first = null;
@@ -756,8 +760,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 ZLTextParagraph p = text.getParagraph(i);
                 ZLTextParagraph.EntryIterator ei = p.iterator();
                 while (ei.next()) {
-                    ZLImageEntry image = ei.getImageEntry();
-                    if (image != null) {
+                    if (ei.getType() == ZLTextParagraph.Entry.IMAGE) {
+                        ZLImageEntry image = ei.getImageEntry();
                         if (first == null)
                             first = image.getImage();
                         if (image.IsCover) {
@@ -795,7 +799,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             FBReaderView.getApp(context);
             final PluginCollection pluginCollection = PluginCollection.Instance(new FBReaderView.Info(context));
             fbook.book = new Book(-1, fbook.file.getPath(), null, null, null);
-            BookUtil.reloadInfoFromFile(fbook.book, pluginCollection);
+            FormatPlugin plugin = FBReaderView.getPlugin(pluginCollection, fbook.book);
+            plugin.readMetainfo(fbook.book);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

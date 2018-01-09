@@ -13,16 +13,17 @@ import android.widget.RelativeLayout;
 
 import com.github.axet.bookreader.app.Storage;
 
-import org.geometerplus.android.fbreader.FBReaderMainActivity;
 import org.geometerplus.android.fbreader.NavigationPopup;
 import org.geometerplus.android.fbreader.SelectionPopup;
 import org.geometerplus.android.fbreader.TextSearchPopup;
 import org.geometerplus.android.fbreader.libraryService.BookCollectionShadow;
+import org.geometerplus.fbreader.book.Book;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
 import org.geometerplus.fbreader.fbreader.FBView;
 import org.geometerplus.fbreader.fbreader.options.FooterOptions;
+import org.geometerplus.fbreader.formats.BookReadingException;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
 import org.geometerplus.zlibrary.core.application.ZLApplication;
@@ -31,8 +32,6 @@ import org.geometerplus.zlibrary.core.util.SystemInfo;
 import org.geometerplus.zlibrary.core.view.ZLViewWidget;
 import org.geometerplus.zlibrary.text.hyphenation.ZLTextHyphenator;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
-import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
-import org.geometerplus.zlibrary.ui.android.library.ZLAndroidLibrary;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 public class FBReaderView extends RelativeLayout {
@@ -51,6 +50,14 @@ public class FBReaderView extends RelativeLayout {
             app = new FBReaderApp(info, new BookCollectionShadow());
         }
         return app;
+    }
+
+    public static FormatPlugin getPlugin(PluginCollection c, Book b) {
+        try {
+            return BookUtil.getPlugin(c, b);
+        } catch (BookReadingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static class Info implements SystemInfo {
@@ -218,7 +225,7 @@ public class FBReaderView extends RelativeLayout {
             widget.setEnabled(true);
             this.book = book;
             final PluginCollection pluginCollection = PluginCollection.Instance(app.SystemInfo);
-            FormatPlugin plugin = BookUtil.getPlugin(pluginCollection, book.book);
+            FormatPlugin plugin = getPlugin(pluginCollection, book.book);
             BookModel Model = BookModel.createModel(book.book, plugin);
             ZLTextHyphenator.Instance().load(book.book.getLanguage());
             view.setModel(Model.getTextModel());

@@ -188,11 +188,11 @@ public class MainActivity extends FullscreenActivity
                         @Override
                         public void run() {
                             loadBook(fbook);
-                            d.cancel();
                         }
                     });
                 } catch (RuntimeException e) {
                     Post(e);
+                } finally {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -248,22 +248,31 @@ public class MainActivity extends FullscreenActivity
         }
     }
 
-    public void Post(final Throwable e) {
-        Log.d(TAG, "Error", e);
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Error(e);
-            }
-        });
-    }
-
-    public void Error(Throwable e) {
+    public static String toString(Throwable e) {
         while (e.getCause() != null)
             e = e.getCause();
         String msg = e.getMessage();
         if (msg == null || msg.isEmpty())
             msg = e.getClass().getSimpleName();
+        return msg;
+    }
+
+    public void Post(final Throwable e) {
+        Log.d(TAG, "Error", e);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Error(MainActivity.toString(e));
+            }
+        });
+    }
+
+    public void Error(Throwable e) {
+        Log.d(TAG, "Error", e);
+        Error(toString(e));
+    }
+
+    public void Error(String msg) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Error");
         builder.setMessage(msg);
