@@ -539,7 +539,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 return;
             File[] ee = exists(s);
             if (ee == null) {
-                file = com.github.axet.androidlibrary.app.Storage.move(file, f);
+                if (tmp)
+                    file = Storage.move(file, f);
+                else
+                    file = Storage.copy(file, f);
             } else {
                 boolean same = false;
                 for (File e : ee) {
@@ -561,7 +564,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     for (File e : ee) {
                         e.delete();
                     }
-                    file = com.github.axet.androidlibrary.app.Storage.move(file, f);
+                    file = Storage.move(file, f);
                 }
             }
         }
