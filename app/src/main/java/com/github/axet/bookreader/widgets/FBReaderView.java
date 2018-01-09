@@ -1,9 +1,11 @@
 package com.github.axet.bookreader.widgets;
 
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
@@ -192,7 +194,16 @@ public class FBReaderView extends RelativeLayout {
             new NavigationPopup(app);
         }
         if (app.getPopupById(SelectionPopup.ID) == null) {
-            new SelectionPopup(app);
+            new SelectionPopup(app) {
+                @Override
+                public void createControlPanel(Activity activity, RelativeLayout root) {
+                    super.createControlPanel(activity, root);
+                    View t = myWindow.findViewById(org.geometerplus.zlibrary.ui.android.R.id.selection_panel_translate);
+                    t.setVisibility(View.GONE);
+                    t = myWindow.findViewById(org.geometerplus.zlibrary.ui.android.R.id.selection_panel_bookmark);
+                    t.setVisibility(View.GONE);
+                }
+            };
         }
 
         app.ViewOptions.ScrollbarType.setValue(FBView.SCROLLBAR_SHOW_AS_FOOTER);
