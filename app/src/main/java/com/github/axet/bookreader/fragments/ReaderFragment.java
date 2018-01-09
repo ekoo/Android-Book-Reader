@@ -248,8 +248,9 @@ public class ReaderFragment extends Fragment {
             fb.loadBook(b);
         } catch (RuntimeException e) {
             main.Error(e);
+            main.openLibrary();
         }
-        
+
         return v;
     }
 
@@ -276,6 +277,8 @@ public class ReaderFragment extends Fragment {
     }
 
     void savePosition() {
+        if (view.book == null)
+            return;
         view.book.info.position = view.getPosition();
         storage.save(view.book);
     }

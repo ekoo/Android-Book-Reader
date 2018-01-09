@@ -212,7 +212,7 @@ public class MainActivity extends FullscreenActivity
         navigationView.getMenu().findItem(R.id.nav_library).setChecked(false);
     }
 
-    void openLibrary() {
+    public void openLibrary() {
         FragmentManager fm = getSupportFragmentManager();
         fm.beginTransaction().replace(R.id.main_content, new LibraryFragment(), LibraryFragment.TAG).commit();
         navigationView.getMenu().findItem(R.id.nav_library).setChecked(true);
