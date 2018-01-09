@@ -49,6 +49,15 @@ public class LibraryFragment extends Fragment {
 
     }
 
+    public static class CreatedFirst implements Comparator<Storage.StoredBook> {
+
+        @Override
+        public int compare(Storage.StoredBook o1, Storage.StoredBook o2) {
+            return Long.valueOf(o1.info.created).compareTo(o2.info.created);
+        }
+
+    }
+
     public class BooksAdapter implements ListAdapter {
         ArrayList<Storage.StoredBook> list;
         DataSetObserver listener;
@@ -59,7 +68,7 @@ public class LibraryFragment extends Fragment {
 
         public void refresh() {
             list = storage.list();
-            Collections.sort(list, new LatestFirst());
+            Collections.sort(list, new CreatedFirst());
             notifyDataSetChanged();
         }
 
