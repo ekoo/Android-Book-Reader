@@ -1,6 +1,7 @@
 package com.github.axet.bookreader.activities;
 
 import android.Manifest;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -15,6 +16,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -22,6 +24,7 @@ import android.view.View;
 import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.OpenChoicer;
@@ -34,6 +37,8 @@ import com.github.axet.bookreader.fragments.ReaderFragment;
 
 public class MainActivity extends FullscreenActivity
         implements NavigationView.OnNavigationItemSelectedListener {
+
+    public static final String TAG = MainActivity.class.getSimpleName();
 
     public static final int RESULT_FILE = 1;
 
@@ -177,14 +182,24 @@ public class MainActivity extends FullscreenActivity
         Thread thread = new Thread() {
             @Override
             public void run() {
-                final Storage.StoredBook fbook = storage.load(u);
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        loadBook(fbook);
-                        d.cancel();
-                    }
-                });
+                try {
+                    final Storage.StoredBook fbook = storage.load(u);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            loadBook(fbook);
+                            d.cancel();
+                        }
+                    });
+                } catch (RuntimeException e) {
+                    Post(e);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            d.cancel();
+                        }
+                    });
+                }
             }
         };
         thread.start();
@@ -194,11 +209,13 @@ public class MainActivity extends FullscreenActivity
         Uri uri = Uri.fromFile(book.file);
         FragmentManager fm = getSupportFragmentManager();
         fm.beginTransaction().replace(R.id.main_content, ReaderFragment.newInstance(uri), ReaderFragment.TAG).commit();
+        navigationView.getMenu().findItem(R.id.nav_library).setChecked(false);
     }
 
     void openLibrary() {
         FragmentManager fm = getSupportFragmentManager();
         fm.beginTransaction().replace(R.id.main_content, new LibraryFragment(), LibraryFragment.TAG).commit();
+        navigationView.getMenu().findItem(R.id.nav_library).setChecked(true);
     }
 
     @Override
@@ -229,5 +246,32 @@ public class MainActivity extends FullscreenActivity
                 choicer.onActivityResult(resultCode, data);
                 break;
         }
+    }
+
+    public void Post(final Throwable e) {
+        Log.d(TAG, "Error", e);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Error(e);
+            }
+        });
+    }
+
+    public void Error(Throwable e) {
+        while (e.getCause() != null)
+            e = e.getCause();
+        String msg = e.getMessage();
+        if (msg == null || msg.isEmpty())
+            msg = e.getClass().getSimpleName();
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Error");
+        builder.setMessage(msg);
+        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+            }
+        });
+        builder.show();
     }
 }

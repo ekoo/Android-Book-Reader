@@ -47,6 +47,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -454,22 +455,38 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     // https://stackoverflow.com/questions/898669/how-can-i-detect-if-a-file-is-binary-non-text-in-python
     public static class FileTxt extends FileTypeDetector.Handler {
-        byte[] b;
+        public static final int F = 0; /* character never appears in text */
+        public static final int T = 1; /* character appears in plain ASCII text */
+        public static final int I = 2; /* character appears in ISO-8859 text */
+        public static final int X = 3; /* character appears in non-ISO extended ASCII (Mac, IBM PC) */
+        public static final int R = 4; // lib.ru formatting, ^T and ^U
+
+        // https://github.com/file/file/blob/f2a6e7cb7db9b5fd86100403df6b2f830c7f22ba/src/encoding.c#L151-L228
+        byte[] text_chars = new byte[]
+                {
+                        /*                  BEL BS HT LF VT FF CR    */
+                        F, F, F, F, F, F, F, T, T, T, T, T, T, T, F, F,  /* 0x0X */
+                        /*                              ESC          */
+                        F, F, F, F, R, R, F, F, F, F, F, T, F, F, F, F,  /* 0x1X */
+                        T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T,  /* 0x2X */
+                        T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T,  /* 0x3X */
+                        T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T,  /* 0x4X */
+                        T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T,  /* 0x5X */
+                        T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T,  /* 0x6X */
+                        T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, F,  /* 0x7X */
+                        /*            NEL                            */
+                        X, X, X, X, X, T, X, X, X, X, X, X, X, X, X, X,  /* 0x8X */
+                        X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,  /* 0x9X */
+                        I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I,  /* 0xaX */
+                        I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I,  /* 0xbX */
+                        I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I,  /* 0xcX */
+                        I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I,  /* 0xdX */
+                        I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I,  /* 0xeX */
+                        I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I   /* 0xfX */
+                };
 
         public FileTxt() {
             super("txt");
-            try {
-                ByteArrayOutputStream os = new ByteArrayOutputStream();
-                os.write(new byte[]{7, 8, 9, 10, 12, 13, 27});
-                for (int i = 0x20; i <= 0x100; i++) {
-                    if (i == 0x7f)
-                        continue;
-                    os.write(i);
-                }
-                b = os.toByteArray();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
         }
 
         @Override
@@ -479,13 +496,11 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 done = true;
                 byte[] bb = os.toByteArray();
                 for (int i = 0; i < bb.length; i++) {
-                    boolean v = false;
-                    for (int k = 0; k < b.length; k++) {
-                        if (bb[i] == b[k])
-                            v = true;
+                    int b = bb[i] & 0xFF;
+                    for (int k = 0; k < text_chars.length; k++) {
+                        if (text_chars[b] == F)
+                            return;
                     }
-                    if (!v)
-                        return;
                 }
                 detected = true;
             }
@@ -708,10 +723,16 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
             }
 
+            if (fbook.ext == null) {
+                throw new RuntimeException("Unsupported format");
+            }
+
             byte messageDigest[] = digest.digest();
 
             fbook.md5 = toHex(messageDigest);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (IOException | NoSuchAlgorithmException e) {
             if (fbook.file != null)
                 fbook.file.delete();
             throw new RuntimeException(e);
