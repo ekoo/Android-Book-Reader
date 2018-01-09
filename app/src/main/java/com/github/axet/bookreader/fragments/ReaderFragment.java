@@ -261,6 +261,11 @@ public class ReaderFragment extends Fragment {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+    }
+
+    @Override
     public void onDetach() {
         super.onDetach();
         savePosition();

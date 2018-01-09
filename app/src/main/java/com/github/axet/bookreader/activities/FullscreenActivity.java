@@ -1,6 +1,7 @@
 package com.github.axet.bookreader.activities;
 
 import android.annotation.SuppressLint;
+import android.os.Build;
 import android.support.design.widget.NavigationView;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
@@ -135,23 +136,33 @@ public class FullscreenActivity extends AppCompatActivity {
         // Set the IMMERSIVE flag.
         // Set the content to appear under the system bars so that the content
         // doesn't resize when the system bars hide and show.
-        decorView.setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION // hide nav bar
-                        | View.SYSTEM_UI_FLAG_FULLSCREEN // hide status bar
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE);
-        drawer.setFitsSystemWindows(false);
+        if (Build.VERSION.SDK_INT >= 11)
+            decorView.setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION // hide nav bar
+                            | View.SYSTEM_UI_FLAG_FULLSCREEN // hide status bar
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE);
+        if (Build.VERSION.SDK_INT >= 14)
+            drawer.setFitsSystemWindows(false);
         drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
     }
 
     // This snippet shows the system bars. It does this by removing all the flags
 // except for the ones that make the content appear under the system bars.
     private void showSystemUI() {
-        decorView.setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-        drawer.setFitsSystemWindows(true);
+        if (Build.VERSION.SDK_INT >= 11)
+            decorView.setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        if (Build.VERSION.SDK_INT >= 14)
+            drawer.setFitsSystemWindows(true);
         drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        setFullscreen(fullscreen); // refresh
     }
 }
