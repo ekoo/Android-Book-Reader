@@ -26,6 +26,7 @@ import com.github.axet.androidlibrary.widgets.HeaderGridView;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
+import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
 
 import java.util.ArrayList;
@@ -207,10 +208,10 @@ public class LibraryFragment extends Fragment {
                         }
                         if (item.getItemId() == R.id.action_share) {
                             String ext = Storage.getExt(b.file);
-                            String type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
-                            String name = Storage.getNameNoExt(b.file);
-                            Uri uri = FileProvider.getUriForFile(getContext(), type, name, b.file);
+                            String type = MainApplication.getTypeByName(b.file.getName());
+                            Uri uri = FileProvider.getUriForFile(getContext(), type, b.info.title + "." + ext, b.file);
                             Intent intent = new Intent(Intent.ACTION_SEND);
+                            intent.setType(type);
                             intent.putExtra(Intent.EXTRA_EMAIL, "");
                             intent.putExtra(Intent.EXTRA_SUBJECT, b.info.title);
                             intent.putExtra(Intent.EXTRA_TEXT, getString(R.string.shared_via, getString(R.string.app_name)));
