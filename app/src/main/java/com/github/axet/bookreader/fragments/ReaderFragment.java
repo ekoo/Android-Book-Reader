@@ -240,12 +240,16 @@ public class ReaderFragment extends Fragment {
 
         FBReaderView fb = (FBReaderView) v.findViewById(R.id.main_view);
 
-        Storage.StoredBook b = storage.load(uri);
-        if (!b.isLoaded())
-            storage.load(b);
+        try {
+            Storage.StoredBook b = storage.load(uri);
+            if (!b.isLoaded())
+                storage.load(b);
 
-        fb.loadBook(b);
-
+            fb.loadBook(b);
+        } catch (RuntimeException e) {
+            main.Error(e);
+        }
+        
         return v;
     }
 
