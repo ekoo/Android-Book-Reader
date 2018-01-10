@@ -37,14 +37,14 @@ import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.Storage;
 
-import org.geometerplus.fbreader.network.NetworkImage;
-
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Locale;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class LibraryFragment extends Fragment {
     public static final String TAG = LibraryFragment.class.getSimpleName();
@@ -55,14 +55,26 @@ public class LibraryFragment extends Fragment {
     EditText edit;
     String lastSearch = "";
 
-    public static class DownloadImageTask extends AsyncTask<Uri, Void, Bitmap> {
-        ImageView image;
-        ProgressBar progress;
+    public static class BookView {
+        public Bitmap bm;
+        public ImageView image;
+        public ProgressBar progress;
 
-        public DownloadImageTask(ProgressBar progress, ImageView bmImage) {
-            this.progress = progress;
-            this.image = bmImage;
-            progress.setVisibility(View.VISIBLE);
+        public BookView() {
+        }
+
+        public BookView(ProgressBar p, ImageView i) {
+            progress = p;
+            image = i;
+        }
+    }
+
+    public static class DownloadImageTask extends AsyncTask<Uri, Void, Bitmap> {
+        BookView book;
+
+        public DownloadImageTask(BookView b) {
+            book = b;
+            book.progress.setVisibility(View.VISIBLE);
         }
 
         protected Bitmap doInBackground(Uri... urls) {
@@ -83,10 +95,11 @@ public class LibraryFragment extends Fragment {
         }
 
         protected void onPostExecute(Bitmap result) {
-            progress.setVisibility(View.GONE);
+            book.progress.setVisibility(View.GONE);
             if (result == null)
                 return;
-            image.setImageBitmap(result);
+            book.bm = result;
+            book.image.setImageBitmap(result);
         }
     }
 
@@ -110,6 +123,7 @@ public class LibraryFragment extends Fragment {
 
     public class BooksAdapter implements ListAdapter {
         ArrayList<Storage.Book> list = new ArrayList<>();
+        Map<Uri, BookView> views = new TreeMap<>();
         DataSetObserver listener;
         String filter;
 
@@ -121,6 +135,7 @@ public class LibraryFragment extends Fragment {
             ArrayList<Storage.Book> ll = storage.list();
             if (filter == null || filter.isEmpty()) {
                 list = ll;
+                views.clear();
             } else {
                 for (Storage.Book b : ll) {
                     if (b.info.title.toLowerCase(Locale.US).contains(filter.toLowerCase(Locale.US))) {
@@ -190,7 +205,15 @@ public class LibraryFragment extends Fragment {
             Storage.Book b = list.get(position);
 
             if (b.cover != null) {
-                new LibraryFragment.DownloadImageTask(progress, image).execute(Uri.fromFile(b.cover));
+                Uri u = Uri.fromFile(b.cover);
+                BookView v = views.get(u);
+                if (v == null) {
+                    v = new BookView(progress, image);
+                    views.put(u, v);
+                    new LibraryFragment.DownloadImageTask(v).execute(u);
+                } else if (v.bm != null) {
+                    image.setImageBitmap(v.bm);
+                }
             }
 
             text.setText(b.info.title);

@@ -5,6 +5,8 @@ import android.database.DataSetObserver;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -41,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class NetworkLibraryFragment extends Fragment {
     public static final String TAG = NetworkLibraryFragment.class.getSimpleName();
@@ -75,6 +78,7 @@ public class NetworkLibraryFragment extends Fragment {
 
     public class BooksAdapter implements ListAdapter {
         List<FBTree> list = new ArrayList<>();
+        Map<Uri, LibraryFragment.BookView> views = new TreeMap<>();
         DataSetObserver listener;
 
         public BooksAdapter() {
@@ -140,7 +144,15 @@ public class NetworkLibraryFragment extends Fragment {
             progress.setVisibility(View.GONE);
 
             if (cover != null && cover instanceof NetworkImage) {
-                new LibraryFragment.DownloadImageTask(progress, image).execute(Uri.parse(((NetworkImage) cover).Url));
+                Uri u = Uri.parse(((NetworkImage) cover).Url);
+                LibraryFragment.BookView v = views.get(u);
+                if (v == null) {
+                    v = new LibraryFragment.BookView(progress, image);
+                    views.put(u, v);
+                    new LibraryFragment.DownloadImageTask(v).execute(u);
+                } else if (v.bm != null) {
+                    image.setImageBitmap(v.bm);
+                }
             }
 
             text.setText(b.getName());
@@ -267,6 +279,7 @@ public class NetworkLibraryFragment extends Fragment {
 
     void loadBooks(List<FBTree> l) {
         books.list = l;
+        books.views.clear();
         books.notifyDataSetChanged();
     }
 
@@ -376,6 +389,27 @@ public class NetworkLibraryFragment extends Fragment {
         View stop = v.findViewById(R.id.search_header_stop);
         searchpanel = v.findViewById(R.id.search_panel);
         searchtoolbar = (ViewGroup) v.findViewById(R.id.search_header_toolbar);
+
+        edit.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                String t = s.toString();
+                if (t.isEmpty()) {
+                    clear.setVisibility(View.GONE);
+                } else {
+                    clear.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+        edit.setText("");
 
         progress.setVisibility(View.GONE);
         stop.setVisibility(View.GONE);
