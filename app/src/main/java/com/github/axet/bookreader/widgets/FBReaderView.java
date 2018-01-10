@@ -42,50 +42,6 @@ public class FBReaderView extends RelativeLayout {
     public String title;
     public Window w;
     public Storage.Book book;
-    static ZLAndroidApplication zlib;
-
-    public static FBReaderApp getApp(final Context context) {
-        if (zlib == null) {
-            zlib = new ZLAndroidApplication() {
-                {
-                    attachBaseContext(context);
-                    onCreate();
-                }
-            };
-        }
-        FBReaderView.Info info = new FBReaderView.Info(context);
-        FBReaderApp app = (FBReaderApp) FBReaderApp.Instance();
-        if (app == null) {
-            app = new FBReaderApp(info, new BookCollectionShadow());
-        }
-        return app;
-    }
-
-    public static FormatPlugin getPlugin(PluginCollection c, org.geometerplus.fbreader.book.Book b) {
-        try {
-            return BookUtil.getPlugin(c, b);
-        } catch (BookReadingException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static class Info implements SystemInfo {
-        Context context;
-
-        public Info(Context context) {
-            this.context = context;
-        }
-
-        @Override
-        public String tempDirectory() {
-            return context.getFilesDir().getPath();
-        }
-
-        @Override
-        public String networkCacheDirectory() {
-            return context.getFilesDir().getPath();
-        }
-    }
 
     public FBReaderView(Context context) {
         super(context);
@@ -158,7 +114,7 @@ public class FBReaderView extends RelativeLayout {
         widget.setFocusable(true);
         addView(widget, new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-        app = getApp(getContext());
+        app = Storage.getApp(getContext());
 
         app.setWindow(new ZLApplicationWindow() {
             @Override
@@ -234,7 +190,7 @@ public class FBReaderView extends RelativeLayout {
             widget.setEnabled(true);
             this.book = book;
             final PluginCollection pluginCollection = PluginCollection.Instance(app.SystemInfo);
-            FormatPlugin plugin = getPlugin(pluginCollection, book.book);
+            FormatPlugin plugin = Storage.getPlugin(pluginCollection, book);
             BookModel Model = BookModel.createModel(book.book, plugin);
             ZLTextHyphenator.Instance().load(book.book.getLanguage());
             view.setModel(Model.getTextModel());

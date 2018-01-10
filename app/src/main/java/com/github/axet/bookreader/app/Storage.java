@@ -12,16 +12,22 @@ import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.widgets.FBReaderView;
 
 import org.apache.commons.io.IOUtils;
+import org.geometerplus.android.fbreader.libraryService.BookCollectionShadow;
+import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.bookmodel.BookModel;
+import org.geometerplus.fbreader.fbreader.FBReaderApp;
+import org.geometerplus.fbreader.formats.BookReadingException;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
 import org.geometerplus.zlibrary.core.image.ZLFileImage;
 import org.geometerplus.zlibrary.core.image.ZLImage;
+import org.geometerplus.zlibrary.core.util.SystemInfo;
 import org.geometerplus.zlibrary.text.model.ZLImageEntry;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
+import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -59,9 +65,54 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public static final String COVER_EXT = "png";
     public static final String JSON_EXT = "json";
 
+    static ZLAndroidApplication zlib;
+
     public static Detector[] supported() {
         return new Detector[]{new FileFB2(), new FileEPUB(), new FileHTML(),
                 new FilePDF(), new FileRTF(), new FileMobi(), new FileTxt()};
+    }
+
+    public static FBReaderApp getApp(final Context context) {
+        if (zlib == null) {
+            zlib = new ZLAndroidApplication() {
+                {
+                    attachBaseContext(context);
+                    onCreate();
+                }
+            };
+        }
+        Info info = new Info(context);
+        FBReaderApp app = (FBReaderApp) FBReaderApp.Instance();
+        if (app == null) {
+            app = new FBReaderApp(info, new BookCollectionShadow());
+        }
+        return app;
+    }
+
+    public static FormatPlugin getPlugin(PluginCollection c, Storage.Book b) {
+        try {
+            return BookUtil.getPlugin(c, b.book);
+        } catch (BookReadingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static class Info implements SystemInfo {
+        Context context;
+
+        public Info(Context context) {
+            this.context = context;
+        }
+
+        @Override
+        public String tempDirectory() {
+            return context.getFilesDir().getPath();
+        }
+
+        @Override
+        public String networkCacheDirectory() {
+            return context.getFilesDir().getPath();
+        }
     }
 
     public static String toHex(byte[] messageDigest) {
@@ -623,6 +674,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public Storage(Context context) {
         super(context);
+        getApp(context);
     }
 
     public void save(Book book) {
@@ -749,8 +801,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public ZLFileImage loadCover(Book book) {
         try {
-            final PluginCollection pluginCollection = PluginCollection.Instance(new FBReaderView.Info(context));
-            FormatPlugin plugin = FBReaderView.getPlugin(pluginCollection, book.book);
+            final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
+            FormatPlugin plugin = getPlugin(pluginCollection, book);
             BookModel Model = BookModel.createModel(book.book, plugin);
             ZLTextModel text = Model.getTextModel();
             ZLImage first = null;
@@ -794,10 +846,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             fbook.info = new Storage.RecentInfo();
         fbook.info.md5 = fbook.md5;
         try {
-            FBReaderView.getApp(context); // init library
-            final PluginCollection pluginCollection = PluginCollection.Instance(new FBReaderView.Info(context));
+            final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
             fbook.book = new org.geometerplus.fbreader.book.Book(-1, fbook.file.getPath(), null, null, null);
-            FormatPlugin plugin = FBReaderView.getPlugin(pluginCollection, fbook.book);
+            FormatPlugin plugin = getPlugin(pluginCollection, fbook);
             plugin.readMetainfo(fbook.book);
         } catch (Exception e) {
             throw new RuntimeException(e);

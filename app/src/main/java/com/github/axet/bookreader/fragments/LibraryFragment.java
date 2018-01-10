@@ -39,7 +39,7 @@ public class LibraryFragment extends Fragment {
     HeaderGridView grid;
     Storage storage;
 
-    public static class LatestFirst implements Comparator<Storage.Book> {
+    public static class ByRecent implements Comparator<Storage.Book> {
 
         @Override
         public int compare(Storage.Book o1, Storage.Book o2) {
@@ -48,7 +48,7 @@ public class LibraryFragment extends Fragment {
 
     }
 
-    public static class CreatedFirst implements Comparator<Storage.Book> {
+    public static class ByCreated implements Comparator<Storage.Book> {
 
         @Override
         public int compare(Storage.Book o1, Storage.Book o2) {
@@ -67,7 +67,7 @@ public class LibraryFragment extends Fragment {
 
         public void refresh() {
             list = storage.list();
-            Collections.sort(list, new CreatedFirst());
+            Collections.sort(list, new ByCreated());
             notifyDataSetChanged();
         }
 
