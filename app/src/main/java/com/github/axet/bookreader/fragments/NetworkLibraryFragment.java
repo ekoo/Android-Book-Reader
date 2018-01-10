@@ -237,6 +237,7 @@ public class NetworkLibraryFragment extends Fragment {
             @Override
             public void run() {
                 try {
+                    l.Tree.clearCatalog();
                     i.loadChildren(l);
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
