@@ -241,7 +241,7 @@ public class ReaderFragment extends Fragment {
         FBReaderView fb = (FBReaderView) v.findViewById(R.id.main_view);
 
         try {
-            Storage.StoredBook b = storage.load(uri);
+            Storage.Book b = storage.load(uri);
             if (!b.isLoaded())
                 storage.load(b);
 

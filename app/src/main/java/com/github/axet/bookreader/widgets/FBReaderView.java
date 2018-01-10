@@ -17,7 +17,6 @@ import org.geometerplus.android.fbreader.NavigationPopup;
 import org.geometerplus.android.fbreader.SelectionPopup;
 import org.geometerplus.android.fbreader.TextSearchPopup;
 import org.geometerplus.android.fbreader.libraryService.BookCollectionShadow;
-import org.geometerplus.fbreader.book.Book;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
@@ -32,6 +31,7 @@ import org.geometerplus.zlibrary.core.util.SystemInfo;
 import org.geometerplus.zlibrary.core.view.ZLViewWidget;
 import org.geometerplus.zlibrary.text.hyphenation.ZLTextHyphenator;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
+import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 public class FBReaderView extends RelativeLayout {
@@ -41,9 +41,18 @@ public class FBReaderView extends RelativeLayout {
     public int battery;
     public String title;
     public Window w;
-    public Storage.StoredBook book;
+    public Storage.Book book;
+    static ZLAndroidApplication zlib;
 
-    public static FBReaderApp getApp(Context context) {
+    public static FBReaderApp getApp(final Context context) {
+        if (zlib == null) {
+            zlib = new ZLAndroidApplication() {
+                {
+                    attachBaseContext(context);
+                    onCreate();
+                }
+            };
+        }
         FBReaderView.Info info = new FBReaderView.Info(context);
         FBReaderApp app = (FBReaderApp) FBReaderApp.Instance();
         if (app == null) {
@@ -52,7 +61,7 @@ public class FBReaderView extends RelativeLayout {
         return app;
     }
 
-    public static FormatPlugin getPlugin(PluginCollection c, Book b) {
+    public static FormatPlugin getPlugin(PluginCollection c, org.geometerplus.fbreader.book.Book b) {
         try {
             return BookUtil.getPlugin(c, b);
         } catch (BookReadingException e) {
@@ -219,7 +228,7 @@ public class FBReaderView extends RelativeLayout {
         view = (FBView) ZLApplication.Instance().getCurrentView();
     }
 
-    public void loadBook(Storage.StoredBook book) {
+    public void loadBook(Storage.Book book) {
         try {
             setEnabled(true);
             widget.setEnabled(true);

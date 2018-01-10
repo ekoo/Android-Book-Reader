@@ -26,7 +26,6 @@ import com.github.axet.androidlibrary.widgets.HeaderGridView;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
-import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
 
 import java.util.ArrayList;
@@ -40,26 +39,26 @@ public class LibraryFragment extends Fragment {
     HeaderGridView grid;
     Storage storage;
 
-    public static class LatestFirst implements Comparator<Storage.StoredBook> {
+    public static class LatestFirst implements Comparator<Storage.Book> {
 
         @Override
-        public int compare(Storage.StoredBook o1, Storage.StoredBook o2) {
+        public int compare(Storage.Book o1, Storage.Book o2) {
             return Long.valueOf(o2.info.last).compareTo(o1.info.last);
         }
 
     }
 
-    public static class CreatedFirst implements Comparator<Storage.StoredBook> {
+    public static class CreatedFirst implements Comparator<Storage.Book> {
 
         @Override
-        public int compare(Storage.StoredBook o1, Storage.StoredBook o2) {
+        public int compare(Storage.Book o1, Storage.Book o2) {
             return Long.valueOf(o1.info.created).compareTo(o2.info.created);
         }
 
     }
 
     public class BooksAdapter implements ListAdapter {
-        ArrayList<Storage.StoredBook> list;
+        ArrayList<Storage.Book> list;
         DataSetObserver listener;
 
         public BooksAdapter() {
@@ -103,7 +102,7 @@ public class LibraryFragment extends Fragment {
         }
 
         @Override
-        public Storage.StoredBook getItem(int position) {
+        public Storage.Book getItem(int position) {
             return list.get(position);
         }
 
@@ -124,7 +123,7 @@ public class LibraryFragment extends Fragment {
             ImageView image = (ImageView) book.findViewById(R.id.imageView);
             TextView text = (TextView) book.findViewById(R.id.textView);
 
-            Storage.StoredBook b = list.get(position);
+            Storage.Book b = list.get(position);
 
             if (b.cover != null) {
                 Bitmap bmp = BitmapFactory.decodeFile(b.cover.getPath());
@@ -183,7 +182,7 @@ public class LibraryFragment extends Fragment {
         grid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Storage.StoredBook b = books.getItem(position);
+                Storage.Book b = books.getItem(position);
                 main.loadBook(b);
             }
         });
@@ -191,7 +190,7 @@ public class LibraryFragment extends Fragment {
         grid.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                final Storage.StoredBook b = books.getItem(position);
+                final Storage.Book b = books.getItem(position);
                 PopupMenu popup = new PopupMenu(getContext(), view);
                 popup.inflate(R.menu.book_menu);
                 popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {

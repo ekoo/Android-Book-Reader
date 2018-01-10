@@ -12,8 +12,6 @@ import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.widgets.FBReaderView;
 
 import org.apache.commons.io.IOUtils;
-import org.geometerplus.fbreader.book.Book;
-import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
@@ -77,7 +75,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return hexString.toString();
     }
 
-    public static String getTitle(StoredBook book) {
+    public static String getTitle(Book book) {
         String a = book.book.authorsString(", ");
         String t = book.book.getTitle();
         if (t.equals(book.md5))
@@ -96,12 +94,12 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return m;
     }
 
-    public static File coverFile(StoredBook book) {
+    public static File coverFile(Book book) {
         File p = book.file.getParentFile();
         return new File(p, book.md5 + "." + COVER_EXT);
     }
 
-    public static File recentFile(StoredBook book) {
+    public static File recentFile(Book book) {
         File p = book.file.getParentFile();
         return new File(p, book.md5 + "." + JSON_EXT);
     }
@@ -509,10 +507,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
     }
 
-    public static class StoredBook {
+    public static class Book {
         public File file;
         public String md5;
-        public Book book;
+        public org.geometerplus.fbreader.book.Book book;
         public String ext;
         public Storage.RecentInfo info;
         public File cover;
@@ -627,7 +625,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         super(context);
     }
 
-    public void save(StoredBook book) {
+    public void save(Book book) {
         book.info.last = System.currentTimeMillis();
         File f = recentFile(book);
         try {
@@ -640,8 +638,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
     }
 
-    public StoredBook load(Uri uri) {
-        StoredBook fbook;
+    public Book load(Uri uri) {
+        Book fbook;
         String s = uri.getScheme();
         if (s.equals(ContentResolver.SCHEME_CONTENT)) {
             ContentResolver resolver = context.getContentResolver();
@@ -688,8 +686,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return fbook;
     }
 
-    public StoredBook load(InputStream is, File f) {
-        StoredBook fbook = new StoredBook();
+    public Book load(InputStream is, File f) {
+        Book fbook = new Book();
         try {
             FileOutputStream os = null;
 
@@ -749,7 +747,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return fbook;
     }
 
-    public ZLFileImage loadCover(StoredBook book) {
+    public ZLFileImage loadCover(Book book) {
         try {
             final PluginCollection pluginCollection = PluginCollection.Instance(new FBReaderView.Info(context));
             FormatPlugin plugin = FBReaderView.getPlugin(pluginCollection, book.book);
@@ -786,7 +784,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
     }
 
-    public void load(StoredBook fbook) {
+    public void load(Book fbook) {
         if (fbook.info == null) {
             File r = recentFile(fbook);
             if (r.exists())
@@ -796,9 +794,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             fbook.info = new Storage.RecentInfo();
         fbook.info.md5 = fbook.md5;
         try {
-            FBReaderView.getApp(context);
+            FBReaderView.getApp(context); // init library
             final PluginCollection pluginCollection = PluginCollection.Instance(new FBReaderView.Info(context));
-            fbook.book = new Book(-1, fbook.file.getPath(), null, null, null);
+            fbook.book = new org.geometerplus.fbreader.book.Book(-1, fbook.file.getPath(), null, null, null);
             FormatPlugin plugin = FBReaderView.getPlugin(pluginCollection, fbook.book);
             plugin.readMetainfo(fbook.book);
         } catch (Exception e) {
@@ -819,14 +817,14 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
     }
 
-    public ArrayList<StoredBook> list() {
-        ArrayList<StoredBook> list = new ArrayList<>();
+    public ArrayList<Book> list() {
+        ArrayList<Book> list = new ArrayList<>();
         list(list, getLocalInternal());
         list(list, getLocalExternal());
         return list;
     }
 
-    public void list(ArrayList<StoredBook> list, File storage) {
+    public void list(ArrayList<Book> list, File storage) {
         File[] ff = storage.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
@@ -843,7 +841,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         if (ff == null)
             return;
         for (File f : ff) {
-            StoredBook b = new StoredBook();
+            Book b = new Book();
             b.md5 = getNameNoExt(f);
             b.file = f;
             File cover = coverFile(b);
@@ -860,7 +858,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
     }
 
-    public void delete(StoredBook book) {
+    public void delete(Book book) {
         book.file.delete();
         if (book.cover != null)
             book.cover.delete();

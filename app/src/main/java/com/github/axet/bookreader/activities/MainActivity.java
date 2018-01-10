@@ -183,7 +183,7 @@ public class MainActivity extends FullscreenActivity
             @Override
             public void run() {
                 try {
-                    final Storage.StoredBook fbook = storage.load(u);
+                    final Storage.Book fbook = storage.load(u);
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -205,7 +205,7 @@ public class MainActivity extends FullscreenActivity
         thread.start();
     }
 
-    public void loadBook(Storage.StoredBook book) {
+    public void loadBook(Storage.Book book) {
         Uri uri = Uri.fromFile(book.file);
         FragmentManager fm = getSupportFragmentManager();
         fm.beginTransaction().replace(R.id.main_content, ReaderFragment.newInstance(uri), ReaderFragment.TAG).commit();

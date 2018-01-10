@@ -1,8 +1,8 @@
 package com.github.axet.bookreader.app;
 
-import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
+import android.app.Application;
 
-public class MainApplication extends ZLAndroidApplication {
+public class MainApplication extends Application {
 
     @Override
     public void onCreate() {
