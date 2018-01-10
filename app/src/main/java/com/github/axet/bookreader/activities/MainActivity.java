@@ -1,6 +1,7 @@
 package com.github.axet.bookreader.activities;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
@@ -17,14 +18,12 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.SubMenu;
 import android.view.View;
-import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.OpenChoicer;
@@ -33,7 +32,20 @@ import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.fragments.LibraryFragment;
+import com.github.axet.bookreader.fragments.NetworkLibraryFragment;
 import com.github.axet.bookreader.fragments.ReaderFragment;
+
+import org.geometerplus.android.fbreader.network.Util;
+import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
+import org.geometerplus.android.util.UIUtil;
+import org.geometerplus.fbreader.network.INetworkLink;
+import org.geometerplus.fbreader.network.NetworkLibrary;
+import org.geometerplus.zlibrary.core.network.ZLNetworkException;
+
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class MainActivity extends FullscreenActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -47,6 +59,8 @@ public class MainActivity extends FullscreenActivity
     public Toolbar toolbar;
     Storage storage;
     OpenChoicer choicer;
+    SubMenu networkMenu;
+    Map<String, MenuItem> networkMenuMap = new TreeMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,7 +82,7 @@ public class MainActivity extends FullscreenActivity
 
         openLibrary();
 
-        TextView ver = (TextView) navigationHeader.findViewById(R.id.textView);
+        TextView ver = (TextView) navigationHeader.findViewById(R.id.nav_version);
         try {
             PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
             String version = "v" + pInfo.versionName;
@@ -77,7 +91,59 @@ public class MainActivity extends FullscreenActivity
             ver.setVisibility(View.GONE);
         }
 
+        Menu m = navigationView.getMenu();
+        networkMenu = m.addSubMenu("Network Library");
+
+        final AndroidNetworkContext nc = new AndroidNetworkContext() {
+            @Override
+            protected Context getContext() {
+                return MainActivity.this;
+            }
+
+            @Override
+            protected Map<String, String> authenticateWeb(URI uri, String realm, String authUrl, String completeUrl, String verificationUrl) {
+                return null;
+            }
+        };
+        UIUtil.wait("loadingNetworkLibrary", new Runnable() { // Util.initLibrary(this, nc, null);
+            public void run() {
+                final NetworkLibrary library = Util.networkLibrary(MainActivity.this);
+
+                if (!library.isInitialized()) {
+                    try {
+                        library.initialize(nc);
+                    } catch (ZLNetworkException e) {
+                    }
+                }
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        reloadMenu();
+                    }
+                });
+            }
+        }, this);
+
         loadIntent(getIntent());
+    }
+
+    void reloadMenu() {
+        networkMenu.clear();
+        NetworkLibrary lib = NetworkLibrary.Instance(new Storage.Info(MainActivity.this));
+        List<String> ids = lib.activeIds();
+        for (int i = 0; i < ids.size(); i++) {
+            final INetworkLink link = lib.getLinkByUrl(ids.get(i));
+            MenuItem m = networkMenu.add(link.getTitle());
+            Intent intent = new Intent();
+            intent.putExtra("url", ids.get(i));
+            m.setIntent(intent);
+            m.setIcon(R.drawable.ic_drag_handle_black_24dp);
+            m.setCheckable(true);
+            networkMenuMap.put(ids.get(i), m);
+        }
+        MenuItem m = networkMenu.add("Configure Catalogs");
+        m.setIcon(R.drawable.ic_settings_black_24dp);
     }
 
     @Override
@@ -140,9 +206,21 @@ public class MainActivity extends FullscreenActivity
             openLibrary();
         }
 
+        Intent i = item.getIntent();
+        if (i != null) {
+            openLibrary(i.getStringExtra("url"));
+        }
+
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    public void openLibrary(String n) {
+        FragmentManager fm = getSupportFragmentManager();
+        fm.beginTransaction().replace(R.id.main_content, NetworkLibraryFragment.newInstance(n), NetworkLibraryFragment.TAG).commit();
+        MenuItem m = networkMenuMap.get(n);
+        m.setChecked(true);
     }
 
     @Override
@@ -165,7 +243,7 @@ public class MainActivity extends FullscreenActivity
         loadBook(u);
     }
 
-    void loadBook(final Uri u) {
+    public void loadBook(final Uri u) {
         int dp10 = ThemeUtils.dp2px(this, 10);
 
         ProgressBar v = new ProgressBar(this);

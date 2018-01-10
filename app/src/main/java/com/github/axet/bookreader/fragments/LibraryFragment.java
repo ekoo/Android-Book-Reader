@@ -173,6 +173,9 @@ public class LibraryFragment extends Fragment {
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_library, container, false);
 
+        View login = v.findViewById(R.id.search_header_login);
+        login.setVisibility(View.GONE);
+
         grid = (HeaderGridView) v.findViewById(R.id.grid);
 
         final MainActivity main = (MainActivity) getActivity();
