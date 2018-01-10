@@ -24,6 +24,7 @@
                 android:id="@+id/search_panel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:focusableInTouchMode="true"
                 android:orientation="horizontal">
 
                 <FrameLayout
@@ -52,15 +53,29 @@
                         app:srcCompat="@drawable/ic_vpn_key_black_24dp" />
                 </FrameLayout>
 
-                <EditText
-                    android:id="@+id/search_header_text"
+                <FrameLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:imeOptions="actionSearch"
-                    android:singleLine="true"
-                    android:text=""
-                    android:textColor="?attr/colorPrimary" />
+                    android:layout_weight="1">
+
+                    <EditText
+                        android:id="@+id/search_header_text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:imeOptions="actionSearch"
+                        android:singleLine="true"
+                        android:text=""
+                        android:textColor="?attr/colorPrimary" />
+
+                    <ImageView
+                        android:id="@+id/search_header_clear"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="right|center_vertical"
+                        android:layout_marginRight="10dp"
+                        android:tint="?attr/colorAccent"
+                        app:srcCompat="@drawable/ic_close_black_24dp" />
+                </FrameLayout>
 
                 <FrameLayout
                     android:layout_width="wrap_content"

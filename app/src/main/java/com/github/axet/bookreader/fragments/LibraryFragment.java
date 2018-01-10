@@ -7,18 +7,27 @@ import android.database.DataSetObserver;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.PopupMenu;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.services.FileProvider;
@@ -28,16 +37,58 @@ import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.Storage;
 
+import org.geometerplus.fbreader.network.NetworkImage;
+
+import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Locale;
 
 public class LibraryFragment extends Fragment {
     public static final String TAG = LibraryFragment.class.getSimpleName();
 
-    BooksAdapter books;
+    BooksAdapter books = new BooksAdapter();
     HeaderGridView grid;
     Storage storage;
+    EditText edit;
+    String lastSearch = "";
+
+    public static class DownloadImageTask extends AsyncTask<Uri, Void, Bitmap> {
+        ImageView image;
+        ProgressBar progress;
+
+        public DownloadImageTask(ProgressBar progress, ImageView bmImage) {
+            this.progress = progress;
+            this.image = bmImage;
+            progress.setVisibility(View.VISIBLE);
+        }
+
+        protected Bitmap doInBackground(Uri... urls) {
+            Uri u = urls[0];
+            Bitmap bm = null;
+            try {
+                String s = u.getScheme();
+                if (s.startsWith("http")) {
+                    InputStream in = new URL(u.toString()).openStream();
+                    bm = BitmapFactory.decodeStream(in);
+                } else {
+                    bm = BitmapFactory.decodeFile(u.getPath());
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "broken download", e);
+            }
+            return bm;
+        }
+
+        protected void onPostExecute(Bitmap result) {
+            progress.setVisibility(View.GONE);
+            if (result == null)
+                return;
+            image.setImageBitmap(result);
+        }
+    }
 
     public static class ByRecent implements Comparator<Storage.Book> {
 
@@ -58,15 +109,25 @@ public class LibraryFragment extends Fragment {
     }
 
     public class BooksAdapter implements ListAdapter {
-        ArrayList<Storage.Book> list;
+        ArrayList<Storage.Book> list = new ArrayList<>();
         DataSetObserver listener;
+        String filter;
 
         public BooksAdapter() {
-            refresh();
         }
 
         public void refresh() {
-            list = storage.list();
+            list.clear();
+            ArrayList<Storage.Book> ll = storage.list();
+            if (filter == null || filter.isEmpty()) {
+                list = ll;
+            } else {
+                for (Storage.Book b : ll) {
+                    if (b.info.title.toLowerCase(Locale.US).contains(filter.toLowerCase(Locale.US))) {
+                        list.add(b);
+                    }
+                }
+            }
             Collections.sort(list, new ByCreated());
             notifyDataSetChanged();
         }
@@ -119,15 +180,17 @@ public class LibraryFragment extends Fragment {
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             LayoutInflater inflater = LayoutInflater.from(getContext());
-            View book = inflater.inflate(R.layout.book_view, null, false);
+            View book = inflater.inflate(R.layout.bookitem_view, null, false);
             ImageView image = (ImageView) book.findViewById(R.id.imageView);
             TextView text = (TextView) book.findViewById(R.id.textView);
+            ProgressBar progress = (ProgressBar) book.findViewById(R.id.update_progress);
+
+            progress.setVisibility(View.GONE);
 
             Storage.Book b = list.get(position);
 
             if (b.cover != null) {
-                Bitmap bmp = BitmapFactory.decodeFile(b.cover.getPath());
-                image.setImageBitmap(bmp);
+                new LibraryFragment.DownloadImageTask(progress, image).execute(Uri.fromFile(b.cover));
             }
 
             text.setText(b.info.title);
@@ -165,6 +228,7 @@ public class LibraryFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         storage = new Storage(getContext());
+        books.refresh();
     }
 
     @Override
@@ -173,14 +237,78 @@ public class LibraryFragment extends Fragment {
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_library, container, false);
 
+        final View clear = v.findViewById(R.id.search_header_clear);
+        edit = (EditText) v.findViewById(R.id.search_header_text);
+        View home = v.findViewById(R.id.search_header_home);
+        final View search = v.findViewById(R.id.search_header_search);
         View login = v.findViewById(R.id.search_header_login);
+        View toolbar = v.findViewById(R.id.search_header_toolbar_parent);
+        View progress = v.findViewById(R.id.search_header_progress);
+        View stop = v.findViewById(R.id.search_header_stop);
+
+        edit.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                String t = s.toString();
+                if (t.isEmpty()) {
+                    clear.setVisibility(View.GONE);
+                } else {
+                    clear.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+        edit.setText("");
+
+        home.setVisibility(View.GONE);
+
+        search.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                search();
+                hideKeyboard();
+            }
+        });
+
         login.setVisibility(View.GONE);
+
+        toolbar.setVisibility(View.GONE);
+
+        progress.setVisibility(View.GONE);
+
+        stop.setVisibility(View.GONE);
+
+        clear.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                edit.setText("");
+                search();
+                hideKeyboard();
+            }
+        });
+
+        edit.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                    search.performClick();
+                    return true;
+                }
+                return false;
+            }
+        });
 
         grid = (HeaderGridView) v.findViewById(R.id.grid);
 
         final MainActivity main = (MainActivity) getActivity();
         main.toolbar.setTitle(R.string.app_name);
-        books = new BooksAdapter();
         grid.setAdapter(books);
         grid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -282,4 +410,19 @@ public class LibraryFragment extends Fragment {
         super.onDestroy();
     }
 
+    public void search() {
+        books.filter = edit.getText().toString();
+        books.refresh();
+        lastSearch = books.filter;
+    }
+
+    public void hideKeyboard() {
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(edit.getWindowToken(), 0);
+            }
+        });
+    }
 }

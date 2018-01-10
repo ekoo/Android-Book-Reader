@@ -8,6 +8,7 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 
+import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.widgets.FBReaderView;
 
@@ -49,6 +50,7 @@ import java.io.InputStream;
 import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -706,12 +708,30 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         } else if (s.startsWith(WebViewCustom.SCHEME_HTTP)) {
             try {
                 URL url = new URL(uri.toString());
-                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                HttpURLConnection conn;
+                while (true) {
+                    conn = (HttpURLConnection) url.openConnection();
+                    conn.setConnectTimeout(HttpClient.CONNECTION_TIMEOUT);
+                    conn.setReadTimeout(HttpClient.CONNECTION_TIMEOUT);
+                    conn.setInstanceFollowRedirects(true);
+                    switch (conn.getResponseCode()) {
+                        case HttpURLConnection.HTTP_MOVED_PERM:
+                        case HttpURLConnection.HTTP_MOVED_TEMP:
+                            String location = conn.getHeaderField("Location");
+                            location = URLDecoder.decode(location, "UTF-8");
+                            URL next = new URL(url, location);
+                            url = next;
+                            continue;
+                        default:
+                            break;
+                    }
+                    break;
+                }
                 try {
-                    InputStream is = new BufferedInputStream(urlConnection.getInputStream());
+                    InputStream is = new BufferedInputStream(conn.getInputStream());
                     fbook = load(is, null);
                 } finally {
-                    urlConnection.disconnect();
+                    conn.disconnect();
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);

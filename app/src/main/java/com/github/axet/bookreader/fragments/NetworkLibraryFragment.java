@@ -2,19 +2,17 @@ package com.github.axet.bookreader.fragments;
 
 import android.content.Context;
 import android.database.DataSetObserver;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.widgets.HeaderGridView;
@@ -28,6 +26,7 @@ import org.geometerplus.fbreader.network.INetworkLink;
 import org.geometerplus.fbreader.network.NetworkCatalogItem;
 import org.geometerplus.fbreader.network.NetworkImage;
 import org.geometerplus.fbreader.network.NetworkLibrary;
+import org.geometerplus.fbreader.network.tree.CatalogExpander;
 import org.geometerplus.fbreader.network.tree.NetworkBookTree;
 import org.geometerplus.fbreader.network.tree.NetworkCatalogTree;
 import org.geometerplus.fbreader.network.tree.NetworkItemsLoader;
@@ -37,9 +36,7 @@ import org.geometerplus.fbreader.tree.FBTree;
 import org.geometerplus.zlibrary.core.image.ZLImage;
 import org.geometerplus.zlibrary.core.network.ZLNetworkException;
 
-import java.io.InputStream;
 import java.net.URI;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -52,34 +49,11 @@ public class NetworkLibraryFragment extends Fragment {
     HeaderGridView grid;
     Storage storage;
     INetworkLink n;
+    NetworkLibrary lib;
+    AndroidNetworkContext nc;
 
     View searchpanel;
     ViewGroup searchtoolbar;
-
-    private class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
-        ImageView bmImage;
-
-        public DownloadImageTask(ImageView bmImage) {
-            this.bmImage = bmImage;
-        }
-
-        protected Bitmap doInBackground(String... urls) {
-            String urldisplay = urls[0];
-            Bitmap mIcon11 = null;
-            try {
-                InputStream in = new URL(urldisplay).openStream();
-                mIcon11 = BitmapFactory.decodeStream(in);
-            } catch (Exception e) {
-                Log.e(TAG, "broken download", e);
-                e.printStackTrace();
-            }
-            return mIcon11;
-        }
-
-        protected void onPostExecute(Bitmap result) {
-            bmImage.setImageBitmap(result);
-        }
-    }
 
     public static class ByRecent implements Comparator<Storage.Book> {
 
@@ -154,16 +128,19 @@ public class NetworkLibraryFragment extends Fragment {
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             LayoutInflater inflater = LayoutInflater.from(getContext());
-            View book = inflater.inflate(R.layout.book_view, null, false);
+            View book = inflater.inflate(R.layout.bookitem_view, null, false);
             ImageView image = (ImageView) book.findViewById(R.id.imageView);
             TextView text = (TextView) book.findViewById(R.id.textView);
+            ProgressBar progress = (ProgressBar) book.findViewById(R.id.update_progress);
 
             FBTree b = list.get(position);
 
             ZLImage cover = b.getCover();
 
+            progress.setVisibility(View.GONE);
+
             if (cover != null && cover instanceof NetworkImage) {
-                new DownloadImageTask(image).execute(((NetworkImage) cover).Url);
+                new LibraryFragment.DownloadImageTask(progress, image).execute(Uri.parse(((NetworkImage) cover).Url));
             }
 
             text.setText(b.getName());
@@ -203,10 +180,10 @@ public class NetworkLibraryFragment extends Fragment {
         super.onCreate(savedInstanceState);
         storage = new Storage(getContext());
         String u = getArguments().getString("url");
-        NetworkLibrary lib = NetworkLibrary.Instance(new Storage.Info(getContext()));
+        lib = NetworkLibrary.Instance(new Storage.Info(getContext()));
         n = lib.getLinkByUrl(u);
 
-        final AndroidNetworkContext nc = new AndroidNetworkContext() {
+        nc = new AndroidNetworkContext() {
             @Override
             protected Context getContext() {
                 return NetworkLibraryFragment.this.getContext();
@@ -239,24 +216,22 @@ public class NetworkLibraryFragment extends Fragment {
                 try {
                     l.Tree.clearCatalog();
                     i.loadChildren(l);
+                    final ArrayList<NetworkCatalogTree> all = expandCatalogs(l.Tree);
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
                             boolean books = false;
-                            boolean catalog = false;
                             for (FBTree f : l.Tree.subtrees()) {
                                 if (f instanceof NetworkBookTree)
                                     books = true;
-                                if (f instanceof SearchCatalogTree)
-                                    catalog = true;
-                                if (f instanceof NetworkCatalogTree)
-                                    catalog = true;
                             }
                             if (books) {
                                 loadBooks(l.Tree.subtrees());
+                                searchpanel.setVisibility(View.GONE);
+                                searchtoolbar.setVisibility(View.GONE);
                             }
-                            if (catalog) {
-                                loadtoolBar(l.Tree.subtrees());
+                            if (!all.isEmpty()) {
+                                loadtoolBar(all);
                             }
                         }
                     });
@@ -267,21 +242,122 @@ public class NetworkLibraryFragment extends Fragment {
         }, getContext());
     }
 
+    ArrayList<NetworkCatalogTree> expandCatalogs(NetworkCatalogTree tree) {
+        ArrayList<NetworkCatalogTree> all = new ArrayList<>();
+        expandCatalogs(all, tree);
+        return all;
+    }
+
+    boolean expandCatalogs(ArrayList<NetworkCatalogTree> all, NetworkCatalogTree tree) {
+        if (tree.Level > 3)
+            return true;
+        boolean c = false;
+        for (FBTree f : tree.subtrees()) {
+            if (f instanceof NetworkCatalogTree) {
+                c = true;
+                NetworkCatalogTree t = (NetworkCatalogTree) f;
+                new CatalogExpander(nc, t, false, false).run();
+                boolean e = expandCatalogs(all, t);
+                if (!e)
+                    all.add(t);
+            }
+        }
+        return c;
+    }
+
     void loadBooks(List<FBTree> l) {
         books.list = l;
         books.notifyDataSetChanged();
     }
 
-    void loadtoolBar(List<FBTree> l) {
+    void loadtoolBar(List<NetworkCatalogTree> l) {
         boolean search = false;
+        searchtoolbar.removeAllViews();
         for (FBTree b : l) {
             if (b instanceof SearchCatalogTree) {
                 search = true;
+                continue;
             }
+            LayoutInflater inflater = LayoutInflater.from(getContext());
+            final View t = inflater.inflate(R.layout.library_rating, null);
+            TextView tv = (TextView) t.findViewById(R.id.search_header_toolbar_tops_name);
+            tv.setText(b.getName());
+            t.setTag(b);
+            t.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    selectToolbar(t);
+                }
+            });
+            searchtoolbar.addView(t);
         }
-        if (!search) {
+
+        if (searchtoolbar.getChildCount() == 0)
+            searchtoolbar.setVisibility(View.GONE);
+        else
+            searchtoolbar.setVisibility(View.VISIBLE);
+
+        if (!search)
             searchpanel.setVisibility(View.GONE);
-        }
+        else
+            searchpanel.setVisibility(View.VISIBLE);
+    }
+
+    void selectToolbar(View v) {
+        final AndroidNetworkContext nc = new AndroidNetworkContext() {
+            @Override
+            protected Context getContext() {
+                return NetworkLibraryFragment.this.getContext();
+            }
+
+            @Override
+            protected Map<String, String> authenticateWeb(URI uri, String realm, String authUrl, String completeUrl, String verificationUrl) {
+                return null;
+            }
+        };
+
+        final NetworkCatalogTree tree = (NetworkCatalogTree) v.getTag();
+        final NetworkItemsLoader l = new NetworkItemsLoader(nc, tree) {
+            @Override
+            protected void onFinish(ZLNetworkException exception, boolean interrupted) {
+            }
+
+            @Override
+            protected void doBefore() throws ZLNetworkException {
+            }
+
+            @Override
+            protected void load() throws ZLNetworkException {
+            }
+        };
+
+        UIUtil.wait("load book", new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    l.Tree.clearCatalog();
+                    new CatalogExpander(nc, l.Tree, false, false).run();
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            boolean books = false;
+                            boolean catalog = false;
+                            for (FBTree f : l.Tree.subtrees()) {
+                                if (f instanceof NetworkBookTree)
+                                    books = true;
+                                if (f instanceof NetworkCatalogTree)
+                                    catalog = true;
+                            }
+                            if (books) {
+                                loadBooks(l.Tree.subtrees());
+                            }
+                        }
+                    });
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }, getContext());
     }
 
     @Override
@@ -290,11 +366,20 @@ public class NetworkLibraryFragment extends Fragment {
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_library, container, false);
 
+        final View clear = v.findViewById(R.id.search_header_clear);
+        EditText edit = (EditText) v.findViewById(R.id.search_header_text);
+        View home = v.findViewById(R.id.search_header_home);
+        final View search = v.findViewById(R.id.search_header_search);
         View login = v.findViewById(R.id.search_header_login);
-        login.setVisibility(View.GONE);
-
+        View toolbar = v.findViewById(R.id.search_header_toolbar_parent);
+        View progress = v.findViewById(R.id.search_header_progress);
+        View stop = v.findViewById(R.id.search_header_stop);
         searchpanel = v.findViewById(R.id.search_panel);
         searchtoolbar = (ViewGroup) v.findViewById(R.id.search_header_toolbar);
+
+        progress.setVisibility(View.GONE);
+        stop.setVisibility(View.GONE);
+        login.setVisibility(View.GONE);
 
         grid = (HeaderGridView) v.findViewById(R.id.grid);
 
