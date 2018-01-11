@@ -137,7 +137,7 @@
                         android:tint="?attr/colorAccent"
                         app:srcCompat="@drawable/ic_fiber_new_black_24dp" />
 
-                    <include layout="@layout/library_rating" />
+                    <include layout="@layout/toolbar_icon" />
 
                     <FrameLayout
                         android:id="@+id/search_header_toolbar_favs"
@@ -159,7 +159,7 @@
 
                         <TextView
                             android:id="@+id/search_header_toolbar_favs_name"
-                            style="@style/tops_style_light"
+                            style="@style/toolbar_icon_text"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center"

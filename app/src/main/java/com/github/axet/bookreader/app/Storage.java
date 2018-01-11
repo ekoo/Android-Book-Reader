@@ -707,32 +707,12 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             }
         } else if (s.startsWith(WebViewCustom.SCHEME_HTTP)) {
             try {
-                URL url = new URL(uri.toString());
-                HttpURLConnection conn;
-                while (true) {
-                    conn = (HttpURLConnection) url.openConnection();
-                    conn.setConnectTimeout(HttpClient.CONNECTION_TIMEOUT);
-                    conn.setReadTimeout(HttpClient.CONNECTION_TIMEOUT);
-                    conn.setInstanceFollowRedirects(true);
-                    switch (conn.getResponseCode()) {
-                        case HttpURLConnection.HTTP_MOVED_PERM:
-                        case HttpURLConnection.HTTP_MOVED_TEMP:
-                            String location = conn.getHeaderField("Location");
-                            location = URLDecoder.decode(location, "UTF-8");
-                            URL next = new URL(url, location);
-                            url = next;
-                            continue;
-                        default:
-                            break;
-                    }
-                    break;
-                }
-                try {
-                    InputStream is = new BufferedInputStream(conn.getInputStream());
-                    fbook = load(is, null);
-                } finally {
-                    conn.disconnect();
-                }
+                HttpClient client = new HttpClient();
+                HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
+                if (w.getError() != null)
+                    throw new RuntimeException(w.getError() + ": " + uri);
+                InputStream is = new BufferedInputStream(w.getInputStream());
+                fbook = load(is, null);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

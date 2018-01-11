@@ -20,11 +20,11 @@ import android.widget.ListAdapter;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.github.axet.androidlibrary.widgets.BrowserDialogFragment;
 import com.github.axet.androidlibrary.widgets.HeaderGridView;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.Storage;
-import com.github.axet.bookreader.widgets.BrowserDialogFragment;
 
 import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
 import org.geometerplus.android.util.UIUtil;
@@ -326,8 +326,8 @@ public class NetworkLibraryFragment extends Fragment {
                 continue;
             }
             LayoutInflater inflater = LayoutInflater.from(getContext());
-            final View t = inflater.inflate(R.layout.library_rating, null);
-            TextView tv = (TextView) t.findViewById(R.id.search_header_toolbar_tops_name);
+            final View t = inflater.inflate(R.layout.toolbar_icon, null);
+            TextView tv = (TextView) t.findViewById(R.id.toolbar_icon_text);
             tv.setText(b.getName());
             t.setTag(b);
             t.setOnClickListener(new View.OnClickListener() {
