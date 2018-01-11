@@ -7,9 +7,12 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -44,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -56,9 +60,11 @@ public class NetworkLibraryFragment extends Fragment {
     INetworkLink n;
     NetworkLibrary lib;
     AndroidNetworkContext nc;
+    SearchCatalogTree searchCatalog;
 
     View searchpanel;
     ViewGroup searchtoolbar;
+    EditText edit;
 
     public static class ByRecent implements Comparator<Storage.Book> {
 
@@ -79,10 +85,12 @@ public class NetworkLibraryFragment extends Fragment {
     }
 
     public class BooksAdapter implements ListAdapter {
+        List<FBTree> listall = new ArrayList<>();
         List<FBTree> list = new ArrayList<>();
         Map<Uri, LibraryFragment.BookView> views = new TreeMap<>();
         Map<ImageView, LibraryFragment.BookView> images = new HashMap<>();
         DataSetObserver listener;
+        String filter;
 
         public BooksAdapter() {
         }
@@ -90,6 +98,22 @@ public class NetworkLibraryFragment extends Fragment {
         public void notifyDataSetChanged() {
             if (listener != null)
                 listener.onChanged();
+        }
+
+        void refresh() {
+            if (filter == null || filter.isEmpty()) {
+                list = listall;
+                views.clear();
+                images.clear();
+            } else {
+                list = new ArrayList<>();
+                for (FBTree b : listall) {
+                    if (b.getName().toLowerCase(Locale.US).contains(filter.toLowerCase(Locale.US))) {
+                        list.add(b);
+                    }
+                }
+            }
+            notifyDataSetChanged();
         }
 
         @Override
@@ -246,7 +270,6 @@ public class NetworkLibraryFragment extends Fragment {
                             }
                             if (books) {
                                 loadBooks(l.Tree.subtrees());
-                                searchpanel.setVisibility(View.GONE);
                                 searchtoolbar.setVisibility(View.GONE);
                             }
                             if (!all.isEmpty()) {
@@ -288,17 +311,17 @@ public class NetworkLibraryFragment extends Fragment {
     }
 
     void loadBooks(List<FBTree> l) {
-        books.list = l;
+        books.listall = l;
         books.views.clear();
-        books.notifyDataSetChanged();
+        books.images.clear();
+        books.refresh();
     }
 
     void loadtoolBar(List<NetworkCatalogTree> l) {
-        boolean search = false;
         searchtoolbar.removeAllViews();
         for (FBTree b : l) {
             if (b instanceof SearchCatalogTree) {
-                search = true;
+                searchCatalog = (SearchCatalogTree) b;
                 continue;
             }
             LayoutInflater inflater = LayoutInflater.from(getContext());
@@ -319,11 +342,6 @@ public class NetworkLibraryFragment extends Fragment {
             searchtoolbar.setVisibility(View.GONE);
         else
             searchtoolbar.setVisibility(View.VISIBLE);
-
-        if (!search)
-            searchpanel.setVisibility(View.GONE);
-        else
-            searchpanel.setVisibility(View.VISIBLE);
     }
 
     void selectToolbar(View v) {
@@ -390,7 +408,7 @@ public class NetworkLibraryFragment extends Fragment {
         View v = inflater.inflate(R.layout.fragment_library, container, false);
 
         final View clear = v.findViewById(R.id.search_header_clear);
-        EditText edit = (EditText) v.findViewById(R.id.search_header_text);
+        edit = (EditText) v.findViewById(R.id.search_header_text);
         View home = v.findViewById(R.id.search_header_home);
         final View search = v.findViewById(R.id.search_header_search);
         View login = v.findViewById(R.id.search_header_login);
@@ -420,6 +438,48 @@ public class NetworkLibraryFragment extends Fragment {
             }
         });
         edit.setText("");
+
+
+        edit.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                    search.performClick();
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        search.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                search();
+                hideKeyboard();
+            }
+        });
+
+        clear.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                edit.setText("");
+                search();
+                hideKeyboard();
+            }
+        });
+
+        final String host = n.getHostName();
+        if (host == null || host.isEmpty()) {
+            home.setVisibility(View.GONE);
+        } else {
+            home.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    BrowserDialogFragment b = BrowserDialogFragment.create("http://" + host);
+                    b.show(getFragmentManager(), "");
+                }
+            });
+        }
 
         progress.setVisibility(View.GONE);
         stop.setVisibility(View.GONE);
@@ -453,6 +513,16 @@ public class NetworkLibraryFragment extends Fragment {
         return v;
     }
 
+    void search() {
+        if (searchCatalog == null) {
+            books.filter = edit.getText().toString();
+            books.refresh();
+        } else {
+            books.filter = null;
+            books.refresh();
+        }
+    }
+
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
@@ -466,5 +536,15 @@ public class NetworkLibraryFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+    }
+
+    public void hideKeyboard() {
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(edit.getWindowToken(), 0);
+            }
+        });
     }
 }
