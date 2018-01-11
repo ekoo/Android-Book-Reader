@@ -65,6 +65,7 @@ public class NetworkLibraryFragment extends Fragment {
     View searchpanel;
     ViewGroup searchtoolbar;
     EditText edit;
+    View toolbar;
 
     public static class ByRecent implements Comparator<Storage.Book> {
 
@@ -339,9 +340,9 @@ public class NetworkLibraryFragment extends Fragment {
         }
 
         if (searchtoolbar.getChildCount() == 0)
-            searchtoolbar.setVisibility(View.GONE);
+            toolbar.setVisibility(View.GONE);
         else
-            searchtoolbar.setVisibility(View.VISIBLE);
+            toolbar.setVisibility(View.VISIBLE);
     }
 
     void selectToolbar(View v) {
@@ -412,11 +413,13 @@ public class NetworkLibraryFragment extends Fragment {
         View home = v.findViewById(R.id.search_header_home);
         final View search = v.findViewById(R.id.search_header_search);
         View login = v.findViewById(R.id.search_header_login);
-        View toolbar = v.findViewById(R.id.search_header_toolbar_parent);
+        toolbar = v.findViewById(R.id.search_header_toolbar_parent);
         View progress = v.findViewById(R.id.search_header_progress);
         View stop = v.findViewById(R.id.search_header_stop);
         searchpanel = v.findViewById(R.id.search_panel);
         searchtoolbar = (ViewGroup) v.findViewById(R.id.search_header_toolbar);
+
+        toolbar.setVisibility(View.GONE);
 
         edit.addTextChangedListener(new TextWatcher() {
             @Override
@@ -438,7 +441,6 @@ public class NetworkLibraryFragment extends Fragment {
             }
         });
         edit.setText("");
-
 
         edit.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
@@ -497,9 +499,12 @@ public class NetworkLibraryFragment extends Fragment {
                 try {
                     FBTree b = books.getItem(position);
                     NetworkBookTree n = (NetworkBookTree) b;
-                    String u = ((NetworkBookTree) b).Book.getUrl(UrlInfo.Type.Book);
+                    String u = n.Book.getUrl(UrlInfo.Type.Book);
                     if (u == null) {
-                        BrowserDialogFragment f = BrowserDialogFragment.create(((NetworkBookTree) b).Book.Id);
+                        u = n.Book.getUrl(UrlInfo.Type.HtmlPage);
+                        if (u == null)
+                            u = n.Book.Id;
+                        BrowserDialogFragment f = BrowserDialogFragment.create(u);
                         f.show(getFragmentManager(), "");
                     } else {
                         main.loadBook(Uri.parse(u));

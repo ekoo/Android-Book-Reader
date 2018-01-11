@@ -18,15 +18,11 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
-import android.widget.CheckedTextView;
-import android.widget.LinearLayout;
 import android.widget.ProgressBar;
-import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
@@ -69,6 +65,8 @@ public class MainActivity extends FullscreenActivity
     OpenChoicer choicer;
     SubMenu networkMenu;
     Map<String, MenuItem> networkMenuMap = new TreeMap<>();
+    String lastFragment;
+    String currentFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -157,12 +155,18 @@ public class MainActivity extends FullscreenActivity
 
     @Override
     public void onBackPressed() {
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
             Fragment f = getSupportFragmentManager().findFragmentByTag(ReaderFragment.TAG);
             if (f != null && f.isVisible()) {
+                if (lastFragment.equals(NetworkLibraryFragment.TAG)) {
+                    f = getSupportFragmentManager().findFragmentByTag(lastFragment);
+                    if (f != null) {
+                        openFragment(f, lastFragment);
+                        return;
+                    }
+                }
                 openLibrary();
                 return;
             }
@@ -232,13 +236,6 @@ public class MainActivity extends FullscreenActivity
         return true;
     }
 
-    public void openLibrary(String n) {
-        FragmentManager fm = getSupportFragmentManager();
-        fm.beginTransaction().replace(R.id.main_content, NetworkLibraryFragment.newInstance(n), NetworkLibraryFragment.TAG).commit();
-        MenuItem m = networkMenuMap.get(n);
-        m.setChecked(true);
-    }
-
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
@@ -301,15 +298,39 @@ public class MainActivity extends FullscreenActivity
 
     public void loadBook(Storage.Book book) {
         Uri uri = Uri.fromFile(book.file);
-        FragmentManager fm = getSupportFragmentManager();
-        fm.beginTransaction().replace(R.id.main_content, ReaderFragment.newInstance(uri), ReaderFragment.TAG).commit();
-        navigationView.getMenu().findItem(R.id.nav_library).setChecked(false);
+        openFragment(ReaderFragment.newInstance(uri), ReaderFragment.TAG);
+        clearMenu();
     }
 
     public void openLibrary() {
+        openFragment(new LibraryFragment(), LibraryFragment.TAG, navigationView.getMenu().findItem(R.id.nav_library));
+    }
+
+    public void openLibrary(String n) {
+        MenuItem m = networkMenuMap.get(n);
+        openFragment(NetworkLibraryFragment.newInstance(n), NetworkLibraryFragment.TAG, m);
+    }
+
+    public void openFragment(Fragment f, String tag, MenuItem m) {
+        openFragment(f, tag);
+        m.setChecked(true);
+    }
+
+    public void clearMenu() {
+        Menu m = navigationView.getMenu();
+        for (int i = 0; i < m.size(); i++) {
+            m.getItem(i).setChecked(false);
+        }
+        for (int i = 0; i < networkMenu.size(); i++) {
+            networkMenu.getItem(i).setChecked(false);
+        }
+    }
+
+    public void openFragment(Fragment f, String tag) {
         FragmentManager fm = getSupportFragmentManager();
-        fm.beginTransaction().replace(R.id.main_content, new LibraryFragment(), LibraryFragment.TAG).commit();
-        navigationView.getMenu().findItem(R.id.nav_library).setChecked(true);
+        fm.beginTransaction().replace(R.id.main_content, f, tag).commit();
+        lastFragment = currentFragment;
+        currentFragment = tag;
     }
 
     @Override
