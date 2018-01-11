@@ -20,11 +20,11 @@ import android.widget.ListAdapter;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.github.axet.androidlibrary.widgets.BrowserDialogFragment;
 import com.github.axet.androidlibrary.widgets.HeaderGridView;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.Storage;
+import com.github.axet.bookreader.widgets.BrowserDialogFragment;
 
 import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
 import org.geometerplus.android.util.UIUtil;
@@ -327,6 +327,8 @@ public class NetworkLibraryFragment extends Fragment {
             }
             LayoutInflater inflater = LayoutInflater.from(getContext());
             final View t = inflater.inflate(R.layout.toolbar_icon, null);
+            ImageView iv = (ImageView) t.findViewById(R.id.toolbar_icon_image);
+            iv.setImageResource(R.drawable.ic_sort_black_24dp);
             TextView tv = (TextView) t.findViewById(R.id.toolbar_icon_text);
             tv.setText(b.getName());
             t.setTag(b);
@@ -477,8 +479,7 @@ public class NetworkLibraryFragment extends Fragment {
             home.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    BrowserDialogFragment b = BrowserDialogFragment.create("http://" + host);
-                    b.show(getFragmentManager(), "");
+                    openBrowser("http://" + host);
                 }
             });
         }
@@ -504,8 +505,7 @@ public class NetworkLibraryFragment extends Fragment {
                         u = n.Book.getUrl(UrlInfo.Type.HtmlPage);
                         if (u == null)
                             u = n.Book.Id;
-                        BrowserDialogFragment f = BrowserDialogFragment.create(u);
-                        f.show(getFragmentManager(), "");
+                        openBrowser(u);
                     } else {
                         main.loadBook(Uri.parse(u));
                     }
@@ -552,4 +552,10 @@ public class NetworkLibraryFragment extends Fragment {
             }
         });
     }
+
+    public void openBrowser(String u) {
+        BrowserDialogFragment b = BrowserDialogFragment.create(u);
+        b.show(getFragmentManager(), "");
+    }
+
 }

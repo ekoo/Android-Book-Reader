@@ -423,6 +423,15 @@ public class MainActivity extends FullscreenActivity
         });
     }
 
+    public void Post(final String e) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Error(e);
+            }
+        });
+    }
+
     public void Error(Throwable e) {
         Log.d(TAG, "Error", e);
         Error(toString(e));

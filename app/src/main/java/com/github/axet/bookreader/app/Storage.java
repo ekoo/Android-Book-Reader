@@ -655,8 +655,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             created = o.optLong("created", 0);
             last = o.getLong("last");
             title = o.optString("title", null);
-            JSONArray a = o.getJSONArray("position");
-            position = new ZLTextFixedPosition(a.getInt(0), a.getInt(1), a.getInt(2));
+            JSONArray a = o.optJSONArray("position");
+            if (a != null)
+                position = new ZLTextFixedPosition(a.getInt(0), a.getInt(1), a.getInt(2));
         }
 
         public JSONObject save() throws JSONException {
@@ -665,11 +666,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             o.put("created", created);
             o.put("last", last);
             o.put("title", title);
-            JSONArray a = new JSONArray();
-            a.put(position.getParagraphIndex());
-            a.put(position.getElementIndex());
-            a.put(position.getCharIndex());
-            o.put("position", a);
+            if (position != null) {
+                JSONArray a = new JSONArray();
+                a.put(position.getParagraphIndex());
+                a.put(position.getElementIndex());
+                a.put(position.getCharIndex());
+                o.put("position", a);
+            }
             return o;
         }
     }
@@ -837,8 +840,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public void load(Book fbook) {
+        File r = recentFile(fbook);
         if (fbook.info == null) {
-            File r = recentFile(fbook);
             if (r.exists())
                 fbook.info = new RecentInfo(r);
         }
@@ -866,6 +869,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 throw new RuntimeException(e);
             }
         }
+        if (!r.exists())
+            save(fbook);
     }
 
     public ArrayList<Book> list() {
