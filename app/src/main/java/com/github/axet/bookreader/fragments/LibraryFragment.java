@@ -42,6 +42,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
@@ -96,9 +97,11 @@ public class LibraryFragment extends Fragment {
 
         protected void onPostExecute(Bitmap result) {
             book.progress.setVisibility(View.GONE);
+            book.bm = result;
             if (result == null)
                 return;
-            book.bm = result;
+            if (book.image == null)
+                return;
             book.image.setImageBitmap(result);
         }
     }
@@ -124,6 +127,7 @@ public class LibraryFragment extends Fragment {
     public class BooksAdapter implements ListAdapter {
         ArrayList<Storage.Book> list = new ArrayList<>();
         Map<Uri, BookView> views = new TreeMap<>();
+        Map<ImageView, BookView> images = new HashMap<>();
         DataSetObserver listener;
         String filter;
 
@@ -136,6 +140,7 @@ public class LibraryFragment extends Fragment {
             if (filter == null || filter.isEmpty()) {
                 list = ll;
                 views.clear();
+                images.clear();
             } else {
                 for (Storage.Book b : ll) {
                     if (b.info.title.toLowerCase(Locale.US).contains(filter.toLowerCase(Locale.US))) {
@@ -206,10 +211,14 @@ public class LibraryFragment extends Fragment {
 
             if (b.cover != null) {
                 Uri u = Uri.fromFile(b.cover);
-                BookView v = views.get(u);
+                BookView v = images.get(image);
+                if (v != null)
+                    v.image = null;
+                v = views.get(u);
                 if (v == null) {
                     v = new BookView(progress, image);
                     views.put(u, v);
+                    images.put(image, v);
                     new LibraryFragment.DownloadImageTask(v).execute(u);
                 } else if (v.bm != null) {
                     image.setImageBitmap(v.bm);
@@ -346,7 +355,7 @@ public class LibraryFragment extends Fragment {
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
                 final Storage.Book b = books.getItem(position);
                 PopupMenu popup = new PopupMenu(getContext(), view);
-                popup.inflate(R.menu.book_menu);
+                popup.inflate(R.menu.bookitem_menu);
                 popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                     @Override
                     public boolean onMenuItemClick(MenuItem item) {

@@ -18,11 +18,15 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
+import android.widget.CheckedTextView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
@@ -52,12 +56,16 @@ public class MainActivity extends FullscreenActivity
 
     public static final String TAG = MainActivity.class.getSimpleName();
 
+    public static final String LIBRARY = "library";
+    public static final String SETTINGS = "settings";
+
     public static final int RESULT_FILE = 1;
 
     public static final String[] PERMISSIONS = new String[]{Manifest.permission.READ_EXTERNAL_STORAGE};
 
     public Toolbar toolbar;
     Storage storage;
+    NetworkLibrary lib;
     OpenChoicer choicer;
     SubMenu networkMenu;
     Map<String, MenuItem> networkMenuMap = new TreeMap<>();
@@ -69,6 +77,7 @@ public class MainActivity extends FullscreenActivity
         setSupportActionBar(toolbar);
 
         storage = new Storage(this);
+        lib = NetworkLibrary.Instance(new Storage.Info(MainActivity.this));
 
         drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         final ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -92,7 +101,7 @@ public class MainActivity extends FullscreenActivity
         }
 
         Menu m = navigationView.getMenu();
-        networkMenu = m.addSubMenu("Network Library");
+        networkMenu = m.addSubMenu(R.string.network_library);
 
         final AndroidNetworkContext nc = new AndroidNetworkContext() {
             @Override
@@ -130,19 +139,19 @@ public class MainActivity extends FullscreenActivity
 
     void reloadMenu() {
         networkMenu.clear();
-        NetworkLibrary lib = NetworkLibrary.Instance(new Storage.Info(MainActivity.this));
         List<String> ids = lib.activeIds();
         for (int i = 0; i < ids.size(); i++) {
             final INetworkLink link = lib.getLinkByUrl(ids.get(i));
             MenuItem m = networkMenu.add(link.getTitle());
-            Intent intent = new Intent();
+            Intent intent = new Intent(LIBRARY);
             intent.putExtra("url", ids.get(i));
             m.setIntent(intent);
             m.setIcon(R.drawable.ic_drag_handle_black_24dp);
             m.setCheckable(true);
             networkMenuMap.put(ids.get(i), m);
         }
-        MenuItem m = networkMenu.add("Configure Catalogs");
+        MenuItem m = networkMenu.add(R.string.configure_catalogs);
+        m.setIntent(new Intent(SETTINGS));
         m.setIcon(R.drawable.ic_settings_black_24dp);
     }
 
@@ -208,7 +217,14 @@ public class MainActivity extends FullscreenActivity
 
         Intent i = item.getIntent();
         if (i != null) {
-            openLibrary(i.getStringExtra("url"));
+            switch (i.getAction()) {
+                case LIBRARY:
+                    openLibrary(i.getStringExtra("url"));
+                    break;
+                case SETTINGS:
+                    openSettings();
+                    break;
+            }
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -251,7 +267,7 @@ public class MainActivity extends FullscreenActivity
         v.setPadding(dp10, dp10, dp10, dp10);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Loading book");
+        builder.setTitle(R.string.loading_book);
         builder.setView(v);
         builder.setCancelable(false);
         final AlertDialog d = builder.create();
@@ -324,6 +340,47 @@ public class MainActivity extends FullscreenActivity
                 choicer.onActivityResult(resultCode, data);
                 break;
         }
+    }
+
+    public void openSettings() {
+        final List<String> all = lib.allIds();
+
+        final String[] nn = new String[all.size()];
+        final boolean[] bb = new boolean[all.size()];
+        final INetworkLink[] nl = new INetworkLink[all.size()];
+
+        for (int i = 0; i < all.size(); i++) {
+            String id = all.get(i);
+            INetworkLink link = lib.getLinkByUrl(id);
+            nn[i] = link.getTitle();
+            bb[i] = all.contains(id);
+            nl[i] = link;
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.configure_catalogs);
+        builder.setMultiChoiceItems(nn, bb, new DialogInterface.OnMultiChoiceClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which, boolean isChecked) {
+                bb[which] = isChecked;
+            }
+        });
+        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                for (int i = 0; i < all.size(); i++) {
+                    lib.setLinkActive(all.get(i), bb[i]);
+                }
+                reloadMenu();
+            }
+        });
+        builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                ;
+            }
+        });
+        builder.show();
     }
 
     public static String toString(Throwable e) {

@@ -21,6 +21,7 @@ import com.github.axet.androidlibrary.widgets.HeaderGridView;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.Storage;
+import com.github.axet.bookreader.widgets.BrowserDialogFragment;
 
 import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
 import org.geometerplus.android.util.UIUtil;
@@ -41,6 +42,7 @@ import org.geometerplus.zlibrary.core.network.ZLNetworkException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -79,6 +81,7 @@ public class NetworkLibraryFragment extends Fragment {
     public class BooksAdapter implements ListAdapter {
         List<FBTree> list = new ArrayList<>();
         Map<Uri, LibraryFragment.BookView> views = new TreeMap<>();
+        Map<ImageView, LibraryFragment.BookView> images = new HashMap<>();
         DataSetObserver listener;
 
         public BooksAdapter() {
@@ -145,10 +148,14 @@ public class NetworkLibraryFragment extends Fragment {
 
             if (cover != null && cover instanceof NetworkImage) {
                 Uri u = Uri.parse(((NetworkImage) cover).Url);
-                LibraryFragment.BookView v = views.get(u);
+                LibraryFragment.BookView v = images.get(image);
+                if (v != null)
+                    v.image = null;
+                v = views.get(u);
                 if (v == null) {
                     v = new LibraryFragment.BookView(progress, image);
                     views.put(u, v);
+                    images.put(image, v);
                     new LibraryFragment.DownloadImageTask(v).execute(u);
                 } else if (v.bm != null) {
                     image.setImageBitmap(v.bm);
@@ -248,7 +255,8 @@ public class NetworkLibraryFragment extends Fragment {
                         }
                     });
                 } catch (Exception e) {
-                    throw new RuntimeException(e);
+                    MainActivity main = (MainActivity) getActivity();
+                    main.Post(e);
                 }
             }
         }, getContext());
@@ -261,17 +269,19 @@ public class NetworkLibraryFragment extends Fragment {
     }
 
     boolean expandCatalogs(ArrayList<NetworkCatalogTree> all, NetworkCatalogTree tree) {
-        if (tree.Level > 3)
-            return true;
         boolean c = false;
         for (FBTree f : tree.subtrees()) {
             if (f instanceof NetworkCatalogTree) {
                 c = true;
                 NetworkCatalogTree t = (NetworkCatalogTree) f;
-                new CatalogExpander(nc, t, false, false).run();
-                boolean e = expandCatalogs(all, t);
-                if (!e)
+                if (t.Level < 3) {
+                    // new CatalogExpander(nc, t, false, false).run();
+                    boolean e = expandCatalogs(all, t);
+                    if (!e)
+                        all.add(t);
+                } else {
                     all.add(t);
+                }
             }
         }
         return c;
@@ -424,10 +434,19 @@ public class NetworkLibraryFragment extends Fragment {
         grid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                FBTree b = books.getItem(position);
-                NetworkBookTree n = (NetworkBookTree) b;
-                String u = ((NetworkBookTree) b).Book.getUrl(UrlInfo.Type.Book);
-                main.loadBook(Uri.parse(u));
+                try {
+                    FBTree b = books.getItem(position);
+                    NetworkBookTree n = (NetworkBookTree) b;
+                    String u = ((NetworkBookTree) b).Book.getUrl(UrlInfo.Type.Book);
+                    if (u == null) {
+                        BrowserDialogFragment f = BrowserDialogFragment.create(((NetworkBookTree) b).Book.Id);
+                        f.show(getFragmentManager(), "");
+                    } else {
+                        main.loadBook(Uri.parse(u));
+                    }
+                } catch (RuntimeException e) {
+                    main.Error(e);
+                }
             }
         });
 
