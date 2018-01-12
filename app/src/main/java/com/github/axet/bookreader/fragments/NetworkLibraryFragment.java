@@ -20,12 +20,15 @@ import android.widget.ListAdapter;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.HeaderGridView;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.Storage;
+import com.github.axet.bookreader.widgets.BookDialog;
 import com.github.axet.bookreader.widgets.BrowserDialogFragment;
 
+import org.geometerplus.android.fbreader.network.NetworkBookInfoActivity;
 import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
 import org.geometerplus.android.util.UIUtil;
 import org.geometerplus.fbreader.network.INetworkLink;
@@ -41,6 +44,7 @@ import org.geometerplus.fbreader.network.urlInfo.UrlInfo;
 import org.geometerplus.fbreader.tree.FBTree;
 import org.geometerplus.zlibrary.core.image.ZLImage;
 import org.geometerplus.zlibrary.core.network.ZLNetworkException;
+import org.geometerplus.zlibrary.core.network.ZLNetworkRequest;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -237,6 +241,11 @@ public class NetworkLibraryFragment extends Fragment {
             protected Map<String, String> authenticateWeb(URI uri, String realm, String authUrl, String completeUrl, String verificationUrl) {
                 return null;
             }
+
+            @Override
+            protected void perform(ZLNetworkRequest request, int socketTimeout, int connectionTimeout) throws ZLNetworkException {
+                super.perform(request, HttpClient.CONNECTION_TIMEOUT, HttpClient.CONNECTION_TIMEOUT);
+            }
         };
 
         final NetworkCatalogItem i = n.libraryItem();
@@ -258,8 +267,8 @@ public class NetworkLibraryFragment extends Fragment {
             @Override
             public void run() {
                 try {
-                    l.Tree.clearCatalog();
-                    i.loadChildren(l);
+                    if (l.Tree.subtrees().isEmpty())
+                        i.loadChildren(l);
                     final ArrayList<NetworkCatalogTree> all = expandCatalogs(l.Tree);
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
@@ -295,17 +304,16 @@ public class NetworkLibraryFragment extends Fragment {
     boolean expandCatalogs(ArrayList<NetworkCatalogTree> all, NetworkCatalogTree tree) {
         boolean c = false;
         for (FBTree f : tree.subtrees()) {
+            if (all.size() > 4)
+                return true;
             if (f instanceof NetworkCatalogTree) {
                 c = true;
                 NetworkCatalogTree t = (NetworkCatalogTree) f;
-                if (t.Level < 3) {
-                    // new CatalogExpander(nc, t, false, false).run();
-                    boolean e = expandCatalogs(all, t);
-                    if (!e)
-                        all.add(t);
-                } else {
+                if (t.subtrees().isEmpty())
+                    new CatalogExpander(nc, t, false, false).run();
+                boolean e = expandCatalogs(all, t);
+                if (!e)
                     all.add(t);
-                }
             }
         }
         return c;
@@ -379,8 +387,9 @@ public class NetworkLibraryFragment extends Fragment {
             @Override
             public void run() {
                 try {
-                    l.Tree.clearCatalog();
-                    new CatalogExpander(nc, l.Tree, false, false).run();
+                    if (l.Tree.subtrees().isEmpty()) {
+                        new CatalogExpander(nc, l.Tree, false, false).run();
+                    }
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -502,9 +511,20 @@ public class NetworkLibraryFragment extends Fragment {
                     NetworkBookTree n = (NetworkBookTree) b;
                     String u = n.Book.getUrl(UrlInfo.Type.Book);
                     if (u == null) {
-                        u = n.Book.getUrl(UrlInfo.Type.HtmlPage);
+                        u = n.Book.getUrl(UrlInfo.Type.BookBuyInBrowser);
                         if (u == null)
+                            u = n.Book.getUrl(UrlInfo.Type.HtmlPage);
+                        if (n.Book.Id.startsWith("http"))
                             u = n.Book.Id;
+                        if (u == null) {
+                            BookDialog d = new BookDialog();
+                            n.Book.loadFullInformation(nc);
+                            d.myTree = n;
+                            d.myBook = n.Book;
+                            d.show(getFragmentManager(), "");
+                            return;
+
+                        }
                         openBrowser(u);
                     } else {
                         main.loadBook(Uri.parse(u));
