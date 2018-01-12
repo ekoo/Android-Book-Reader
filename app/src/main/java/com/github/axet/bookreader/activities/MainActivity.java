@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -13,10 +14,12 @@ import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.content.SharedPreferencesCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.preference.PreferenceManager;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
@@ -31,6 +34,7 @@ import com.github.axet.androidlibrary.widgets.OpenChoicer;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
+import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.fragments.LibraryFragment;
 import com.github.axet.bookreader.fragments.NetworkLibraryFragment;
@@ -42,10 +46,13 @@ import org.geometerplus.android.util.UIUtil;
 import org.geometerplus.fbreader.network.INetworkLink;
 import org.geometerplus.fbreader.network.NetworkLibrary;
 import org.geometerplus.zlibrary.core.network.ZLNetworkException;
+import org.json.JSONArray;
+import org.json.JSONException;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 public class MainActivity extends FullscreenActivity
@@ -127,6 +134,21 @@ public class MainActivity extends FullscreenActivity
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+                        String json = shared.getString(MainApplication.PREFERENCE_CATALOGS, null);
+                        if (json != null && !json.isEmpty()) {
+                            try {
+                                List<String> all = lib.allIds();
+                                for (String id : all)
+                                    lib.setLinkActive(id, false);
+                                JSONArray a = new JSONArray(json);
+                                for (int i = 0; i < a.length(); i++)
+                                    lib.setLinkActive(a.getString(i), true);
+                            } catch (JSONException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+
                         reloadMenu();
                     }
                 });
@@ -373,6 +395,7 @@ public class MainActivity extends FullscreenActivity
 
     public void openSettings() {
         final List<String> all = lib.allIds();
+        List<String> active = lib.activeIds();
 
         final String[] nn = new String[all.size()];
         final boolean[] bb = new boolean[all.size()];
@@ -382,7 +405,7 @@ public class MainActivity extends FullscreenActivity
             String id = all.get(i);
             INetworkLink link = lib.getLinkByUrl(id);
             nn[i] = link.getTitle();
-            bb[i] = all.contains(id);
+            bb[i] = active.contains(id);
             nl[i] = link;
         }
 
@@ -397,9 +420,16 @@ public class MainActivity extends FullscreenActivity
         builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
+                JSONArray a = new JSONArray();
                 for (int i = 0; i < all.size(); i++) {
                     lib.setLinkActive(all.get(i), bb[i]);
+                    if (bb[i])
+                        a.put(all.get(i));
                 }
+                SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+                SharedPreferences.Editor edit = shared.edit();
+                edit.putString(MainApplication.PREFERENCE_CATALOGS, a.toString());
+                edit.commit();
                 reloadMenu();
             }
         });
