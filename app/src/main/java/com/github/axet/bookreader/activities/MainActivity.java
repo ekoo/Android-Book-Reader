@@ -12,6 +12,7 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -164,6 +165,7 @@ public class MainActivity extends FullscreenActivity
                     f = getSupportFragmentManager().findFragmentByTag(lastFragment);
                     if (f != null) {
                         openFragment(f, lastFragment);
+                        restoreNetworkSelection((NetworkLibraryFragment) f);
                         return;
                     }
                 }
@@ -311,6 +313,12 @@ public class MainActivity extends FullscreenActivity
         openFragment(NetworkLibraryFragment.newInstance(n), NetworkLibraryFragment.TAG, m);
     }
 
+    void restoreNetworkSelection(NetworkLibraryFragment f) {
+        String u = f.getArguments().getString("url");
+        MenuItem m = networkMenuMap.get(u);
+        m.setChecked(true);
+    }
+
     public void openFragment(Fragment f, String tag, MenuItem m) {
         openFragment(f, tag);
         m.setChecked(true);
@@ -328,7 +336,7 @@ public class MainActivity extends FullscreenActivity
 
     public void openFragment(Fragment f, String tag) {
         FragmentManager fm = getSupportFragmentManager();
-        fm.beginTransaction().replace(R.id.main_content, f, tag).commit();
+        fm.beginTransaction().replace(R.id.main_content, f, tag).addToBackStack(tag).commit();
         lastFragment = currentFragment;
         currentFragment = tag;
     }

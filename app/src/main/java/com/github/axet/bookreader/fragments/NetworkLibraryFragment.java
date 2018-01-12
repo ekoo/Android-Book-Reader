@@ -4,6 +4,7 @@ import android.content.Context;
 import android.database.DataSetObserver;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -15,6 +16,7 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.ProgressBar;
@@ -28,7 +30,6 @@ import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.BookDialog;
 import com.github.axet.bookreader.widgets.BrowserDialogFragment;
 
-import org.geometerplus.android.fbreader.network.NetworkBookInfoActivity;
 import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
 import org.geometerplus.android.util.UIUtil;
 import org.geometerplus.fbreader.network.INetworkLink;
@@ -70,27 +71,10 @@ public class NetworkLibraryFragment extends Fragment {
     ViewGroup searchtoolbar;
     EditText edit;
     View toolbar;
-
-    public static class ByRecent implements Comparator<Storage.Book> {
-
-        @Override
-        public int compare(Storage.Book o1, Storage.Book o2) {
-            return Long.valueOf(o2.info.last).compareTo(o1.info.last);
-        }
-
-    }
-
-    public static class ByCreated implements Comparator<Storage.Book> {
-
-        @Override
-        public int compare(Storage.Book o1, Storage.Book o2) {
-            return Long.valueOf(o1.info.created).compareTo(o2.info.created);
-        }
-
-    }
+    ArrayList<NetworkCatalogTree> toolbarItems = new ArrayList<>();
+    List<FBTree> bookItems = new ArrayList<>();
 
     public class BooksAdapter implements ListAdapter {
-        List<FBTree> listall = new ArrayList<>();
         List<FBTree> list = new ArrayList<>();
         Map<Uri, LibraryFragment.BookView> views = new TreeMap<>();
         Map<ImageView, LibraryFragment.BookView> images = new HashMap<>();
@@ -107,12 +91,12 @@ public class NetworkLibraryFragment extends Fragment {
 
         void refresh() {
             if (filter == null || filter.isEmpty()) {
-                list = listall;
+                list = bookItems;
                 views.clear();
                 images.clear();
             } else {
                 list = new ArrayList<>();
-                for (FBTree b : listall) {
+                for (FBTree b : bookItems) {
                     if (b.getName().toLowerCase(Locale.US).contains(filter.toLowerCase(Locale.US))) {
                         list.add(b);
                     }
@@ -269,22 +253,20 @@ public class NetworkLibraryFragment extends Fragment {
                 try {
                     if (l.Tree.subtrees().isEmpty())
                         i.loadChildren(l);
-                    final ArrayList<NetworkCatalogTree> all = expandCatalogs(l.Tree);
+                    toolbarItems.clear();
+                    expandCatalogs(toolbarItems, l.Tree);
+                    boolean books = false;
+                    for (FBTree f : l.Tree.subtrees()) {
+                        if (f instanceof NetworkBookTree)
+                            books = true;
+                    }
+                    if (books) {
+                        bookItems = l.Tree.subtrees();
+                    }
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            boolean books = false;
-                            for (FBTree f : l.Tree.subtrees()) {
-                                if (f instanceof NetworkBookTree)
-                                    books = true;
-                            }
-                            if (books) {
-                                loadBooks(l.Tree.subtrees());
-                                searchtoolbar.setVisibility(View.GONE);
-                            }
-                            if (!all.isEmpty()) {
-                                loadtoolBar(all);
-                            }
+                            loadView();
                         }
                     });
                 } catch (Exception e) {
@@ -295,10 +277,9 @@ public class NetworkLibraryFragment extends Fragment {
         }, getContext());
     }
 
-    ArrayList<NetworkCatalogTree> expandCatalogs(NetworkCatalogTree tree) {
-        ArrayList<NetworkCatalogTree> all = new ArrayList<>();
-        expandCatalogs(all, tree);
-        return all;
+    void loadView() {
+        loadBooks();
+        loadtoolBar();
     }
 
     boolean expandCatalogs(ArrayList<NetworkCatalogTree> all, NetworkCatalogTree tree) {
@@ -319,16 +300,15 @@ public class NetworkLibraryFragment extends Fragment {
         return c;
     }
 
-    void loadBooks(List<FBTree> l) {
-        books.listall = l;
+    void loadBooks() {
         books.views.clear();
         books.images.clear();
         books.refresh();
     }
 
-    void loadtoolBar(List<NetworkCatalogTree> l) {
+    void loadtoolBar() {
         searchtoolbar.removeAllViews();
-        for (FBTree b : l) {
+        for (FBTree b : toolbarItems) {
             if (b instanceof SearchCatalogTree) {
                 searchCatalog = (SearchCatalogTree) b;
                 continue;
@@ -393,17 +373,10 @@ public class NetworkLibraryFragment extends Fragment {
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            boolean books = false;
-                            boolean catalog = false;
-                            for (FBTree f : l.Tree.subtrees()) {
-                                if (f instanceof NetworkBookTree)
-                                    books = true;
-                                if (f instanceof NetworkCatalogTree)
-                                    catalog = true;
-                            }
-                            if (books) {
-                                loadBooks(l.Tree.subtrees());
-                            }
+                            getArguments().putString("toolbar", l.Tree.getUniqueKey().Id);
+                            bookItems = l.Tree.subtrees();
+                            selectToolbar();
+                            loadBooks();
                         }
                     });
                 } catch (Exception e) {
@@ -411,6 +384,28 @@ public class NetworkLibraryFragment extends Fragment {
                 }
             }
         }, getContext());
+    }
+
+    void selectToolbar() {
+        String id = getArguments().getString("toolbar");
+        if (id == null)
+            return;
+        for (int i = 0; i < searchtoolbar.getChildCount(); i++) {
+            View v = searchtoolbar.getChildAt(i);
+            NetworkCatalogTree b = (NetworkCatalogTree) v.getTag();
+            ImageButton k = (ImageButton) v.findViewById(R.id.toolbar_icon_image);
+            if (b.getUniqueKey().Id.equals(id)) {
+                int[] states = new int[]{
+                        android.R.attr.state_checked,
+                };
+                k.setImageState(states, false);
+            } else {
+                int[] states = new int[]{
+                        -android.R.attr.state_checked,
+                };
+                k.setImageState(states, false);
+            }
+        }
     }
 
     @Override
@@ -508,7 +503,7 @@ public class NetworkLibraryFragment extends Fragment {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 try {
                     FBTree b = books.getItem(position);
-                    NetworkBookTree n = (NetworkBookTree) b;
+                    final NetworkBookTree n = (NetworkBookTree) b;
                     String u = n.Book.getUrl(UrlInfo.Type.Book);
                     if (u == null) {
                         u = n.Book.getUrl(UrlInfo.Type.BookBuyInBrowser);
@@ -517,11 +512,22 @@ public class NetworkLibraryFragment extends Fragment {
                         if (n.Book.Id.startsWith("http"))
                             u = n.Book.Id;
                         if (u == null) {
-                            BookDialog d = new BookDialog();
-                            n.Book.loadFullInformation(nc);
-                            d.myTree = n;
-                            d.myBook = n.Book;
-                            d.show(getFragmentManager(), "");
+                            Thread thread = new Thread() {
+                                @Override
+                                public void run() {
+                                    n.Book.loadFullInformation(nc);
+                                    getActivity().runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            BookDialog d = new BookDialog();
+                                            d.a.myTree = n;
+                                            d.a.myBook = n.Book;
+                                            d.show(getFragmentManager(), "");
+                                        }
+                                    });
+                                }
+                            };
+                            thread.start();
                             return;
 
                         }
@@ -536,6 +542,24 @@ public class NetworkLibraryFragment extends Fragment {
         });
 
         return v;
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        loadBooks();
+        loadtoolBar();
+        selectToolbar();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
     }
 
     void search() {
@@ -561,6 +585,16 @@ public class NetworkLibraryFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
     }
 
     public void hideKeyboard() {
