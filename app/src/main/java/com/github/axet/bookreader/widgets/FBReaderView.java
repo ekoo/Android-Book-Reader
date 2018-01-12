@@ -13,7 +13,6 @@ import android.widget.RelativeLayout;
 
 import com.github.axet.bookreader.app.Storage;
 
-import org.geometerplus.android.fbreader.FBReaderMainActivity;
 import org.geometerplus.android.fbreader.NavigationPopup;
 import org.geometerplus.android.fbreader.SelectionPopup;
 import org.geometerplus.android.fbreader.TextSearchPopup;
@@ -23,6 +22,7 @@ import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
 import org.geometerplus.fbreader.fbreader.FBView;
 import org.geometerplus.fbreader.fbreader.options.FooterOptions;
+import org.geometerplus.fbreader.formats.BookReadingException;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
 import org.geometerplus.zlibrary.core.application.ZLApplication;
@@ -32,7 +32,6 @@ import org.geometerplus.zlibrary.core.view.ZLViewWidget;
 import org.geometerplus.zlibrary.text.hyphenation.ZLTextHyphenator;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
-import org.geometerplus.zlibrary.ui.android.library.ZLAndroidLibrary;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 public class FBReaderView extends RelativeLayout {
@@ -42,34 +41,7 @@ public class FBReaderView extends RelativeLayout {
     public int battery;
     public String title;
     public Window w;
-    public Storage.StoredBook book;
-
-    public static FBReaderApp getApp(Context context) {
-        FBReaderView.Info info = new FBReaderView.Info(context);
-        FBReaderApp app = (FBReaderApp) FBReaderApp.Instance();
-        if (app == null) {
-            app = new FBReaderApp(info, new BookCollectionShadow());
-        }
-        return app;
-    }
-
-    public static class Info implements SystemInfo {
-        Context context;
-
-        public Info(Context context) {
-            this.context = context;
-        }
-
-        @Override
-        public String tempDirectory() {
-            return context.getFilesDir().getPath();
-        }
-
-        @Override
-        public String networkCacheDirectory() {
-            return context.getFilesDir().getPath();
-        }
-    }
+    public Storage.Book book;
 
     public FBReaderView(Context context) {
         super(context);
@@ -142,7 +114,7 @@ public class FBReaderView extends RelativeLayout {
         widget.setFocusable(true);
         addView(widget, new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-        app = getApp(getContext());
+        app = Storage.getApp(getContext());
 
         app.setWindow(new ZLApplicationWindow() {
             @Override
@@ -212,13 +184,13 @@ public class FBReaderView extends RelativeLayout {
         view = (FBView) ZLApplication.Instance().getCurrentView();
     }
 
-    public void loadBook(Storage.StoredBook book) {
+    public void loadBook(Storage.Book book) {
         try {
             setEnabled(true);
             widget.setEnabled(true);
             this.book = book;
             final PluginCollection pluginCollection = PluginCollection.Instance(app.SystemInfo);
-            FormatPlugin plugin = BookUtil.getPlugin(pluginCollection, book.book);
+            FormatPlugin plugin = Storage.getPlugin(pluginCollection, book);
             BookModel Model = BookModel.createModel(book.book, plugin);
             ZLTextHyphenator.Instance().load(book.book.getLanguage());
             view.setModel(Model.getTextModel());

@@ -1,6 +1,7 @@
 package com.github.axet.bookreader.activities;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
@@ -17,14 +18,12 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.SubMenu;
 import android.view.View;
-import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.OpenChoicer;
@@ -33,12 +32,28 @@ import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.fragments.LibraryFragment;
+import com.github.axet.bookreader.fragments.NetworkLibraryFragment;
 import com.github.axet.bookreader.fragments.ReaderFragment;
+
+import org.geometerplus.android.fbreader.network.Util;
+import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
+import org.geometerplus.android.util.UIUtil;
+import org.geometerplus.fbreader.network.INetworkLink;
+import org.geometerplus.fbreader.network.NetworkLibrary;
+import org.geometerplus.zlibrary.core.network.ZLNetworkException;
+
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class MainActivity extends FullscreenActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
     public static final String TAG = MainActivity.class.getSimpleName();
+
+    public static final String LIBRARY = "library";
+    public static final String SETTINGS = "settings";
 
     public static final int RESULT_FILE = 1;
 
@@ -46,7 +61,12 @@ public class MainActivity extends FullscreenActivity
 
     public Toolbar toolbar;
     Storage storage;
+    NetworkLibrary lib;
     OpenChoicer choicer;
+    SubMenu networkMenu;
+    Map<String, MenuItem> networkMenuMap = new TreeMap<>();
+    String lastFragment;
+    String currentFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +75,7 @@ public class MainActivity extends FullscreenActivity
         setSupportActionBar(toolbar);
 
         storage = new Storage(this);
+        lib = NetworkLibrary.Instance(new Storage.Info(MainActivity.this));
 
         drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         final ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -68,7 +89,7 @@ public class MainActivity extends FullscreenActivity
 
         openLibrary();
 
-        TextView ver = (TextView) navigationHeader.findViewById(R.id.textView);
+        TextView ver = (TextView) navigationHeader.findViewById(R.id.nav_version);
         try {
             PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
             String version = "v" + pInfo.versionName;
@@ -77,17 +98,75 @@ public class MainActivity extends FullscreenActivity
             ver.setVisibility(View.GONE);
         }
 
+        Menu m = navigationView.getMenu();
+        networkMenu = m.addSubMenu(R.string.network_library);
+
+        final AndroidNetworkContext nc = new AndroidNetworkContext() {
+            @Override
+            protected Context getContext() {
+                return MainActivity.this;
+            }
+
+            @Override
+            protected Map<String, String> authenticateWeb(URI uri, String realm, String authUrl, String completeUrl, String verificationUrl) {
+                return null;
+            }
+        };
+        UIUtil.wait("loadingNetworkLibrary", new Runnable() { // Util.initLibrary(this, nc, null);
+            public void run() {
+                final NetworkLibrary library = Util.networkLibrary(MainActivity.this);
+
+                if (!library.isInitialized()) {
+                    try {
+                        library.initialize(nc);
+                    } catch (ZLNetworkException e) {
+                    }
+                }
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        reloadMenu();
+                    }
+                });
+            }
+        }, this);
+
         loadIntent(getIntent());
+    }
+
+    void reloadMenu() {
+        networkMenu.clear();
+        List<String> ids = lib.activeIds();
+        for (int i = 0; i < ids.size(); i++) {
+            final INetworkLink link = lib.getLinkByUrl(ids.get(i));
+            MenuItem m = networkMenu.add(link.getTitle());
+            Intent intent = new Intent(LIBRARY);
+            intent.putExtra("url", ids.get(i));
+            m.setIntent(intent);
+            m.setIcon(R.drawable.ic_drag_handle_black_24dp);
+            m.setCheckable(true);
+            networkMenuMap.put(ids.get(i), m);
+        }
+        MenuItem m = networkMenu.add(R.string.configure_catalogs);
+        m.setIntent(new Intent(SETTINGS));
+        m.setIcon(R.drawable.ic_settings_black_24dp);
     }
 
     @Override
     public void onBackPressed() {
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
             Fragment f = getSupportFragmentManager().findFragmentByTag(ReaderFragment.TAG);
             if (f != null && f.isVisible()) {
+                if (lastFragment.equals(NetworkLibraryFragment.TAG)) {
+                    f = getSupportFragmentManager().findFragmentByTag(lastFragment);
+                    if (f != null) {
+                        openFragment(f, lastFragment);
+                        return;
+                    }
+                }
                 openLibrary();
                 return;
             }
@@ -140,6 +219,18 @@ public class MainActivity extends FullscreenActivity
             openLibrary();
         }
 
+        Intent i = item.getIntent();
+        if (i != null) {
+            switch (i.getAction()) {
+                case LIBRARY:
+                    openLibrary(i.getStringExtra("url"));
+                    break;
+                case SETTINGS:
+                    openSettings();
+                    break;
+            }
+        }
+
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
@@ -165,7 +256,7 @@ public class MainActivity extends FullscreenActivity
         loadBook(u);
     }
 
-    void loadBook(final Uri u) {
+    public void loadBook(final Uri u) {
         int dp10 = ThemeUtils.dp2px(this, 10);
 
         ProgressBar v = new ProgressBar(this);
@@ -173,7 +264,7 @@ public class MainActivity extends FullscreenActivity
         v.setPadding(dp10, dp10, dp10, dp10);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Loading book");
+        builder.setTitle(R.string.loading_book);
         builder.setView(v);
         builder.setCancelable(false);
         final AlertDialog d = builder.create();
@@ -183,16 +274,16 @@ public class MainActivity extends FullscreenActivity
             @Override
             public void run() {
                 try {
-                    final Storage.StoredBook fbook = storage.load(u);
+                    final Storage.Book fbook = storage.load(u);
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
                             loadBook(fbook);
-                            d.cancel();
                         }
                     });
                 } catch (RuntimeException e) {
                     Post(e);
+                } finally {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -205,17 +296,41 @@ public class MainActivity extends FullscreenActivity
         thread.start();
     }
 
-    public void loadBook(Storage.StoredBook book) {
+    public void loadBook(Storage.Book book) {
         Uri uri = Uri.fromFile(book.file);
-        FragmentManager fm = getSupportFragmentManager();
-        fm.beginTransaction().replace(R.id.main_content, ReaderFragment.newInstance(uri), ReaderFragment.TAG).commit();
-        navigationView.getMenu().findItem(R.id.nav_library).setChecked(false);
+        openFragment(ReaderFragment.newInstance(uri), ReaderFragment.TAG);
+        clearMenu();
     }
 
     public void openLibrary() {
+        openFragment(new LibraryFragment(), LibraryFragment.TAG, navigationView.getMenu().findItem(R.id.nav_library));
+    }
+
+    public void openLibrary(String n) {
+        MenuItem m = networkMenuMap.get(n);
+        openFragment(NetworkLibraryFragment.newInstance(n), NetworkLibraryFragment.TAG, m);
+    }
+
+    public void openFragment(Fragment f, String tag, MenuItem m) {
+        openFragment(f, tag);
+        m.setChecked(true);
+    }
+
+    public void clearMenu() {
+        Menu m = navigationView.getMenu();
+        for (int i = 0; i < m.size(); i++) {
+            m.getItem(i).setChecked(false);
+        }
+        for (int i = 0; i < networkMenu.size(); i++) {
+            networkMenu.getItem(i).setChecked(false);
+        }
+    }
+
+    public void openFragment(Fragment f, String tag) {
         FragmentManager fm = getSupportFragmentManager();
-        fm.beginTransaction().replace(R.id.main_content, new LibraryFragment(), LibraryFragment.TAG).commit();
-        navigationView.getMenu().findItem(R.id.nav_library).setChecked(true);
+        fm.beginTransaction().replace(R.id.main_content, f, tag).commit();
+        lastFragment = currentFragment;
+        currentFragment = tag;
     }
 
     @Override
@@ -248,8 +363,67 @@ public class MainActivity extends FullscreenActivity
         }
     }
 
+    public void openSettings() {
+        final List<String> all = lib.allIds();
+
+        final String[] nn = new String[all.size()];
+        final boolean[] bb = new boolean[all.size()];
+        final INetworkLink[] nl = new INetworkLink[all.size()];
+
+        for (int i = 0; i < all.size(); i++) {
+            String id = all.get(i);
+            INetworkLink link = lib.getLinkByUrl(id);
+            nn[i] = link.getTitle();
+            bb[i] = all.contains(id);
+            nl[i] = link;
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.configure_catalogs);
+        builder.setMultiChoiceItems(nn, bb, new DialogInterface.OnMultiChoiceClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which, boolean isChecked) {
+                bb[which] = isChecked;
+            }
+        });
+        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                for (int i = 0; i < all.size(); i++) {
+                    lib.setLinkActive(all.get(i), bb[i]);
+                }
+                reloadMenu();
+            }
+        });
+        builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                ;
+            }
+        });
+        builder.show();
+    }
+
+    public static String toString(Throwable e) {
+        while (e.getCause() != null)
+            e = e.getCause();
+        String msg = e.getMessage();
+        if (msg == null || msg.isEmpty())
+            msg = e.getClass().getSimpleName();
+        return msg;
+    }
+
     public void Post(final Throwable e) {
         Log.d(TAG, "Error", e);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Error(MainActivity.toString(e));
+            }
+        });
+    }
+
+    public void Post(final String e) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -259,11 +433,11 @@ public class MainActivity extends FullscreenActivity
     }
 
     public void Error(Throwable e) {
-        while (e.getCause() != null)
-            e = e.getCause();
-        String msg = e.getMessage();
-        if (msg == null || msg.isEmpty())
-            msg = e.getClass().getSimpleName();
+        Log.d(TAG, "Error", e);
+        Error(toString(e));
+    }
+
+    public void Error(String msg) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Error");
         builder.setMessage(msg);

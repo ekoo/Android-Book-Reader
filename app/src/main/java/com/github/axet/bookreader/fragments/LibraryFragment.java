@@ -7,18 +7,27 @@ import android.database.DataSetObserver;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.PopupMenu;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.services.FileProvider;
@@ -26,49 +35,120 @@ import com.github.axet.androidlibrary.widgets.HeaderGridView;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
-import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
 
+import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class LibraryFragment extends Fragment {
     public static final String TAG = LibraryFragment.class.getSimpleName();
 
-    BooksAdapter books;
+    BooksAdapter books = new BooksAdapter();
     HeaderGridView grid;
     Storage storage;
+    EditText edit;
+    String lastSearch = "";
 
-    public static class LatestFirst implements Comparator<Storage.StoredBook> {
+    public static class BookView {
+        public Bitmap bm;
+        public ImageView image;
+        public ProgressBar progress;
+
+        public BookView() {
+        }
+
+        public BookView(ProgressBar p, ImageView i) {
+            progress = p;
+            image = i;
+        }
+    }
+
+    public static class DownloadImageTask extends AsyncTask<Uri, Void, Bitmap> {
+        BookView book;
+
+        public DownloadImageTask(BookView b) {
+            book = b;
+            book.progress.setVisibility(View.VISIBLE);
+        }
+
+        protected Bitmap doInBackground(Uri... urls) {
+            Uri u = urls[0];
+            Bitmap bm = null;
+            try {
+                String s = u.getScheme();
+                if (s.startsWith("http")) {
+                    InputStream in = new URL(u.toString()).openStream();
+                    bm = BitmapFactory.decodeStream(in);
+                } else {
+                    bm = BitmapFactory.decodeFile(u.getPath());
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "broken download", e);
+            }
+            return bm;
+        }
+
+        protected void onPostExecute(Bitmap result) {
+            book.progress.setVisibility(View.GONE);
+            book.bm = result;
+            if (result == null)
+                return;
+            if (book.image == null)
+                return;
+            book.image.setImageBitmap(result);
+        }
+    }
+
+    public static class ByRecent implements Comparator<Storage.Book> {
 
         @Override
-        public int compare(Storage.StoredBook o1, Storage.StoredBook o2) {
+        public int compare(Storage.Book o1, Storage.Book o2) {
             return Long.valueOf(o2.info.last).compareTo(o1.info.last);
         }
 
     }
 
-    public static class CreatedFirst implements Comparator<Storage.StoredBook> {
+    public static class ByCreated implements Comparator<Storage.Book> {
 
         @Override
-        public int compare(Storage.StoredBook o1, Storage.StoredBook o2) {
+        public int compare(Storage.Book o1, Storage.Book o2) {
             return Long.valueOf(o1.info.created).compareTo(o2.info.created);
         }
 
     }
 
     public class BooksAdapter implements ListAdapter {
-        ArrayList<Storage.StoredBook> list;
+        ArrayList<Storage.Book> list = new ArrayList<>();
+        Map<Uri, BookView> views = new TreeMap<>();
+        Map<ImageView, BookView> images = new HashMap<>();
         DataSetObserver listener;
+        String filter;
 
         public BooksAdapter() {
-            refresh();
         }
 
         public void refresh() {
-            list = storage.list();
-            Collections.sort(list, new CreatedFirst());
+            list.clear();
+            ArrayList<Storage.Book> ll = storage.list();
+            if (filter == null || filter.isEmpty()) {
+                list = ll;
+                views.clear();
+                images.clear();
+            } else {
+                for (Storage.Book b : ll) {
+                    if (b.info.title.toLowerCase(Locale.US).contains(filter.toLowerCase(Locale.US))) {
+                        list.add(b);
+                    }
+                }
+            }
+            Collections.sort(list, new ByCreated());
             notifyDataSetChanged();
         }
 
@@ -103,7 +183,7 @@ public class LibraryFragment extends Fragment {
         }
 
         @Override
-        public Storage.StoredBook getItem(int position) {
+        public Storage.Book getItem(int position) {
             return list.get(position);
         }
 
@@ -120,15 +200,29 @@ public class LibraryFragment extends Fragment {
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             LayoutInflater inflater = LayoutInflater.from(getContext());
-            View book = inflater.inflate(R.layout.book_view, null, false);
+            View book = inflater.inflate(R.layout.bookitem_view, null, false);
             ImageView image = (ImageView) book.findViewById(R.id.imageView);
             TextView text = (TextView) book.findViewById(R.id.textView);
+            ProgressBar progress = (ProgressBar) book.findViewById(R.id.update_progress);
 
-            Storage.StoredBook b = list.get(position);
+            progress.setVisibility(View.GONE);
+
+            Storage.Book b = list.get(position);
 
             if (b.cover != null) {
-                Bitmap bmp = BitmapFactory.decodeFile(b.cover.getPath());
-                image.setImageBitmap(bmp);
+                Uri u = Uri.fromFile(b.cover);
+                BookView v = images.get(image);
+                if (v != null)
+                    v.image = null;
+                v = views.get(u);
+                if (v == null) {
+                    v = new BookView(progress, image);
+                    views.put(u, v);
+                    images.put(image, v);
+                    new LibraryFragment.DownloadImageTask(v).execute(u);
+                } else if (v.bm != null) {
+                    image.setImageBitmap(v.bm);
+                }
             }
 
             text.setText(b.info.title);
@@ -166,6 +260,7 @@ public class LibraryFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         storage = new Storage(getContext());
+        books.refresh();
     }
 
     @Override
@@ -174,16 +269,83 @@ public class LibraryFragment extends Fragment {
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_library, container, false);
 
+        final View clear = v.findViewById(R.id.search_header_clear);
+        edit = (EditText) v.findViewById(R.id.search_header_text);
+        View home = v.findViewById(R.id.search_header_home);
+        final View search = v.findViewById(R.id.search_header_search);
+        View login = v.findViewById(R.id.search_header_login);
+        View toolbar = v.findViewById(R.id.search_header_toolbar_parent);
+        View progress = v.findViewById(R.id.search_header_progress);
+        View stop = v.findViewById(R.id.search_header_stop);
+
+        edit.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                String t = s.toString();
+                if (t.isEmpty()) {
+                    clear.setVisibility(View.GONE);
+                } else {
+                    clear.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+        edit.setText("");
+
+        home.setVisibility(View.GONE);
+
+        search.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                search();
+                hideKeyboard();
+            }
+        });
+
+        login.setVisibility(View.GONE);
+
+        toolbar.setVisibility(View.GONE);
+
+        progress.setVisibility(View.GONE);
+
+        stop.setVisibility(View.GONE);
+
+        clear.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                edit.setText("");
+                search();
+                hideKeyboard();
+            }
+        });
+
+        edit.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                    search.performClick();
+                    return true;
+                }
+                return false;
+            }
+        });
+
         grid = (HeaderGridView) v.findViewById(R.id.grid);
 
         final MainActivity main = (MainActivity) getActivity();
         main.toolbar.setTitle(R.string.app_name);
-        books = new BooksAdapter();
         grid.setAdapter(books);
         grid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Storage.StoredBook b = books.getItem(position);
+                Storage.Book b = books.getItem(position);
                 main.loadBook(b);
             }
         });
@@ -191,9 +353,9 @@ public class LibraryFragment extends Fragment {
         grid.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                final Storage.StoredBook b = books.getItem(position);
+                final Storage.Book b = books.getItem(position);
                 PopupMenu popup = new PopupMenu(getContext(), view);
-                popup.inflate(R.menu.book_menu);
+                popup.inflate(R.menu.bookitem_menu);
                 popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                     @Override
                     public boolean onMenuItemClick(MenuItem item) {
@@ -225,7 +387,7 @@ public class LibraryFragment extends Fragment {
                         }
                         if (item.getItemId() == R.id.action_share) {
                             String ext = Storage.getExt(b.file);
-                            String type = MainApplication.getTypeByName(b.file.getName());
+                            String type = Storage.getTypeByName(b.file.getName());
                             Uri uri = FileProvider.getUriForFile(getContext(), type, b.info.title + "." + ext, b.file);
                             Intent intent = new Intent(Intent.ACTION_SEND);
                             intent.setType(type);
@@ -280,4 +442,19 @@ public class LibraryFragment extends Fragment {
         super.onDestroy();
     }
 
+    public void search() {
+        books.filter = edit.getText().toString();
+        books.refresh();
+        lastSearch = books.filter;
+    }
+
+    public void hideKeyboard() {
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(edit.getWindowToken(), 0);
+            }
+        });
+    }
 }
