@@ -308,13 +308,12 @@ public class MainActivity extends FullscreenActivity
     public void loadBook(Storage.Book book) {
         Uri uri = Uri.fromFile(book.file);
         openFragment(ReaderFragment.newInstance(uri), ReaderFragment.TAG).addToBackStack(null).commit();
-        clearMenu();
     }
 
     public void openLibrary() {
         FragmentManager fm = getSupportFragmentManager();
         fm.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
-        openFragment(new LibraryFragment(), LibraryFragment.TAG, navigationView.getMenu().findItem(R.id.nav_library)).commit();
+        openFragment(new LibraryFragment(), LibraryFragment.TAG).commit();
     }
 
     public void openLibrary(String n) {
@@ -324,22 +323,17 @@ public class MainActivity extends FullscreenActivity
         Fragment f = fm.findFragmentByTag(NetworkLibraryFragment.TAG);
         if (f != null) {
             if (f.getArguments().getString("url").equals(n)) {
-                openFragment(f, NetworkLibraryFragment.TAG, m).commit();
+                openFragment(f, NetworkLibraryFragment.TAG).commit();
                 return;
             }
         }
-        openFragment(NetworkLibraryFragment.newInstance(n), NetworkLibraryFragment.TAG, m).commit();
+        openFragment(NetworkLibraryFragment.newInstance(n), NetworkLibraryFragment.TAG).commit();
     }
 
-    void restoreNetworkSelection(NetworkLibraryFragment f) {
+    public void restoreNetworkSelection(Fragment f) {
         String u = f.getArguments().getString("url");
         MenuItem m = networkMenuMap.get(u);
         m.setChecked(true);
-    }
-
-    public FragmentTransaction openFragment(Fragment f, String tag, MenuItem m) {
-        m.setChecked(true);
-        return openFragment(f, tag);
     }
 
     public void clearMenu() {
