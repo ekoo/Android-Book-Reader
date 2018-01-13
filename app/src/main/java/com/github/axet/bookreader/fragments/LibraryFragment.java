@@ -431,6 +431,7 @@ public class LibraryFragment extends Fragment {
     public void onStart() {
         super.onStart();
         ((MainActivity) getActivity()).libraryMenu.setChecked(true);
+        books.refresh();
     }
 
     @Override

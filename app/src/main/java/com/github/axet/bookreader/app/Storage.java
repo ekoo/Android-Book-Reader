@@ -815,11 +815,16 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             BookModel Model = BookModel.createModel(book.book, plugin);
             ZLTextModel text = Model.getTextModel();
             ZLImage first = null;
+            int pages = 0;
             for (int i = 0; i < text.getParagraphsNumber(); i++) {
                 ZLTextParagraph p = text.getParagraph(i);
-                if (p.getKind() == ZLTextParagraph.Kind.END_OF_SECTION_PARAGRAPH)
-                    break;
-                if (p.getKind() == ZLTextParagraph.Kind.END_OF_TEXT_PARAGRAPH)
+                switch (p.getKind()) {
+                    case ZLTextParagraph.Kind.END_OF_SECTION_PARAGRAPH:
+                    case ZLTextParagraph.Kind.END_OF_TEXT_PARAGRAPH:
+                        pages++;
+                        break;
+                }
+                if (pages > 3)
                     break;
                 ZLTextParagraph.EntryIterator ei = p.iterator();
                 while (ei.next()) {
