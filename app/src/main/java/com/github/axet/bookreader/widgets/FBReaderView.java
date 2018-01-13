@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -109,6 +110,16 @@ public class FBReaderView extends RelativeLayout {
 
                 // level = .01f + (percent - 25) * .99f / 75;
                 return 25 + (int) ((level - .01f) * 75 / .99f);
+            }
+
+            @Override
+            public boolean onKeyDown(int keyCode, KeyEvent event) {
+                return false;
+            }
+
+            @Override
+            public boolean onKeyUp(int keyCode, KeyEvent event) {
+                return false;
             }
         };
         widget.setFocusable(true);

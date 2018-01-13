@@ -337,6 +337,7 @@ public class MainActivity extends FullscreenActivity
     }
 
     public void restoreNetworkSelection(Fragment f) {
+        clearMenu();
         String u = f.getArguments().getString("url");
         MenuItem m = networkMenuMap.get(u);
         m.setChecked(true);
