@@ -11,6 +11,7 @@
 -dontwarn org.geometerplus.**
 -dontwarn org.apache.**
 -dontwarn yuku.ambilwarna.**
+-dontwarn org.spongycastle.**
 
 # androidFilesChoicer
 
