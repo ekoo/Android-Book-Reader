@@ -430,7 +430,7 @@ public class LibraryFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        ((MainActivity) getActivity()).navigationView.getMenu().findItem(R.id.nav_library);
+        ((MainActivity) getActivity()).libraryMenu.setChecked(true);
     }
 
     @Override

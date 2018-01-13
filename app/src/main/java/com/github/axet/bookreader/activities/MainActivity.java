@@ -73,6 +73,7 @@ public class MainActivity extends FullscreenActivity
     OpenChoicer choicer;
     SubMenu networkMenu;
     Map<String, MenuItem> networkMenuMap = new TreeMap<>();
+    public MenuItem libraryMenu;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,6 +93,8 @@ public class MainActivity extends FullscreenActivity
         navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
         View navigationHeader = navigationView.getHeaderView(0);
+
+        libraryMenu = navigationView.getMenu().findItem(R.id.nav_library);
 
         openLibrary();
 
@@ -266,6 +269,9 @@ public class MainActivity extends FullscreenActivity
     }
 
     public void loadBook(final Uri u) {
+        FragmentManager fm = getSupportFragmentManager();
+        fm.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+
         int dp10 = ThemeUtils.dp2px(this, 10);
 
         ProgressBar v = new ProgressBar(this);
