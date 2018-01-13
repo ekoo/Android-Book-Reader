@@ -555,6 +555,7 @@ public class NetworkLibraryFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
+        ((MainActivity) getActivity()).setFullscreen(false);
         ((MainActivity) getActivity()).restoreNetworkSelection(this);
     }
 

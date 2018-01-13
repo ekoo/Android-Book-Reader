@@ -430,6 +430,7 @@ public class LibraryFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
+        ((MainActivity) getActivity()).setFullscreen(false);
         ((MainActivity) getActivity()).libraryMenu.setChecked(true);
         books.refresh();
     }
