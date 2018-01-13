@@ -49,7 +49,6 @@ import org.geometerplus.zlibrary.core.network.ZLNetworkRequest;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -76,8 +75,8 @@ public class NetworkLibraryFragment extends Fragment {
 
     public class BooksAdapter implements ListAdapter {
         List<FBTree> list = new ArrayList<>();
-        Map<Uri, LibraryFragment.BookView> views = new TreeMap<>();
-        Map<ImageView, LibraryFragment.BookView> images = new HashMap<>();
+        Map<Uri, LibraryFragment.BookViewHolder> views = new TreeMap<>();
+        Map<ImageView, LibraryFragment.BookViewHolder> images = new HashMap<>();
         DataSetObserver listener;
         String filter;
 
@@ -161,17 +160,22 @@ public class NetworkLibraryFragment extends Fragment {
 
             if (cover != null && cover instanceof NetworkImage) {
                 Uri u = Uri.parse(((NetworkImage) cover).Url);
-                LibraryFragment.BookView v = images.get(image);
-                if (v != null)
-                    v.image = null;
-                v = views.get(u);
-                if (v == null) {
-                    v = new LibraryFragment.BookView(progress, image);
-                    views.put(u, v);
-                    images.put(image, v);
-                    new LibraryFragment.DownloadImageTask(v).execute(u);
-                } else if (v.bm != null) {
-                    image.setImageBitmap(v.bm);
+                LibraryFragment.BookViewHolder task = images.get(image);
+                if (task != null) { // reuse imageview
+                    task.views.remove(image);
+                    task.progress = null;
+                }
+                task = views.get(u);
+                if (task != null) { // add new ImageView to populate on finish
+                    task.views.add(image);
+                }
+                if (task == null) {
+                    task = new LibraryFragment.BookViewHolder(progress, image);
+                    views.put(u, task);
+                    images.put(image, task);
+                    new LibraryFragment.DownloadImageTask(task).execute(u);
+                } else if (task.bm != null) {
+                    image.setImageBitmap(task.bm);
                 }
             }
 
@@ -555,6 +559,7 @@ public class NetworkLibraryFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
+        ((MainActivity) getActivity()).setFullscreen(false);
         ((MainActivity) getActivity()).restoreNetworkSelection(this);
     }
 
