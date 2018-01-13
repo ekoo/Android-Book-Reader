@@ -12,6 +12,7 @@ android {
         versionName "0.0.18"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+        multiDexEnabled true
     }
     signingConfigs {
         release {
@@ -57,4 +58,5 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     compile 'com.github.axet.fbreader:library:0.0.4'
     compile 'com.github.axet:android-library:1.18.0' // compile project(':android-library')
+    compile 'com.tom_roush:pdfbox-android:1.8.9.1'
 }
