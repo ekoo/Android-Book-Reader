@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
@@ -56,24 +57,24 @@ public class LibraryFragment extends Fragment {
     EditText edit;
     String lastSearch = "";
 
-    public static class BookView {
+    public static class BookViewHolder {
         public Bitmap bm;
-        public ImageView image;
+        public HashSet<ImageView> views = new HashSet<>(); // one task can set multiple ImageView's, except reused ones;
         public ProgressBar progress;
 
-        public BookView() {
+        public BookViewHolder() {
         }
 
-        public BookView(ProgressBar p, ImageView i) {
+        public BookViewHolder(ProgressBar p, ImageView i) {
             progress = p;
-            image = i;
+            views.add(i);
         }
     }
 
     public static class DownloadImageTask extends AsyncTask<Uri, Void, Bitmap> {
-        BookView book;
+        BookViewHolder book;
 
-        public DownloadImageTask(BookView b) {
+        public DownloadImageTask(BookViewHolder b) {
             book = b;
             book.progress.setVisibility(View.VISIBLE);
         }
@@ -96,13 +97,13 @@ public class LibraryFragment extends Fragment {
         }
 
         protected void onPostExecute(Bitmap result) {
-            book.progress.setVisibility(View.GONE);
+            if (book.progress != null)
+                book.progress.setVisibility(View.GONE);
             book.bm = result;
-            if (result == null)
+            if (book.bm == null)
                 return;
-            if (book.image == null)
-                return;
-            book.image.setImageBitmap(result);
+            for (ImageView v : book.views)
+                v.setImageBitmap(book.bm);
         }
     }
 
@@ -126,8 +127,8 @@ public class LibraryFragment extends Fragment {
 
     public class BooksAdapter implements ListAdapter {
         ArrayList<Storage.Book> list = new ArrayList<>();
-        Map<Uri, BookView> views = new TreeMap<>();
-        Map<ImageView, BookView> images = new HashMap<>();
+        Map<Uri, BookViewHolder> views = new TreeMap<>();
+        Map<ImageView, BookViewHolder> images = new HashMap<>();
         DataSetObserver listener;
         String filter;
 
@@ -211,17 +212,22 @@ public class LibraryFragment extends Fragment {
 
             if (b.cover != null) {
                 Uri u = Uri.fromFile(b.cover);
-                BookView v = images.get(image);
-                if (v != null)
-                    v.image = null;
-                v = views.get(u);
-                if (v == null) {
-                    v = new BookView(progress, image);
-                    views.put(u, v);
-                    images.put(image, v);
-                    new LibraryFragment.DownloadImageTask(v).execute(u);
-                } else if (v.bm != null) {
-                    image.setImageBitmap(v.bm);
+                BookViewHolder task = images.get(image);
+                if (task != null) { // reuse image
+                    task.views.remove(image);
+                    task.progress = null;
+                }
+                task = views.get(u);
+                if (task != null) { // add new ImageView to populate on finish
+                    task.views.add(image);
+                }
+                if (task == null) {
+                    task = new BookViewHolder(progress, image);
+                    views.put(u, task);
+                    images.put(image, task);
+                    new LibraryFragment.DownloadImageTask(task).execute(u);
+                } else if (task.bm != null) {
+                    image.setImageBitmap(task.bm);
                 }
             }
 
