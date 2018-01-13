@@ -20,6 +20,7 @@ import org.geometerplus.fbreader.fbreader.FBReaderApp;
 import org.geometerplus.fbreader.formats.BookReadingException;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
+import org.geometerplus.zlibrary.core.filesystem.ZLFile;
 import org.geometerplus.zlibrary.core.image.ZLFileImage;
 import org.geometerplus.zlibrary.core.image.ZLImage;
 import org.geometerplus.zlibrary.core.util.SystemInfo;
@@ -92,6 +93,11 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public static FormatPlugin getPlugin(PluginCollection c, Storage.Book b) {
+        ZLFile f = BookUtil.fileByBook(b.book);
+        switch (f.getExtension()) {
+            case PDFPlugin.EXT:
+                return new PDFPlugin();
+        }
         try {
             return BookUtil.getPlugin(c, b.book);
         } catch (BookReadingException e) {
@@ -811,6 +817,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             ZLImage first = null;
             for (int i = 0; i < text.getParagraphsNumber(); i++) {
                 ZLTextParagraph p = text.getParagraph(i);
+                if (p.getKind() == ZLTextParagraph.Kind.END_OF_SECTION_PARAGRAPH)
+                    break;
+                if (p.getKind() == ZLTextParagraph.Kind.END_OF_TEXT_PARAGRAPH)
+                    break;
                 ZLTextParagraph.EntryIterator ei = p.iterator();
                 while (ei.next()) {
                     if (ei.getType() == ZLTextParagraph.Entry.IMAGE) {

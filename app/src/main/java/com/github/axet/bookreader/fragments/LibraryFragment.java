@@ -428,6 +428,12 @@ public class LibraryFragment extends Fragment {
     }
 
     @Override
+    public void onStart() {
+        super.onStart();
+        ((MainActivity) getActivity()).libraryMenu.setChecked(true);
+    }
+
+    @Override
     public void onAttach(Context context) {
         super.onAttach(context);
     }
