@@ -32,10 +32,14 @@ import com.github.axet.bookreader.widgets.BrowserDialogFragment;
 
 import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
 import org.geometerplus.android.util.UIUtil;
+import org.geometerplus.fbreader.network.AllCatalogsSearchItem;
 import org.geometerplus.fbreader.network.INetworkLink;
 import org.geometerplus.fbreader.network.NetworkCatalogItem;
 import org.geometerplus.fbreader.network.NetworkImage;
 import org.geometerplus.fbreader.network.NetworkLibrary;
+import org.geometerplus.fbreader.network.NetworkOperationData;
+import org.geometerplus.fbreader.network.SearchItem;
+import org.geometerplus.fbreader.network.SingleCatalogSearchItem;
 import org.geometerplus.fbreader.network.tree.CatalogExpander;
 import org.geometerplus.fbreader.network.tree.NetworkBookTree;
 import org.geometerplus.fbreader.network.tree.NetworkCatalogTree;
@@ -44,6 +48,7 @@ import org.geometerplus.fbreader.network.tree.SearchCatalogTree;
 import org.geometerplus.fbreader.network.urlInfo.UrlInfo;
 import org.geometerplus.fbreader.tree.FBTree;
 import org.geometerplus.zlibrary.core.image.ZLImage;
+import org.geometerplus.zlibrary.core.network.ZLNetworkContext;
 import org.geometerplus.zlibrary.core.network.ZLNetworkException;
 import org.geometerplus.zlibrary.core.network.ZLNetworkRequest;
 
@@ -573,8 +578,60 @@ public class NetworkLibraryFragment extends Fragment {
             books.filter = edit.getText().toString();
             books.refresh();
         } else {
-            books.filter = null;
-            books.refresh();
+            UIUtil.wait("search", new Runnable() {
+                @Override
+                public void run() {
+                    final SingleCatalogSearchItem s = new SingleCatalogSearchItem(n) {
+                        NetworkOperationData data;
+
+                        @Override
+                        public void runSearch(ZLNetworkContext nc, NetworkItemsLoader loader, String pattern) throws ZLNetworkException {
+                            NetworkOperationData data = Link.createOperationData(loader);
+                            ZLNetworkRequest request = Link.simpleSearchRequest(pattern, data);
+                            nc.perform(request);
+                            if (loader.confirmInterruption()) {
+                                return;
+                            }
+                        }
+
+                        public void resume() throws ZLNetworkException {
+                            ZLNetworkRequest request = data.resume();
+                            nc.perform(request);
+                        }
+                    };
+                    final NetworkCatalogItem i = n.libraryItem();
+                    final String myPattern = edit.getText().toString();
+                    final NetworkItemsLoader l = new NetworkItemsLoader(nc, searchCatalog) {
+                        @Override
+                        protected void onFinish(ZLNetworkException exception, boolean interrupted) {
+                        }
+
+                        @Override
+                        protected void doBefore() throws ZLNetworkException {
+                        }
+
+                        @Override
+                        protected void load() throws ZLNetworkException {
+                            final SearchItem item = (SearchItem) Tree.Item;
+                            if (myPattern.equals(item.getPattern())) {
+                                if (Tree.hasChildren()) {
+                                    return;
+                                }
+                            }
+                            s.runSearch(nc, this, myPattern);
+                        }
+                    };
+                    l.run();
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            bookItems = l.Tree.subtrees();
+                            books.filter = null;
+                            books.refresh();
+                        }
+                    });
+                }
+            }, getContext());
         }
     }
 
