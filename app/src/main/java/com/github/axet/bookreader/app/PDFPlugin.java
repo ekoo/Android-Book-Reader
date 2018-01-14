@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.util.Log;
 
 import com.tom_roush.pdfbox.cos.COSName;
 import com.tom_roush.pdfbox.pdmodel.PDDocument;
@@ -48,6 +49,8 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public class PDFPlugin extends BuiltinFormatPlugin {
+
+    public static String TAG = PDFPlugin.class.getSimpleName();
 
     public static final String EXT = "pdf";
 
@@ -155,7 +158,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                     }
                 }
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                Log.d(TAG, "unable to process image", e);
             }
         }
 
