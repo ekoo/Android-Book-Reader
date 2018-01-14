@@ -231,6 +231,12 @@ public class LibraryFragment extends Fragment {
         }
 
         @Override
+        public String getTitle(int position) {
+            Storage.Book b = list.get(position);
+            return b.info.title;
+        }
+
+        @Override
         public int getCount() {
             return list.size();
         }
