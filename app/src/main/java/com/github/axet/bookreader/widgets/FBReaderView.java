@@ -3,6 +3,7 @@ package com.github.axet.bookreader.widgets;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
@@ -12,6 +13,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.RelativeLayout;
 
+import com.github.axet.bookreader.app.PDFPlugin;
 import com.github.axet.bookreader.app.Storage;
 
 import org.geometerplus.android.fbreader.NavigationPopup;
@@ -29,20 +31,53 @@ import org.geometerplus.fbreader.formats.PluginCollection;
 import org.geometerplus.zlibrary.core.application.ZLApplication;
 import org.geometerplus.zlibrary.core.application.ZLApplicationWindow;
 import org.geometerplus.zlibrary.core.util.SystemInfo;
+import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.core.view.ZLViewWidget;
 import org.geometerplus.zlibrary.text.hyphenation.ZLTextHyphenator;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
+import org.geometerplus.zlibrary.text.view.ZLTextView;
 import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 public class FBReaderView extends RelativeLayout {
     public FBReaderApp app;
-    public FBView view;
     public ZLAndroidWidget widget;
     public int battery;
     public String title;
     public Window w;
     public Storage.Book book;
+    public PDFPlugin.PDFView pdfview;
+
+    public class CustomView extends FBView {
+
+        public CustomView(FBReaderApp reader) {
+            super(reader);
+        }
+
+        @Override
+        public boolean canScroll(PageIndex index) {
+            if (pdfview != null)
+                return pdfview.canScroll(index);
+            else
+                return super.canScroll(index);
+        }
+
+        @Override
+        public synchronized void onScrollingFinished(PageIndex pageIndex) {
+            if (pdfview != null)
+                pdfview.onScrollingFinished(pageIndex);
+            else
+                super.onScrollingFinished(pageIndex);
+        }
+
+        @Override
+        public synchronized PagePosition pagePosition() {
+            if (pdfview != null)
+                return pdfview.pagePosition();
+            else
+                return super.pagePosition();
+        }
+    }
 
     public FBReaderView(Context context) {
         super(context);
@@ -70,6 +105,7 @@ public class FBReaderView extends RelativeLayout {
 //        android:scrollbarAlwaysDrawVerticalTrack="true"
 //        android:scrollbars="vertical"
         widget = new ZLAndroidWidget(getContext()) {
+
             @Override
             public void setScreenBrightness(int percent) {
                 if (percent < 1) {
@@ -120,6 +156,14 @@ public class FBReaderView extends RelativeLayout {
             @Override
             public boolean onKeyUp(int keyCode, KeyEvent event) {
                 return false;
+            }
+
+            @Override
+            public void drawOnBitmap(Bitmap bitmap, ZLViewEnums.PageIndex index) {
+                if (pdfview != null)
+                    pdfview.drawOnBitmap(bitmap, getWidth(), getMainAreaHeight(), index);
+                else
+                    super.drawOnBitmap(bitmap, index);
             }
         };
         widget.setFocusable(true);
@@ -192,7 +236,8 @@ public class FBReaderView extends RelativeLayout {
         app.ViewOptions.ScrollbarType.setValue(FBView.SCROLLBAR_SHOW_AS_FOOTER);
         app.ViewOptions.getFooterOptions().ShowProgress.setValue(FooterOptions.ProgressDisplayType.asPages);
 
-        view = (FBView) ZLApplication.Instance().getCurrentView();
+        app.BookTextView = new CustomView(app);
+        app.setView(app.BookTextView);
     }
 
     public void loadBook(Storage.Book book) {
@@ -202,19 +247,32 @@ public class FBReaderView extends RelativeLayout {
             this.book = book;
             final PluginCollection pluginCollection = PluginCollection.Instance(app.SystemInfo);
             FormatPlugin plugin = Storage.getPlugin(pluginCollection, book);
-            BookModel Model = BookModel.createModel(book.book, plugin);
-            ZLTextHyphenator.Instance().load(book.book.getLanguage());
-            view.setModel(Model.getTextModel());
-            app.Model = Model;
-            if (book.info != null)
-                view.gotoPosition(book.info.position);
+            if (plugin instanceof PDFPlugin) {
+                pdfview = new PDFPlugin.PDFView(book.book);
+                BookModel Model = BookModel.createModel(book.book, plugin);
+                app.BookTextView.setModel(Model.getTextModel());
+                app.Model = Model;
+                if (book.info != null)
+                    pdfview.gotoPosition(book.info.position);
+            } else {
+                BookModel Model = BookModel.createModel(book.book, plugin);
+                ZLTextHyphenator.Instance().load(book.book.getLanguage());
+                app.BookTextView.setModel(Model.getTextModel());
+                app.Model = Model;
+                if (book.info != null)
+                    app.BookTextView.gotoPosition(book.info.position);
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
     public void closeBook() {
-        view.setModel(null);
+        if (pdfview != null) {
+            pdfview.close();
+            pdfview = null;
+        }
+        app.BookTextView.setModel(null);
         app.Model = null;
         book = null;
         widget.setEnabled(false);
@@ -222,7 +280,7 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public ZLTextFixedPosition getPosition() {
-        return new ZLTextFixedPosition(view.getStartCursor());
+        return new ZLTextFixedPosition(app.BookTextView.getStartCursor());
     }
 
     public void setWindow(Window w) {
