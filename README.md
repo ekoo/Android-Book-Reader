@@ -2,7 +2,7 @@
 
 Book Reader simple UI. Based on FBReader (https://github.com/geometer/FBReaderJ):
 
-Supported formats: fb2, html, txt, epub, mobi, pdf.
+Supported formats: fb2, html, txt, epub, mobi, pdf, rtf, msdoc.
 
 All the best in this world is free!
 
