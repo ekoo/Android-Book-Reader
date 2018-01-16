@@ -41,6 +41,7 @@ import org.geometerplus.zlibrary.text.model.ZLVideoEntry;
 import org.geometerplus.zlibrary.text.view.ZLTextControlElement;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
+import org.geometerplus.zlibrary.text.view.ZLTextView;
 import org.geometerplus.zlibrary.ui.android.image.ZLBitmapImage;
 
 import java.io.File;
@@ -422,7 +423,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             float rr = r.pageBox.getWidth() / w;
             float hh = Math.min(h * rr, r.pageBox.getHeight());
 
-            pageHeight = (int) hh;
+            pageHeight = (int) (hh - hh * 0.05); // -5%
             PDRectangle cropBox = r.cropBox(hh);
             Bitmap bm = Bitmap.createBitmap((int) cropBox.getWidth(), (int) cropBox.getHeight(), Bitmap.Config.ARGB_8888);
             Canvas c = new Canvas(bm);
@@ -434,6 +435,10 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
             Rect dst = new Rect(0, 0, w, h);
             canvas.drawBitmap(bm, src, dst, paint);
+        }
+
+        public ZLTextView.PagePosition pagePosition() {
+            return new ZLTextView.PagePosition(pageNumber, doc.getNumberOfPages());
         }
     }
 
