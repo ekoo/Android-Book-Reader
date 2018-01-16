@@ -280,7 +280,10 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public ZLTextFixedPosition getPosition() {
-        return new ZLTextFixedPosition(app.BookTextView.getStartCursor());
+        if (pdfview != null)
+            return pdfview.getPosition();
+        else
+            return new ZLTextFixedPosition(app.BookTextView.getStartCursor());
     }
 
     public void setWindow(Window w) {
