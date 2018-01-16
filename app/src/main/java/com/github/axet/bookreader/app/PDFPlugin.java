@@ -423,7 +423,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             float rr = r.pageBox.getWidth() / w;
             float hh = Math.min(h * rr, r.pageBox.getHeight());
 
-            pageHeight = (int) (hh - hh * 0.05); // -10%
+            pageHeight = (int) (hh - hh * 0.05); // -5%
             PDRectangle cropBox = r.cropBox(hh);
             Bitmap bm = Bitmap.createBitmap((int) cropBox.getWidth(), (int) cropBox.getHeight(), Bitmap.Config.ARGB_8888);
             Canvas c = new Canvas(bm);
