@@ -14,7 +14,6 @@ import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
-import android.support.v4.content.SharedPreferencesCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -50,9 +49,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 
 public class MainActivity extends FullscreenActivity
@@ -74,6 +73,25 @@ public class MainActivity extends FullscreenActivity
     SubMenu networkMenu;
     Map<String, MenuItem> networkMenuMap = new TreeMap<>();
     public MenuItem libraryMenu;
+
+    // disable broken, closed, or authorization only repos without free books / or open links
+    List<String> disabledIds = Arrays.asList(
+            "http://data.fbreader.org/catalogs/litres2/index.php5", // authorization
+            "http://www.freebookshub.com/feed/", // fake links
+            "http://ebooks.qumran.org/opds/?lang=en", // timeout
+            "http://ebooks.qumran.org/opds/?lang=de", // timeout
+            "http://www.epubbud.com/feeds/catalog.atom", // ePub Bud has decided to wind down
+            "http://www.shucang.org/s/index.php" // timeout
+    );
+
+    public List<String> libAllIds() {
+        List<String> all = lib.allIds();
+        for (String id : disabledIds) {
+            lib.setLinkActive(id, false);
+            all.remove(id);
+        }
+        return all;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -139,12 +157,15 @@ public class MainActivity extends FullscreenActivity
                         String json = shared.getString(MainApplication.PREFERENCE_CATALOGS, null);
                         if (json != null && !json.isEmpty()) {
                             try {
-                                List<String> all = lib.allIds();
+                                List<String> all = libAllIds();
                                 for (String id : all)
                                     lib.setLinkActive(id, false);
                                 JSONArray a = new JSONArray(json);
-                                for (int i = 0; i < a.length(); i++)
-                                    lib.setLinkActive(a.getString(i), true);
+                                for (int i = 0; i < a.length(); i++) {
+                                    String id = a.getString(i);
+                                    if (!disabledIds.contains(id))
+                                        lib.setLinkActive(id, true);
+                                }
                             } catch (JSONException e) {
                                 throw new RuntimeException(e);
                             }
@@ -390,7 +411,7 @@ public class MainActivity extends FullscreenActivity
     }
 
     public void openSettings() {
-        final List<String> all = lib.allIds();
+        final List<String> all = libAllIds();
         List<String> active = lib.activeIds();
 
         final String[] nn = new String[all.size()];

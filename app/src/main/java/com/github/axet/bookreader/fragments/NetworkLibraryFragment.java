@@ -34,8 +34,10 @@ import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
 import org.geometerplus.android.util.UIUtil;
 import org.geometerplus.fbreader.network.AllCatalogsSearchItem;
 import org.geometerplus.fbreader.network.INetworkLink;
+import org.geometerplus.fbreader.network.NetworkBookItem;
 import org.geometerplus.fbreader.network.NetworkCatalogItem;
 import org.geometerplus.fbreader.network.NetworkImage;
+import org.geometerplus.fbreader.network.NetworkItem;
 import org.geometerplus.fbreader.network.NetworkLibrary;
 import org.geometerplus.fbreader.network.NetworkOperationData;
 import org.geometerplus.fbreader.network.SearchItem;
@@ -59,11 +61,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class NetworkLibraryFragment extends Fragment {
     public static final String TAG = NetworkLibraryFragment.class.getSimpleName();
 
-    LibraryFragment.FragmentHolder holder = new LibraryFragment.FragmentHolder();
+    LibraryFragment.FragmentHolder holder;
     NetworkLibraryAdapter books;
     Storage storage;
     INetworkLink n;
@@ -145,6 +148,7 @@ public class NetworkLibraryFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         storage = new Storage(getContext());
+        holder = new LibraryFragment.FragmentHolder(getContext());
         String u = getArguments().getString("url");
         lib = NetworkLibrary.Instance(new Storage.Info(getContext()));
         n = lib.getLinkByUrl(u);
@@ -182,7 +186,7 @@ public class NetworkLibraryFragment extends Fragment {
             protected void load() throws ZLNetworkException {
             }
         };
-        UIUtil.wait("load books", new Runnable() {
+        UIUtil.wait("load catalogs", new Runnable() {
             @Override
             public void run() {
                 try {
@@ -190,7 +194,11 @@ public class NetworkLibraryFragment extends Fragment {
                         i.loadChildren(l);
                     toolbarItems.clear();
                     expandCatalogs(toolbarItems, l.Tree);
-                    books.bookItems = l.Tree.subtrees();
+                    books.bookItems = new ArrayList<>();
+                    for (FBTree c : l.Tree.subtrees()) {
+                        if (c instanceof NetworkBookTree)
+                            books.bookItems.add(c);
+                    }
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -218,8 +226,15 @@ public class NetworkLibraryFragment extends Fragment {
             if (f instanceof NetworkCatalogTree) {
                 c = true;
                 NetworkCatalogTree t = (NetworkCatalogTree) f;
-                if (t.subtrees().isEmpty())
-                    new CatalogExpander(nc, t, false, false).run();
+                if (t.subtrees().isEmpty()) {
+                    CatalogExpander e = new CatalogExpander(nc, t, false, false) {
+                        @Override
+                        protected void onFinish(ZLNetworkException exception, boolean interrupted) {
+                            super.onFinish(exception, interrupted);
+                        }
+                    };
+                    e.run();
+                }
                 boolean e = expandCatalogs(all, t);
                 if (!e)
                     all.add(t);
@@ -242,11 +257,11 @@ public class NetworkLibraryFragment extends Fragment {
                 continue;
             }
             LayoutInflater inflater = LayoutInflater.from(getContext());
-            final View t = inflater.inflate(R.layout.toolbar_icon, null);
+            final View t = inflater.inflate(R.layout.networktoolbar_item, null);
             ImageView iv = (ImageView) t.findViewById(R.id.toolbar_icon_image);
             iv.setImageResource(R.drawable.ic_sort_black_24dp);
             TextView tv = (TextView) t.findViewById(R.id.toolbar_icon_text);
-            tv.setText(b.getName());
+            tv.setText(b.getName().trim());
             t.setTag(b);
             t.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -291,7 +306,7 @@ public class NetworkLibraryFragment extends Fragment {
             }
         };
 
-        UIUtil.wait("load book", new Runnable() {
+        UIUtil.wait("load books", new Runnable() {
             @Override
             public void run() {
                 try {
@@ -356,6 +371,7 @@ public class NetworkLibraryFragment extends Fragment {
         if (host == null || host.isEmpty()) {
             holder.home.setVisibility(View.GONE);
         } else {
+            holder.home.setVisibility(View.VISIBLE);
             holder.home.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {

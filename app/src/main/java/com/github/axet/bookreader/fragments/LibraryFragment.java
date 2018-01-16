@@ -55,7 +55,7 @@ public class LibraryFragment extends Fragment {
     LibraryAdapter books;
     Storage storage;
     String lastSearch = "";
-    FragmentHolder holder = new FragmentHolder();
+    FragmentHolder holder;
 
     public static class FragmentHolder {
         HeaderGridView grid;
@@ -73,6 +73,10 @@ public class LibraryFragment extends Fragment {
 
         Handler handler = new Handler();
         Context context;
+
+        public FragmentHolder(Context context) {
+            this.context = context;
+        }
 
         public void create(View v) {
             clear = v.findViewById(R.id.search_header_clear);
@@ -389,6 +393,7 @@ public class LibraryFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         storage = new Storage(getContext());
+        holder = new FragmentHolder(getContext());
         books = new LibraryAdapter();
         books.refresh();
     }

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/toolbar_icon"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <ImageButton
+        android:id="@+id/toolbar_icon_image"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="?attr/toolbar_icon_bg"
+        android:clickable="false"
+        android:gravity="center"
+        android:src="@drawable/ic_image_black_24dp"
+        android:tint="?attr/colorAccent" />
+
+    <com.github.axet.androidlibrary.widgets.TextMax
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal">
+
+        <TextView
+            android:id="@+id/toolbar_icon_text"
+            style="@style/toolbar_icon_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxWidth="60dp"
+            android:singleLine="true"
+            android:text="Top" />
+    </com.github.axet.androidlibrary.widgets.TextMax>
+</FrameLayout>
