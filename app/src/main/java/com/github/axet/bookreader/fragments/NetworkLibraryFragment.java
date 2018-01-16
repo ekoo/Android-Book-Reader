@@ -34,8 +34,10 @@ import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
 import org.geometerplus.android.util.UIUtil;
 import org.geometerplus.fbreader.network.AllCatalogsSearchItem;
 import org.geometerplus.fbreader.network.INetworkLink;
+import org.geometerplus.fbreader.network.NetworkBookItem;
 import org.geometerplus.fbreader.network.NetworkCatalogItem;
 import org.geometerplus.fbreader.network.NetworkImage;
+import org.geometerplus.fbreader.network.NetworkItem;
 import org.geometerplus.fbreader.network.NetworkLibrary;
 import org.geometerplus.fbreader.network.NetworkOperationData;
 import org.geometerplus.fbreader.network.SearchItem;
@@ -59,41 +61,34 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class NetworkLibraryFragment extends Fragment {
     public static final String TAG = NetworkLibraryFragment.class.getSimpleName();
 
-    BooksAdapter books;
-    HeaderGridView grid;
+    LibraryFragment.FragmentHolder holder;
+    NetworkLibraryAdapter books;
     Storage storage;
     INetworkLink n;
     NetworkLibrary lib;
     AndroidNetworkContext nc;
     SearchCatalogTree searchCatalog;
 
-    View searchpanel;
-    ViewGroup searchtoolbar;
-    EditText edit;
-    View toolbar;
     ArrayList<NetworkCatalogTree> toolbarItems = new ArrayList<>();
-    List<FBTree> bookItems = new ArrayList<>();
 
-    public class BooksAdapter implements ListAdapter {
+    public class NetworkLibraryAdapter extends LibraryFragment.BooksAdapter {
         List<FBTree> list = new ArrayList<>();
         Map<Uri, LibraryFragment.BookViewHolder> views = new TreeMap<>();
         Map<ImageView, LibraryFragment.BookViewHolder> images = new HashMap<>();
         DataSetObserver listener;
         String filter;
+        List<FBTree> bookItems = new ArrayList<>();
 
-        public BooksAdapter() {
+        public NetworkLibraryAdapter() {
+            super(getContext());
         }
 
-        public void notifyDataSetChanged() {
-            if (listener != null)
-                listener.onChanged();
-        }
-
-        void refresh() {
+        public void refresh() {
             if (filter == null || filter.isEmpty()) {
                 list = bookItems;
                 views.clear();
@@ -110,26 +105,6 @@ public class NetworkLibraryFragment extends Fragment {
         }
 
         @Override
-        public boolean areAllItemsEnabled() {
-            return true;
-        }
-
-        @Override
-        public boolean isEnabled(int position) {
-            return true;
-        }
-
-        @Override
-        public void registerDataSetObserver(DataSetObserver observer) {
-            listener = observer;
-        }
-
-        @Override
-        public void unregisterDataSetObserver(DataSetObserver observer) {
-            listener = null;
-        }
-
-        @Override
         public int getCount() {
             return list.size();
         }
@@ -140,68 +115,21 @@ public class NetworkLibraryFragment extends Fragment {
         }
 
         @Override
-        public long getItemId(int position) {
-            return position;
+        public String getTitle(int position) {
+            FBTree b = list.get(position);
+            return b.getName();
         }
 
         @Override
-        public boolean hasStableIds() {
-            return true;
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            LayoutInflater inflater = LayoutInflater.from(getContext());
-            View book = inflater.inflate(R.layout.bookitem_view, null, false);
-            ImageView image = (ImageView) book.findViewById(R.id.imageView);
-            TextView text = (TextView) book.findViewById(R.id.textView);
-            ProgressBar progress = (ProgressBar) book.findViewById(R.id.update_progress);
-
+        public Uri getCover(int position) {
             FBTree b = list.get(position);
 
             ZLImage cover = b.getCover();
-
-            progress.setVisibility(View.GONE);
-
             if (cover != null && cover instanceof NetworkImage) {
                 Uri u = Uri.parse(((NetworkImage) cover).Url);
-                LibraryFragment.BookViewHolder task = images.get(image);
-                if (task != null) { // reuse imageview
-                    task.views.remove(image);
-                    task.progress = null;
-                }
-                task = views.get(u);
-                if (task != null) { // add new ImageView to populate on finish
-                    task.views.add(image);
-                }
-                if (task == null) {
-                    task = new LibraryFragment.BookViewHolder(progress, image);
-                    views.put(u, task);
-                    images.put(image, task);
-                    new LibraryFragment.DownloadImageTask(task).execute(u);
-                } else if (task.bm != null) {
-                    image.setImageBitmap(task.bm);
-                }
+                return u;
             }
-
-            text.setText(b.getName());
-
-            return book;
-        }
-
-        @Override
-        public int getItemViewType(int position) {
-            return 0;
-        }
-
-        @Override
-        public int getViewTypeCount() {
-            return 1;
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return list.isEmpty();
+            return null;
         }
     }
 
@@ -220,9 +148,11 @@ public class NetworkLibraryFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         storage = new Storage(getContext());
+        holder = new LibraryFragment.FragmentHolder(getContext());
         String u = getArguments().getString("url");
         lib = NetworkLibrary.Instance(new Storage.Info(getContext()));
         n = lib.getLinkByUrl(u);
+        books = new NetworkLibraryAdapter();
 
         nc = new AndroidNetworkContext() {
             @Override
@@ -256,7 +186,7 @@ public class NetworkLibraryFragment extends Fragment {
             protected void load() throws ZLNetworkException {
             }
         };
-        UIUtil.wait("load books", new Runnable() {
+        UIUtil.wait("load catalogs", new Runnable() {
             @Override
             public void run() {
                 try {
@@ -264,13 +194,10 @@ public class NetworkLibraryFragment extends Fragment {
                         i.loadChildren(l);
                     toolbarItems.clear();
                     expandCatalogs(toolbarItems, l.Tree);
-                    boolean books = false;
-                    for (FBTree f : l.Tree.subtrees()) {
-                        if (f instanceof NetworkBookTree)
-                            books = true;
-                    }
-                    if (books) {
-                        bookItems = l.Tree.subtrees();
+                    books.bookItems = new ArrayList<>();
+                    for (FBTree c : l.Tree.subtrees()) {
+                        if (c instanceof NetworkBookTree)
+                            books.bookItems.add(c);
                     }
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
@@ -299,8 +226,15 @@ public class NetworkLibraryFragment extends Fragment {
             if (f instanceof NetworkCatalogTree) {
                 c = true;
                 NetworkCatalogTree t = (NetworkCatalogTree) f;
-                if (t.subtrees().isEmpty())
-                    new CatalogExpander(nc, t, false, false).run();
+                if (t.subtrees().isEmpty()) {
+                    CatalogExpander e = new CatalogExpander(nc, t, false, false) {
+                        @Override
+                        protected void onFinish(ZLNetworkException exception, boolean interrupted) {
+                            super.onFinish(exception, interrupted);
+                        }
+                    };
+                    e.run();
+                }
                 boolean e = expandCatalogs(all, t);
                 if (!e)
                     all.add(t);
@@ -316,18 +250,18 @@ public class NetworkLibraryFragment extends Fragment {
     }
 
     void loadtoolBar() {
-        searchtoolbar.removeAllViews();
+        holder.searchtoolbar.removeAllViews();
         for (FBTree b : toolbarItems) {
             if (b instanceof SearchCatalogTree) {
                 searchCatalog = (SearchCatalogTree) b;
                 continue;
             }
             LayoutInflater inflater = LayoutInflater.from(getContext());
-            final View t = inflater.inflate(R.layout.toolbar_icon, null);
+            final View t = inflater.inflate(R.layout.networktoolbar_item, null);
             ImageView iv = (ImageView) t.findViewById(R.id.toolbar_icon_image);
             iv.setImageResource(R.drawable.ic_sort_black_24dp);
             TextView tv = (TextView) t.findViewById(R.id.toolbar_icon_text);
-            tv.setText(b.getName());
+            tv.setText(b.getName().trim());
             t.setTag(b);
             t.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -335,13 +269,13 @@ public class NetworkLibraryFragment extends Fragment {
                     selectToolbar(t);
                 }
             });
-            searchtoolbar.addView(t);
+            holder.searchtoolbar.addView(t);
         }
 
-        if (searchtoolbar.getChildCount() == 0)
-            toolbar.setVisibility(View.GONE);
+        if (holder.searchtoolbar.getChildCount() == 0)
+            holder.toolbar.setVisibility(View.GONE);
         else
-            toolbar.setVisibility(View.VISIBLE);
+            holder.toolbar.setVisibility(View.VISIBLE);
     }
 
     void selectToolbar(View v) {
@@ -372,7 +306,7 @@ public class NetworkLibraryFragment extends Fragment {
             }
         };
 
-        UIUtil.wait("load book", new Runnable() {
+        UIUtil.wait("load books", new Runnable() {
             @Override
             public void run() {
                 try {
@@ -383,7 +317,7 @@ public class NetworkLibraryFragment extends Fragment {
                         @Override
                         public void run() {
                             getArguments().putString("toolbar", l.Tree.getUniqueKey().Id);
-                            bookItems = l.Tree.subtrees();
+                            books.bookItems = l.Tree.subtrees();
                             selectToolbar();
                             loadBooks();
                         }
@@ -399,8 +333,8 @@ public class NetworkLibraryFragment extends Fragment {
         String id = getArguments().getString("toolbar");
         if (id == null)
             return;
-        for (int i = 0; i < searchtoolbar.getChildCount(); i++) {
-            View v = searchtoolbar.getChildAt(i);
+        for (int i = 0; i < holder.searchtoolbar.getChildCount(); i++) {
+            View v = holder.searchtoolbar.getChildAt(i);
             NetworkCatalogTree b = (NetworkCatalogTree) v.getTag();
             ImageButton k = (ImageButton) v.findViewById(R.id.toolbar_icon_image);
             if (b.getUniqueKey().Id.equals(id)) {
@@ -423,73 +357,22 @@ public class NetworkLibraryFragment extends Fragment {
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_library, container, false);
 
-        final View clear = v.findViewById(R.id.search_header_clear);
-        edit = (EditText) v.findViewById(R.id.search_header_text);
-        View home = v.findViewById(R.id.search_header_home);
-        final View search = v.findViewById(R.id.search_header_search);
-        View login = v.findViewById(R.id.search_header_login);
-        toolbar = v.findViewById(R.id.search_header_toolbar_parent);
-        View progress = v.findViewById(R.id.search_header_progress);
-        View stop = v.findViewById(R.id.search_header_stop);
-        searchpanel = v.findViewById(R.id.search_panel);
-        searchtoolbar = (ViewGroup) v.findViewById(R.id.search_header_toolbar);
+        holder.create(v);
 
-        toolbar.setVisibility(View.GONE);
-
-        edit.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                String t = s.toString();
-                if (t.isEmpty()) {
-                    clear.setVisibility(View.GONE);
-                } else {
-                    clear.setVisibility(View.VISIBLE);
-                }
-            }
-        });
-        edit.setText("");
-
-        edit.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                    search.performClick();
-                    return true;
-                }
-                return false;
-            }
-        });
-
-        search.setOnClickListener(new View.OnClickListener() {
+        holder.search.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 search();
-                hideKeyboard();
-            }
-        });
-
-        clear.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                edit.setText("");
-                search();
-                hideKeyboard();
+                holder.hideKeyboard();
             }
         });
 
         final String host = n.getHostName();
         if (host == null || host.isEmpty()) {
-            home.setVisibility(View.GONE);
+            holder.home.setVisibility(View.GONE);
         } else {
-            home.setOnClickListener(new View.OnClickListener() {
+            holder.home.setVisibility(View.VISIBLE);
+            holder.home.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     openBrowser("http://" + host);
@@ -497,17 +380,10 @@ public class NetworkLibraryFragment extends Fragment {
             });
         }
 
-        progress.setVisibility(View.GONE);
-        stop.setVisibility(View.GONE);
-        login.setVisibility(View.GONE);
-
-        grid = (HeaderGridView) v.findViewById(R.id.grid);
-
         final MainActivity main = (MainActivity) getActivity();
         main.toolbar.setTitle(R.string.app_name);
-        books = new BooksAdapter();
-        grid.setAdapter(books);
-        grid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        holder.grid.setAdapter(books);
+        holder.grid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 try {
@@ -575,7 +451,7 @@ public class NetworkLibraryFragment extends Fragment {
 
     void search() {
         if (searchCatalog == null) {
-            books.filter = edit.getText().toString();
+            books.filter = holder.edit.getText().toString();
             books.refresh();
         } else {
             UIUtil.wait("search", new Runnable() {
@@ -600,7 +476,7 @@ public class NetworkLibraryFragment extends Fragment {
                         }
                     };
                     final NetworkCatalogItem i = n.libraryItem();
-                    final String myPattern = edit.getText().toString();
+                    final String myPattern = holder.edit.getText().toString();
                     final NetworkItemsLoader l = new NetworkItemsLoader(nc, searchCatalog) {
                         @Override
                         protected void onFinish(ZLNetworkException exception, boolean interrupted) {
@@ -625,7 +501,7 @@ public class NetworkLibraryFragment extends Fragment {
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            bookItems = l.Tree.subtrees();
+                            books.bookItems = l.Tree.subtrees();
                             books.filter = null;
                             books.refresh();
                         }
@@ -658,16 +534,6 @@ public class NetworkLibraryFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-    }
-
-    public void hideKeyboard() {
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-                imm.hideSoftInputFromWindow(edit.getWindowToken(), 0);
-            }
-        });
     }
 
     public void openBrowser(String u) {
