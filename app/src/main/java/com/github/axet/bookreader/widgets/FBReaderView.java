@@ -4,6 +4,7 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Rect;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
@@ -16,6 +17,7 @@ import android.widget.RelativeLayout;
 import com.github.axet.bookreader.app.DjvuPlugin;
 import com.github.axet.bookreader.app.PDFPlugin;
 import com.github.axet.bookreader.app.Storage;
+import com.github.axet.djvulibre.DjvuLibre;
 
 import org.geometerplus.android.fbreader.NavigationPopup;
 import org.geometerplus.android.fbreader.SelectionPopup;
@@ -38,6 +40,8 @@ import org.geometerplus.zlibrary.text.view.ZLTextView;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 public class FBReaderView extends RelativeLayout {
+    public static final int PAGE_OVERLAP_PERCENTS = 5; // percents
+
     public FBReaderApp app;
     public ZLAndroidWidget widget;
     public int battery;
@@ -45,6 +49,135 @@ public class FBReaderView extends RelativeLayout {
     public Window w;
     public Storage.Book book;
     public PluginView pluginview;
+
+    public static class PluginRect {
+        public int x; // lower left x
+        public int y; // lower left y
+        public int w; // x + w = upper right x
+        public int h; // y + h = upper right y
+
+        public PluginRect() {
+        }
+
+        public PluginRect(PluginRect r) {
+            this.x = r.x;
+            this.y = r.y;
+            this.w = r.w;
+            this.h = r.h;
+        }
+
+        public PluginRect(int x, int y, int w, int h) {
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+        }
+    }
+
+    public static abstract class PluginPage {
+        public int pageNumber;
+        public int pageOffset; // pageBox sizes
+        public FBReaderView.PluginRect pageBox; // pageBox sizes
+        public int pageStep;
+
+        public PluginPage() {
+        }
+
+        public PluginPage(int n, int o) {
+            this.pageNumber = n;
+            this.pageOffset = o;
+        }
+
+        public PluginPage(PluginPage r) {
+            pageNumber = r.pageNumber;
+            pageOffset = r.pageOffset;
+            if (r.pageBox != null)
+                pageBox = new PluginRect(r.pageBox);
+            pageStep = r.pageStep;
+        }
+
+        public void load(ZLViewEnums.PageIndex index) {
+            switch (index) {
+                case next:
+                    next();
+                    break;
+                case previous:
+                    prev();
+                    break;
+            }
+        }
+
+        public abstract void load();
+
+        public abstract int getPagesCount();
+
+        public boolean next() {
+            int pageOffset = this.pageOffset + pageStep;
+            if (pageOffset >= pageBox.h) {
+                int pageNumber = this.pageNumber + 1;
+                if (pageNumber >= getPagesCount())
+                    return false;
+                this.pageOffset = 0;
+                this.pageNumber = pageNumber;
+                load();
+                return true;
+            }
+            this.pageOffset = pageOffset;
+            return true;
+        }
+
+        public boolean prev() {
+            int pageOffset = this.pageOffset - pageStep;
+            if (pageOffset < 0) {
+                int pageNumber = this.pageNumber - 1;
+                if (pageNumber < 0)
+                    return false;
+                this.pageOffset = pageBox.h - (pageBox.h % pageStep);
+                this.pageNumber = pageNumber;
+                load();
+                return true;
+            }
+            this.pageOffset = pageOffset;
+            return true;
+        }
+
+        public FBReaderView.RenderRect renderRect(int w, int h) {
+            FBReaderView.RenderRect render = new FBReaderView.RenderRect();
+            render.ratio = pageBox.w / (float) w;
+            render.hh = h * render.ratio; // pageBox sizes
+
+            pageStep = (int) (render.hh - render.hh * PAGE_OVERLAP_PERCENTS / 100); // -5% or lowest base line
+
+            render.w = pageBox.w;
+            render.h = (int) render.hh;
+            render.y = pageBox.h - render.h - pageOffset - 1;
+            if (render.y <= 0) {
+                render.h += render.y;
+                h += render.y / render.ratio;
+                render.y = 0;
+            }
+
+            render.src = new Rect(0, 0, render.w, render.h);
+            if (pageOffset == 0 && render.hh > pageBox.h) {
+                int t = (int) ((render.hh - pageBox.h) / render.ratio / 2);
+                render.dst = new Rect(0, t, w, t + h); // show middle vertically
+            } else {
+                render.dst = new Rect(0, 0, w, h);
+            }
+            return render;
+        }
+
+        public boolean equals(int n, int o) {
+            return pageNumber == n && pageOffset == o;
+        }
+    }
+
+    public static class RenderRect extends FBReaderView.PluginRect {
+        public float ratio;
+        public float hh;
+        public Rect src;
+        public Rect dst;
+    }
 
     public interface PluginView {
         boolean canScroll(ZLViewEnums.PageIndex index);

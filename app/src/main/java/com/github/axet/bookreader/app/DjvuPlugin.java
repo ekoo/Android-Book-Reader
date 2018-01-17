@@ -21,13 +21,9 @@ import org.geometerplus.zlibrary.core.filesystem.ZLFile;
 import org.geometerplus.zlibrary.core.image.ZLImage;
 import org.geometerplus.zlibrary.core.view.ZLView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
-import org.geometerplus.zlibrary.text.model.ExtensionEntry;
-import org.geometerplus.zlibrary.text.model.ZLImageEntry;
 import org.geometerplus.zlibrary.text.model.ZLTextMark;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
-import org.geometerplus.zlibrary.text.model.ZLTextStyleEntry;
-import org.geometerplus.zlibrary.text.model.ZLVideoEntry;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
@@ -43,77 +39,39 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
     public static String TAG = DjvuPlugin.class.getSimpleName();
 
     public static final String EXT = "djvu";
-    public static final int PAGE_OVERLAP_PERCENTS = 5; // percents
 
-    public static class RenderPage {
+    public static class PluginPage extends FBReaderView.PluginPage {
         public DjvuLibre doc;
-        public int pageNumber;
-        public int pageOffset; // pageBox sizes
-        public DjvuLibre.Page pageBox; // pageBox sizes
 
-        public RenderPage(RenderPage r) {
+        public PluginPage(PluginPage r) {
+            super(r);
             doc = r.doc;
-            pageNumber = r.pageNumber;
-            pageOffset = r.pageOffset;
-            pageBox = r.pageBox;
         }
 
-        public RenderPage(DjvuLibre d, int n, int o) {
+        public PluginPage(PluginPage r, ZLViewEnums.PageIndex index) {
+            this(r);
+            load(index);
+        }
+
+        public PluginPage(DjvuLibre d) {
             doc = d;
-            pageNumber = n;
-            pageOffset = o;
             load();
         }
 
-        public boolean next(float h) {
-            pageOffset += h;
-            if (pageOffset >= pageBox.height) {
-                pageOffset = 0;
-                pageNumber++;
-                if (pageNumber >= doc.getPagesCount())
-                    return false;
-                load();
-                return true;
-            }
-            return true;
+        public void load() {
+            DjvuLibre.Page p = doc.getPageInfo(pageNumber);
+            pageBox = new FBReaderView.PluginRect(0, 0, p.width, p.height);
         }
 
-        public boolean prev(float h) {
-            pageOffset -= h;
-            if (pageOffset < 0) {
-                pageNumber--;
-                if (pageNumber < 0)
-                    return false;
-                pageOffset = (int) (pageBox.height - (pageBox.height % h));
-                load();
-                return true;
-            }
-            return true;
-        }
-
-        void load() {
-            pageBox = doc.getPageInfo(pageNumber);
-        }
-
-        public Rect cropBox(float h) {
-            int top = (int) (pageBox.height - pageOffset - 1);
-            int right = pageBox.width;
-            int bottom = (int) (top - h);
-            if (bottom <= 0)
-                bottom = 0;
-            return new Rect(0, top, right, bottom);
-        }
-
-        public boolean equals(int n, int o) {
-            return pageNumber == n && pageOffset == o;
+        @Override
+        public int getPagesCount() {
+            return doc.getPagesCount();
         }
     }
 
     public static class DjvuView implements FBReaderView.PluginView {
         public DjvuLibre doc;
-        public int pageNumber;
-        public int pageOffset; // pageBox sizes
-        public int pageStep; // pageBox sizes
+        PluginPage r;
         Paint paint = new Paint();
         Bitmap wallpaper;
         int wallpaperColor;
@@ -123,6 +81,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             try {
                 FileInputStream is = new FileInputStream(new File(f.getPath()));
                 doc = new DjvuLibre(is.getFD());
+                r = new PluginPage(doc);
                 FBReaderApp app = ((FBReaderApp) FBReaderApp.Instance());
                 ZLFile wallpaper = app.BookTextView.getWallpaperFile();
                 if (wallpaper != null)
@@ -138,45 +97,25 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
         public void gotoPosition(ZLTextPosition p) {
             if (p == null) {
-                pageNumber = 0;
-                pageOffset = 0;
+                r.pageNumber = 0;
+                r.pageOffset = 0;
             } else {
-                pageNumber = p.getParagraphIndex();
-                pageOffset = p.getElementIndex();
+                r.pageNumber = p.getParagraphIndex();
+                r.pageOffset = p.getElementIndex();
             }
-        }
-
-        public RenderPage getPageNumber(ZLViewEnums.PageIndex index) {
-            RenderPage r = new RenderPage(doc, pageNumber, pageOffset);
-            switch (index) {
-                case current:
-                    break;
-                case next:
-                    RenderPage rr = new RenderPage(r);
-                    if (rr.next(pageStep))
-                        return rr;
-                    break;
-                case previous:
-                    rr = new RenderPage(r);
-                    if (rr.prev(pageStep))
-                        return rr;
-                    break;
-            }
-            return r;
         }
 
         public void onScrollingFinished(ZLViewEnums.PageIndex index) {
-            RenderPage r = getPageNumber(index);
-            pageNumber = r.pageNumber;
-            pageOffset = r.pageOffset;
+            r = new PluginPage(this.r, index);
         }
 
         public ZLTextFixedPosition getPosition() {
-            return new ZLTextFixedPosition(pageNumber, pageOffset, 0);
+            return new ZLTextFixedPosition(r.pageNumber, r.pageOffset, 0);
         }
 
         public boolean canScroll(ZLView.PageIndex index) {
-            return !getPageNumber(index).equals(pageNumber, pageOffset);
+            PluginPage r = new PluginPage(this.r, index);
+            return !r.equals(this.r.pageNumber, this.r.pageOffset);
         }
 
         public void drawOnBitmap(Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
@@ -194,36 +133,18 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
                 canvas.drawColor(wallpaperColor);
             }
 
-            RenderPage r = getPageNumber(index);
+            PluginPage r = new PluginPage(this.r, index);
 
-            float rr = r.pageBox.width / (float) w;
-            float hh = h * rr; // pageBox sizes
+            FBReaderView.RenderRect render = r.renderRect(w, h);
 
-            pageStep = (int) (hh - hh * PAGE_OVERLAP_PERCENTS / 100); // -5% or lowest base line
+            this.r.pageStep = r.pageStep;
 
-            int width = r.pageBox.width;
-            int height = (int) hh;
-            int top = r.pageBox.height - height - r.pageOffset - 1;
-            if (top <= 0) {
-                height += top;
-                h += top / rr;
-                top = 0;
-            }
-
-            Bitmap bm = doc.renderPage(r.pageNumber, 0, 0, r.pageBox.width, r.pageBox.height, 0, top, width, height);
-            Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
-            Rect dst;
-            if (r.pageOffset == 0 && hh > r.pageBox.height) {
-                int t = (int) ((hh - r.pageBox.height) / rr / 2);
-                dst = new Rect(0, t, w, t + h); // show middle vertically
-            } else {
-                dst = new Rect(0, 0, w, h);
-            }
-            canvas.drawBitmap(bm, src, dst, paint);
+            Bitmap bm = doc.renderPage(r.pageNumber, 0, 0, r.pageBox.w, r.pageBox.h, render.x, render.y, render.w, render.h);
+            canvas.drawBitmap(bm, render.src, render.dst, paint);
         }
 
         public ZLTextView.PagePosition pagePosition() {
-            return new ZLTextView.PagePosition(pageNumber, doc.getPagesCount());
+            return new ZLTextView.PagePosition(r.pageNumber, doc.getPagesCount());
         }
     }
 
@@ -302,78 +223,6 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         @Override
         public int search(String text, int startIndex, int endIndex, boolean ignoreCase) {
             return 0;
-        }
-    }
-
-    public static class EntryIterator implements ZLTextParagraph.EntryIterator {
-        @Override
-        public byte getType() {
-            return 0;
-        }
-
-        @Override
-        public char[] getTextData() {
-            return new char[0];
-        }
-
-        @Override
-        public int getTextOffset() {
-            return 0;
-        }
-
-        @Override
-        public int getTextLength() {
-            return 0;
-        }
-
-        @Override
-        public byte getControlKind() {
-            return 0;
-        }
-
-        @Override
-        public boolean getControlIsStart() {
-            return false;
-        }
-
-        @Override
-        public byte getHyperlinkType() {
-            return 0;
-        }
-
-        @Override
-        public String getHyperlinkId() {
-            return null;
-        }
-
-        @Override
-        public ZLImageEntry getImageEntry() {
-            return null;
-        }
-
-        @Override
-        public ZLVideoEntry getVideoEntry() {
-            return null;
-        }
-
-        @Override
-        public ExtensionEntry getExtensionEntry() {
-            return null;
-        }
-
-        @Override
-        public ZLTextStyleEntry getStyleEntry() {
-            return null;
-        }
-
-        @Override
-        public short getFixedHSpaceLength() {
-            return 0;
-        }
-
-        @Override
-        public boolean next() {
-            return false;
         }
     }
 
