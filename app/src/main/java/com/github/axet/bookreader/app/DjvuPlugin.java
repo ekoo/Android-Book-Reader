@@ -96,15 +96,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
 
         public void gotoPosition(ZLTextPosition p) {
-            if (p == null) {
-                r.pageNumber = 0;
-                r.pageOffset = 0;
-                r.load();
-            } else {
-                r.pageNumber = p.getParagraphIndex();
-                r.pageOffset = p.getElementIndex();
-                r.load();
-            }
+            r.gotoPosition(p);
         }
 
         public void onScrollingFinished(ZLViewEnums.PageIndex index) {

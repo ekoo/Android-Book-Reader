@@ -170,6 +170,18 @@ public class FBReaderView extends RelativeLayout {
         public boolean equals(int n, int o) {
             return pageNumber == n && pageOffset == o;
         }
+
+        public void gotoPosition(ZLTextPosition p) {
+            if (p == null) {
+                pageNumber = 0;
+                pageOffset = 0;
+                load();
+            } else {
+                pageNumber = p.getParagraphIndex();
+                pageOffset = p.getElementIndex();
+                load();
+            }
+        }
     }
 
     public static class RenderRect extends FBReaderView.PluginRect {
