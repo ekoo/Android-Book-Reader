@@ -13,30 +13,28 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.RelativeLayout;
 
+import com.github.axet.bookreader.app.DjvuPlugin;
 import com.github.axet.bookreader.app.PDFPlugin;
 import com.github.axet.bookreader.app.Storage;
 
 import org.geometerplus.android.fbreader.NavigationPopup;
 import org.geometerplus.android.fbreader.SelectionPopup;
 import org.geometerplus.android.fbreader.TextSearchPopup;
-import org.geometerplus.android.fbreader.libraryService.BookCollectionShadow;
-import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
 import org.geometerplus.fbreader.fbreader.FBView;
 import org.geometerplus.fbreader.fbreader.options.FooterOptions;
-import org.geometerplus.fbreader.formats.BookReadingException;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
 import org.geometerplus.zlibrary.core.application.ZLApplication;
 import org.geometerplus.zlibrary.core.application.ZLApplicationWindow;
-import org.geometerplus.zlibrary.core.util.SystemInfo;
+import org.geometerplus.zlibrary.core.view.ZLView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.core.view.ZLViewWidget;
 import org.geometerplus.zlibrary.text.hyphenation.ZLTextHyphenator;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
+import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
-import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 public class FBReaderView extends RelativeLayout {
@@ -46,7 +44,23 @@ public class FBReaderView extends RelativeLayout {
     public String title;
     public Window w;
     public Storage.Book book;
-    public PDFPlugin.PDFView pdfview;
+    public PluginView pluginview;
+
+    public interface PluginView {
+        boolean canScroll(ZLViewEnums.PageIndex index);
+
+        void onScrollingFinished(ZLViewEnums.PageIndex pageIndex);
+
+        ZLTextView.PagePosition pagePosition();
+
+        void drawOnBitmap(Bitmap bitmap, int w, int h, ZLView.PageIndex index);
+
+        ZLTextFixedPosition getPosition();
+
+        void gotoPosition(ZLTextPosition position);
+
+        void close();
+    }
 
     public class CustomView extends FBView {
 
@@ -56,24 +70,24 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public boolean canScroll(PageIndex index) {
-            if (pdfview != null)
-                return pdfview.canScroll(index);
+            if (pluginview != null)
+                return pluginview.canScroll(index);
             else
                 return super.canScroll(index);
         }
 
         @Override
         public synchronized void onScrollingFinished(PageIndex pageIndex) {
-            if (pdfview != null)
-                pdfview.onScrollingFinished(pageIndex);
+            if (pluginview != null)
+                pluginview.onScrollingFinished(pageIndex);
             else
                 super.onScrollingFinished(pageIndex);
         }
 
         @Override
         public synchronized PagePosition pagePosition() {
-            if (pdfview != null)
-                return pdfview.pagePosition();
+            if (pluginview != null)
+                return pluginview.pagePosition();
             else
                 return super.pagePosition();
         }
@@ -160,8 +174,8 @@ public class FBReaderView extends RelativeLayout {
 
             @Override
             public void drawOnBitmap(Bitmap bitmap, ZLViewEnums.PageIndex index) {
-                if (pdfview != null)
-                    pdfview.drawOnBitmap(bitmap, getWidth(), getMainAreaHeight(), index);
+                if (pluginview != null)
+                    pluginview.drawOnBitmap(bitmap, getWidth(), getMainAreaHeight(), index);
                 else
                     super.drawOnBitmap(bitmap, index);
             }
@@ -248,12 +262,19 @@ public class FBReaderView extends RelativeLayout {
             final PluginCollection pluginCollection = PluginCollection.Instance(app.SystemInfo);
             FormatPlugin plugin = Storage.getPlugin(pluginCollection, book);
             if (plugin instanceof PDFPlugin) {
-                pdfview = new PDFPlugin.PDFView(book.book);
+                pluginview = new PDFPlugin.PDFView(book.book);
                 BookModel Model = BookModel.createModel(book.book, plugin);
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
                 if (book.info != null)
-                    pdfview.gotoPosition(book.info.position);
+                    pluginview.gotoPosition(book.info.position);
+            } else if (plugin instanceof DjvuPlugin) {
+                pluginview = new DjvuPlugin.DjvuView(book.book);
+                BookModel Model = BookModel.createModel(book.book, plugin);
+                app.BookTextView.setModel(Model.getTextModel());
+                app.Model = Model;
+                if (book.info != null)
+                    pluginview.gotoPosition(book.info.position);
             } else {
                 BookModel Model = BookModel.createModel(book.book, plugin);
                 ZLTextHyphenator.Instance().load(book.book.getLanguage());
@@ -268,9 +289,9 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void closeBook() {
-        if (pdfview != null) {
-            pdfview.close();
-            pdfview = null;
+        if (pluginview != null) {
+            pluginview.close();
+            pluginview = null;
         }
         app.BookTextView.setModel(null);
         app.Model = null;
@@ -280,8 +301,8 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public ZLTextFixedPosition getPosition() {
-        if (pdfview != null)
-            return pdfview.getPosition();
+        if (pluginview != null)
+            return pluginview.getPosition();
         else
             return new ZLTextFixedPosition(app.BookTextView.getStartCursor());
     }

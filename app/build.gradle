@@ -8,11 +8,14 @@ android {
         applicationId "com.github.axet.bookreader"
         minSdkVersion 9
         targetSdkVersion 25
-        versionCode 28
-        versionName "0.0.28"
+        versionCode 29
+        versionName "0.0.29"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
         multiDexEnabled true
+        ndk {
+            abiFilters "armeabi-v7a", "x86", "mips"
+        }
     }
     signingConfigs {
         release {
@@ -57,6 +60,7 @@ dependencies {
     implementation 'com.android.support:support-vector-drawable:25.3.1'
     testImplementation 'junit:junit:4.12'
     compile 'com.github.axet.fbreader:library:0.0.5'
+    compile 'com.github.axet:djvulibre:0.0.1'
     compile 'com.github.axet:android-library:1.18.0' // compile project(':android-library')
     compile 'com.tom_roush:pdfbox-android:1.8.9.1'
 }

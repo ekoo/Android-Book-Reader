@@ -8,12 +8,14 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.util.Log;
 
+import com.github.axet.bookreader.widgets.FBReaderView;
 import com.tom_roush.pdfbox.cos.COSName;
 import com.tom_roush.pdfbox.pdmodel.PDDocument;
 import com.tom_roush.pdfbox.pdmodel.PDDocumentInformation;
 import com.tom_roush.pdfbox.pdmodel.PDPage;
 import com.tom_roush.pdfbox.pdmodel.PDResources;
 import com.tom_roush.pdfbox.pdmodel.common.PDRectangle;
+import com.tom_roush.pdfbox.pdmodel.common.PDStream;
 import com.tom_roush.pdfbox.pdmodel.graphics.PDXObject;
 import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImage;
 import com.tom_roush.pdfbox.rendering.PageDrawer;
@@ -29,6 +31,7 @@ import org.geometerplus.fbreader.formats.BuiltinFormatPlugin;
 import org.geometerplus.zlibrary.core.encodings.EncodingCollection;
 import org.geometerplus.zlibrary.core.filesystem.ZLFile;
 import org.geometerplus.zlibrary.core.image.ZLImage;
+import org.geometerplus.zlibrary.core.image.ZLStreamImage;
 import org.geometerplus.zlibrary.core.view.ZLView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.text.model.ExtensionEntry;
@@ -46,6 +49,7 @@ import org.geometerplus.zlibrary.ui.android.image.ZLBitmapImage;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
@@ -314,7 +318,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 if (pageNumber < 0)
                     return false;
                 load();
-                pageOffset = (int) (pageBox.getHeight() - h);
+                pageOffset = (int) (pageBox.getHeight() - (pageBox.getHeight() % h));
                 return true;
             }
             return true;
@@ -334,11 +338,11 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class PDFView {
+    public static class PDFView implements FBReaderView.PluginView {
         public PDDocument doc;
         public int pageNumber;
         public int pageOffset;
-        public int pageHeight;
+        public int pageStep;
         Paint paint = new Paint();
         Bitmap wallpaper;
         int wallpaperColor;
@@ -377,12 +381,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                     break;
                 case next:
                     RenderPage rr = new RenderPage(r);
-                    if (rr.next(pageHeight))
+                    if (rr.next(pageStep))
                         return rr;
                     break;
                 case previous:
                     rr = new RenderPage(r);
-                    if (rr.prev(pageHeight))
+                    if (rr.prev(pageStep))
                         return rr;
                     break;
             }
@@ -403,6 +407,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             return !getPageNumber(index).equals(pageNumber, pageOffset);
         }
 
+        @Override
         public void drawOnBitmap(Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
             Canvas canvas = new Canvas(bitmap);
 
@@ -421,9 +426,9 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             RenderPage r = getPageNumber(index);
 
             float rr = r.pageBox.getWidth() / w;
-            float hh = Math.min(h * rr, r.pageBox.getHeight());
+            float hh = h * rr;
 
-            pageHeight = (int) (hh - hh * 0.05); // -5%
+            pageStep = (int) (hh - hh * 0.05); // -5% or lowest base line
             PDRectangle cropBox = r.cropBox(hh);
             Bitmap bm = Bitmap.createBitmap((int) cropBox.getWidth(), (int) cropBox.getHeight(), Bitmap.Config.ARGB_8888);
             Canvas c = new Canvas(bm);
@@ -450,8 +455,8 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             for (int i = 0; i < doc.getNumberOfPages(); i++) {
                 // pars.add(new RenderTextParagraph(this, i));
                 // pars.add(new EndTextParagraph(ZLTextParagraph.Kind.END_OF_SECTION_PARAGRAPH));
-                pars.add(new TextParagraph(this, i));
-                pars.add(new EndTextParagraph(ZLTextParagraph.Kind.END_OF_TEXT_PARAGRAPH));
+                // pars.add(new TextParagraph(this, i));
+                // pars.add(new EndTextParagraph(ZLTextParagraph.Kind.END_OF_TEXT_PARAGRAPH));
             }
         }
 
@@ -625,8 +630,41 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     }
 
     @Override
-    public ZLImage readCover(ZLFile file) {
-        return null;
+    public ZLImage readCover(ZLFile f) {
+        try {
+            PDDocument doc = PDDocument.load(new File(f.getPath()));
+            int last = Math.min(3, doc.getNumberOfPages());
+            for (int i = 0; i < last; i++) {
+                PDPage p = doc.getPage(i);
+                PDResources res = p.getResources();
+                for (COSName n : res.getXObjectNames()) {
+                    PDXObject o = res.getXObject(n);
+                    if (o instanceof PDImage) { // PDImageXObject
+                        final PDImage pd = (PDImage) o;
+                        final PDStream s = pd.getStream();
+                        ZLStreamImage image = new ZLStreamImage() {
+                            @Override
+                            public String getURI() {
+                                return null;
+                            }
+
+                            @Override
+                            public InputStream inputStream() {
+                                try {
+                                    return s.createInputStream();
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                        };
+                        return image;
+                    }
+                }
+            }
+            return null;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
