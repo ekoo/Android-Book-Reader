@@ -277,73 +277,45 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class RenderPage {
+    public static class PluginPage extends FBReaderView.PluginPage {
         public PDDocument doc;
-        public int pageNumber;
-        public int pageOffset;
         public PDPage page;
-        public PDRectangle pageBox;
 
-        public RenderPage(RenderPage r) {
+        public PluginPage(PluginPage r) {
+            super(r);
             doc = r.doc;
-            pageNumber = r.pageNumber;
-            pageOffset = r.pageOffset;
             page = r.page;
-            pageBox = r.pageBox;
         }
 
-        public RenderPage(PDDocument d, int n, int o) {
+        public PluginPage(PluginPage r, ZLViewEnums.PageIndex index) {
+            this(r);
+            load(index);
+        }
+
+        public PluginPage(PDDocument d) {
             doc = d;
-            pageNumber = n;
-            pageOffset = o;
             load();
         }
 
-        public boolean next(float h) {
-            pageOffset += h;
-            if (pageOffset >= pageBox.getHeight()) {
-                pageOffset = 0;
-                pageNumber++;
-                if (pageNumber >= doc.getNumberOfPages())
-                    return false;
-                load();
-                return true;
-            }
-            return true;
+        @Override
+        public int getPagesCount() {
+            return doc.getNumberOfPages();
         }
 
-        public boolean prev(float h) {
-            pageOffset -= h;
-            if (pageOffset < 0) {
-                pageNumber--;
-                if (pageNumber < 0)
-                    return false;
-                load();
-                pageOffset = (int) (pageBox.getHeight() - (pageBox.getHeight() % h));
-                return true;
-            }
-            return true;
-        }
-
-        void load() {
+        public void load() {
             page = doc.getPage(pageNumber);
-            pageBox = page.getCropBox();
+            PDRectangle p = page.getCropBox();
+            pageBox = new FBReaderView.PluginRect((int) p.getLowerLeftX(), (int) p.getLowerLeftY(), (int) p.getWidth(), (int) p.getHeight());
         }
 
         public PDRectangle cropBox(float h) {
-            return new PDRectangle(0, pageBox.getHeight() - pageOffset - h, pageBox.getWidth(), h);
-        }
-
-        public boolean equals(int n, int o) {
-            return pageNumber == n && pageOffset == o;
+            return new PDRectangle(0, pageBox.h - pageOffset - h, pageBox.w, h);
         }
     }
 
     public static class PDFView implements FBReaderView.PluginView {
         public PDDocument doc;
-        public int pageNumber;
-        public int pageOffset;
-        public int pageStep;
+        PluginPage r;
         Paint paint = new Paint();
         Bitmap wallpaper;
         int wallpaperColor;
@@ -352,6 +324,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             ZLFile f = BookUtil.fileByBook(book);
             try {
                 doc = PDDocument.load(new File(f.getPath()));
+                r = new PluginPage(doc);
                 FBReaderApp app = ((FBReaderApp) FBReaderApp.Instance());
                 ZLFile wallpaper = app.BookTextView.getWallpaperFile();
                 if (wallpaper != null)
@@ -367,45 +340,27 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         public void gotoPosition(ZLTextPosition p) {
             if (p == null) {
-                pageNumber = 0;
-                pageOffset = 0;
+                r.pageNumber = 0;
+                r.pageOffset = 0;
+                r.load();
             } else {
-                pageNumber = p.getParagraphIndex();
-                pageOffset = p.getElementIndex();
+                r.pageNumber = p.getParagraphIndex();
+                r.pageOffset = p.getElementIndex();
+                r.load();
             }
-        }
-
-        public RenderPage getPageNumber(ZLViewEnums.PageIndex index) {
-            RenderPage r = new RenderPage(doc, pageNumber, pageOffset);
-            switch (index) {
-                case current:
-                    break;
-                case next:
-                    RenderPage rr = new RenderPage(r);
-                    if (rr.next(pageStep))
-                        return rr;
-                    break;
-                case previous:
-                    rr = new RenderPage(r);
-                    if (rr.prev(pageStep))
-                        return rr;
-                    break;
-            }
-            return r;
         }
 
         public void onScrollingFinished(ZLViewEnums.PageIndex index) {
-            RenderPage r = getPageNumber(index);
-            pageNumber = r.pageNumber;
-            pageOffset = r.pageOffset;
+            r = new PluginPage(this.r, index);
         }
 
         public ZLTextFixedPosition getPosition() {
-            return new ZLTextFixedPosition(pageNumber, pageOffset, 0);
+            return new ZLTextFixedPosition(r.pageNumber, r.pageOffset, 0);
         }
 
         public boolean canScroll(ZLView.PageIndex index) {
-            return !getPageNumber(index).equals(pageNumber, pageOffset);
+            PluginPage r = new PluginPage(this.r, index);
+            return !r.equals(this.r.pageNumber, this.r.pageOffset);
         }
 
         @Override
@@ -424,33 +379,25 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 canvas.drawColor(wallpaperColor);
             }
 
-            RenderPage r = getPageNumber(index);
+            PluginPage r = new PluginPage(this.r, index);
 
-            float rr = r.pageBox.getWidth() / w;
-            float hh = h * rr;
+            FBReaderView.RenderRect render = r.renderRect(w, h);
 
-            pageStep = (int) (hh - hh * PAGE_OVERLAP_PERCENTS / 100);
-            PDRectangle cropBox = r.cropBox(hh);
-            Bitmap bm = Bitmap.createBitmap((int) cropBox.getWidth(), (int) cropBox.getHeight(), Bitmap.Config.ARGB_8888);
+            this.r.pageStep = r.pageStep;
+
+            PDRectangle cropBox = new PDRectangle(render.x, render.y, render.w, render.h);
+            Bitmap bm = Bitmap.createBitmap(render.w, render.h, Bitmap.Config.ARGB_8888);
             Canvas c = new Canvas(bm);
             try {
                 RenderTextParagraph.renderPage(r.page, paint, c, cropBox);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
-            Rect dst;
-            if (r.pageOffset == 0 && hh > r.pageBox.getHeight()) {
-                int t = (int) ((hh - r.pageBox.getHeight()) / rr / 2);
-                dst = new Rect(0, t, w, t + h);
-            } else {
-                dst = new Rect(0, 0, w, h);
-            }
-            canvas.drawBitmap(bm, src, dst, paint);
+            canvas.drawBitmap(bm, render.src, render.dst, paint);
         }
 
         public ZLTextView.PagePosition pagePosition() {
-            return new ZLTextView.PagePosition(pageNumber, doc.getNumberOfPages());
+            return new ZLTextView.PagePosition(r.pageNumber, doc.getNumberOfPages());
         }
     }
 
