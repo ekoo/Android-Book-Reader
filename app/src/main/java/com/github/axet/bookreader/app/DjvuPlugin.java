@@ -43,6 +43,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
     public static String TAG = DjvuPlugin.class.getSimpleName();
 
     public static final String EXT = "djvu";
+    public static final int PAGE_OVERLAP_PERCENTS = 5; // percents
 
     public static class RenderPage {
         public DjvuLibre doc;
@@ -198,7 +199,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             float rr = r.pageBox.width / (float) w;
             float hh = h * rr; // pageBox sizes
 
-            pageStep = (int) (hh - hh * 0.05); // -5% or lowest base line
+            pageStep = (int) (hh - hh * PAGE_OVERLAP_PERCENTS / 100); // -5% or lowest base line
 
             int width = r.pageBox.width;
             int height = (int) hh;

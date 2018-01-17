@@ -61,6 +61,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     public static String TAG = PDFPlugin.class.getSimpleName();
 
     public static final String EXT = "pdf";
+    public static final int PAGE_OVERLAP_PERCENTS = 5; // percents
 
     public static class PDFTextEntryIterator extends EntryIterator {
         TextParagraph par;
@@ -428,7 +429,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             float rr = r.pageBox.getWidth() / w;
             float hh = h * rr;
 
-            pageStep = (int) (hh - hh * 0.05); // -5% or lowest base line
+            pageStep = (int) (hh - hh * PAGE_OVERLAP_PERCENTS / 100);
             PDRectangle cropBox = r.cropBox(hh);
             Bitmap bm = Bitmap.createBitmap((int) cropBox.getWidth(), (int) cropBox.getHeight(), Bitmap.Config.ARGB_8888);
             Canvas c = new Canvas(bm);
@@ -438,7 +439,13 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 throw new RuntimeException(e);
             }
             Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
-            Rect dst = new Rect(0, 0, w, h);
+            Rect dst;
+            if (r.pageOffset == 0 && hh > r.pageBox.getHeight()) {
+                int t = (int) ((hh - r.pageBox.getHeight()) / rr / 2);
+                dst = new Rect(0, t, w, t + h);
+            } else {
+                dst = new Rect(0, 0, w, h);
+            }
             canvas.drawBitmap(bm, src, dst, paint);
         }
 
