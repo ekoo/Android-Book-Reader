@@ -22,7 +22,10 @@ import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
 import org.geometerplus.zlibrary.core.filesystem.ZLFile;
 import org.geometerplus.zlibrary.core.image.ZLFileImage;
+import org.geometerplus.zlibrary.core.image.ZLFileImageProxy;
 import org.geometerplus.zlibrary.core.image.ZLImage;
+import org.geometerplus.zlibrary.core.image.ZLImageProxy;
+import org.geometerplus.zlibrary.core.image.ZLStreamImage;
 import org.geometerplus.zlibrary.core.util.SystemInfo;
 import org.geometerplus.zlibrary.text.model.ZLImageEntry;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
@@ -72,7 +75,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public static Detector[] supported() {
         return new Detector[]{new FileFB2(), new FileEPUB(), new FileHTML(),
-                new FilePDF(), new FileRTF(), new FileMobi(), new FileTxt()};
+                new FilePDF(), new FileDjvu(), new FileRTF(), new FileMobi(), new FileTxt()};
     }
 
     public static FBReaderApp getApp(final Context context) {
@@ -97,6 +100,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         switch (f.getExtension()) {
             case PDFPlugin.EXT:
                 return new PDFPlugin();
+            case DjvuPlugin.EXT:
+                return new DjvuPlugin();
         }
         try {
             return BookUtil.getPlugin(c, b.book);
@@ -487,6 +492,12 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
     }
 
+    public static class FileDjvu extends FileTypeDetector.Handler {
+        public FileDjvu() {
+            super("djvu", "AT&TF");
+        }
+    }
+
     public static class FileRTF extends FileTypeDetector.Handler {
         public FileRTF() {
             super("rtf", "{\\rtf1");
@@ -808,44 +819,22 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return fbook;
     }
 
-    public ZLFileImage loadCover(Book book) {
+    public ZLStreamImage loadCover(Book book) {
         try {
             final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
             FormatPlugin plugin = getPlugin(pluginCollection, book);
-            BookModel Model = BookModel.createModel(book.book, plugin);
-            ZLTextModel text = Model.getTextModel();
-            ZLImage first = null;
-            int pages = 0;
-            for (int i = 0; i < text.getParagraphsNumber(); i++) {
-                ZLTextParagraph p = text.getParagraph(i);
-                switch (p.getKind()) {
-                    case ZLTextParagraph.Kind.END_OF_SECTION_PARAGRAPH:
-                    case ZLTextParagraph.Kind.END_OF_TEXT_PARAGRAPH:
-                        pages++;
-                        break;
+            ZLFile file = BookUtil.fileByBook(book.book);
+            ZLImage c = plugin.readCover(file);
+            if (c != null) {
+                if (c instanceof ZLFileImageProxy) {
+                    ZLFileImageProxy p = (ZLFileImageProxy) c;
+                    if (!p.isSynchronized())
+                        p.synchronize();
+                    return p.getRealImage();
+
                 }
-                if (pages > 3)
-                    break;
-                ZLTextParagraph.EntryIterator ei = p.iterator();
-                while (ei.next()) {
-                    if (ei.getType() == ZLTextParagraph.Entry.IMAGE) {
-                        ZLImageEntry image = ei.getImageEntry();
-                        if (first == null)
-                            first = image.getImage();
-                        if (image.IsCover) {
-                            ZLImage img = image.getImage();
-                            if (img instanceof ZLFileImage) {
-                                ZLFileImage z = (ZLFileImage) img;
-                                return z;
-                            }
-                        }
-                    }
-                }
-                if (first != null) {
-                    if (first instanceof ZLFileImage) {
-                        ZLFileImage z = (ZLFileImage) first;
-                        return z;
-                    }
+                if (c instanceof ZLStreamImage) {
+                    return (ZLStreamImage) c;
                 }
             }
             return null;
@@ -872,7 +861,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             throw new RuntimeException(e);
         }
         fbook.info.title = getTitle(fbook);
-        ZLFileImage image = loadCover(fbook);
+        ZLStreamImage image = loadCover(fbook);
         if (image != null) {
             fbook.cover = coverFile(fbook);
             Bitmap bm = BitmapFactory.decodeStream(image.inputStream());
