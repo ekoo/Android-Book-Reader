@@ -494,15 +494,21 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             }
 
             PluginNativePage r = new PluginNativePage(current, index);
+
+            PluginNativePage r1 = new PluginNativePage(r);
+            r1.renderRect(w, h);
+            current.pageStep = r1.pageStep;
+
             PdfRenderer.Page page = doc.openPage(r.pageNumber);
             r.load(page);
+            r.scale(w, h);
             FBReaderView.RenderRect render = r.renderRect(w, h);
-            current.pageStep = r.pageStep;
 
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.ARGB_8888);
             bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
             page.render(bm, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
-            canvas.drawBitmap(bm, render.src, render.dst, paint);
+            Rect src = new Rect(render.x, r.pageOffset, render.x + render.w, r.pageOffset + render.h);
+            canvas.drawBitmap(bm, src, render.dst, paint);
             bm.recycle();
             page.close();
         }
