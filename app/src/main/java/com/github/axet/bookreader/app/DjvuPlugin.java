@@ -81,7 +81,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
     public static class DjvuView implements FBReaderView.PluginView {
         public DjvuLibre doc;
-        PluginPage r;
+        PluginPage current;
         Paint paint = new Paint();
         Bitmap wallpaper;
         int wallpaperColor;
@@ -92,7 +92,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             try {
                 is = new FileInputStream(new File(f.getPath()));
                 doc = new DjvuLibre(is.getFD());
-                r = new PluginPage(doc);
+                current = new PluginPage(doc);
                 FBReaderApp app = ((FBReaderApp) FBReaderApp.Instance());
                 ZLFile wallpaper = app.BookTextView.getWallpaperFile();
                 if (wallpaper != null)
@@ -107,20 +107,20 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
 
         public void gotoPosition(ZLTextPosition p) {
-            r.gotoPosition(p);
+            current.load(p);
         }
 
         public void onScrollingFinished(ZLViewEnums.PageIndex index) {
-            r = new PluginPage(this.r, index);
+            current.load(index);
         }
 
         public ZLTextFixedPosition getPosition() {
-            return new ZLTextFixedPosition(r.pageNumber, r.pageOffset, 0);
+            return new ZLTextFixedPosition(current.pageNumber, current.pageOffset, 0);
         }
 
         public boolean canScroll(ZLView.PageIndex index) {
-            PluginPage r = new PluginPage(this.r, index);
-            return !r.equals(this.r.pageNumber, this.r.pageOffset);
+            PluginPage r = new PluginPage(this.current, index);
+            return !r.equals(this.current.pageNumber, this.current.pageOffset);
         }
 
         public void drawOnBitmap(Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
@@ -138,18 +138,17 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
                 canvas.drawColor(wallpaperColor);
             }
 
-            PluginPage r = new PluginPage(this.r, index);
-
+            PluginPage r = new PluginPage(current, index);
             FBReaderView.RenderRect render = r.renderRect(w, h);
-
-            this.r.pageStep = r.pageStep;
+            current.pageStep = r.pageStep;
 
             Bitmap bm = doc.renderPage(r.pageNumber, 0, 0, r.pageBox.w, r.pageBox.h, render.x, render.y, render.w, render.h);
             canvas.drawBitmap(bm, render.src, render.dst, paint);
+            bm.recycle();
         }
 
         public ZLTextView.PagePosition pagePosition() {
-            return new ZLTextView.PagePosition(r.pageNumber, doc.getPagesCount());
+            return new ZLTextView.PagePosition(current.pageNumber, doc.getPagesCount());
         }
     }
 

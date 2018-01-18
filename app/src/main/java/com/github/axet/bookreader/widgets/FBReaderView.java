@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
+import android.os.Build;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
@@ -40,7 +41,9 @@ import org.geometerplus.zlibrary.text.view.ZLTextView;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 public class FBReaderView extends RelativeLayout {
+
     public static final int PAGE_OVERLAP_PERCENTS = 5; // percents
+    public static final int PAGE_PAPER_COLOR = 0x80ffffff;
 
     public FBReaderApp app;
     public ZLAndroidWidget widget;
@@ -171,16 +174,18 @@ public class FBReaderView extends RelativeLayout {
             return pageNumber == n && pageOffset == o;
         }
 
-        public void gotoPosition(ZLTextPosition p) {
+        public void load(ZLTextPosition p) {
             if (p == null) {
-                pageNumber = 0;
-                pageOffset = 0;
-                load();
+                load(0, 0);
             } else {
-                pageNumber = p.getParagraphIndex();
-                pageOffset = p.getElementIndex();
-                load();
+                load(p.getParagraphIndex(), p.getElementIndex());
             }
+        }
+
+        public void load(int n, int o) {
+            pageNumber = n;
+            pageOffset = o;
+            load();
         }
     }
 
@@ -407,7 +412,10 @@ public class FBReaderView extends RelativeLayout {
             final PluginCollection pluginCollection = PluginCollection.Instance(app.SystemInfo);
             FormatPlugin plugin = Storage.getPlugin(pluginCollection, book);
             if (plugin instanceof PDFPlugin) {
-                pluginview = new PDFPlugin.PDFView(book.book);
+                if (Build.VERSION.SDK_INT >= 21)
+                    pluginview = new PDFPlugin.PDFNativeView(book.book);
+                else
+                    pluginview = new PDFPlugin.PDFView(book.book);
                 BookModel Model = BookModel.createModel(book.book, plugin);
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;

@@ -1,11 +1,14 @@
 package com.github.axet.bookreader.app;
 
+import android.annotation.TargetApi;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.pdf.PdfRenderer;
+import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
 import com.github.axet.bookreader.widgets.FBReaderView;
@@ -307,15 +310,11 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             PDRectangle p = page.getCropBox();
             pageBox = new FBReaderView.PluginRect((int) p.getLowerLeftX(), (int) p.getLowerLeftY(), (int) p.getWidth(), (int) p.getHeight());
         }
-
-        public PDRectangle cropBox(float h) {
-            return new PDRectangle(0, pageBox.h - pageOffset - h, pageBox.w, h);
-        }
     }
 
     public static class PDFView implements FBReaderView.PluginView {
         public PDDocument doc;
-        PluginPage r;
+        PluginPage current;
         Paint paint = new Paint();
         Bitmap wallpaper;
         int wallpaperColor;
@@ -324,7 +323,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             ZLFile f = BookUtil.fileByBook(book);
             try {
                 doc = PDDocument.load(new File(f.getPath()));
-                r = new PluginPage(doc);
+                current = new PluginPage(doc);
                 FBReaderApp app = ((FBReaderApp) FBReaderApp.Instance());
                 ZLFile wallpaper = app.BookTextView.getWallpaperFile();
                 if (wallpaper != null)
@@ -339,20 +338,20 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         public void gotoPosition(ZLTextPosition p) {
-            r.gotoPosition(p);
+            current.load(p);
         }
 
         public void onScrollingFinished(ZLViewEnums.PageIndex index) {
-            r = new PluginPage(this.r, index);
+            current.load(index);
         }
 
         public ZLTextFixedPosition getPosition() {
-            return new ZLTextFixedPosition(r.pageNumber, r.pageOffset, 0);
+            return new ZLTextFixedPosition(current.pageNumber, current.pageOffset, 0);
         }
 
         public boolean canScroll(ZLView.PageIndex index) {
-            PluginPage r = new PluginPage(this.r, index);
-            return !r.equals(this.r.pageNumber, this.r.pageOffset);
+            PluginPage r = new PluginPage(current, index);
+            return !r.equals(current.pageNumber, current.pageOffset);
         }
 
         @Override
@@ -371,14 +370,13 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 canvas.drawColor(wallpaperColor);
             }
 
-            PluginPage r = new PluginPage(this.r, index);
-
+            PluginPage r = new PluginPage(current, index);
             FBReaderView.RenderRect render = r.renderRect(w, h);
-
-            this.r.pageStep = r.pageStep;
+            current.pageStep = r.pageStep;
 
             PDRectangle cropBox = new PDRectangle(render.x, render.y, render.w, render.h);
             Bitmap bm = Bitmap.createBitmap(render.w, render.h, Bitmap.Config.ARGB_8888);
+            bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
             Canvas c = new Canvas(bm);
             try {
                 RenderTextParagraph.renderPage(r.page, paint, c, cropBox);
@@ -386,10 +384,131 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 throw new RuntimeException(e);
             }
             canvas.drawBitmap(bm, render.src, render.dst, paint);
+            bm.recycle();
         }
 
         public ZLTextView.PagePosition pagePosition() {
-            return new ZLTextView.PagePosition(r.pageNumber, doc.getNumberOfPages());
+            return new ZLTextView.PagePosition(current.pageNumber, doc.getNumberOfPages());
+        }
+    }
+
+    @TargetApi(21)
+    public static class PluginNativePage extends FBReaderView.PluginPage {
+        public PdfRenderer doc;
+
+        public PluginNativePage(PluginNativePage r) {
+            super(r);
+            doc = r.doc;
+        }
+
+        public PluginNativePage(PluginNativePage r, ZLViewEnums.PageIndex index) {
+            this(r);
+            load(index);
+        }
+
+        public PluginNativePage(PdfRenderer d) {
+            doc = d;
+        }
+
+        @Override
+        public int getPagesCount() {
+            return doc.getPageCount();
+        }
+
+        public void load() {
+            PdfRenderer.Page page = doc.openPage(pageNumber);
+            load(page);
+            page.close();
+        }
+
+        void load(PdfRenderer.Page page) {
+            pageBox = new FBReaderView.PluginRect(0, 0, page.getWidth(), page.getHeight());
+        }
+    }
+
+    @TargetApi(21)
+    public static class PDFNativeView implements FBReaderView.PluginView {
+        ParcelFileDescriptor fd;
+        public PdfRenderer doc;
+        PluginNativePage current;
+        Paint paint = new Paint();
+        Bitmap wallpaper;
+        int wallpaperColor;
+
+        public PDFNativeView(Book book) {
+            ZLFile f = BookUtil.fileByBook(book);
+            try {
+                fd = ParcelFileDescriptor.open(new File(f.getPath()), ParcelFileDescriptor.MODE_READ_ONLY);
+                doc = new PdfRenderer(fd);
+                current = new PluginNativePage(doc);
+                FBReaderApp app = ((FBReaderApp) FBReaderApp.Instance());
+                ZLFile wallpaper = app.BookTextView.getWallpaperFile();
+                if (wallpaper != null)
+                    this.wallpaper = BitmapFactory.decodeStream(wallpaper.getInputStream());
+                wallpaperColor = app.BookTextView.getBackgroundColor().intValue();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public void close() {
+            doc.close();
+            try {
+                fd.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public void gotoPosition(ZLTextPosition p) {
+            current.load(p);
+        }
+
+        public void onScrollingFinished(ZLViewEnums.PageIndex index) {
+            current.load(index);
+        }
+
+        public ZLTextFixedPosition getPosition() {
+            return new ZLTextFixedPosition(current.pageNumber, current.pageOffset, 0);
+        }
+
+        public boolean canScroll(ZLView.PageIndex index) {
+            PluginNativePage r = new PluginNativePage(current, index);
+            return !r.equals(current.pageNumber, current.pageOffset);
+        }
+
+        @Override
+        public void drawOnBitmap(Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
+            Canvas canvas = new Canvas(bitmap);
+
+            if (wallpaper != null) {
+                float dx = wallpaper.getWidth();
+                float dy = wallpaper.getHeight();
+                for (int cw = 0; cw < bitmap.getWidth() + dx; cw += dx) {
+                    for (int ch = 0; ch < bitmap.getHeight() + dy; ch += dy) {
+                        canvas.drawBitmap(wallpaper, cw - dx, ch - dy, paint);
+                    }
+                }
+            } else {
+                canvas.drawColor(wallpaperColor);
+            }
+
+            PluginNativePage r = new PluginNativePage(current, index);
+            PdfRenderer.Page page = doc.openPage(r.pageNumber);
+            r.load(page);
+            FBReaderView.RenderRect render = r.renderRect(w, h);
+            current.pageStep = r.pageStep;
+
+            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.ARGB_8888);
+            bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
+            page.render(bm, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
+            canvas.drawBitmap(bm, render.src, render.dst, paint);
+            bm.recycle();
+            page.close();
+        }
+
+        public ZLTextView.PagePosition pagePosition() {
+            return new ZLTextView.PagePosition(current.pageNumber, doc.getPageCount());
         }
     }
 
