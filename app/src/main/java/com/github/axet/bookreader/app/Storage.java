@@ -827,21 +827,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             FormatPlugin plugin = getPlugin(pluginCollection, book);
             ZLFile file = BookUtil.fileByBook(book.book);
             ZLImage c = plugin.readCover(file);
-            if (c != null) {
-                if (c instanceof ZLFileImageProxy) {
-                    ZLFileImageProxy p = (ZLFileImageProxy) c;
-                    if (!p.isSynchronized())
-                        p.synchronize();
-                    return p.getRealImage();
-
-                }
-                if (c instanceof ZLStreamImage) {
-                    return c;
-                }
-                if (c instanceof ZLBitmapImage)
-                    return c;
-            }
-            return null;
+            return c;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -867,9 +853,16 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         fbook.info.title = getTitle(fbook);
         ZLImage image = loadCover(fbook);
         if (image != null) {
+            fbook.cover = coverFile(fbook);
             Bitmap bm = null;
+            if (image instanceof ZLFileImageProxy) {
+                ZLFileImageProxy p = (ZLFileImageProxy) c;
+                if (!p.isSynchronized())
+                    p.synchronize();
+                image = p.getRealImage();
+
+            }
             if (image instanceof ZLStreamImage) {
-                fbook.cover = coverFile(fbook);
                 bm = BitmapFactory.decodeStream(((ZLStreamImage) image).inputStream());
             }
             if (image instanceof ZLBitmapImage) {
