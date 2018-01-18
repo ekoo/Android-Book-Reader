@@ -144,8 +144,15 @@ public class FBReaderView extends RelativeLayout {
             return true;
         }
 
-        public FBReaderView.RenderRect renderRect(int w, int h) {
-            FBReaderView.RenderRect render = new FBReaderView.RenderRect();
+        public void scale(int w, int h) {
+            float ratio = w / (float) pageBox.w;
+            pageBox.w = w;
+            pageBox.h = (int) (pageBox.h * ratio);
+            pageOffset = (int) (pageOffset * ratio);
+        }
+
+        public RenderRect renderRect(int w, int h) {
+            RenderRect render = new RenderRect();
             render.ratio = pageBox.w / (float) w;
             render.hh = h * render.ratio; // pageBox sizes
 
