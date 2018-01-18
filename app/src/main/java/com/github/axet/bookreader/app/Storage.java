@@ -856,7 +856,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             fbook.cover = coverFile(fbook);
             Bitmap bm = null;
             if (image instanceof ZLFileImageProxy) {
-                ZLFileImageProxy p = (ZLFileImageProxy) c;
+                ZLFileImageProxy p = (ZLFileImageProxy) image;
                 if (!p.isSynchronized())
                     p.synchronize();
                 image = p.getRealImage();
