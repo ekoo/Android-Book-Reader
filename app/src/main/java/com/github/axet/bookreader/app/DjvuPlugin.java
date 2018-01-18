@@ -144,6 +144,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
             Bitmap bm = doc.renderPage(r.pageNumber, 0, 0, r.pageBox.w, r.pageBox.h, render.x, render.y, render.w, render.h);
             canvas.drawBitmap(bm, render.src, render.dst, paint);
+            bm.recycle();
         }
 
         public ZLTextView.PagePosition pagePosition() {
