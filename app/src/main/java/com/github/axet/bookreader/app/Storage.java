@@ -860,31 +860,34 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             throw new RuntimeException(e);
         }
         fbook.info.title = getTitle(fbook);
-        ZLImage image = loadCover(fbook);
-        if (image != null) {
-            fbook.cover = coverFile(fbook);
-            Bitmap bm = null;
-            if (image instanceof ZLFileImageProxy) {
-                ZLFileImageProxy p = (ZLFileImageProxy) image;
-                if (!p.isSynchronized())
-                    p.synchronize();
-                image = p.getRealImage();
+        File cover = coverFile(fbook);
+        if (!cover.exists() || cover.length() == 0) {
+            ZLImage image = loadCover(fbook);
+            if (image != null) {
+                fbook.cover = cover;
+                Bitmap bm = null;
+                if (image instanceof ZLFileImageProxy) {
+                    ZLFileImageProxy p = (ZLFileImageProxy) image;
+                    if (!p.isSynchronized())
+                        p.synchronize();
+                    image = p.getRealImage();
 
-            }
-            if (image instanceof ZLStreamImage) {
-                bm = BitmapFactory.decodeStream(((ZLStreamImage) image).inputStream());
-            }
-            if (image instanceof ZLBitmapImage) {
-                bm = ((ZLBitmapImage) image).getBitmap();
-            }
-            if (bm == null)
-                return;
-            try {
-                FileOutputStream os = new FileOutputStream(fbook.cover);
-                bm.compress(Bitmap.CompressFormat.PNG, 100, os);
-                os.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+                }
+                if (image instanceof ZLStreamImage) {
+                    bm = BitmapFactory.decodeStream(((ZLStreamImage) image).inputStream());
+                }
+                if (image instanceof ZLBitmapImage) {
+                    bm = ((ZLBitmapImage) image).getBitmap();
+                }
+                if (bm == null)
+                    return;
+                try {
+                    FileOutputStream os = new FileOutputStream(fbook.cover);
+                    bm.compress(Bitmap.CompressFormat.PNG, 100, os);
+                    os.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
         if (!r.exists())

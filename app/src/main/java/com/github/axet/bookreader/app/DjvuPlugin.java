@@ -140,8 +140,8 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
             PluginPage r = new PluginPage(current, index);
             FBReaderView.RenderRect render = r.renderRect(w, h);
-            current.pageStep = r.pageStep;
-
+            current.updatePage(r);
+            
             Bitmap bm = doc.renderPage(r.pageNumber, 0, 0, r.pageBox.w, r.pageBox.h, render.x, render.y, render.w, render.h);
             canvas.drawBitmap(bm, render.src, render.dst, paint);
             bm.recycle();

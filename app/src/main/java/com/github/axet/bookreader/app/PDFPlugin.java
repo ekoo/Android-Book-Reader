@@ -372,7 +372,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
             PluginPage r = new PluginPage(current, index);
             FBReaderView.RenderRect render = r.renderRect(w, h);
-            current.pageStep = r.pageStep;
+            current.updatePage(r);
 
             PDRectangle cropBox = new PDRectangle(render.x, render.y, render.w, render.h);
             Bitmap bm = Bitmap.createBitmap(render.w, render.h, Bitmap.Config.ARGB_8888);
@@ -494,13 +494,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             }
 
             PluginNativePage r = new PluginNativePage(current, index);
-
-            PluginNativePage r1 = new PluginNativePage(r);
-            r1.renderRect(w, h);
-            current.pageStep = r1.pageStep;
-
             PdfRenderer.Page page = doc.openPage(r.pageNumber);
             r.load(page);
+
+            r.renderRect(w, h);
+            current.updatePage(r);
+
             r.scale(w, h);
             FBReaderView.RenderRect render = r.renderRect(w, h);
 
