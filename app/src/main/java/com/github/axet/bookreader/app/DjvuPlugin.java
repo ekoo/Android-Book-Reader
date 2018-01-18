@@ -1,12 +1,15 @@
 package com.github.axet.bookreader.app;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 
+import com.github.axet.androidlibrary.app.Native;
 import com.github.axet.bookreader.widgets.FBReaderView;
+import com.github.axet.djvulibre.Config;
 import com.github.axet.djvulibre.DjvuLibre;
 
 import org.geometerplus.fbreader.book.AbstractBook;
@@ -39,6 +42,13 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
     public static String TAG = DjvuPlugin.class.getSimpleName();
 
     public static final String EXT = "djvu";
+
+    static {
+        if (Config.natives) {
+            Native.loadLibraries(Storage.zlib.getBaseContext(), new String[]{"djvu", "djvulibrejni"});
+            Config.natives = false;
+        }
+    }
 
     public static class PluginPage extends FBReaderView.PluginPage {
         public DjvuLibre doc;
@@ -75,11 +85,12 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         Paint paint = new Paint();
         Bitmap wallpaper;
         int wallpaperColor;
+        FileInputStream is;
 
         public DjvuView(Book book) {
             ZLFile f = BookUtil.fileByBook(book);
             try {
-                FileInputStream is = new FileInputStream(new File(f.getPath()));
+                is = new FileInputStream(new File(f.getPath()));
                 doc = new DjvuLibre(is.getFD());
                 r = new PluginPage(doc);
                 FBReaderApp app = ((FBReaderApp) FBReaderApp.Instance());
@@ -153,6 +164,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         protected void finalize() throws Throwable {
             super.finalize();
             doc.close();
+            is.close();
         }
 
         @Override
@@ -232,6 +244,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             DjvuLibre doc = new DjvuLibre(is.getFD());
             book.setTitle(doc.getTitle());
             book.addAuthor(doc.getAuthor());
+            doc.close();
             is.close();
         } catch (IOException e) {
             throw new RuntimeException(e);

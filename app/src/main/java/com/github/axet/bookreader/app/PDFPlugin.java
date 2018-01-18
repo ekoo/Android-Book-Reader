@@ -579,33 +579,24 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     public ZLImage readCover(ZLFile f) {
         try {
             PDDocument doc = PDDocument.load(new File(f.getPath()));
-            int last = Math.min(3, doc.getNumberOfPages());
-            for (int i = 0; i < last; i++) {
-                PDPage p = doc.getPage(i);
-                PDResources res = p.getResources();
-                for (COSName n : res.getXObjectNames()) {
-                    PDXObject o = res.getXObject(n);
-                    if (o instanceof PDImage) { // PDImageXObject
-                        final PDImage pd = (PDImage) o;
-                        final PDStream s = pd.getStream();
-                        ZLStreamImage image = new ZLStreamImage() {
-                            @Override
-                            public String getURI() {
-                                return null;
+            try {
+                int last = Math.min(3, doc.getNumberOfPages());
+                for (int i = 0; i < last; i++) {
+                    PDPage p = doc.getPage(i);
+                    PDResources res = p.getResources();
+                    for (COSName n : res.getXObjectNames()) {
+                        PDXObject o = res.getXObject(n);
+                        if (o instanceof PDImage) { // PDImageXObject
+                            try {
+                                Bitmap bm = ((PDImage) o).getImage();
+                                return new ZLBitmapImage(bm);
+                            } catch (Exception e) { // ignore: Invalid color space kind: COSName{ICCBased}
                             }
-
-                            @Override
-                            public InputStream inputStream() {
-                                try {
-                                    return s.createInputStream();
-                                } catch (IOException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            }
-                        };
-                        return image;
+                        }
                     }
                 }
+            } finally {
+                doc.close();
             }
             return null;
         } catch (IOException e) {

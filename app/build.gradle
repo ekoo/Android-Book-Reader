@@ -4,6 +4,8 @@ import com.android.build.OutputFile
 
 android {
     compileSdkVersion 25
+    buildToolsVersion '27.0.1'
+
     defaultConfig {
         applicationId "com.github.axet.bookreader"
         minSdkVersion 9

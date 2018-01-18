@@ -18,6 +18,7 @@ import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
 import org.geometerplus.fbreader.formats.BookReadingException;
+import org.geometerplus.fbreader.formats.DjVuPlugin;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
 import org.geometerplus.zlibrary.core.filesystem.ZLFile;
@@ -32,6 +33,7 @@ import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
+import org.geometerplus.zlibrary.ui.android.image.ZLBitmapImage;
 import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -71,7 +73,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public static final String COVER_EXT = "png";
     public static final String JSON_EXT = "json";
 
-    static ZLAndroidApplication zlib;
+    public static ZLAndroidApplication zlib;
 
     public static Detector[] supported() {
         return new Detector[]{new FileFB2(), new FileEPUB(), new FileHTML(),
@@ -819,7 +821,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return fbook;
     }
 
-    public ZLStreamImage loadCover(Book book) {
+    public ZLImage loadCover(Book book) {
         try {
             final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
             FormatPlugin plugin = getPlugin(pluginCollection, book);
@@ -834,8 +836,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
                 }
                 if (c instanceof ZLStreamImage) {
-                    return (ZLStreamImage) c;
+                    return c;
                 }
+                if (c instanceof ZLBitmapImage)
+                    return c;
             }
             return null;
         } catch (Exception e) {
@@ -861,10 +865,18 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             throw new RuntimeException(e);
         }
         fbook.info.title = getTitle(fbook);
-        ZLStreamImage image = loadCover(fbook);
+        ZLImage image = loadCover(fbook);
         if (image != null) {
-            fbook.cover = coverFile(fbook);
-            Bitmap bm = BitmapFactory.decodeStream(image.inputStream());
+            Bitmap bm = null;
+            if (image instanceof ZLStreamImage) {
+                fbook.cover = coverFile(fbook);
+                bm = BitmapFactory.decodeStream(((ZLStreamImage) image).inputStream());
+            }
+            if (image instanceof ZLBitmapImage) {
+                bm = ((ZLBitmapImage) image).getBitmap();
+            }
+            if (bm == null)
+                return;
             try {
                 FileOutputStream os = new FileOutputStream(fbook.cover);
                 bm.compress(Bitmap.CompressFormat.PNG, 100, os);
