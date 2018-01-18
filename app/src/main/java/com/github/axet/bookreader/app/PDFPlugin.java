@@ -506,8 +506,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.ARGB_8888);
             bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
             page.render(bm, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
-            Rect src = new Rect(render.x, r.pageOffset, render.x + render.w, r.pageOffset + render.h);
-            canvas.drawBitmap(bm, src, render.dst, paint);
+            canvas.drawBitmap(bm, render.toRect(bm.getWidth(), bm.getHeight()), render.dst, paint);
             bm.recycle();
             page.close();
         }

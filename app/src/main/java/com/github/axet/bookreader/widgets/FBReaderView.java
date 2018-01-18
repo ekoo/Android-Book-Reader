@@ -75,6 +75,10 @@ public class FBReaderView extends RelativeLayout {
             this.w = w;
             this.h = h;
         }
+
+        public Rect toRect(int w, int h) {
+            return new Rect(x, h - this.h - y, x + this.w, h - y);
+        }
     }
 
     public static abstract class PluginPage {
@@ -129,8 +133,8 @@ public class FBReaderView extends RelativeLayout {
 
         public boolean prev() {
             int pageOffset = this.pageOffset - pageStep;
-            if (this.pageOffset != 0 && pageOffset < 0) { // happens only on screen rotate, sync page to top
-                this.pageOffset = 0;
+            if (this.pageOffset > 0 && pageOffset < 0) { // happens only on screen rotate
+                this.pageOffset = pageOffset; // sync to top = 0 or keep negative offset
                 return true;
             } else if (pageOffset < 0) {
                 int pageNumber = this.pageNumber - 1;
@@ -157,29 +161,44 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public RenderRect renderRect(int w, int h) {
-            RenderRect render = new RenderRect();
+            RenderRect render = new RenderRect(); // render region
             render.ratio = pageBox.w / (float) w;
-            render.hh = h * render.ratio; // pageBox sizes
+            float hh = h * render.ratio; // pageBox sizes, visible height
 
-            pageOverlap = (int) (render.hh * PAGE_OVERLAP_PERCENTS / 100);
-            pageStep = (int) (render.hh - pageOverlap); // -5% or lowest base line
+            pageOverlap = (int) (hh * PAGE_OVERLAP_PERCENTS / 100);
+            pageStep = (int) (hh - pageOverlap); // -5% or lowest base line
 
+            render.x = 0;
             render.w = pageBox.w;
-            render.h = (int) render.hh;
-            render.y = pageBox.h - render.h - pageOffset - 1;
-            if (render.y <= 0) {
-                render.h += render.y;
-                h += render.y / render.ratio;
-                render.y = 0;
+
+            if (pageOffset < 0) { // show empty space at beginig
+                int tail = (int) (pageBox.h - pageOffset - hh); // tail to cut from the bottom
+                if (tail < 0) {
+                    render.h = pageBox.h;
+                    render.y = 0;
+                } else {
+                    render.h = pageBox.h - tail;
+                    render.y = tail;
+                }
+                int oo = (int) (-pageOffset / render.ratio); // convert to display sizes
+                render.dst = new Rect(0, oo, w, h);
+            } else if (pageOffset == 0 && hh > pageBox.h) {  // show middle vertically
+                int t = (int) ((hh - pageBox.h) / render.ratio / 2);
+                render.h = pageBox.h;
+                render.dst = new Rect(0, t, w, t + h);
+            } else {
+                render.h = (int) hh;
+                render.y = pageBox.h - render.h - pageOffset - 1;
+                if (render.y < 0) {
+                    render.h += render.y;
+                    h += render.y / render.ratio; // convert to display sizes
+                    render.y = 0;
+                }
+                render.dst = new Rect(0, 0, w, h);
             }
 
             render.src = new Rect(0, 0, render.w, render.h);
-            if (pageOffset == 0 && render.hh > pageBox.h) {
-                int t = (int) ((render.hh - pageBox.h) / render.ratio / 2);
-                render.dst = new Rect(0, t, w, t + h); // show middle vertically
-            } else {
-                render.dst = new Rect(0, 0, w, h);
-            }
+
             return render;
         }
 
@@ -209,7 +228,6 @@ public class FBReaderView extends RelativeLayout {
 
     public static class RenderRect extends FBReaderView.PluginRect {
         public float ratio;
-        public float hh; // pageBox sizes, visible height of page
         public Rect src;
         public Rect dst;
     }
