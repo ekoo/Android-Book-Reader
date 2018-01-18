@@ -173,16 +173,18 @@ public class FBReaderView extends RelativeLayout {
             return pageNumber == n && pageOffset == o;
         }
 
-        public void gotoPosition(ZLTextPosition p) {
+        public void load(ZLTextPosition p) {
             if (p == null) {
-                pageNumber = 0;
-                pageOffset = 0;
-                load();
+                load(0, 0);
             } else {
-                pageNumber = p.getParagraphIndex();
-                pageOffset = p.getElementIndex();
-                load();
+                load(p.getParagraphIndex(), p.getElementIndex());
             }
+        }
+
+        public void load(int n, int o) {
+            pageNumber = n;
+            pageOffset = o;
+            load();
         }
     }
 
