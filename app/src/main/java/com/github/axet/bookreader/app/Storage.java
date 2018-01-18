@@ -77,7 +77,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public static Detector[] supported() {
         return new Detector[]{new FileFB2(), new FileEPUB(), new FileHTML(),
-                new FilePDF(), new FileDjvu(), new FileRTF(), new FileMobi(), new FileTxt()};
+                new FilePDF(), new FileDjvu(), new FileRTF(), new FileDoc(),
+                new FileMobi(), new FileTxt()};
     }
 
     public static FBReaderApp getApp(final Context context) {
@@ -202,9 +203,11 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 first = str.getBytes(Charset.defaultCharset());
             }
 
-            public Handler(String ext, byte[] b) {
+            public Handler(String ext, int[] b) {
                 super(ext);
-                first = b;
+                first = new byte[b.length];
+                for (int i = 0; i < b.length; i++)
+                    first[i] = (byte) b[i];
             }
 
             public void write(byte[] buf, int off, int len) {
@@ -497,6 +500,12 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public static class FileDjvu extends FileTypeDetector.Handler {
         public FileDjvu() {
             super("djvu", "AT&TF");
+        }
+    }
+
+    public static class FileDoc extends FileTypeDetector.Handler {
+        public FileDoc() {
+            super("doc", new int[]{0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1, 0});
         }
     }
 
