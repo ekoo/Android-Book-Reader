@@ -129,8 +129,8 @@ public class FBReaderView extends RelativeLayout {
 
         public boolean prev() {
             int pageOffset = this.pageOffset - pageStep;
-            if (this.pageOffset != 0 && pageOffset < 0) { // happens only on screen rotate, sync page to top
-                this.pageOffset = 0;
+            if (this.pageOffset > 0 && pageOffset < 0) { // happens only on screen rotate
+                this.pageOffset = pageOffset; // sync to top = 0 or keep negative offset
                 return true;
             } else if (pageOffset < 0) {
                 int pageNumber = this.pageNumber - 1;
