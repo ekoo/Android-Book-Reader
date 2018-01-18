@@ -379,6 +379,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
             PDRectangle cropBox = new PDRectangle(render.x, render.y, render.w, render.h);
             Bitmap bm = Bitmap.createBitmap(render.w, render.h, Bitmap.Config.ARGB_8888);
+            bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
             Canvas c = new Canvas(bm);
             try {
                 RenderTextParagraph.renderPage(r.page, paint, c, cropBox);

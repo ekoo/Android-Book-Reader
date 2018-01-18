@@ -40,7 +40,9 @@ import org.geometerplus.zlibrary.text.view.ZLTextView;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 public class FBReaderView extends RelativeLayout {
+
     public static final int PAGE_OVERLAP_PERCENTS = 5; // percents
+    public static final int PAGE_PAPER_COLOR = 0x80ffffff;
 
     public FBReaderApp app;
     public ZLAndroidWidget widget;
