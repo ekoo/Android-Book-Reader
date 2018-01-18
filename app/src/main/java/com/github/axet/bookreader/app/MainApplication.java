@@ -1,8 +1,8 @@
 package com.github.axet.bookreader.app;
 
-import android.app.Application;
+import android.support.multidex.MultiDexApplication;
 
-public class MainApplication extends Application {
+public class MainApplication extends MultiDexApplication {
 
     public static String PREFERENCE_CATALOGS = "catalogs";
 
