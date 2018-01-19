@@ -1,9 +1,11 @@
 package com.github.axet.bookreader.activities;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -38,6 +40,7 @@ import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.fragments.LibraryFragment;
 import com.github.axet.bookreader.fragments.NetworkLibraryFragment;
 import com.github.axet.bookreader.fragments.ReaderFragment;
+import com.github.axet.bookreader.widgets.FBReaderView;
 
 import org.geometerplus.android.fbreader.network.Util;
 import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
@@ -74,6 +77,15 @@ public class MainActivity extends FullscreenActivity
     Map<String, MenuItem> networkMenuMap = new TreeMap<>();
     public MenuItem libraryMenu;
 
+    BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(FBReaderView.ACTION_MENU)) {
+                toggle();
+            }
+        }
+    };
+
     // disable broken, closed, or authorization only repos without free books / or open links
     List<String> disabledIds = Arrays.asList(
             "http://data.fbreader.org/catalogs/litres2/index.php5", // authorization
@@ -101,6 +113,8 @@ public class MainActivity extends FullscreenActivity
 
         storage = new Storage(this);
         lib = NetworkLibrary.Instance(new Storage.Info(MainActivity.this));
+
+        registerReceiver(receiver, new IntentFilter(FBReaderView.ACTION_MENU));
 
         drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         final ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -383,6 +397,7 @@ public class MainActivity extends FullscreenActivity
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        unregisterReceiver(receiver);
     }
 
     @Override
