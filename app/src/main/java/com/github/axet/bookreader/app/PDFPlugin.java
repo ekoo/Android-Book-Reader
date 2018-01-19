@@ -420,7 +420,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             r.renderRect(w, h);
             current.updatePage(r);
 
-            r.scale(w, h);
+            // r.scale(w, h);
             FBReaderView.RenderRect render = r.renderRect(w, h);
 
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.ARGB_8888);
