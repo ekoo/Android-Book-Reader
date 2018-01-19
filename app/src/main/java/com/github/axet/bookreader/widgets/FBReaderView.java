@@ -113,7 +113,7 @@ public class FBReaderView extends RelativeLayout {
     public static abstract class PluginPage {
         public int pageNumber;
         public int pageOffset; // pageBox sizes
-        public FBReaderView.PluginRect pageBox; // pageBox sizes
+        public PluginRect pageBox; // pageBox sizes
         public int pageStep; // pageBox sizes, page step size (fullscreen height == pageStep + pageOverlap)
         public int pageOverlap; // pageBox sizes, page overlap size (fullscreen height == pageStep + pageOverlap)
 
@@ -535,8 +535,6 @@ public class FBReaderView extends RelativeLayout {
 
     public void loadBook(Storage.Book book) {
         try {
-            setEnabled(true);
-            widget.setEnabled(true);
             this.book = book;
             final PluginCollection pluginCollection = PluginCollection.Instance(app.SystemInfo);
             FormatPlugin plugin = Storage.getPlugin(pluginCollection, book);
@@ -578,8 +576,6 @@ public class FBReaderView extends RelativeLayout {
         app.BookTextView.setModel(null);
         app.Model = null;
         book = null;
-        widget.setEnabled(false);
-        setEnabled(false);
     }
 
     public ZLTextFixedPosition getPosition() {
@@ -595,6 +591,8 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void setActivity(final Activity a) {
+        PopupPanel.removeAllWindows(app, a);
+
         app.addAction(ActionCode.SHOW_MENU, new FBAction(app) {
             @Override
             protected void run(Object... params) {

@@ -118,7 +118,6 @@ public class ReaderFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        PopupPanel.removeAllWindows(view.app, getActivity());
         Context context = getContext();
         context.unregisterReceiver(battery);
     }
