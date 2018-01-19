@@ -78,7 +78,7 @@ public class ReaderFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        ((MainActivity)getActivity()).clearMenu();
+        ((MainActivity) getActivity()).clearMenu();
     }
 
     @Override
@@ -106,6 +106,8 @@ public class ReaderFragment extends Fragment {
         app.addAction(ActionCode.SHOW_NAVIGATION, new FBAction(app) {
             @Override
             public boolean isVisible() {
+                if (view.pluginview != null)
+                    return true;
                 final ZLTextView view = (ZLTextView) Reader.getCurrentView();
                 final ZLTextModel textModel = view.getModel();
                 return textModel != null && textModel.getParagraphsNumber() != 0;
@@ -292,6 +294,7 @@ public class ReaderFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        PopupPanel.removeAllWindows(view.app, getActivity());
         getContext().unregisterReceiver(myBatteryInfoReceiver);
     }
 
