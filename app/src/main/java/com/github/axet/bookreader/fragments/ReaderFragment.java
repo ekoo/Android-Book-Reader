@@ -294,6 +294,7 @@ public class ReaderFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        PopupPanel.removeAllWindows(view.app, getActivity());
         getContext().unregisterReceiver(myBatteryInfoReceiver);
     }
 
