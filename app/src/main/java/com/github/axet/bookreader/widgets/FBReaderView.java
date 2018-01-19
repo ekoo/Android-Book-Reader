@@ -4,6 +4,9 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.Build;
 import android.support.v7.widget.RecyclerView;
@@ -31,6 +34,7 @@ import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
 import org.geometerplus.zlibrary.core.application.ZLApplication;
 import org.geometerplus.zlibrary.core.application.ZLApplicationWindow;
+import org.geometerplus.zlibrary.core.filesystem.ZLFile;
 import org.geometerplus.zlibrary.core.view.ZLView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.core.view.ZLViewWidget;
@@ -39,6 +43,8 @@ import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
+
+import java.io.IOException;
 
 public class FBReaderView extends RelativeLayout {
 
@@ -98,6 +104,11 @@ public class FBReaderView extends RelativeLayout {
                 pageBox = new PluginRect(r.pageBox);
             pageStep = r.pageStep;
             pageOverlap = r.pageOverlap;
+        }
+
+        public PluginPage(PluginPage r, ZLViewEnums.PageIndex index) {
+            this(r);
+            load(index);
         }
 
         public void load(ZLViewEnums.PageIndex index) {
@@ -232,24 +243,76 @@ public class FBReaderView extends RelativeLayout {
         public Rect dst;
     }
 
-    public interface PluginView {
-        boolean canScroll(ZLViewEnums.PageIndex index);
+    public static abstract class PluginView {
+        public Bitmap wallpaper;
+        public int wallpaperColor;
+        public Paint paint = new Paint();
+        public PluginPage current;
 
-        void onScrollingFinished(ZLViewEnums.PageIndex pageIndex);
+        public PluginView() {
+            try {
+                FBReaderApp app = ((FBReaderApp) FBReaderApp.Instance());
+                ZLFile wallpaper = app.BookTextView.getWallpaperFile();
+                if (wallpaper != null)
+                    this.wallpaper = BitmapFactory.decodeStream(wallpaper.getInputStream());
+                wallpaperColor = app.BookTextView.getBackgroundColor().intValue();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
-        ZLTextView.PagePosition pagePosition();
+        public void drawWallpaper(Canvas canvas) {
+            if (wallpaper != null) {
+                float dx = wallpaper.getWidth();
+                float dy = wallpaper.getHeight();
+                for (int cw = 0; cw < canvas.getWidth() + dx; cw += dx) {
+                    for (int ch = 0; ch < canvas.getHeight() + dy; ch += dy) {
+                        canvas.drawBitmap(wallpaper, cw - dx, ch - dy, paint);
+                    }
+                }
+            } else {
+                canvas.drawColor(wallpaperColor);
+            }
+        }
 
-        void drawOnBitmap(Bitmap bitmap, int w, int h, ZLView.PageIndex index);
+        public void gotoPosition(ZLTextPosition p) {
+            current.load(p);
+        }
 
-        ZLTextFixedPosition getPosition();
+        public void onScrollingFinished(ZLViewEnums.PageIndex index) {
+            current.load(index);
+        }
 
-        void gotoPosition(ZLTextPosition position);
+        public ZLTextFixedPosition getPosition() {
+            return new ZLTextFixedPosition(current.pageNumber, current.pageOffset, 0);
+        }
 
-        void close();
+        public boolean canScroll(ZLView.PageIndex index) {
+            PluginPage r = new PluginPage(current, index) {
+                @Override
+                public void load() {
+                }
+
+                @Override
+                public int getPagesCount() {
+                    return current.getPagesCount();
+                }
+            };
+            return !r.equals(current.pageNumber, current.pageOffset);
+        }
+
+        public ZLTextView.PagePosition pagePosition() {
+            return new ZLTextView.PagePosition(current.pageNumber, current.getPagesCount());
+        }
+
+        public void drawOnBitmap(Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
+        }
+
+        void close() {
+        }
     }
 
     public class CustomView extends FBView {
-
         public CustomView(FBReaderApp reader) {
             super(reader);
         }

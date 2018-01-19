@@ -312,65 +312,25 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class PDFView implements FBReaderView.PluginView {
+    public static class PDFView extends FBReaderView.PluginView {
         public PDDocument doc;
-        PluginPage current;
-        Paint paint = new Paint();
-        Bitmap wallpaper;
-        int wallpaperColor;
 
         public PDFView(Book book) {
             ZLFile f = BookUtil.fileByBook(book);
             try {
                 doc = PDDocument.load(new File(f.getPath()));
                 current = new PluginPage(doc);
-                FBReaderApp app = ((FBReaderApp) FBReaderApp.Instance());
-                ZLFile wallpaper = app.BookTextView.getWallpaperFile();
-                if (wallpaper != null)
-                    this.wallpaper = BitmapFactory.decodeStream(wallpaper.getInputStream());
-                wallpaperColor = app.BookTextView.getBackgroundColor().intValue();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
 
-        public void close() {
-        }
-
-        public void gotoPosition(ZLTextPosition p) {
-            current.load(p);
-        }
-
-        public void onScrollingFinished(ZLViewEnums.PageIndex index) {
-            current.load(index);
-        }
-
-        public ZLTextFixedPosition getPosition() {
-            return new ZLTextFixedPosition(current.pageNumber, current.pageOffset, 0);
-        }
-
-        public boolean canScroll(ZLView.PageIndex index) {
-            PluginPage r = new PluginPage(current, index);
-            return !r.equals(current.pageNumber, current.pageOffset);
-        }
-
         @Override
         public void drawOnBitmap(Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
             Canvas canvas = new Canvas(bitmap);
+            drawWallpaper(canvas);
 
-            if (wallpaper != null) {
-                float dx = wallpaper.getWidth();
-                float dy = wallpaper.getHeight();
-                for (int cw = 0; cw < bitmap.getWidth() + dx; cw += dx) {
-                    for (int ch = 0; ch < bitmap.getHeight() + dy; ch += dy) {
-                        canvas.drawBitmap(wallpaper, cw - dx, ch - dy, paint);
-                    }
-                }
-            } else {
-                canvas.drawColor(wallpaperColor);
-            }
-
-            PluginPage r = new PluginPage(current, index);
+            PluginPage r = new PluginPage((PluginPage) current, index);
             FBReaderView.RenderRect render = r.renderRect(w, h);
             current.updatePage(r);
 
@@ -387,9 +347,6 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             bm.recycle();
         }
 
-        public ZLTextView.PagePosition pagePosition() {
-            return new ZLTextView.PagePosition(current.pageNumber, doc.getNumberOfPages());
-        }
     }
 
     @TargetApi(21)
@@ -427,13 +384,9 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     }
 
     @TargetApi(21)
-    public static class PDFNativeView implements FBReaderView.PluginView {
+    public static class PDFNativeView extends FBReaderView.PluginView {
         ParcelFileDescriptor fd;
         public PdfRenderer doc;
-        PluginNativePage current;
-        Paint paint = new Paint();
-        Bitmap wallpaper;
-        int wallpaperColor;
 
         public PDFNativeView(Book book) {
             ZLFile f = BookUtil.fileByBook(book);
@@ -441,11 +394,6 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 fd = ParcelFileDescriptor.open(new File(f.getPath()), ParcelFileDescriptor.MODE_READ_ONLY);
                 doc = new PdfRenderer(fd);
                 current = new PluginNativePage(doc);
-                FBReaderApp app = ((FBReaderApp) FBReaderApp.Instance());
-                ZLFile wallpaper = app.BookTextView.getWallpaperFile();
-                if (wallpaper != null)
-                    this.wallpaper = BitmapFactory.decodeStream(wallpaper.getInputStream());
-                wallpaperColor = app.BookTextView.getBackgroundColor().intValue();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -460,40 +408,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             }
         }
 
-        public void gotoPosition(ZLTextPosition p) {
-            current.load(p);
-        }
-
-        public void onScrollingFinished(ZLViewEnums.PageIndex index) {
-            current.load(index);
-        }
-
-        public ZLTextFixedPosition getPosition() {
-            return new ZLTextFixedPosition(current.pageNumber, current.pageOffset, 0);
-        }
-
-        public boolean canScroll(ZLView.PageIndex index) {
-            PluginNativePage r = new PluginNativePage(current, index);
-            return !r.equals(current.pageNumber, current.pageOffset);
-        }
-
         @Override
         public void drawOnBitmap(Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
             Canvas canvas = new Canvas(bitmap);
+            drawWallpaper(canvas);
 
-            if (wallpaper != null) {
-                float dx = wallpaper.getWidth();
-                float dy = wallpaper.getHeight();
-                for (int cw = 0; cw < bitmap.getWidth() + dx; cw += dx) {
-                    for (int ch = 0; ch < bitmap.getHeight() + dy; ch += dy) {
-                        canvas.drawBitmap(wallpaper, cw - dx, ch - dy, paint);
-                    }
-                }
-            } else {
-                canvas.drawColor(wallpaperColor);
-            }
-
-            PluginNativePage r = new PluginNativePage(current, index);
+            PluginNativePage r = new PluginNativePage((PluginNativePage) current, index);
             PdfRenderer.Page page = doc.openPage(r.pageNumber);
             r.load(page);
 
@@ -511,9 +431,6 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             page.close();
         }
 
-        public ZLTextView.PagePosition pagePosition() {
-            return new ZLTextView.PagePosition(current.pageNumber, doc.getPageCount());
-        }
     }
 
     public static class PDFTextModel extends PDFView implements ZLTextModel {

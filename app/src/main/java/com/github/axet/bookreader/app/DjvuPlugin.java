@@ -79,12 +79,9 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class DjvuView implements FBReaderView.PluginView {
+    public static class DjvuView extends FBReaderView.PluginView {
         public DjvuLibre doc;
-        PluginPage current;
         Paint paint = new Paint();
-        Bitmap wallpaper;
-        int wallpaperColor;
         FileInputStream is;
 
         public DjvuView(Book book) {
@@ -93,62 +90,22 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
                 is = new FileInputStream(new File(f.getPath()));
                 doc = new DjvuLibre(is.getFD());
                 current = new PluginPage(doc);
-                FBReaderApp app = ((FBReaderApp) FBReaderApp.Instance());
-                ZLFile wallpaper = app.BookTextView.getWallpaperFile();
-                if (wallpaper != null)
-                    this.wallpaper = BitmapFactory.decodeStream(wallpaper.getInputStream());
-                wallpaperColor = app.BookTextView.getBackgroundColor().intValue();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
 
-        public void close() {
-        }
-
-        public void gotoPosition(ZLTextPosition p) {
-            current.load(p);
-        }
-
-        public void onScrollingFinished(ZLViewEnums.PageIndex index) {
-            current.load(index);
-        }
-
-        public ZLTextFixedPosition getPosition() {
-            return new ZLTextFixedPosition(current.pageNumber, current.pageOffset, 0);
-        }
-
-        public boolean canScroll(ZLView.PageIndex index) {
-            PluginPage r = new PluginPage(this.current, index);
-            return !r.equals(this.current.pageNumber, this.current.pageOffset);
-        }
-
         public void drawOnBitmap(Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
             Canvas canvas = new Canvas(bitmap);
+            drawWallpaper(canvas);
 
-            if (wallpaper != null) {
-                float dx = wallpaper.getWidth();
-                float dy = wallpaper.getHeight();
-                for (int cw = 0; cw < bitmap.getWidth() + dx; cw += dx) {
-                    for (int ch = 0; ch < bitmap.getHeight() + dy; ch += dy) {
-                        canvas.drawBitmap(wallpaper, cw - dx, ch - dy, paint);
-                    }
-                }
-            } else {
-                canvas.drawColor(wallpaperColor);
-            }
-
-            PluginPage r = new PluginPage(current, index);
+            PluginPage r = new PluginPage((PluginPage) current, index);
             FBReaderView.RenderRect render = r.renderRect(w, h);
             current.updatePage(r);
-            
+
             Bitmap bm = doc.renderPage(r.pageNumber, 0, 0, r.pageBox.w, r.pageBox.h, render.x, render.y, render.w, render.h);
             canvas.drawBitmap(bm, render.src, render.dst, paint);
             bm.recycle();
-        }
-
-        public ZLTextView.PagePosition pagePosition() {
-            return new ZLTextView.PagePosition(current.pageNumber, doc.getPagesCount());
         }
     }
 
