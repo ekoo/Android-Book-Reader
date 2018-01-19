@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.pdf.PdfRenderer;
+import android.os.Build;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
@@ -64,7 +65,6 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     public static String TAG = PDFPlugin.class.getSimpleName();
 
     public static final String EXT = "pdf";
-    public static final int PAGE_OVERLAP_PERCENTS = 5; // percents
 
     public static class PDFTextEntryIterator extends EntryIterator {
         TextParagraph par;
@@ -315,8 +315,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     public static class PDFView extends FBReaderView.PluginView {
         public PDDocument doc;
 
-        public PDFView(Book book) {
-            ZLFile f = BookUtil.fileByBook(book);
+        public PDFView(ZLFile f) {
             try {
                 doc = PDDocument.load(new File(f.getPath()));
                 current = new PluginPage(doc);
@@ -388,8 +387,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         ParcelFileDescriptor fd;
         public PdfRenderer doc;
 
-        public PDFNativeView(Book book) {
-            ZLFile f = BookUtil.fileByBook(book);
+        public PDFNativeView(ZLFile f) {
             try {
                 fd = ParcelFileDescriptor.open(new File(f.getPath()), ParcelFileDescriptor.MODE_READ_ONLY);
                 doc = new PdfRenderer(fd);
@@ -436,14 +434,8 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     public static class PDFTextModel extends PDFView implements ZLTextModel {
         public ArrayList<ZLTextParagraph> pars = new ArrayList<>();
 
-        public PDFTextModel(Book book) {
-            super(book);
-            for (int i = 0; i < doc.getNumberOfPages(); i++) {
-                // pars.add(new RenderTextParagraph(this, i));
-                // pars.add(new EndTextParagraph(ZLTextParagraph.Kind.END_OF_SECTION_PARAGRAPH));
-                // pars.add(new TextParagraph(this, i));
-                // pars.add(new EndTextParagraph(ZLTextParagraph.Kind.END_OF_TEXT_PARAGRAPH));
-            }
+        public PDFTextModel(ZLFile f) {
+            super(f);
         }
 
         @Override
@@ -617,30 +609,18 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     @Override
     public ZLImage readCover(ZLFile f) {
-        try {
-            PDDocument doc = PDDocument.load(new File(f.getPath()));
-            try {
-                int last = Math.min(3, doc.getNumberOfPages());
-                for (int i = 0; i < last; i++) {
-                    PDPage p = doc.getPage(i);
-                    PDResources res = p.getResources();
-                    for (COSName n : res.getXObjectNames()) {
-                        PDXObject o = res.getXObject(n);
-                        if (o instanceof PDImage) { // PDImageXObject
-                            try {
-                                Bitmap bm = ((PDImage) o).getImage();
-                                return new ZLBitmapImage(bm);
-                            } catch (Exception e) { // ignore: Invalid color space kind: COSName{ICCBased}
-                            }
-                        }
-                    }
-                }
-            } finally {
-                doc.close();
-            }
-            return null;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if (Build.VERSION.SDK_INT >= 21) {
+            PDFNativeView view = new PDFNativeView(f);
+            Bitmap bm = Bitmap.createBitmap(128, 128, Bitmap.Config.ARGB_8888);
+            view.drawOnBitmap(bm, 128, 128, ZLViewEnums.PageIndex.current);
+            view.close();
+            return new ZLBitmapImage(bm);
+        } else {
+            PDFView view = new PDFView(f);
+            Bitmap bm = Bitmap.createBitmap(128, 128, Bitmap.Config.ARGB_8888);
+            view.drawOnBitmap(bm, 128, 128, ZLViewEnums.PageIndex.current);
+            view.close();
+            return new ZLBitmapImage(bm);
         }
     }
 
@@ -661,6 +641,6 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     @Override
     public void readModel(BookModel model) throws BookReadingException {
-        model.setBookTextModel(new PDFTextModel(model.Book));
+        model.setBookTextModel(new PDFTextModel(BookUtil.fileByBook(model.Book)));
     }
 }
