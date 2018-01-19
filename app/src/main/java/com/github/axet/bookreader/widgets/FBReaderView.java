@@ -191,12 +191,11 @@ public class FBReaderView extends RelativeLayout {
                     render.h = pageBox.h - tail;
                     render.y = tail;
                 }
-                int oo = (int) (-pageOffset / render.ratio); // convert to display sizes
-                render.dst = new Rect(0, oo, w, h);
+                render.dst = new Rect(0, (int) (-pageOffset / render.ratio), w, h);
             } else if (pageOffset == 0 && hh > pageBox.h) {  // show middle vertically
                 int t = (int) ((hh - pageBox.h) / render.ratio / 2);
                 render.h = pageBox.h;
-                render.dst = new Rect(0, t, w, t + h);
+                render.dst = new Rect(0, t, w, h - t);
             } else {
                 render.h = (int) hh;
                 render.y = pageBox.h - render.h - pageOffset - 1;
@@ -339,6 +338,14 @@ public class FBReaderView extends RelativeLayout {
                 return pluginview.pagePosition();
             else
                 return super.pagePosition();
+        }
+
+        @Override
+        public synchronized void gotoPage(int page) {
+            if (pluginview != null)
+                pluginview.gotoPosition(new ZLTextFixedPosition(page, 0, 0));
+            else
+                super.gotoPage(page);
         }
     }
 
