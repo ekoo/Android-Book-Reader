@@ -830,8 +830,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             fbook.info.created = System.currentTimeMillis();
         }
         load(fbook);
-        if (fbook.info.title == null || fbook.info.title.isEmpty() || fbook.info.title.equals(fbook.md5))
+        if (fbook.info.title == null || fbook.info.title.isEmpty() || fbook.info.title.equals(fbook.md5)) {
             fbook.info.title = Storage.getNameNoExt(uri.getLastPathSegment());
+            save(fbook);
+        }
         return fbook;
     }
 
