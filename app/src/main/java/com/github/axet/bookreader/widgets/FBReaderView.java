@@ -3,7 +3,9 @@ package com.github.axet.bookreader.widgets;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
+import android.app.SearchManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -12,6 +14,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.Parcelable;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
@@ -23,14 +26,16 @@ import android.view.WindowManager;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
+import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.bookreader.app.DjvuPlugin;
 import com.github.axet.bookreader.app.PDFPlugin;
 import com.github.axet.bookreader.app.Storage;
-import com.github.axet.djvulibre.DjvuLibre;
 import com.github.johnpersano.supertoasts.SuperActivityToast;
 import com.github.johnpersano.supertoasts.SuperToast;
 import com.github.johnpersano.supertoasts.util.OnClickWrapper;
+import com.github.johnpersano.supertoasts.util.OnDismissWrapper;
 
+import org.geometerplus.android.fbreader.FBReader;
 import org.geometerplus.android.fbreader.NavigationPopup;
 import org.geometerplus.android.fbreader.PopupPanel;
 import org.geometerplus.android.fbreader.SelectionPopup;
@@ -38,11 +43,15 @@ import org.geometerplus.android.fbreader.TextSearchPopup;
 import org.geometerplus.android.fbreader.api.FBReaderIntents;
 import org.geometerplus.android.fbreader.bookmark.EditBookmarkActivity;
 import org.geometerplus.android.fbreader.dict.DictionaryUtil;
+import org.geometerplus.android.fbreader.image.ImageViewActivity;
+import org.geometerplus.android.util.DeviceType;
 import org.geometerplus.android.util.OrientationUtil;
+import org.geometerplus.android.util.SearchDialogUtil;
 import org.geometerplus.android.util.UIMessageUtil;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.book.Bookmark;
 import org.geometerplus.fbreader.bookmodel.BookModel;
+import org.geometerplus.fbreader.bookmodel.FBHyperlinkType;
 import org.geometerplus.fbreader.fbreader.ActionCode;
 import org.geometerplus.fbreader.fbreader.DictionaryHighlighting;
 import org.geometerplus.fbreader.fbreader.FBAction;
@@ -51,6 +60,7 @@ import org.geometerplus.fbreader.fbreader.FBView;
 import org.geometerplus.fbreader.fbreader.options.FooterOptions;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
+import org.geometerplus.fbreader.util.AutoTextSnippet;
 import org.geometerplus.fbreader.util.TextSnippet;
 import org.geometerplus.zlibrary.core.application.ZLApplication;
 import org.geometerplus.zlibrary.core.application.ZLApplicationWindow;
@@ -62,8 +72,13 @@ import org.geometerplus.zlibrary.core.view.ZLViewWidget;
 import org.geometerplus.zlibrary.text.hyphenation.ZLTextHyphenator;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
+import org.geometerplus.zlibrary.text.view.ZLTextHyperlink;
+import org.geometerplus.zlibrary.text.view.ZLTextHyperlinkRegionSoul;
+import org.geometerplus.zlibrary.text.view.ZLTextImageRegionSoul;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
+import org.geometerplus.zlibrary.text.view.ZLTextRegion;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
+import org.geometerplus.zlibrary.text.view.ZLTextWordRegionSoul;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 import java.io.IOException;
@@ -77,6 +92,7 @@ public class FBReaderView extends RelativeLayout {
 
     public FBReaderApp app;
     public ZLAndroidWidget widget;
+    public CustomView view;
     public int battery;
     public String title;
     public Window w;
@@ -395,11 +411,7 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void create() {
-//        android:fadeScrollbars="false"
-//        android:scrollbarAlwaysDrawVerticalTrack="true"
-//        android:scrollbars="vertical"
         widget = new ZLAndroidWidget(getContext()) {
-
             @Override
             public void setScreenBrightness(int percent) {
                 if (percent < 1) {
@@ -464,7 +476,12 @@ public class FBReaderView extends RelativeLayout {
         addView(widget, new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         app = Storage.getApp(getContext());
+        view = new CustomView(app);
 
+        setAppView();
+    }
+
+    void setAppView() {
         app.setWindow(new ZLApplicationWindow() {
             @Override
             public void setWindowTitle(String title) {
@@ -527,11 +544,19 @@ public class FBReaderView extends RelativeLayout {
             };
         }
 
+        app.BookTextView = view;
+        app.setView(app.BookTextView);
+
+        showFooter();
+    }
+
+    void showFooter() {
         app.ViewOptions.ScrollbarType.setValue(FBView.SCROLLBAR_SHOW_AS_FOOTER);
         app.ViewOptions.getFooterOptions().ShowProgress.setValue(FooterOptions.ProgressDisplayType.asPages);
+    }
 
-        app.BookTextView = new CustomView(app);
-        app.setView(app.BookTextView);
+    void hideFooter() {
+        app.ViewOptions.ScrollbarType.setValue(FBView.SCROLLBAR_HIDE);
     }
 
     public void loadBook(Storage.Book book) {
@@ -545,24 +570,24 @@ public class FBReaderView extends RelativeLayout {
                 else
                     pluginview = new PDFPlugin.PDFView(BookUtil.fileByBook(book.book));
                 BookModel Model = BookModel.createModel(book.book, plugin);
-                app.BookTextView.setModel(Model.getTextModel());
+                view.setModel(Model.getTextModel());
                 app.Model = Model;
                 if (book.info != null)
                     pluginview.gotoPosition(book.info.position);
             } else if (plugin instanceof DjvuPlugin) {
                 pluginview = new DjvuPlugin.DjvuView(BookUtil.fileByBook(book.book));
                 BookModel Model = BookModel.createModel(book.book, plugin);
-                app.BookTextView.setModel(Model.getTextModel());
+                view.setModel(Model.getTextModel());
                 app.Model = Model;
                 if (book.info != null)
                     pluginview.gotoPosition(book.info.position);
             } else {
                 BookModel Model = BookModel.createModel(book.book, plugin);
                 ZLTextHyphenator.Instance().load(book.book.getLanguage());
-                app.BookTextView.setModel(Model.getTextModel());
+                view.setModel(Model.getTextModel());
                 app.Model = Model;
                 if (book.info != null)
-                    app.BookTextView.gotoPosition(book.info.position);
+                    view.gotoPosition(book.info.position);
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -574,7 +599,7 @@ public class FBReaderView extends RelativeLayout {
             pluginview.close();
             pluginview = null;
         }
-        app.BookTextView.setModel(null);
+        view.setModel(null);
         app.Model = null;
         book = null;
     }
@@ -583,7 +608,7 @@ public class FBReaderView extends RelativeLayout {
         if (pluginview != null)
             return pluginview.getPosition();
         else
-            return new ZLTextFixedPosition(app.BookTextView.getStartCursor());
+            return new ZLTextFixedPosition(view.getStartCursor());
     }
 
     public void setWindow(Window w) {
@@ -594,6 +619,180 @@ public class FBReaderView extends RelativeLayout {
     public void setActivity(final Activity a) {
         PopupPanel.removeAllWindows(app, a);
 
+        app.addAction(ActionCode.SEARCH, new FBAction(app) {
+            @Override
+            protected void run(Object... params) {
+                final FBReaderApp.PopupPanel popup = app.getActivePopup();
+                app.hideActivePopup();
+                if (DeviceType.Instance().hasStandardSearchDialog()) {
+                    final SearchManager manager = (SearchManager) getContext().getSystemService(Context.SEARCH_SERVICE);
+                    manager.setOnCancelListener(new SearchManager.OnCancelListener() {
+                        public void onCancel() {
+                            if (popup != null) {
+                                app.showPopup(popup.getId());
+                            }
+                            manager.setOnCancelListener(null);
+                        }
+                    });
+                    a.startSearch(app.MiscOptions.TextSearchPattern.getValue(), true, null, false);
+                } else {
+                    SearchDialogUtil.showDialog(
+                            a, FBReader.class, app.MiscOptions.TextSearchPattern.getValue(), new DialogInterface.OnCancelListener() {
+                                @Override
+                                public void onCancel(DialogInterface di) {
+                                    if (popup != null) {
+                                        app.showPopup(popup.getId());
+                                    }
+                                }
+                            }
+                    );
+                }
+            }
+        });
+
+        app.addAction(ActionCode.DISPLAY_BOOK_POPUP, new FBAction(app) { //  new DisplayBookPopupAction(this, myFBReaderApp))
+            @Override
+            protected void run(Object... params) {
+            }
+        });
+        app.addAction(ActionCode.PROCESS_HYPERLINK, new FBAction(app) {
+            @Override
+            protected void run(Object... params) {
+                final ZLTextRegion region = Reader.getTextView().getOutlinedRegion();
+                if (region == null) {
+                    return;
+                }
+
+                final ZLTextRegion.Soul soul = region.getSoul();
+                if (soul instanceof ZLTextHyperlinkRegionSoul) {
+                    Reader.getTextView().hideOutline();
+                    Reader.getViewWidget().repaint();
+                    final ZLTextHyperlink hyperlink = ((ZLTextHyperlinkRegionSoul) soul).Hyperlink;
+                    switch (hyperlink.Type) {
+                        case FBHyperlinkType.EXTERNAL:
+                            AboutPreferenceCompat.openUrlDialog(getContext(), hyperlink.Id);
+                            break;
+                        case FBHyperlinkType.INTERNAL:
+                        case FBHyperlinkType.FOOTNOTE: {
+                            final AutoTextSnippet snippet = Reader.getFootnoteData(hyperlink.Id);
+                            if (snippet == null) {
+                                break;
+                            }
+
+                            Reader.Collection.markHyperlinkAsVisited(Reader.getCurrentBook(), hyperlink.Id);
+                            final boolean showToast;
+                            switch (Reader.MiscOptions.ShowFootnoteToast.getValue()) {
+                                default:
+                                case never:
+                                    showToast = false;
+                                    break;
+                                case footnotesOnly:
+                                    showToast = hyperlink.Type == FBHyperlinkType.FOOTNOTE;
+                                    break;
+                                case footnotesAndSuperscripts:
+                                    showToast =
+                                            hyperlink.Type == FBHyperlinkType.FOOTNOTE ||
+                                                    region.isVerticallyAligned();
+                                    break;
+                                case allInternalLinks:
+                                    showToast = true;
+                                    break;
+                            }
+                            if (showToast) {
+                                final SuperActivityToast toast;
+                                if (snippet.IsEndOfText) {
+                                    toast = new SuperActivityToast(a, SuperToast.Type.STANDARD);
+                                } else {
+                                    toast = new SuperActivityToast(a, SuperToast.Type.BUTTON);
+                                    toast.setButtonIcon(
+                                            android.R.drawable.ic_menu_more,
+                                            ZLResource.resource("toast").getResource("more").getValue()
+                                    );
+                                    toast.setOnClickWrapper(new OnClickWrapper("ftnt", new SuperToast.OnClickListener() {
+                                        @Override
+                                        public void onClick(View view, Parcelable token) {
+                                            Reader.getTextView().hideOutline();
+                                            Reader.tryOpenFootnote(hyperlink.Id);
+                                        }
+                                    }));
+                                }
+                                toast.setText(snippet.getText());
+                                toast.setDuration(Reader.MiscOptions.FootnoteToastDuration.getValue().Value);
+                                toast.setOnDismissWrapper(new OnDismissWrapper("ftnt", new SuperToast.OnDismissListener() {
+                                    @Override
+                                    public void onDismiss(View view) {
+                                        Reader.getTextView().hideOutline();
+                                        Reader.getViewWidget().repaint();
+                                    }
+                                }));
+                                Reader.getTextView().outlineRegion(region);
+                                showToast(toast);
+                            } else {
+                                book.info.position = getPosition();
+                                final FBReaderView r = new FBReaderView(getContext());
+                                r.hideFooter();
+                                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                                builder.setTitle("Footnotes");
+                                builder.setView(r);
+                                builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                    }
+                                });
+                                builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                                    @Override
+                                    public void onDismiss(DialogInterface dialog) {
+                                        setAppView();
+                                        loadBook(book);
+                                    }
+                                });
+                                AlertDialog dialog = builder.create();
+                                dialog.setOnShowListener(new DialogInterface.OnShowListener() {
+                                    @Override
+                                    public void onShow(DialogInterface dialog) {
+                                        r.loadBook(book);
+                                        Reader.tryOpenFootnote(hyperlink.Id);
+                                    }
+                                });
+                                dialog.show();
+                            }
+                            break;
+                        }
+                    }
+                } else if (soul instanceof ZLTextImageRegionSoul) {
+                    Reader.getTextView().hideOutline();
+                    Reader.getViewWidget().repaint();
+                    final String url = ((ZLTextImageRegionSoul) soul).ImageElement.URL;
+                    if (url != null) {
+                        try {
+                            final Intent intent = new Intent();
+                            intent.setClass(a, ImageViewActivity.class);
+                            intent.putExtra(ImageViewActivity.URL_KEY, url);
+                            intent.putExtra(
+                                    ImageViewActivity.BACKGROUND_COLOR_KEY,
+                                    Reader.ImageOptions.ImageViewBackground.getValue().intValue()
+                            );
+                            OrientationUtil.startActivity(a, intent);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                } else if (soul instanceof ZLTextWordRegionSoul) {
+                    DictionaryUtil.openTextInDictionary(
+                            a,
+                            ((ZLTextWordRegionSoul) soul).Word.getString(),
+                            true,
+                            region.getTop(),
+                            region.getBottom(),
+                            new Runnable() {
+                                public void run() {
+                                    // a.outlineRegion(soul);
+                                }
+                            }
+                    );
+                }
+            }
+        });
         app.addAction(ActionCode.SHOW_MENU, new FBAction(app) {
             @Override
             protected void run(Object... params) {
@@ -733,7 +932,7 @@ public class FBReaderView extends RelativeLayout {
                         OrientationUtil.startActivity(a, intent);
                     }
                 }));
-                Toast.makeText(a, toast.getText(), toast.getDuration()).show();
+                showToast(toast);
             }
         });
 
@@ -742,4 +941,7 @@ public class FBReaderView extends RelativeLayout {
         ((PopupPanel) app.getPopupById(SelectionPopup.ID)).setPanelInfo(a, this);
     }
 
+    void showToast(SuperActivityToast toast) {
+        Toast.makeText(getContext(), toast.getText(), toast.getDuration()).show();
+    }
 }

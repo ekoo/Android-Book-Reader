@@ -8,9 +8,12 @@ import android.net.Uri;
 import android.os.BatteryManager;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
@@ -18,12 +21,15 @@ import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.FBReaderView;
 
 import org.geometerplus.android.fbreader.PopupPanel;
+import org.geometerplus.fbreader.fbreader.ActionCode;
 
 public class ReaderFragment extends Fragment {
     public static final String TAG = ReaderFragment.class.getSimpleName();
 
     Storage storage;
     FBReaderView view;
+    ImageButton toc;
+    ImageButton search;
 
     BroadcastReceiver battery = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -67,6 +73,23 @@ public class ReaderFragment extends Fragment {
 
         Context context = getContext();
         context.registerReceiver(battery, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+
+        toc = (ImageButton) main.toolbar.findViewById(R.id.toolbar_toc);
+        // toc.setVisibility(View.VISIBLE);
+        toc.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+            }
+        });
+
+        search = (ImageButton) main.toolbar.findViewById(R.id.toolbar_search);
+        // search.setVisibility(View.VISIBLE);
+        search.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                view.app.runAction(ActionCode.SEARCH);
+            }
+        });
 
         view.setWindow(getActivity().getWindow());
         view.setActivity(getActivity());
@@ -118,6 +141,7 @@ public class ReaderFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        search.setVisibility(View.GONE);
         Context context = getContext();
         context.unregisterReceiver(battery);
     }
