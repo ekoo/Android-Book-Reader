@@ -927,8 +927,11 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        if (fbook.info.title == null || fbook.info.title.isEmpty())
-            fbook.info.title = getTitle(fbook);
+        if (fbook.info.title == null || fbook.info.title.isEmpty() || fbook.info.title.equals(fbook.md5)) {
+            String title = getTitle(fbook);
+            if (title != null && !title.isEmpty())
+                fbook.info.title = title;
+        }
         File cover = coverFile(fbook);
         if (!cover.exists() || cover.length() == 0) {
             ZLImage image = loadCover(fbook);
