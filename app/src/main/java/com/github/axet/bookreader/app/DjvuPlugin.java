@@ -24,6 +24,7 @@ import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.text.model.ZLTextMark;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
+import org.geometerplus.zlibrary.ui.android.image.ZLBitmapImage;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -78,8 +79,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         Paint paint = new Paint();
         FileInputStream is;
 
-        public DjvuView(Book book) {
-            ZLFile f = BookUtil.fileByBook(book);
+        public DjvuView(ZLFile f) {
             try {
                 is = new FileInputStream(new File(f.getPath()));
                 doc = new DjvuLibre(is.getFD());
@@ -106,8 +106,8 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
     public static class DjvuTextModel extends DjvuView implements ZLTextModel {
         public ArrayList<ZLTextParagraph> pars = new ArrayList<>();
 
-        public DjvuTextModel(Book book) {
-            super(book);
+        public DjvuTextModel(ZLFile f) {
+            super(f);
         }
 
         @Override
@@ -211,7 +211,11 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
     @Override
     public ZLImage readCover(ZLFile file) {
-        return null;
+        DjvuView view = new DjvuView(file);
+        Bitmap bm = Bitmap.createBitmap(128, 128, Bitmap.Config.ARGB_8888);
+        view.drawOnBitmap(bm, 128, 128, ZLViewEnums.PageIndex.current);
+        view.close();
+        return new ZLBitmapImage(bm);
     }
 
     @Override
@@ -231,6 +235,6 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
     @Override
     public void readModel(BookModel model) throws BookReadingException {
-        model.setBookTextModel(new DjvuTextModel(model.Book));
+        model.setBookTextModel(new DjvuTextModel(BookUtil.fileByBook(model.Book)));
     }
 }

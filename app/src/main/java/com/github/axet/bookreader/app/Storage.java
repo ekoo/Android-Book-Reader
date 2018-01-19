@@ -821,9 +821,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 throw new RuntimeException(e);
             }
         }
-        File f = recentFile(fbook);
-        if (f.exists()) {
-            fbook.info = new RecentInfo(f);
+        File r = recentFile(fbook);
+        if (r.exists()) {
+            fbook.info = new RecentInfo(r);
         }
         if (fbook.info == null) {
             fbook.info = new RecentInfo();
@@ -832,8 +832,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         load(fbook);
         if (fbook.info.title == null || fbook.info.title.isEmpty() || fbook.info.title.equals(fbook.md5)) {
             fbook.info.title = Storage.getNameNoExt(uri.getLastPathSegment());
-            save(fbook);
         }
+        if (!r.exists())
+            save(fbook);
         return fbook;
     }
 
@@ -962,8 +963,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
             }
         }
-        if (!r.exists())
-            save(fbook);
     }
 
     public ArrayList<Book> list() {

@@ -40,6 +40,7 @@ import org.geometerplus.android.fbreader.bookmark.EditBookmarkActivity;
 import org.geometerplus.android.fbreader.dict.DictionaryUtil;
 import org.geometerplus.android.util.OrientationUtil;
 import org.geometerplus.android.util.UIMessageUtil;
+import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.book.Bookmark;
 import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.fbreader.ActionCode;
@@ -330,7 +331,7 @@ public class FBReaderView extends RelativeLayout {
         public void drawOnBitmap(Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
         }
 
-        void close() {
+        public void close() {
         }
     }
 
@@ -540,16 +541,16 @@ public class FBReaderView extends RelativeLayout {
             FormatPlugin plugin = Storage.getPlugin(pluginCollection, book);
             if (plugin instanceof PDFPlugin) {
                 if (Build.VERSION.SDK_INT >= 21)
-                    pluginview = new PDFPlugin.PDFNativeView(book.book);
+                    pluginview = new PDFPlugin.PDFNativeView(BookUtil.fileByBook(book.book));
                 else
-                    pluginview = new PDFPlugin.PDFView(book.book);
+                    pluginview = new PDFPlugin.PDFView(BookUtil.fileByBook(book.book));
                 BookModel Model = BookModel.createModel(book.book, plugin);
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
                 if (book.info != null)
                     pluginview.gotoPosition(book.info.position);
             } else if (plugin instanceof DjvuPlugin) {
-                pluginview = new DjvuPlugin.DjvuView(book.book);
+                pluginview = new DjvuPlugin.DjvuView(BookUtil.fileByBook(book.book));
                 BookModel Model = BookModel.createModel(book.book, plugin);
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
