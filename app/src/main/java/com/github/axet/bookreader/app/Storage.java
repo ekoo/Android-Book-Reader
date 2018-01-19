@@ -2,18 +2,22 @@ package com.github.axet.bookreader.app;
 
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
+import android.support.v7.preference.PreferenceManager;
 
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
+import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.widgets.FBReaderView;
 
 import org.apache.commons.io.IOUtils;
 import org.geometerplus.android.fbreader.libraryService.BookCollectionShadow;
+import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
@@ -21,12 +25,14 @@ import org.geometerplus.fbreader.formats.BookReadingException;
 import org.geometerplus.fbreader.formats.DjVuPlugin;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
+import org.geometerplus.fbreader.network.NetworkLibrary;
 import org.geometerplus.zlibrary.core.filesystem.ZLFile;
 import org.geometerplus.zlibrary.core.image.ZLFileImage;
 import org.geometerplus.zlibrary.core.image.ZLFileImageProxy;
 import org.geometerplus.zlibrary.core.image.ZLImage;
 import org.geometerplus.zlibrary.core.image.ZLImageProxy;
 import org.geometerplus.zlibrary.core.image.ZLStreamImage;
+import org.geometerplus.zlibrary.core.network.ZLNetworkException;
 import org.geometerplus.zlibrary.core.util.SystemInfo;
 import org.geometerplus.zlibrary.text.model.ZLImageEntry;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
@@ -55,12 +61,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -79,6 +89,64 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return new Detector[]{new FileFB2(), new FileEPUB(), new FileHTML(),
                 new FilePDF(), new FileDjvu(), new FileRTF(), new FileDoc(),
                 new FileMobi(), new FileTxt()};
+    }
+
+    // disable broken, closed, or authorization only repos without free books / or open links
+    public static List<String> disabledIds = Arrays.asList(
+            "http://data.fbreader.org/catalogs/litres2/index.php5", // authorization
+            "http://www.freebookshub.com/feed/", // fake links
+            "http://ebooks.qumran.org/opds/?lang=en", // timeout
+            "http://ebooks.qumran.org/opds/?lang=de", // timeout
+            "http://www.epubbud.com/feeds/catalog.atom", // ePub Bud has decided to wind down
+            "http://www.shucang.org/s/index.php" // timeout
+    );
+
+    public static List<String> libAllIds(NetworkLibrary nlib) {
+        List<String> all = nlib.allIds();
+        for (String id : disabledIds) {
+            nlib.setLinkActive(id, false);
+            all.remove(id);
+        }
+        return all;
+    }
+
+    public static NetworkLibrary getLib(final Context context) {
+        AndroidNetworkContext nc = new AndroidNetworkContext() {
+            @Override
+            protected Context getContext() {
+                return context;
+            }
+
+            @Override
+            protected Map<String, String> authenticateWeb(URI uri, String realm, String authUrl, String completeUrl, String verificationUrl) {
+                return null;
+            }
+        };
+        NetworkLibrary nlib = NetworkLibrary.Instance(new Storage.Info(context));
+        if (!nlib.isInitialized()) {
+            try {
+                nlib.initialize(nc);
+            } catch (ZLNetworkException e) {
+            }
+            SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
+            String json = shared.getString(MainApplication.PREFERENCE_CATALOGS, null);
+            if (json != null && !json.isEmpty()) {
+                try {
+                    List<String> all = nlib.allIds();
+                    for (String id : all)
+                        nlib.setLinkActive(id, false);
+                    JSONArray a = new JSONArray(json);
+                    for (int i = 0; i < a.length(); i++) {
+                        String id = a.getString(i);
+                        if (!disabledIds.contains(id))
+                            nlib.setLinkActive(id, true);
+                    }
+                } catch (JSONException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        return nlib;
     }
 
     public static FBReaderApp getApp(final Context context) {
@@ -187,7 +255,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public static class FileTypeDetector {
-
         ArrayList<Handler> list = new ArrayList<>();
 
         public static class Handler extends Detector {
@@ -942,4 +1009,5 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         File r = recentFile(book);
         r.delete();
     }
+
 }

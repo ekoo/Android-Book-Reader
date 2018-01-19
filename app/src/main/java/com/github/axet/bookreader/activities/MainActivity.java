@@ -1,9 +1,11 @@
 package com.github.axet.bookreader.activities;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -38,6 +40,7 @@ import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.fragments.LibraryFragment;
 import com.github.axet.bookreader.fragments.NetworkLibraryFragment;
 import com.github.axet.bookreader.fragments.ReaderFragment;
+import com.github.axet.bookreader.widgets.FBReaderView;
 
 import org.geometerplus.android.fbreader.network.Util;
 import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
@@ -68,30 +71,19 @@ public class MainActivity extends FullscreenActivity
 
     public Toolbar toolbar;
     Storage storage;
-    NetworkLibrary lib;
     OpenChoicer choicer;
     SubMenu networkMenu;
     Map<String, MenuItem> networkMenuMap = new TreeMap<>();
     public MenuItem libraryMenu;
 
-    // disable broken, closed, or authorization only repos without free books / or open links
-    List<String> disabledIds = Arrays.asList(
-            "http://data.fbreader.org/catalogs/litres2/index.php5", // authorization
-            "http://www.freebookshub.com/feed/", // fake links
-            "http://ebooks.qumran.org/opds/?lang=en", // timeout
-            "http://ebooks.qumran.org/opds/?lang=de", // timeout
-            "http://www.epubbud.com/feeds/catalog.atom", // ePub Bud has decided to wind down
-            "http://www.shucang.org/s/index.php" // timeout
-    );
-
-    public List<String> libAllIds() {
-        List<String> all = lib.allIds();
-        for (String id : disabledIds) {
-            lib.setLinkActive(id, false);
-            all.remove(id);
+    BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(FBReaderView.ACTION_MENU)) {
+                toggle();
+            }
         }
-        return all;
-    }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,7 +92,8 @@ public class MainActivity extends FullscreenActivity
         setSupportActionBar(toolbar);
 
         storage = new Storage(this);
-        lib = NetworkLibrary.Instance(new Storage.Info(MainActivity.this));
+
+        registerReceiver(receiver, new IntentFilter(FBReaderView.ACTION_MENU));
 
         drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         final ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -128,63 +121,17 @@ public class MainActivity extends FullscreenActivity
         Menu m = navigationView.getMenu();
         networkMenu = m.addSubMenu(R.string.network_library);
 
-        final AndroidNetworkContext nc = new AndroidNetworkContext() {
-            @Override
-            protected Context getContext() {
-                return MainActivity.this;
-            }
-
-            @Override
-            protected Map<String, String> authenticateWeb(URI uri, String realm, String authUrl, String completeUrl, String verificationUrl) {
-                return null;
-            }
-        };
-        UIUtil.wait("loadingNetworkLibrary", new Runnable() { // Util.initLibrary(this, nc, null);
-            public void run() {
-                final NetworkLibrary library = Util.networkLibrary(MainActivity.this);
-
-                if (!library.isInitialized()) {
-                    try {
-                        library.initialize(nc);
-                    } catch (ZLNetworkException e) {
-                    }
-                }
-
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
-                        String json = shared.getString(MainApplication.PREFERENCE_CATALOGS, null);
-                        if (json != null && !json.isEmpty()) {
-                            try {
-                                List<String> all = libAllIds();
-                                for (String id : all)
-                                    lib.setLinkActive(id, false);
-                                JSONArray a = new JSONArray(json);
-                                for (int i = 0; i < a.length(); i++) {
-                                    String id = a.getString(i);
-                                    if (!disabledIds.contains(id))
-                                        lib.setLinkActive(id, true);
-                                }
-                            } catch (JSONException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-
-                        reloadMenu();
-                    }
-                });
-            }
-        }, this);
-
         loadIntent(getIntent());
+
+        reloadMenu();
     }
 
     void reloadMenu() {
         networkMenu.clear();
-        List<String> ids = lib.activeIds();
+        NetworkLibrary nlib = Storage.getLib(this);
+        List<String> ids = nlib.activeIds();
         for (int i = 0; i < ids.size(); i++) {
-            final INetworkLink link = lib.getLinkByUrl(ids.get(i));
+            final INetworkLink link = nlib.getLinkByUrl(ids.get(i));
             MenuItem m = networkMenu.add(link.getTitle());
             Intent intent = new Intent(LIBRARY);
             intent.putExtra("url", ids.get(i));
@@ -383,6 +330,7 @@ public class MainActivity extends FullscreenActivity
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        unregisterReceiver(receiver);
     }
 
     @Override
@@ -411,8 +359,10 @@ public class MainActivity extends FullscreenActivity
     }
 
     public void openSettings() {
-        final List<String> all = libAllIds();
-        List<String> active = lib.activeIds();
+        final NetworkLibrary nlib = Storage.getLib(this);
+
+        final List<String> all = Storage.libAllIds(nlib);
+        List<String> active = nlib.activeIds();
 
         final String[] nn = new String[all.size()];
         final boolean[] bb = new boolean[all.size()];
@@ -420,7 +370,7 @@ public class MainActivity extends FullscreenActivity
 
         for (int i = 0; i < all.size(); i++) {
             String id = all.get(i);
-            INetworkLink link = lib.getLinkByUrl(id);
+            INetworkLink link = nlib.getLinkByUrl(id);
             nn[i] = link.getTitle();
             bb[i] = active.contains(id);
             nl[i] = link;
@@ -439,7 +389,7 @@ public class MainActivity extends FullscreenActivity
             public void onClick(DialogInterface dialog, int which) {
                 JSONArray a = new JSONArray();
                 for (int i = 0; i < all.size(); i++) {
-                    lib.setLinkActive(all.get(i), bb[i]);
+                    nlib.setLinkActive(all.get(i), bb[i]);
                     if (bb[i])
                         a.put(all.get(i));
                 }

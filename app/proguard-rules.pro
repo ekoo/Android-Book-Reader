@@ -8,6 +8,9 @@
 -optimizationpasses 5
 -printusage
 
+-keep class com.github.axet.djvulibre.DjvuLibre {*;}
+-keep class com.github.axet.djvulibre.DjvuLibre$Page {*;}
+
 -dontwarn org.geometerplus.**
 -dontwarn org.apache.**
 -dontwarn yuku.ambilwarna.**

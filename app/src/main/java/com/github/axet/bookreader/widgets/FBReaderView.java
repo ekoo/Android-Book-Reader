@@ -2,14 +2,18 @@ package com.github.axet.bookreader.widgets;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.Application;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.Build;
+import android.os.Parcelable;
 import android.support.v7.widget.RecyclerView;
+import android.text.ClipboardManager;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
 import android.view.View;
@@ -17,28 +21,45 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.RelativeLayout;
+import android.widget.Toast;
 
 import com.github.axet.bookreader.app.DjvuPlugin;
 import com.github.axet.bookreader.app.PDFPlugin;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.djvulibre.DjvuLibre;
+import com.github.johnpersano.supertoasts.SuperActivityToast;
+import com.github.johnpersano.supertoasts.SuperToast;
+import com.github.johnpersano.supertoasts.util.OnClickWrapper;
 
 import org.geometerplus.android.fbreader.NavigationPopup;
+import org.geometerplus.android.fbreader.PopupPanel;
 import org.geometerplus.android.fbreader.SelectionPopup;
 import org.geometerplus.android.fbreader.TextSearchPopup;
+import org.geometerplus.android.fbreader.api.FBReaderIntents;
+import org.geometerplus.android.fbreader.bookmark.EditBookmarkActivity;
+import org.geometerplus.android.fbreader.dict.DictionaryUtil;
+import org.geometerplus.android.util.OrientationUtil;
+import org.geometerplus.android.util.UIMessageUtil;
+import org.geometerplus.fbreader.book.Bookmark;
 import org.geometerplus.fbreader.bookmodel.BookModel;
+import org.geometerplus.fbreader.fbreader.ActionCode;
+import org.geometerplus.fbreader.fbreader.DictionaryHighlighting;
+import org.geometerplus.fbreader.fbreader.FBAction;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
 import org.geometerplus.fbreader.fbreader.FBView;
 import org.geometerplus.fbreader.fbreader.options.FooterOptions;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
+import org.geometerplus.fbreader.util.TextSnippet;
 import org.geometerplus.zlibrary.core.application.ZLApplication;
 import org.geometerplus.zlibrary.core.application.ZLApplicationWindow;
 import org.geometerplus.zlibrary.core.filesystem.ZLFile;
+import org.geometerplus.zlibrary.core.resources.ZLResource;
 import org.geometerplus.zlibrary.core.view.ZLView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.core.view.ZLViewWidget;
 import org.geometerplus.zlibrary.text.hyphenation.ZLTextHyphenator;
+import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
@@ -47,6 +68,8 @@ import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 import java.io.IOException;
 
 public class FBReaderView extends RelativeLayout {
+
+    public static final String ACTION_MENU = FBReaderView.class.getCanonicalName() + ".ACTION_MENU";
 
     public static final int PAGE_OVERLAP_PERCENTS = 5; // percents
     public static final int PAGE_PAPER_COLOR = 0x80ffffff;
@@ -90,7 +113,7 @@ public class FBReaderView extends RelativeLayout {
     public static abstract class PluginPage {
         public int pageNumber;
         public int pageOffset; // pageBox sizes
-        public FBReaderView.PluginRect pageBox; // pageBox sizes
+        public PluginRect pageBox; // pageBox sizes
         public int pageStep; // pageBox sizes, page step size (fullscreen height == pageStep + pageOverlap)
         public int pageOverlap; // pageBox sizes, page overlap size (fullscreen height == pageStep + pageOverlap)
 
@@ -512,8 +535,6 @@ public class FBReaderView extends RelativeLayout {
 
     public void loadBook(Storage.Book book) {
         try {
-            setEnabled(true);
-            widget.setEnabled(true);
             this.book = book;
             final PluginCollection pluginCollection = PluginCollection.Instance(app.SystemInfo);
             FormatPlugin plugin = Storage.getPlugin(pluginCollection, book);
@@ -555,8 +576,6 @@ public class FBReaderView extends RelativeLayout {
         app.BookTextView.setModel(null);
         app.Model = null;
         book = null;
-        widget.setEnabled(false);
-        setEnabled(false);
     }
 
     public ZLTextFixedPosition getPosition() {
@@ -569,6 +588,157 @@ public class FBReaderView extends RelativeLayout {
     public void setWindow(Window w) {
         this.w = w;
         app.MiscOptions.AllowScreenBrightnessAdjustment.setValue(true);
+    }
+
+    public void setActivity(final Activity a) {
+        PopupPanel.removeAllWindows(app, a);
+
+        app.addAction(ActionCode.SHOW_MENU, new FBAction(app) {
+            @Override
+            protected void run(Object... params) {
+                a.sendBroadcast(new Intent(ACTION_MENU));
+            }
+        });
+        app.addAction(ActionCode.SHOW_NAVIGATION, new FBAction(app) {
+            @Override
+            public boolean isVisible() {
+                if (pluginview != null)
+                    return true;
+                final ZLTextView view = (ZLTextView) Reader.getCurrentView();
+                final ZLTextModel textModel = view.getModel();
+                return textModel != null && textModel.getParagraphsNumber() != 0;
+            }
+
+            @Override
+            protected void run(Object... params) {
+                ((NavigationPopup) app.getPopupById(NavigationPopup.ID)).runNavigation();
+            }
+        });
+        app.addAction(ActionCode.SELECTION_SHOW_PANEL, new FBAction(app) {
+            @Override
+            protected void run(Object... params) {
+                final ZLTextView view = app.getTextView();
+                ((SelectionPopup) app.getPopupById(SelectionPopup.ID))
+                        .move(view.getSelectionStartY(), view.getSelectionEndY());
+                app.showPopup(SelectionPopup.ID);
+            }
+        });
+        app.addAction(ActionCode.SELECTION_HIDE_PANEL, new FBAction(app) {
+            @Override
+            protected void run(Object... params) {
+                final FBReaderApp.PopupPanel popup = app.getActivePopup();
+                if (popup != null && popup.getId() == SelectionPopup.ID) {
+                    app.hideActivePopup();
+                }
+            }
+        });
+        app.addAction(ActionCode.SELECTION_COPY_TO_CLIPBOARD, new FBAction(app) {
+            @Override
+            protected void run(Object... params) {
+                final FBView fbview = Reader.getTextView();
+                final TextSnippet snippet = fbview.getSelectedSnippet();
+                if (snippet == null) {
+                    return;
+                }
+
+                final String text = snippet.getText();
+                fbview.clearSelection();
+
+                final ClipboardManager clipboard =
+                        (ClipboardManager) getContext().getApplicationContext().getSystemService(Application.CLIPBOARD_SERVICE);
+                clipboard.setText(text);
+                UIMessageUtil.showMessageText(
+                        a,
+                        ZLResource.resource("selection").getResource("textInBuffer").getValue().replace("%s", clipboard.getText())
+                );
+            }
+        });
+        app.addAction(ActionCode.SELECTION_SHARE, new FBAction(app) {
+            @Override
+            protected void run(Object... params) {
+                final FBView fbview = Reader.getTextView();
+                final TextSnippet snippet = fbview.getSelectedSnippet();
+                if (snippet == null) {
+                    return;
+                }
+
+                final String text = snippet.getText();
+                final String title = Reader.getCurrentBook().getTitle();
+                fbview.clearSelection();
+
+                final Intent intent = new Intent(android.content.Intent.ACTION_SEND);
+                intent.setType("text/plain");
+                intent.putExtra(android.content.Intent.EXTRA_SUBJECT,
+                        ZLResource.resource("selection").getResource("quoteFrom").getValue().replace("%s", title)
+                );
+                intent.putExtra(android.content.Intent.EXTRA_TEXT, text);
+                a.startActivity(Intent.createChooser(intent, null));
+            }
+        });
+        app.addAction(ActionCode.SELECTION_TRANSLATE, new FBAction(app) {
+            @Override
+            protected void run(Object... params) {
+                final FBView fbview = Reader.getTextView();
+                final DictionaryHighlighting dictionaryHilite = DictionaryHighlighting.get(fbview);
+                final TextSnippet snippet = fbview.getSelectedSnippet();
+
+                if (dictionaryHilite == null || snippet == null) {
+                    return;
+                }
+
+                DictionaryUtil.openTextInDictionary(
+                        a,
+                        snippet.getText(),
+                        fbview.getCountOfSelectedWords() == 1,
+                        fbview.getSelectionStartY(),
+                        fbview.getSelectionEndY(),
+                        new Runnable() {
+                            public void run() {
+                                fbview.addHighlighting(dictionaryHilite);
+                                Reader.getViewWidget().repaint();
+                            }
+                        }
+                );
+                fbview.clearSelection();
+            }
+        });
+        app.addAction(ActionCode.SELECTION_BOOKMARK, new FBAction(app) {
+            @Override
+            protected void run(Object... params) {
+                final Bookmark bookmark;
+                if (params.length != 0) {
+                    bookmark = (Bookmark) params[0];
+                } else {
+                    bookmark = Reader.addSelectionBookmark();
+                }
+                if (bookmark == null) {
+                    return;
+                }
+
+                final SuperActivityToast toast =
+                        new SuperActivityToast(a, SuperToast.Type.BUTTON);
+                toast.setText(bookmark.getText());
+                toast.setDuration(SuperToast.Duration.EXTRA_LONG);
+                toast.setButtonIcon(
+                        android.R.drawable.ic_menu_edit,
+                        ZLResource.resource("dialog").getResource("button").getResource("edit").getValue()
+                );
+                toast.setOnClickWrapper(new OnClickWrapper("bkmk", new SuperToast.OnClickListener() {
+                    @Override
+                    public void onClick(View view, Parcelable token) {
+                        final Intent intent =
+                                new Intent(getContext().getApplicationContext(), EditBookmarkActivity.class);
+                        FBReaderIntents.putBookmarkExtra(intent, bookmark);
+                        OrientationUtil.startActivity(a, intent);
+                    }
+                }));
+                Toast.makeText(a, toast.getText(), toast.getDuration()).show();
+            }
+        });
+
+        ((PopupPanel) app.getPopupById(TextSearchPopup.ID)).setPanelInfo(a, this);
+        ((NavigationPopup) app.getPopupById(NavigationPopup.ID)).setPanelInfo(a, this);
+        ((PopupPanel) app.getPopupById(SelectionPopup.ID)).setPanelInfo(a, this);
     }
 
 }
