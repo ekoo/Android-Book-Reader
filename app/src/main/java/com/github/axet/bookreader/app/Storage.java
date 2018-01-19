@@ -217,9 +217,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             t = null;
         String m;
         if (a == null && t == null) {
-            m = book.info.title;
-            if (m == null)
-                m = book.md5;
+            return null;
         } else if (a == null)
             m = t;
         else if (t == null)
@@ -831,9 +829,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             fbook.info = new RecentInfo();
             fbook.info.created = System.currentTimeMillis();
         }
-        if (fbook.info.title == null || fbook.info.title.isEmpty())
-            fbook.info.title = Storage.getNameNoExt(uri.getLastPathSegment());
         load(fbook);
+        if (fbook.info.title == null || fbook.info.title.isEmpty() || fbook.info.title.equals(fbook.md5))
+            fbook.info.title = Storage.getNameNoExt(uri.getLastPathSegment());
         return fbook;
     }
 
