@@ -14,12 +14,11 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.Parcelable;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -32,6 +31,7 @@ import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
+import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.DjvuPlugin;
 import com.github.axet.bookreader.app.PDFPlugin;
@@ -92,7 +92,6 @@ import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class FBReaderView extends RelativeLayout {
@@ -294,7 +293,7 @@ public class FBReaderView extends RelativeLayout {
         public Rect dst;
     }
 
-    public static abstract class PluginView {
+    public static class PluginView {
         public Bitmap wallpaper;
         public int wallpaperColor;
         public Paint paint = new Paint();
@@ -481,6 +480,21 @@ public class FBReaderView extends RelativeLayout {
         @Override
         public int search(String text, int startIndex, int endIndex, boolean ignoreCase) {
             return 0;
+        }
+    }
+
+    public static class WallpaperLayout extends FrameLayout {
+        PluginView bg;
+
+        public WallpaperLayout(Context context) {
+            super(context);
+            bg = new PluginView();
+        }
+
+        @Override
+        protected void dispatchDraw(Canvas canvas) {
+            bg.drawWallpaper(canvas);
+            super.dispatchDraw(canvas);
         }
     }
 
@@ -824,21 +838,31 @@ public class FBReaderView extends RelativeLayout {
                                 showToast(toast);
                             } else {
                                 book.info.position = getPosition();
+
+                                LinearLayout ll = new LinearLayout(getContext());
+                                ll.setOrientation(LinearLayout.VERTICAL);
+
+                                WallpaperLayout f = new WallpaperLayout(getContext());
+                                ImageButton c = new ImageButton(getContext());
+                                c.setImageResource(R.drawable.ic_close_black_24dp);
+                                c.setColorFilter(ThemeUtils.getThemeColor(getContext(), R.attr.colorAccent));
+                                f.addView(c, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.RIGHT | Gravity.TOP));
+
                                 final FBReaderView r = new FBReaderView(getContext(), new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow()));
                                 r.hideFooter = true;
+                                LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+
+                                ll.addView(f, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                                ll.addView(r, rlp);
+
                                 AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                                builder.setView(r);
-                                builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog, int which) {
-                                    }
-                                });
+                                builder.setView(ll);
                                 builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
                                     @Override
                                     public void onDismiss(DialogInterface dialog) {
                                     }
                                 });
-                                AlertDialog dialog = builder.create();
+                                final AlertDialog dialog = builder.create();
                                 dialog.setOnShowListener(new DialogInterface.OnShowListener() {
                                     @Override
                                     public void onShow(DialogInterface dialog) {
@@ -857,6 +881,12 @@ public class FBReaderView extends RelativeLayout {
                                             }
                                         }
                                         r.app.tryOpenFootnote(hyperlink.Id);
+                                    }
+                                });
+                                c.setOnClickListener(new OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        dialog.dismiss();
                                     }
                                 });
                                 dialog.show();
