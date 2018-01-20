@@ -5,12 +5,14 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.database.DataSetObserver;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.BatteryManager;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
@@ -26,16 +28,18 @@ import android.widget.TextView;
 
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
+import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.FBReaderView;
 
 import org.geometerplus.fbreader.bookmodel.TOCTree;
 import org.geometerplus.fbreader.fbreader.ActionCode;
+import org.geometerplus.fbreader.fbreader.options.ColorProfile;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class ReaderFragment extends Fragment implements MainActivity.SearchListener {
+public class ReaderFragment extends Fragment implements MainActivity.SearchListener, SharedPreferences.OnSharedPreferenceChangeListener {
     public static final String TAG = ReaderFragment.class.getSimpleName();
 
     Storage storage;
@@ -175,6 +179,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         super.onCreate(savedInstanceState);
         storage = new Storage(getContext());
         setHasOptionsMenu(true);
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+        shared.registerOnSharedPreferenceChangeListener(this);
     }
 
     @Override
@@ -191,6 +197,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         final MainActivity main = (MainActivity) getActivity();
 
         view = (FBReaderView) v.findViewById(R.id.main_view);
+
+        Storage.setColorProfile(getContext());
 
         Context context = getContext();
         context.registerReceiver(battery, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
@@ -247,6 +255,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         super.onDestroy();
         Context context = getContext();
         context.unregisterReceiver(battery);
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+        shared.unregisterOnSharedPreferenceChangeListener(this);
     }
 
     @Override
@@ -294,5 +304,16 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     @Override
     public void searchClose() {
         view.app.hideActivePopup();
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        if (key.equals(MainApplication.PREFERENCE_THEME)) {
+            if (sharedPreferences.getString(key, "").equals(getString(R.string.Theme_Dark))) {
+                Storage.setColorProfile(getContext(), ColorProfile.NIGHT);
+            } else {
+                Storage.setColorProfile(getContext(), ColorProfile.DAY);
+            }
+        }
     }
 }

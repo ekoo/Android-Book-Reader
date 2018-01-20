@@ -23,7 +23,6 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.preference.PreferenceManager;
 import android.support.v7.widget.SearchView;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -47,6 +46,7 @@ import com.github.axet.bookreader.widgets.FBReaderView;
 import org.geometerplus.android.fbreader.FBReader;
 import org.geometerplus.android.util.SearchDialogUtil;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
+import org.geometerplus.fbreader.fbreader.options.ColorProfile;
 import org.geometerplus.fbreader.network.INetworkLink;
 import org.geometerplus.fbreader.network.NetworkLibrary;
 import org.json.JSONArray;
@@ -87,9 +87,15 @@ public class MainActivity extends FullscreenActivity
     };
 
     public interface SearchListener {
-        public void search(String s);
+        void search(String s);
 
-        public void searchClose();
+        void searchClose();
+    }
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(newBase);
+        createTheme(MainApplication.PREFERENCE_THEME, R.string.Theme_Dark, R.style.AppThemeLight_NoActionBar, R.style.AppThemeDark_NoActionBar);
     }
 
     @Override
@@ -216,6 +222,11 @@ public class MainActivity extends FullscreenActivity
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_about) {
             AboutPreferenceCompat.buildDialog(this, R.raw.about).show();
+            return true;
+        }
+
+        if (id == R.id.action_settings) {
+            SettingsActivity.startActivity(this);
             return true;
         }
 

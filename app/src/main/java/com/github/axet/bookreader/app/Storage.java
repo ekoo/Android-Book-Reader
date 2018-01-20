@@ -13,6 +13,7 @@ import android.support.v7.preference.PreferenceManager;
 import com.github.axet.androidlibrary.app.Native;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
+import com.github.axet.bookreader.R;
 import com.shockwave.pdfium.PdfiumCore;
 
 import org.apache.commons.io.IOUtils;
@@ -20,6 +21,7 @@ import org.geometerplus.android.fbreader.libraryService.BookCollectionShadow;
 import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
+import org.geometerplus.fbreader.fbreader.options.ColorProfile;
 import org.geometerplus.fbreader.formats.BookReadingException;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
@@ -70,6 +72,7 @@ import javax.xml.parsers.SAXParserFactory;
 public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public static final int MD5_SIZE = 32;
+    public static final int COVER_SIZE = 128;
     public static final String COVER_EXT = "png";
     public static final String JSON_EXT = "json";
 
@@ -158,6 +161,22 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             app = new FBReaderApp(info, new BookCollectionShadow());
         }
         return app;
+    }
+
+    public static void setColorProfile(Context context) {
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
+        if (shared.getString(MainApplication.PREFERENCE_THEME, "").equals(context.getString(R.string.Theme_Dark))) {
+            Storage.setColorProfile(context, ColorProfile.NIGHT);
+        } else {
+            Storage.setColorProfile(context, ColorProfile.DAY);
+        }
+    }
+
+    public static void setColorProfile(Context context, String p) {
+        FBReaderApp app = getApp(context);
+        app.ViewOptions.ColorProfileName.setValue(p);
+        app.getViewWidget().reset();
+        app.getViewWidget().repaint();
     }
 
     public static FormatPlugin getPlugin(PluginCollection c, Storage.Book b) {
@@ -949,7 +968,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 if (bm == null)
                     return;
                 try {
-                    float ratio = 128f / bm.getWidth();
+                    float ratio = COVER_SIZE / (float) bm.getWidth();
                     Bitmap sbm = Bitmap.createScaledBitmap(bm, (int) (bm.getWidth() * ratio), (int) (bm.getHeight() * ratio), true);
                     bm.recycle();
                     FileOutputStream os = new FileOutputStream(fbook.cover);
