@@ -14,6 +14,8 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.Parcelable;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
@@ -23,10 +25,14 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
+import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.DjvuPlugin;
 import com.github.axet.bookreader.app.PDFPlugin;
 import com.github.axet.bookreader.app.Storage;
@@ -71,7 +77,9 @@ import org.geometerplus.zlibrary.core.view.ZLView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.core.view.ZLViewWidget;
 import org.geometerplus.zlibrary.text.hyphenation.ZLTextHyphenator;
+import org.geometerplus.zlibrary.text.model.ZLTextMark;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
+import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextHyperlink;
 import org.geometerplus.zlibrary.text.view.ZLTextHyperlinkRegionSoul;
@@ -83,6 +91,9 @@ import org.geometerplus.zlibrary.text.view.ZLTextWordRegionSoul;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 public class FBReaderView extends RelativeLayout {
 
@@ -98,6 +109,7 @@ public class FBReaderView extends RelativeLayout {
     public Window w;
     public Storage.Book book;
     public PluginView pluginview;
+    public boolean hideFooter = false;
 
     public static class PluginRect {
         public int x; // lower left x
@@ -387,6 +399,89 @@ public class FBReaderView extends RelativeLayout {
             else
                 super.gotoPage(page);
         }
+
+        @Override
+        public FBView.Footer getFooterArea() {
+            if (hideFooter)
+                return null;
+            else
+                return super.getFooterArea();
+        }
+    }
+
+    public static class ParagraphModel implements ZLTextModel {
+        int index;
+        ZLTextModel model;
+
+        public ParagraphModel(int index, ZLTextModel m) {
+            this.index = index;
+            this.model = m;
+        }
+
+        @Override
+        public String getId() {
+            return null;
+        }
+
+        @Override
+        public String getLanguage() {
+            return null;
+        }
+
+        @Override
+        public int getParagraphsNumber() {
+            return 1;
+        }
+
+        @Override
+        public ZLTextParagraph getParagraph(int index) {
+            return model.getParagraph(this.index);
+        }
+
+        @Override
+        public void removeAllMarks() {
+
+        }
+
+        @Override
+        public ZLTextMark getFirstMark() {
+            return null;
+        }
+
+        @Override
+        public ZLTextMark getLastMark() {
+            return null;
+        }
+
+        @Override
+        public ZLTextMark getNextMark(ZLTextMark position) {
+            return null;
+        }
+
+        @Override
+        public ZLTextMark getPreviousMark(ZLTextMark position) {
+            return null;
+        }
+
+        @Override
+        public List<ZLTextMark> getMarks() {
+            return new ArrayList<>();
+        }
+
+        @Override
+        public int getTextLength(int index) {
+            return model.getTextLength(this.index);
+        }
+
+        @Override
+        public int findParagraphByTextLength(int length) {
+            return 0;
+        }
+
+        @Override
+        public int search(String text, int startIndex, int endIndex, boolean ignoreCase) {
+            return 0;
+        }
     }
 
     public FBReaderView(Context context) {
@@ -555,16 +650,8 @@ public class FBReaderView extends RelativeLayout {
         app.BookTextView = new CustomView(app);
         app.setView(app.BookTextView);
 
-        showFooter();
-    }
-
-    void showFooter() {
         app.ViewOptions.ScrollbarType.setValue(FBView.SCROLLBAR_SHOW_AS_FOOTER);
         app.ViewOptions.getFooterOptions().ShowProgress.setValue(FooterOptions.ProgressDisplayType.asPages);
-    }
-
-    void hideFooter() {
-        app.ViewOptions.ScrollbarType.setValue(FBView.SCROLLBAR_HIDE);
     }
 
     public void loadBook(Storage.Book book) {
@@ -738,9 +825,8 @@ public class FBReaderView extends RelativeLayout {
                             } else {
                                 book.info.position = getPosition();
                                 final FBReaderView r = new FBReaderView(getContext(), new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow()));
-                                r.hideFooter();
+                                r.hideFooter = true;
                                 AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                                builder.setTitle("Footnotes");
                                 builder.setView(r);
                                 builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                                     @Override
@@ -750,8 +836,6 @@ public class FBReaderView extends RelativeLayout {
                                 builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
                                     @Override
                                     public void onDismiss(DialogInterface dialog) {
-                                        showFooter();
-                                        app.getViewWidget().repaint();
                                     }
                                 });
                                 AlertDialog dialog = builder.create();
@@ -759,6 +843,19 @@ public class FBReaderView extends RelativeLayout {
                                     @Override
                                     public void onShow(DialogInterface dialog) {
                                         r.loadBook(book);
+                                        final BookModel.Label label = r.app.Model.getLabel(hyperlink.Id);
+                                        if (label != null) {
+                                            if (label.ModelId == null) {
+                                                r.app.BookTextView.setModel(new ParagraphModel(label.ParagraphIndex, r.app.Model.getTextModel()));
+                                                r.app.BookTextView.gotoPosition(0, 0, 0);
+                                                r.app.setView(r.app.BookTextView);
+                                            } else {
+                                                final ZLTextModel model = r.app.Model.getFootnoteModel(label.ModelId);
+                                                r.app.BookTextView.setModel(model);
+                                                r.app.setView(r.app.BookTextView);
+                                                r.app.BookTextView.gotoPosition(label.ParagraphIndex, 0, 0);
+                                            }
+                                        }
                                         r.app.tryOpenFootnote(hyperlink.Id);
                                     }
                                 });
