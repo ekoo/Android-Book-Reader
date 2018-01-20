@@ -9,4 +9,5 @@
         <attr name="metaButtonBarButtonStyle" format="reference" />
     </declare-styleable>
 
+    <attr name="side_nav_bar" format="reference" />
 </resources>
