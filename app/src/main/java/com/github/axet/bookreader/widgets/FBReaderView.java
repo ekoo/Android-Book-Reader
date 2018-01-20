@@ -738,6 +738,7 @@ public class FBReaderView extends RelativeLayout {
                             } else {
                                 book.info.position = getPosition();
                                 final FBReaderView r = new FBReaderView(getContext(), new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow()));
+                                r.hideFooter();
                                 AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
                                 builder.setTitle("Footnotes");
                                 builder.setView(r);
@@ -749,6 +750,8 @@ public class FBReaderView extends RelativeLayout {
                                 builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
                                     @Override
                                     public void onDismiss(DialogInterface dialog) {
+                                        showFooter();
+                                        app.getViewWidget().repaint();
                                     }
                                 });
                                 AlertDialog dialog = builder.create();
