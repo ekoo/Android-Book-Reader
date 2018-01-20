@@ -45,6 +45,10 @@ import com.github.axet.bookreader.fragments.NetworkLibraryFragment;
 import com.github.axet.bookreader.fragments.ReaderFragment;
 import com.github.axet.bookreader.widgets.FBReaderView;
 
+import org.geometerplus.android.fbreader.FBReader;
+import org.geometerplus.android.util.DeviceType;
+import org.geometerplus.android.util.SearchDialogUtil;
+import org.geometerplus.fbreader.fbreader.FBReaderApp;
 import org.geometerplus.fbreader.network.INetworkLink;
 import org.geometerplus.fbreader.network.NetworkLibrary;
 import org.json.JSONArray;
@@ -162,8 +166,12 @@ public class MainActivity extends FullscreenActivity
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
 
+        homeMenu = menu.findItem(R.id.action_home);
+        tocMenu = menu.findItem(R.id.action_toc);
+        searchMenu = menu.findItem(R.id.action_search);
+
         if (Build.VERSION.SDK_INT >= 11) {
-            searchView = (SearchView) menu.findItem(R.id.action_search).getActionView();
+            searchView = (SearchView) searchMenu.getActionView();
             searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
                 @Override
                 public boolean onQueryTextSubmit(String query) {
@@ -186,10 +194,6 @@ public class MainActivity extends FullscreenActivity
             });
         }
 
-        homeMenu = menu.findItem(R.id.action_home);
-        tocMenu = menu.findItem(R.id.action_toc);
-        searchMenu = menu.findItem(R.id.action_search);
-
         return true;
     }
 
@@ -204,6 +208,22 @@ public class MainActivity extends FullscreenActivity
         if (id == R.id.action_about) {
             AboutPreferenceCompat.buildDialog(this, R.raw.about).show();
             return true;
+        }
+
+        if (id == R.id.action_search) {
+            if (Build.VERSION.SDK_INT < 11) {
+                final FBReaderApp app = Storage.getApp(MainActivity.this);
+                SearchDialogUtil.showDialog(this, FBReader.class, app.MiscOptions.TextSearchPattern.getValue(), new DialogInterface.OnCancelListener() {
+                            @Override
+                            public void onCancel(DialogInterface di) {
+                                final FBReaderApp.PopupPanel popup = app.getActivePopup();
+                                if (popup != null) {
+                                    app.showPopup(popup.getId());
+                                }
+                            }
+                        }
+                );
+            }
         }
 
         if (id == R.id.action_file) {
