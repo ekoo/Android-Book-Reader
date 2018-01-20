@@ -611,14 +611,17 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     public ZLImage readCover(ZLFile f) {
         if (Build.VERSION.SDK_INT >= 21) {
             PDFNativeView view = new PDFNativeView(f);
-            Bitmap bm = Bitmap.createBitmap(128, 128, Bitmap.Config.ARGB_8888);
-            view.drawOnBitmap(bm, 128, 128, ZLViewEnums.PageIndex.current);
+            PdfRenderer.Page page = view.doc.openPage(view.current.pageNumber);
+            ((PluginNativePage) view.current).load(page);
+            page.close();
+            Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.ARGB_8888);
+            view.drawOnBitmap(bm, bm.getWidth(), bm.getHeight(), ZLViewEnums.PageIndex.current);
             view.close();
             return new ZLBitmapImage(bm);
         } else {
             PDFView view = new PDFView(f);
-            Bitmap bm = Bitmap.createBitmap(128, 128, Bitmap.Config.ARGB_8888);
-            view.drawOnBitmap(bm, 128, 128, ZLViewEnums.PageIndex.current);
+            Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.ARGB_8888);
+            view.drawOnBitmap(bm, bm.getWidth(), bm.getHeight(), ZLViewEnums.PageIndex.current);
             view.close();
             return new ZLBitmapImage(bm);
         }
