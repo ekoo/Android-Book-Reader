@@ -1,8 +1,10 @@
 package com.github.axet.bookreader.fragments;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.DataSetObserver;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -18,6 +20,8 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -56,18 +60,21 @@ public class LibraryFragment extends Fragment {
     Storage storage;
     String lastSearch = "";
     FragmentHolder holder;
+    BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String a = intent.getAction();
+            if (a.equals(MainActivity.ACTION_SEARCH))
+                search(intent.getStringExtra("search"));
+            if (a.equals(MainActivity.ACTION_SEARCH_CLOSE))
+                search("");
+        }
+    };
 
     public static class FragmentHolder {
         HeaderGridView grid;
 
-        EditText edit;
-        View clear;
-        View home;
-        View login;
         View toolbar;
-        View progress;
-        View stop;
-        View search;
         View searchpanel;
         ViewGroup searchtoolbar;
 
@@ -79,76 +86,12 @@ public class LibraryFragment extends Fragment {
         }
 
         public void create(View v) {
-            clear = v.findViewById(R.id.search_header_clear);
-            edit = (EditText) v.findViewById(R.id.search_header_text);
-            home = v.findViewById(R.id.search_header_home);
-            search = v.findViewById(R.id.search_header_search);
-            login = v.findViewById(R.id.search_header_login);
             toolbar = v.findViewById(R.id.search_header_toolbar_parent);
-            progress = v.findViewById(R.id.search_header_progress);
-            stop = v.findViewById(R.id.search_header_stop);
             searchpanel = v.findViewById(R.id.search_panel);
             searchtoolbar = (ViewGroup) v.findViewById(R.id.search_header_toolbar);
 
             toolbar.setVisibility(View.GONE);
-
-            edit.addTextChangedListener(new TextWatcher() {
-                @Override
-                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                }
-
-                @Override
-                public void onTextChanged(CharSequence s, int start, int before, int count) {
-                }
-
-                @Override
-                public void afterTextChanged(Editable s) {
-                    String t = s.toString();
-                    if (t.isEmpty()) {
-                        clear.setVisibility(View.GONE);
-                    } else {
-                        clear.setVisibility(View.VISIBLE);
-                    }
-                }
-            });
-            edit.setText("");
-
-            home.setVisibility(View.GONE);
-            login.setVisibility(View.GONE);
-            toolbar.setVisibility(View.GONE);
-            progress.setVisibility(View.GONE);
-            stop.setVisibility(View.GONE);
-
-            clear.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    edit.setText("");
-                    hideKeyboard();
-                }
-            });
-
-            edit.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-                @Override
-                public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                    if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                        search.performClick();
-                        return true;
-                    }
-                    return false;
-                }
-            });
-
             grid = (HeaderGridView) v.findViewById(R.id.grid);
-        }
-
-        public void hideKeyboard() {
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
-                    imm.hideSoftInputFromWindow(edit.getWindowToken(), 0);
-                }
-            });
         }
     }
 
@@ -396,6 +339,10 @@ public class LibraryFragment extends Fragment {
         holder = new FragmentHolder(getContext());
         books = new LibraryAdapter();
         books.refresh();
+        setHasOptionsMenu(true);
+        IntentFilter ff = new IntentFilter(MainActivity.ACTION_SEARCH);
+        ff.addAction(MainActivity.ACTION_SEARCH_CLOSE);
+        getContext().registerReceiver(receiver, ff);
     }
 
     @Override
@@ -405,14 +352,6 @@ public class LibraryFragment extends Fragment {
         View v = inflater.inflate(R.layout.fragment_library, container, false);
 
         holder.create(v);
-
-        holder.search.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                search();
-                holder.hideKeyboard();
-            }
-        });
 
         final MainActivity main = (MainActivity) getActivity();
         main.toolbar.setTitle(R.string.app_name);
@@ -523,10 +462,19 @@ public class LibraryFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        getContext().unregisterReceiver(receiver);
     }
 
-    public void search() {
-        books.filter = holder.edit.getText().toString();
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        final MainActivity main = (MainActivity) getActivity();
+        main.homeMenu.setVisible(false);
+        main.tocMenu.setVisible(false);
+    }
+
+    public void search(String s) {
+        books.filter = s;
         books.refresh();
         lastSearch = books.filter;
     }

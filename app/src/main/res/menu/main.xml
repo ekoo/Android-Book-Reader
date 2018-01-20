@@ -7,6 +7,22 @@
         android:title="Open File"
         app:showAsAction="never" />
     <item
+        android:id="@+id/action_home"
+        android:icon="@drawable/ic_home_white_24dp"
+        android:title="Home"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/action_toc"
+        android:icon="@drawable/ic_toc_white_24dp"
+        android:title="TOC"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/action_search"
+        android:icon="@drawable/ic_search_white_24dp"
+        android:title="Search"
+        app:actionViewClass="com.github.axet.bookreader.widgets.SearchView"
+        app:showAsAction="collapseActionView|ifRoom" />
+    <item
         android:id="@+id/action_about"
         android:orderInCategory="100"
         android:title="@string/menu_about"

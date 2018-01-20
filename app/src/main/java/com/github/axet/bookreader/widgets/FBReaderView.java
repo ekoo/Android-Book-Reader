@@ -55,10 +55,12 @@ import org.geometerplus.android.util.DeviceType;
 import org.geometerplus.android.util.OrientationUtil;
 import org.geometerplus.android.util.SearchDialogUtil;
 import org.geometerplus.android.util.UIMessageUtil;
+import org.geometerplus.android.util.UIUtil;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.book.Bookmark;
 import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.bookmodel.FBHyperlinkType;
+import org.geometerplus.fbreader.bookmodel.TOCTree;
 import org.geometerplus.fbreader.fbreader.ActionCode;
 import org.geometerplus.fbreader.fbreader.DictionaryHighlighting;
 import org.geometerplus.fbreader.fbreader.FBAction;
@@ -731,31 +733,30 @@ public class FBReaderView extends RelativeLayout {
         app.addAction(ActionCode.SEARCH, new FBAction(app) {
             @Override
             protected void run(Object... params) {
-                final FBReaderApp.PopupPanel popup = app.getActivePopup();
                 app.hideActivePopup();
-                if (DeviceType.Instance().hasStandardSearchDialog()) {
-                    final SearchManager manager = (SearchManager) getContext().getSystemService(Context.SEARCH_SERVICE);
-                    manager.setOnCancelListener(new SearchManager.OnCancelListener() {
-                        public void onCancel() {
-                            if (popup != null) {
-                                app.showPopup(popup.getId());
-                            }
-                            manager.setOnCancelListener(null);
-                        }
-                    });
-                    a.startSearch(app.MiscOptions.TextSearchPattern.getValue(), true, null, false);
-                } else {
-                    SearchDialogUtil.showDialog(
-                            a, FBReader.class, app.MiscOptions.TextSearchPattern.getValue(), new DialogInterface.OnCancelListener() {
-                                @Override
-                                public void onCancel(DialogInterface di) {
-                                    if (popup != null) {
-                                        app.showPopup(popup.getId());
-                                    }
+                final String pattern = (String) params[0];
+                final Runnable runnable = new Runnable() {
+                    public void run() {
+                        final TextSearchPopup popup = (TextSearchPopup) app.getPopupById(TextSearchPopup.ID);
+                        popup.initPosition();
+                        app.MiscOptions.TextSearchPattern.setValue(pattern);
+                        if (app.getTextView().search(pattern, true, false, false, false) != 0) {
+                            a.runOnUiThread(new Runnable() {
+                                public void run() {
+                                    app.showPopup(popup.getId());
                                 }
-                            }
-                    );
-                }
+                            });
+                        } else {
+                            a.runOnUiThread(new Runnable() {
+                                public void run() {
+                                    UIMessageUtil.showErrorMessage(a, "textNotFound");
+                                    popup.StartPosition = null;
+                                }
+                            });
+                        }
+                    }
+                };
+                UIUtil.wait("search", runnable, getContext());
             }
         });
 
@@ -1078,5 +1079,19 @@ public class FBReaderView extends RelativeLayout {
 
     void showToast(SuperActivityToast toast) {
         Toast.makeText(getContext(), toast.getText(), toast.getDuration()).show();
+    }
+
+    public void gotoPosition(TOCTree.Reference p) {
+        if (p.Model != null)
+            app.BookTextView.setModel(p.Model);
+        gotoPosition(new ZLTextFixedPosition(p.ParagraphIndex, 0, 0));
+    }
+
+    public void gotoPosition(ZLTextPosition p) {
+        if (pluginview != null)
+            pluginview.gotoPosition(p);
+        else
+            app.BookTextView.gotoPosition(p);
+        widget.repaint();
     }
 }
