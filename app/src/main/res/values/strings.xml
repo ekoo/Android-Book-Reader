@@ -8,4 +8,14 @@
     <string name="configure_catalogs">Configure Catalogs</string>
     <string name="network_library">Network Library</string>
     <string name="loading_book">Loading book</string>
+    <string name="title_activity_settings">Settings</string>
+
+    <string-array name="theme_text">
+        <item>Theme Light</item>
+        <item>Theme Dark</item>
+    </string-array>
+    <string-array name="theme_value">
+        <item>@string/Theme_Light</item>
+        <item>@string/Theme_Dark</item>
+    </string-array>
 </resources>
