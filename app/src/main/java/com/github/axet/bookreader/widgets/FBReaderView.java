@@ -44,6 +44,7 @@ import org.geometerplus.android.fbreader.api.FBReaderIntents;
 import org.geometerplus.android.fbreader.bookmark.EditBookmarkActivity;
 import org.geometerplus.android.fbreader.dict.DictionaryUtil;
 import org.geometerplus.android.fbreader.image.ImageViewActivity;
+import org.geometerplus.android.fbreader.libraryService.BookCollectionShadow;
 import org.geometerplus.android.util.DeviceType;
 import org.geometerplus.android.util.OrientationUtil;
 import org.geometerplus.android.util.SearchDialogUtil;
@@ -92,7 +93,6 @@ public class FBReaderView extends RelativeLayout {
 
     public FBReaderApp app;
     public ZLAndroidWidget widget;
-    public CustomView view;
     public int battery;
     public String title;
     public Window w;
@@ -394,6 +394,11 @@ public class FBReaderView extends RelativeLayout {
         create();
     }
 
+    public FBReaderView(Context context, FBReaderApp app) {
+        super(context);
+        create(app);
+    }
+
     public FBReaderView(Context context, AttributeSet attrs) {
         super(context, attrs);
         create();
@@ -411,6 +416,11 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void create() {
+        create(Storage.getApp(getContext()));
+    }
+
+    public void create(final FBReaderApp app) {
+        this.app = app;
         widget = new ZLAndroidWidget(getContext()) {
             @Override
             public void setScreenBrightness(int percent) {
@@ -472,16 +482,14 @@ public class FBReaderView extends RelativeLayout {
                     super.drawOnBitmap(bitmap, index);
             }
         };
+        widget.ZLApplication = new ZLAndroidWidget.ZLApplicationInstance() {
+            public ZLApplication Instance() {
+                return app;
+            }
+        };
         widget.setFocusable(true);
         addView(widget, new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-        app = Storage.getApp(getContext());
-        view = new CustomView(app);
-
-        setAppView();
-    }
-
-    void setAppView() {
         app.setWindow(new ZLApplicationWindow() {
             @Override
             public void setWindowTitle(String title) {
@@ -544,7 +552,7 @@ public class FBReaderView extends RelativeLayout {
             };
         }
 
-        app.BookTextView = view;
+        app.BookTextView = new CustomView(app);
         app.setView(app.BookTextView);
 
         showFooter();
@@ -570,24 +578,24 @@ public class FBReaderView extends RelativeLayout {
                 else
                     pluginview = new PDFPlugin.PDFView(BookUtil.fileByBook(book.book));
                 BookModel Model = BookModel.createModel(book.book, plugin);
-                view.setModel(Model.getTextModel());
+                app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
                 if (book.info != null)
                     pluginview.gotoPosition(book.info.position);
             } else if (plugin instanceof DjvuPlugin) {
                 pluginview = new DjvuPlugin.DjvuView(BookUtil.fileByBook(book.book));
                 BookModel Model = BookModel.createModel(book.book, plugin);
-                view.setModel(Model.getTextModel());
+                app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
                 if (book.info != null)
                     pluginview.gotoPosition(book.info.position);
             } else {
                 BookModel Model = BookModel.createModel(book.book, plugin);
                 ZLTextHyphenator.Instance().load(book.book.getLanguage());
-                view.setModel(Model.getTextModel());
+                app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
                 if (book.info != null)
-                    view.gotoPosition(book.info.position);
+                    app.BookTextView.gotoPosition(book.info.position);
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -599,7 +607,7 @@ public class FBReaderView extends RelativeLayout {
             pluginview.close();
             pluginview = null;
         }
-        view.setModel(null);
+        app.BookTextView.setModel(null);
         app.Model = null;
         book = null;
     }
@@ -608,7 +616,7 @@ public class FBReaderView extends RelativeLayout {
         if (pluginview != null)
             return pluginview.getPosition();
         else
-            return new ZLTextFixedPosition(view.getStartCursor());
+            return new ZLTextFixedPosition(app.BookTextView.getStartCursor());
     }
 
     public void setWindow(Window w) {
@@ -729,8 +737,7 @@ public class FBReaderView extends RelativeLayout {
                                 showToast(toast);
                             } else {
                                 book.info.position = getPosition();
-                                final FBReaderView r = new FBReaderView(getContext());
-                                r.hideFooter();
+                                final FBReaderView r = new FBReaderView(getContext(), new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow()));
                                 AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
                                 builder.setTitle("Footnotes");
                                 builder.setView(r);
@@ -742,8 +749,6 @@ public class FBReaderView extends RelativeLayout {
                                 builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
                                     @Override
                                     public void onDismiss(DialogInterface dialog) {
-                                        setAppView();
-                                        loadBook(book);
                                     }
                                 });
                                 AlertDialog dialog = builder.create();
@@ -751,7 +756,7 @@ public class FBReaderView extends RelativeLayout {
                                     @Override
                                     public void onShow(DialogInterface dialog) {
                                         r.loadBook(book);
-                                        Reader.tryOpenFootnote(hyperlink.Id);
+                                        r.app.tryOpenFootnote(hyperlink.Id);
                                     }
                                 });
                                 dialog.show();
