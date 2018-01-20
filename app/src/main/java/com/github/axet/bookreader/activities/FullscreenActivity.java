@@ -1,16 +1,26 @@
 package com.github.axet.bookreader.activities;
 
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.os.Build;
+import android.support.annotation.Nullable;
 import android.support.design.widget.NavigationView;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v7.widget.Toolbar;
+import android.view.ActionMode;
+import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
+import android.view.SearchEvent;
 import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
+import android.view.accessibility.AccessibilityEvent;
 
 import com.github.axet.bookreader.R;
 
@@ -76,17 +86,161 @@ public class FullscreenActivity extends AppCompatActivity {
         }
     };
 
+    public Window w;
     public View decorView;
     public DrawerLayout drawer;
     public NavigationView navigationView;
+    public Toolbar toolbar;
+
+    public static class WindowCallback implements Window.Callback {
+        Window.Callback callback;
+
+        public WindowCallback(Window.Callback callback) {
+            this.callback = callback;
+        }
+
+        @Override
+        public boolean dispatchKeyEvent(KeyEvent event) {
+            return callback.dispatchKeyEvent(event);
+        }
+
+        @TargetApi(11)
+        @Override
+        public boolean dispatchKeyShortcutEvent(KeyEvent event) {
+            return callback.dispatchKeyShortcutEvent(event);
+        }
+
+        @Override
+        public boolean dispatchTouchEvent(MotionEvent event) {
+            return callback.dispatchTouchEvent(event);
+        }
+
+        @Override
+        public boolean dispatchTrackballEvent(MotionEvent event) {
+            return callback.dispatchTrackballEvent(event);
+        }
+
+        @TargetApi(12)
+        @Override
+        public boolean dispatchGenericMotionEvent(MotionEvent event) {
+            return callback.dispatchGenericMotionEvent(event);
+        }
+
+        @Override
+        public boolean dispatchPopulateAccessibilityEvent(AccessibilityEvent event) {
+            return callback.dispatchPopulateAccessibilityEvent(event);
+        }
+
+        @Nullable
+        @Override
+        public View onCreatePanelView(int featureId) {
+            return callback.onCreatePanelView(featureId);
+        }
+
+        @Override
+        public boolean onCreatePanelMenu(int featureId, Menu menu) {
+            return callback.onCreatePanelMenu(featureId, menu);
+        }
+
+        @Override
+        public boolean onPreparePanel(int featureId, View view, Menu menu) {
+            return callback.onPreparePanel(featureId, view, menu);
+        }
+
+        @Override
+        public boolean onMenuOpened(int featureId, Menu menu) {
+            return callback.onMenuOpened(featureId, menu);
+        }
+
+        @Override
+        public boolean onMenuItemSelected(int featureId, MenuItem item) {
+            return callback.onMenuItemSelected(featureId, item);
+        }
+
+        @Override
+        public void onWindowAttributesChanged(WindowManager.LayoutParams attrs) {
+            callback.onWindowAttributesChanged(attrs);
+        }
+
+        @Override
+        public void onContentChanged() {
+            callback.onContentChanged();
+        }
+
+        @Override
+        public void onWindowFocusChanged(boolean hasFocus) {
+            callback.onWindowFocusChanged(hasFocus);
+        }
+
+        @Override
+        public void onAttachedToWindow() {
+            callback.onAttachedToWindow();
+        }
+
+        @Override
+        public void onDetachedFromWindow() {
+            callback.onDetachedFromWindow();
+        }
+
+        @Override
+        public void onPanelClosed(int featureId, Menu menu) {
+            callback.onPanelClosed(featureId, menu);
+        }
+
+        @Override
+        public boolean onSearchRequested() {
+            return callback.onSearchRequested();
+        }
+
+        @TargetApi(23)
+        @Override
+        public boolean onSearchRequested(SearchEvent searchEvent) {
+            return callback.onSearchRequested(searchEvent);
+        }
+
+        @Nullable
+        @Override
+        public ActionMode onWindowStartingActionMode(ActionMode.Callback callback) {
+            return null; // callback.onWindowStartingActionMode(callback);
+        }
+
+        @Nullable
+        @Override
+        public ActionMode onWindowStartingActionMode(ActionMode.Callback callback, int type) {
+            return null; // callback.onWindowStartingActionMode(callback, type);
+        }
+
+        @TargetApi(11)
+        @Override
+        public void onActionModeStarted(ActionMode mode) {
+            callback.onActionModeStarted(mode);
+        }
+
+        @TargetApi(11)
+        @Override
+        public void onActionModeFinished(ActionMode mode) {
+            callback.onActionModeFinished(mode);
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_main);
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
 
-        decorView = getWindow().getDecorView();
+        w = getWindow();
+        final Window.Callback callback = w.getCallback();
+        w.setCallback(new WindowCallback(callback) {
+            @Override
+            public void onWindowFocusChanged(boolean hasFocus) {
+                super.onWindowFocusChanged(hasFocus);
+                if (hasFocus)
+                    setFullscreen(fullscreen);
+            }
+        });
+        decorView = w.getDecorView();
     }
 
     @Override
@@ -102,7 +256,7 @@ public class FullscreenActivity extends AppCompatActivity {
     public void setFullscreen(boolean b) {
         fullscreen = b;
         if (b) {
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            w.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
             // Hide UI first
             ActionBar actionBar = getSupportActionBar();
@@ -114,7 +268,7 @@ public class FullscreenActivity extends AppCompatActivity {
             mHideHandler.removeCallbacks(mShowPart2Runnable);
             mHideHandler.postDelayed(mHidePart2Runnable, UI_ANIMATION_DELAY);
         } else {
-            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            w.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
             showSystemUI();
             // Schedule a runnable to display UI elements after a delay
             mHideHandler.removeCallbacks(mHidePart2Runnable);
