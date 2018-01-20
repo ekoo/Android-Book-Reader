@@ -67,7 +67,6 @@ public class MainActivity extends FullscreenActivity
 
     public static final String[] PERMISSIONS = new String[]{Manifest.permission.READ_EXTERNAL_STORAGE};
 
-    public Toolbar toolbar;
     Storage storage;
     OpenChoicer choicer;
     SubMenu networkMenu;
@@ -96,9 +95,6 @@ public class MainActivity extends FullscreenActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-
         storage = new Storage(this);
 
         registerReceiver(receiver, new IntentFilter(FBReaderView.ACTION_MENU));
