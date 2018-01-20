@@ -53,23 +53,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
-public class LibraryFragment extends Fragment {
+public class LibraryFragment extends Fragment implements MainActivity.SearchListener {
     public static final String TAG = LibraryFragment.class.getSimpleName();
 
     LibraryAdapter books;
     Storage storage;
     String lastSearch = "";
     FragmentHolder holder;
-    BroadcastReceiver receiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String a = intent.getAction();
-            if (a.equals(MainActivity.ACTION_SEARCH))
-                search(intent.getStringExtra("search"));
-            if (a.equals(MainActivity.ACTION_SEARCH_CLOSE))
-                search("");
-        }
-    };
 
     public static class FragmentHolder {
         HeaderGridView grid;
@@ -340,9 +330,6 @@ public class LibraryFragment extends Fragment {
         books = new LibraryAdapter();
         books.refresh();
         setHasOptionsMenu(true);
-        IntentFilter ff = new IntentFilter(MainActivity.ACTION_SEARCH);
-        ff.addAction(MainActivity.ACTION_SEARCH_CLOSE);
-        getContext().registerReceiver(receiver, ff);
     }
 
     @Override
@@ -462,7 +449,6 @@ public class LibraryFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        getContext().unregisterReceiver(receiver);
     }
 
     @Override
@@ -479,4 +465,8 @@ public class LibraryFragment extends Fragment {
         lastSearch = books.filter;
     }
 
+    @Override
+    public void searchClose() {
+        search("");
+    }
 }

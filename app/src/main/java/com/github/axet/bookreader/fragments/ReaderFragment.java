@@ -6,6 +6,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.DataSetObserver;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.BatteryManager;
@@ -19,6 +20,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckedTextView;
+import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.TextView;
 
@@ -33,22 +35,11 @@ import org.geometerplus.fbreader.fbreader.ActionCode;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ReaderFragment extends Fragment {
+public class ReaderFragment extends Fragment implements MainActivity.SearchListener {
     public static final String TAG = ReaderFragment.class.getSimpleName();
 
     Storage storage;
     FBReaderView view;
-
-    BroadcastReceiver receiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String a = intent.getAction();
-            if (a.equals(MainActivity.ACTION_SEARCH))
-                view.app.runAction(ActionCode.SEARCH, intent.getStringExtra("search"));
-            if (a.equals(MainActivity.ACTION_SEARCH_CLOSE))
-                view.app.hideActivePopup();
-        }
-    };
 
     BroadcastReceiver battery = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -129,10 +120,13 @@ public class ReaderFragment extends Fragment {
                 convertView = inflater.inflate(R.layout.toc_item, null);
             }
             TOCTree tt = tree.get(position);
+            ImageView i = (ImageView) convertView.findViewById(R.id.image);
             TextView t = (TextView) convertView.findViewById(R.id.text);
             if (equals(tt, current)) {
                 t.setTypeface(null, Typeface.BOLD);
+                i.setColorFilter(null);
             } else {
+                i.setColorFilter(Color.GRAY);
                 t.setTypeface(null, Typeface.NORMAL);
             }
             t.setText(tt.getText());
@@ -181,9 +175,6 @@ public class ReaderFragment extends Fragment {
         super.onCreate(savedInstanceState);
         storage = new Storage(getContext());
         setHasOptionsMenu(true);
-        IntentFilter ff = new IntentFilter(MainActivity.ACTION_SEARCH);
-        ff.addAction(MainActivity.ACTION_SEARCH_CLOSE);
-        getContext().registerReceiver(receiver, ff);
     }
 
     @Override
@@ -256,7 +247,6 @@ public class ReaderFragment extends Fragment {
         super.onDestroy();
         Context context = getContext();
         context.unregisterReceiver(battery);
-        context.unregisterReceiver(receiver);
     }
 
     @Override
@@ -293,5 +283,15 @@ public class ReaderFragment extends Fragment {
             }
         });
         builder.show();
+    }
+
+    @Override
+    public void search(String s) {
+        view.app.runAction(ActionCode.SEARCH, s);
+    }
+
+    @Override
+    public void searchClose() {
+        view.app.hideActivePopup();
     }
 }

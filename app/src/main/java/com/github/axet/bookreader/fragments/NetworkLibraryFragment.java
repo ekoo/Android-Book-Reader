@@ -69,7 +69,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class NetworkLibraryFragment extends Fragment {
+public class NetworkLibraryFragment extends Fragment implements MainActivity.SearchListener {
     public static final String TAG = NetworkLibraryFragment.class.getSimpleName();
 
     LibraryFragment.FragmentHolder holder;
@@ -80,16 +80,6 @@ public class NetworkLibraryFragment extends Fragment {
     AndroidNetworkContext nc;
     SearchCatalogTree searchCatalog;
     String host;
-    BroadcastReceiver receiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String a = intent.getAction();
-            if (a.equals(MainActivity.ACTION_SEARCH))
-                search(intent.getStringExtra("search"));
-            if (a.equals(MainActivity.ACTION_SEARCH_CLOSE))
-                search("");
-        }
-    };
 
     ArrayList<NetworkCatalogTree> toolbarItems = new ArrayList<>();
 
@@ -172,10 +162,6 @@ public class NetworkLibraryFragment extends Fragment {
         books = new NetworkLibraryAdapter();
 
         setHasOptionsMenu(true);
-
-        IntentFilter ff = new IntentFilter(MainActivity.ACTION_SEARCH);
-        ff.addAction(MainActivity.ACTION_SEARCH_CLOSE);
-        getContext().registerReceiver(receiver, ff);
 
         nc = new AndroidNetworkContext() {
             @Override
@@ -459,7 +445,7 @@ public class NetworkLibraryFragment extends Fragment {
         super.onSaveInstanceState(outState);
     }
 
-    void search(final String ss) {
+    public void search(final String ss) {
         if (ss == null || ss.isEmpty())
             return;
         if (searchCatalog == null) {
@@ -536,7 +522,6 @@ public class NetworkLibraryFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        getContext().unregisterReceiver(receiver);
     }
 
     @Override
@@ -572,5 +557,9 @@ public class NetworkLibraryFragment extends Fragment {
         else
             main.homeMenu.setVisible(true);
         main.tocMenu.setVisible(false);
+    }
+
+    @Override
+    public void searchClose() {
     }
 }
