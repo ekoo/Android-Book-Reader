@@ -1,8 +1,12 @@
+
 package com.github.axet.bookreader.app;
 
 import android.annotation.TargetApi;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.pdf.PdfRenderer;
 import android.os.ParcelFileDescriptor;
 
@@ -25,10 +29,14 @@ import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.text.model.ZLTextMark;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
+import org.geometerplus.zlibrary.text.model.ZLTextStyleEntry;
+import org.geometerplus.zlibrary.text.model.ZLVideoEntry;
+import org.geometerplus.zlibrary.text.view.ZLTextControlElement;
 import org.geometerplus.zlibrary.ui.android.image.ZLBitmapImage;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
