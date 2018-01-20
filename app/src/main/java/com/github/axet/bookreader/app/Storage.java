@@ -70,6 +70,7 @@ import javax.xml.parsers.SAXParserFactory;
 public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public static final int MD5_SIZE = 32;
+    public static final int COVER_SIZE = 128;
     public static final String COVER_EXT = "png";
     public static final String JSON_EXT = "json";
 
@@ -949,7 +950,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 if (bm == null)
                     return;
                 try {
-                    float ratio = 128f / bm.getWidth();
+                    float ratio = COVER_SIZE / (float) bm.getWidth();
                     Bitmap sbm = Bitmap.createScaledBitmap(bm, (int) (bm.getWidth() * ratio), (int) (bm.getHeight() * ratio), true);
                     bm.recycle();
                     FileOutputStream os = new FileOutputStream(fbook.cover);

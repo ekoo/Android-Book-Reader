@@ -321,7 +321,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     @Override
     public ZLImage readCover(ZLFile f) {
         PDFiumView view = new PDFiumView(f);
-        view.current.scale(128, 128);
+        view.current.scale(Storage.COVER_SIZE, Storage.COVER_SIZE); // reduce render memory footprint
         Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.ARGB_8888);
         view.drawOnBitmap(bm, bm.getWidth(), bm.getHeight(), ZLViewEnums.PageIndex.current);
         view.close();
