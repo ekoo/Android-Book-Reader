@@ -950,10 +950,12 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     return;
                 try {
                     float ratio = 128f / bm.getWidth();
-                    bm = Bitmap.createScaledBitmap(bm, (int) (bm.getWidth() * ratio), (int) (bm.getHeight() * ratio), true);
+                    Bitmap sbm = Bitmap.createScaledBitmap(bm, (int) (bm.getWidth() * ratio), (int) (bm.getHeight() * ratio), true);
+                    bm.recycle();
                     FileOutputStream os = new FileOutputStream(fbook.cover);
-                    bm.compress(Bitmap.CompressFormat.PNG, 100, os);
+                    sbm.compress(Bitmap.CompressFormat.PNG, 100, os);
                     os.close();
+                    sbm.recycle();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }

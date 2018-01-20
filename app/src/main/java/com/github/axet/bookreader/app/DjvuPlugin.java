@@ -212,6 +212,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
     @Override
     public ZLImage readCover(ZLFile file) {
         DjvuView view = new DjvuView(file);
+        view.current.scale(128, 128);
         Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.ARGB_8888);
         view.drawOnBitmap(bm, bm.getWidth(), bm.getHeight(), ZLViewEnums.PageIndex.current);
         view.close();

@@ -8,7 +8,6 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.pdf.PdfRenderer;
 import android.os.ParcelFileDescriptor;
-import android.util.Log;
 
 import com.github.axet.bookreader.widgets.FBReaderView;
 import com.shockwave.pdfium.PdfDocument;
@@ -26,8 +25,6 @@ import org.geometerplus.zlibrary.core.filesystem.ZLFile;
 import org.geometerplus.zlibrary.core.image.ZLImage;
 import org.geometerplus.zlibrary.core.view.ZLView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
-import org.geometerplus.zlibrary.text.model.ExtensionEntry;
-import org.geometerplus.zlibrary.text.model.ZLImageEntry;
 import org.geometerplus.zlibrary.text.model.ZLTextMark;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
@@ -41,8 +38,6 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 public class PDFPlugin extends BuiltinFormatPlugin {
 
@@ -153,6 +148,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         public PluginPdfiumPage(PdfiumCore c, PdfDocument d) {
             core = c;
             doc = d;
+            load();
         }
 
         @Override
@@ -325,7 +321,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     @Override
     public ZLImage readCover(ZLFile f) {
         PDFiumView view = new PDFiumView(f);
-        view.current.load();
+        view.current.scale(128, 128);
         Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.ARGB_8888);
         view.drawOnBitmap(bm, bm.getWidth(), bm.getHeight(), ZLViewEnums.PageIndex.current);
         view.close();
