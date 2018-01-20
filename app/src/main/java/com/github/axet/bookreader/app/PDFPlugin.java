@@ -1,4 +1,3 @@
-
 package com.github.axet.bookreader.app;
 
 import android.annotation.TargetApi;
