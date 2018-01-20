@@ -676,10 +676,7 @@ public class FBReaderView extends RelativeLayout {
             final PluginCollection pluginCollection = PluginCollection.Instance(app.SystemInfo);
             FormatPlugin plugin = Storage.getPlugin(pluginCollection, book);
             if (plugin instanceof PDFPlugin) {
-                if (Build.VERSION.SDK_INT >= 21)
-                    pluginview = new PDFPlugin.PDFNativeView(BookUtil.fileByBook(book.book));
-                else
-                    pluginview = new PDFPlugin.PDFView(BookUtil.fileByBook(book.book));
+                pluginview = new PDFPlugin.PDFiumView(BookUtil.fileByBook(book.book));
                 BookModel Model = BookModel.createModel(book.book, plugin);
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;

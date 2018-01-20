@@ -1,32 +1,21 @@
 package com.github.axet.bookreader.app;
 
 import android.annotation.TargetApi;
+import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Rect;
 import android.graphics.pdf.PdfRenderer;
-import android.os.Build;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
 import com.github.axet.bookreader.widgets.FBReaderView;
-import com.tom_roush.pdfbox.cos.COSName;
-import com.tom_roush.pdfbox.pdmodel.PDDocument;
-import com.tom_roush.pdfbox.pdmodel.PDDocumentInformation;
-import com.tom_roush.pdfbox.pdmodel.PDPage;
-import com.tom_roush.pdfbox.pdmodel.PDResources;
-import com.tom_roush.pdfbox.pdmodel.common.PDRectangle;
-import com.tom_roush.pdfbox.pdmodel.common.PDStream;
-import com.tom_roush.pdfbox.pdmodel.graphics.PDXObject;
-import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImage;
-import com.tom_roush.pdfbox.rendering.PageDrawer;
-import com.tom_roush.pdfbox.text.PDFTextStripper;
+import com.shockwave.pdfium.PdfDocument;
+import com.shockwave.pdfium.PdfiumCore;
+import com.shockwave.pdfium.util.Size;
 
 import org.geometerplus.fbreader.book.AbstractBook;
-import org.geometerplus.fbreader.book.Book;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
@@ -35,7 +24,6 @@ import org.geometerplus.fbreader.formats.BuiltinFormatPlugin;
 import org.geometerplus.zlibrary.core.encodings.EncodingCollection;
 import org.geometerplus.zlibrary.core.filesystem.ZLFile;
 import org.geometerplus.zlibrary.core.image.ZLImage;
-import org.geometerplus.zlibrary.core.image.ZLStreamImage;
 import org.geometerplus.zlibrary.core.view.ZLView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.text.model.ExtensionEntry;
@@ -46,14 +34,10 @@ import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
 import org.geometerplus.zlibrary.text.model.ZLTextStyleEntry;
 import org.geometerplus.zlibrary.text.model.ZLVideoEntry;
 import org.geometerplus.zlibrary.text.view.ZLTextControlElement;
-import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
-import org.geometerplus.zlibrary.text.view.ZLTextPosition;
-import org.geometerplus.zlibrary.text.view.ZLTextView;
 import org.geometerplus.zlibrary.ui.android.image.ZLBitmapImage;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
@@ -66,287 +50,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     public static final String EXT = "pdf";
 
-    public static class PDFTextEntryIterator extends EntryIterator {
-        TextParagraph par;
-        int index = -1;
-
-        public PDFTextEntryIterator(final TextParagraph p) {
-            this.par = p;
-        }
-
-        @Override
-        public byte getType() {
-            Object o = par.entries.get(index);
-            if (o instanceof String)
-                return ZLTextParagraph.Entry.TEXT;
-            if (o instanceof ZLImageEntry)
-                return ZLTextParagraph.Entry.IMAGE;
-            if (o instanceof ZLTextControlElement)
-                return ZLTextParagraph.Entry.CONTROL;
-            throw new RuntimeException("unknown");
-        }
-
-        @Override
-        public char[] getTextData() {
-            return ((String) par.entries.get(index)).toCharArray();
-        }
-
-        @Override
-        public int getTextOffset() {
-            return 0;
-        }
-
-        @Override
-        public boolean getControlIsStart() {
-            return ((ZLTextControlElement) par.entries.get(index)).IsStart;
-        }
-
-        @Override
-        public byte getControlKind() {
-            return ((ZLTextControlElement) par.entries.get(index)).Kind;
-        }
-
-        @Override
-        public int getTextLength() {
-            return ((String) par.entries.get(index)).length();
-        }
-
-        @Override
-        public ZLImageEntry getImageEntry() {
-            return (ZLImageEntry) par.entries.get(index);
-        }
-
-        @Override
-        public boolean next() {
-            index++;
-            return index < par.entries.size();
-        }
-    }
-
-    public static class TextParagraph implements ZLTextParagraph {
-        PDFTextModel model;
-        int index;
-        int offset;
-        int length;
-        ArrayList<Object> entries;
-
-        public TextParagraph(PDFTextModel model, int index) {
-            this.model = model;
-            this.index = index;
-        }
-
-        public void text() {
-            entries = new ArrayList<>();
-            try {
-                PDPage p = model.doc.getPage(index);
-                final StringWriter w = new StringWriter();
-                PDFTextStripper t = new PDFTextStripper() {
-                    {
-                        output = w;
-                        setStartPage(0);
-                    }
-
-                    @Override
-                    protected void endArticle() throws IOException {
-                        super.endArticle();
-                        String s = w.toString();
-                        length += s.length();
-                        entries.add(s);
-                    }
-                };
-                t.processPage(p);
-
-                PDResources res = p.getResources();
-                for (COSName n : res.getXObjectNames()) {
-                    PDXObject o = res.getXObject(n);
-                    if (o instanceof PDImage) { // PDImageXObject
-                        PDImage i = (PDImage) o;
-                        String id = "" + entries.size();
-                        ZLBitmapImage image = new ZLBitmapImage(i.getImage());
-                        Map<String, ZLImage> imageMap = new TreeMap<>();
-                        imageMap.put(id, image);
-                        ZLImageEntry e = new ZLImageEntry(imageMap, id, (short) 0, false);
-                        entries.add(e);
-                    }
-                }
-            } catch (IOException e) {
-                Log.d(TAG, "unable to process image", e);
-            }
-        }
-
-        @Override
-        public EntryIterator iterator() {
-            if (entries == null)
-                text();
-            return new PDFTextEntryIterator(this);
-        }
-
-        @Override
-        public byte getKind() {
-            return Kind.TEXT_PARAGRAPH;
-        }
-    }
-
-    public static class RenderTextParagraph extends TextParagraph {
-
-        public RenderTextParagraph(PDFTextModel model, int index) {
-            super(model, index);
-        }
-
-        void render() {
-            entries = new ArrayList<>();
-
-            String id = "1";
-            ZLBitmapImage image = new ZLBitmapImage(null) {
-                @Override
-                public Bitmap getBitmap() {
-                    return createBitmap(model.doc.getPage(index)); // reduce memory impact
-                }
-            };
-            Map<String, ZLImage> imageMap = new TreeMap<>();
-            imageMap.put(id, image);
-            ZLImageEntry e = new ZLImageEntry(imageMap, id, (short) 0, true);
-
-            entries.add(e);
-        }
-
-        public static Bitmap createBitmap(PDPage p) {
-            PDRectangle cropBox = p.getCropBox();
-
-            Bitmap bm = Bitmap.createBitmap((int) cropBox.getWidth(), (int) cropBox.getHeight(), Bitmap.Config.ARGB_8888);
-
-            Canvas canvas = new Canvas(bm);
-
-            Paint paint = new Paint();
-            paint.setColor(Color.BLACK);
-            try {
-                renderPage(p, paint, canvas, cropBox);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-            return bm;
-        }
-
-        public static void renderPage(PDPage page, Paint paint, Canvas canvas, PDRectangle cropBox) throws IOException {
-            int rotationAngle = page.getRotation();
-
-            if (rotationAngle != 0) {
-                float translateX = 0;
-                float translateY = 0;
-                switch (rotationAngle) {
-                    case 90:
-                        translateX = cropBox.getHeight();
-                        break;
-                    case 270:
-                        translateY = cropBox.getWidth();
-                        break;
-                    case 180:
-                        translateX = cropBox.getWidth();
-                        translateY = cropBox.getHeight();
-                        break;
-                }
-                canvas.translate(translateX, translateY);
-                canvas.rotate((float) Math.toRadians(rotationAngle));
-            }
-
-            PageDrawer drawer = new PageDrawer(page);
-            drawer.drawPage(paint, canvas, cropBox);
-        }
-
-        @Override
-        public EntryIterator iterator() {
-            if (entries == null)
-                render();
-            return new PDFTextEntryIterator(this);
-        }
-    }
-
-    public static class EndTextParagraph implements ZLTextParagraph {
-        byte kind;
-
-        public EndTextParagraph(byte kind) {
-            this.kind = kind;
-        }
-
-        @Override
-        public EntryIterator iterator() {
-            return new PDFPlugin.EntryIterator();
-        }
-
-        @Override
-        public byte getKind() {
-            return kind;
-        }
-    }
-
-    public static class PluginPage extends FBReaderView.PluginPage {
-        public PDDocument doc;
-        public PDPage page;
-
-        public PluginPage(PluginPage r) {
-            super(r);
-            doc = r.doc;
-            page = r.page;
-        }
-
-        public PluginPage(PluginPage r, ZLViewEnums.PageIndex index) {
-            this(r);
-            load(index);
-        }
-
-        public PluginPage(PDDocument d) {
-            doc = d;
-            load();
-        }
-
-        @Override
-        public int getPagesCount() {
-            return doc.getNumberOfPages();
-        }
-
-        public void load() {
-            page = doc.getPage(pageNumber);
-            PDRectangle p = page.getCropBox();
-            pageBox = new FBReaderView.PluginRect((int) p.getLowerLeftX(), (int) p.getLowerLeftY(), (int) p.getWidth(), (int) p.getHeight());
-        }
-    }
-
-    public static class PDFView extends FBReaderView.PluginView {
-        public PDDocument doc;
-
-        public PDFView(ZLFile f) {
-            try {
-                doc = PDDocument.load(new File(f.getPath()));
-                current = new PluginPage(doc);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public void drawOnBitmap(Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
-            Canvas canvas = new Canvas(bitmap);
-            drawWallpaper(canvas);
-
-            PluginPage r = new PluginPage((PluginPage) current, index);
-            FBReaderView.RenderRect render = r.renderRect(w, h);
-            current.updatePage(r);
-
-            PDRectangle cropBox = new PDRectangle(render.x, render.y, render.w, render.h);
-            Bitmap bm = Bitmap.createBitmap(render.w, render.h, Bitmap.Config.ARGB_8888);
-            bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
-            Canvas c = new Canvas(bm);
-            try {
-                RenderTextParagraph.renderPage(r.page, paint, c, cropBox);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            canvas.drawBitmap(bm, render.src, render.dst, paint);
-            bm.recycle();
-        }
-
-    }
+    public static PdfiumCore core; // context can be avoided
 
     @TargetApi(21)
     public static class PluginNativePage extends FBReaderView.PluginPage {
@@ -431,7 +135,89 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     }
 
-    public static class PDFTextModel extends PDFView implements ZLTextModel {
+    public static class PluginPdfiumPage extends FBReaderView.PluginPage {
+        public PdfiumCore core;
+        public PdfDocument doc;
+
+        public PluginPdfiumPage(PluginPdfiumPage r) {
+            super(r);
+            core = r.core;
+            doc = r.doc;
+        }
+
+        public PluginPdfiumPage(PluginPdfiumPage r, ZLViewEnums.PageIndex index) {
+            this(r);
+            load(index);
+        }
+
+        public PluginPdfiumPage(PdfiumCore c, PdfDocument d) {
+            core = c;
+            doc = d;
+        }
+
+        @Override
+        public int getPagesCount() {
+            return core.getPageCount(doc);
+        }
+
+        public void load() {
+            load(pageNumber);
+        }
+
+        void load(int index) {
+            Size s = core.getPageSize(doc, index);
+            pageBox = new FBReaderView.PluginRect(0, 0, s.getWidth(), s.getHeight());
+        }
+    }
+
+    public static class PDFiumView extends FBReaderView.PluginView {
+        ParcelFileDescriptor fd;
+        public PdfDocument doc;
+
+        public PDFiumView(ZLFile f) {
+            try {
+                fd = ParcelFileDescriptor.open(new File(f.getPath()), ParcelFileDescriptor.MODE_READ_ONLY);
+                doc = core.newDocument(fd);
+                current = new PluginPdfiumPage(core, doc);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public void close() {
+            core.closeDocument(doc);
+            try {
+                fd.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public void drawOnBitmap(Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
+            Canvas canvas = new Canvas(bitmap);
+            drawWallpaper(canvas);
+
+            PluginPdfiumPage r = new PluginPdfiumPage((PluginPdfiumPage) current, index);
+            r.load(r.pageNumber);
+
+            r.renderRect(w, h);
+            current.updatePage(r);
+
+            r.scale(w, h);
+            FBReaderView.RenderRect render = r.renderRect(w, h);
+
+            core.openPage(doc, r.pageNumber);
+            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.ARGB_8888);
+            bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
+            core.renderPageBitmap(doc, bm, r.pageNumber, 0, 0, bm.getWidth(), bm.getHeight());
+            canvas.drawBitmap(bm, render.toRect(bm.getWidth(), bm.getHeight()), render.dst, paint);
+            bm.recycle();
+        }
+
+    }
+
+    public static class PDFTextModel extends PDFiumView implements ZLTextModel {
         public ArrayList<ZLTextParagraph> pars = new ArrayList<>();
 
         public PDFTextModel(ZLFile f) {
@@ -441,7 +227,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         @Override
         protected void finalize() throws Throwable {
             super.finalize();
-            doc.close();
+            close();
         }
 
         @Override
@@ -509,78 +295,6 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class EntryIterator implements ZLTextParagraph.EntryIterator {
-        @Override
-        public byte getType() {
-            return 0;
-        }
-
-        @Override
-        public char[] getTextData() {
-            return new char[0];
-        }
-
-        @Override
-        public int getTextOffset() {
-            return 0;
-        }
-
-        @Override
-        public int getTextLength() {
-            return 0;
-        }
-
-        @Override
-        public byte getControlKind() {
-            return 0;
-        }
-
-        @Override
-        public boolean getControlIsStart() {
-            return false;
-        }
-
-        @Override
-        public byte getHyperlinkType() {
-            return 0;
-        }
-
-        @Override
-        public String getHyperlinkId() {
-            return null;
-        }
-
-        @Override
-        public ZLImageEntry getImageEntry() {
-            return null;
-        }
-
-        @Override
-        public ZLVideoEntry getVideoEntry() {
-            return null;
-        }
-
-        @Override
-        public ExtensionEntry getExtensionEntry() {
-            return null;
-        }
-
-        @Override
-        public ZLTextStyleEntry getStyleEntry() {
-            return null;
-        }
-
-        @Override
-        public short getFixedHSpaceLength() {
-            return 0;
-        }
-
-        @Override
-        public boolean next() {
-            return false;
-        }
-    }
-
     public PDFPlugin() {
         super(FBReaderApp.Instance().SystemInfo, EXT);
     }
@@ -589,11 +303,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     public void readMetainfo(AbstractBook book) throws BookReadingException {
         ZLFile f = BookUtil.fileByBook(book);
         try {
-            PDDocument doc = PDDocument.load(new File(f.getPath()));
-            PDDocumentInformation info = doc.getDocumentInformation();
+            ParcelFileDescriptor fd = ParcelFileDescriptor.open(new File(f.getPath()), ParcelFileDescriptor.MODE_READ_ONLY);
+            PdfDocument doc = core.newDocument(fd);
+            PdfDocument.Meta info = core.getDocumentMeta(doc);
             book.addAuthor(info.getAuthor());
             book.setTitle(info.getTitle());
-            doc.close();
+            core.closeDocument(doc);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -609,22 +324,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     @Override
     public ZLImage readCover(ZLFile f) {
-        if (Build.VERSION.SDK_INT >= 21) {
-            PDFNativeView view = new PDFNativeView(f);
-            PdfRenderer.Page page = view.doc.openPage(view.current.pageNumber);
-            ((PluginNativePage) view.current).load(page);
-            page.close();
-            Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.ARGB_8888);
-            view.drawOnBitmap(bm, bm.getWidth(), bm.getHeight(), ZLViewEnums.PageIndex.current);
-            view.close();
-            return new ZLBitmapImage(bm);
-        } else {
-            PDFView view = new PDFView(f);
-            Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.ARGB_8888);
-            view.drawOnBitmap(bm, bm.getWidth(), bm.getHeight(), ZLViewEnums.PageIndex.current);
-            view.close();
-            return new ZLBitmapImage(bm);
-        }
+        PDFiumView view = new PDFiumView(f);
+        view.current.load();
+        Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.ARGB_8888);
+        view.drawOnBitmap(bm, bm.getWidth(), bm.getHeight(), ZLViewEnums.PageIndex.current);
+        view.close();
+        return new ZLBitmapImage(bm);
     }
 
     @Override
