@@ -264,6 +264,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         final MainActivity main = (MainActivity) getActivity();
         main.homeMenu.setVisible(false);
         main.tocMenu.setVisible(view.app.Model.TOCTree != null && view.app.Model.TOCTree.hasChildren());
+        main.searchMenu.setVisible(view.pluginview == null); // pdf and djvu do not support search
     }
 
     void showTOC() {
