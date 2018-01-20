@@ -10,33 +10,26 @@ import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 import android.support.v7.preference.PreferenceManager;
 
+import com.github.axet.androidlibrary.app.Native;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
-import com.github.axet.bookreader.activities.MainActivity;
-import com.github.axet.bookreader.widgets.FBReaderView;
+import com.shockwave.pdfium.PdfiumCore;
 
 import org.apache.commons.io.IOUtils;
 import org.geometerplus.android.fbreader.libraryService.BookCollectionShadow;
 import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
 import org.geometerplus.fbreader.book.BookUtil;
-import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
 import org.geometerplus.fbreader.formats.BookReadingException;
-import org.geometerplus.fbreader.formats.DjVuPlugin;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
 import org.geometerplus.fbreader.network.NetworkLibrary;
 import org.geometerplus.zlibrary.core.filesystem.ZLFile;
-import org.geometerplus.zlibrary.core.image.ZLFileImage;
 import org.geometerplus.zlibrary.core.image.ZLFileImageProxy;
 import org.geometerplus.zlibrary.core.image.ZLImage;
-import org.geometerplus.zlibrary.core.image.ZLImageProxy;
 import org.geometerplus.zlibrary.core.image.ZLStreamImage;
 import org.geometerplus.zlibrary.core.network.ZLNetworkException;
 import org.geometerplus.zlibrary.core.util.SystemInfo;
-import org.geometerplus.zlibrary.text.model.ZLImageEntry;
-import org.geometerplus.zlibrary.text.model.ZLTextModel;
-import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.ui.android.image.ZLBitmapImage;
@@ -60,10 +53,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
-import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.URL;
-import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -157,6 +147,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     onCreate();
                 }
             };
+        }
+        if (PDFPlugin.core == null) {
+            Native.loadLibraries(context, new String[]{"modpng", "modft2", "modpdfium", "jniPdfium"});
+            PDFPlugin.core = new PdfiumCore(context);
         }
         Info info = new Info(context);
         FBReaderApp app = (FBReaderApp) FBReaderApp.Instance();
@@ -955,6 +949,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 if (bm == null)
                     return;
                 try {
+                    float ratio = 128f / bm.getWidth();
+                    bm = Bitmap.createScaledBitmap(bm, (int) (bm.getWidth() * ratio), (int) (bm.getHeight() * ratio), true);
                     FileOutputStream os = new FileOutputStream(fbook.cover);
                     bm.compress(Bitmap.CompressFormat.PNG, 100, os);
                     os.close();
