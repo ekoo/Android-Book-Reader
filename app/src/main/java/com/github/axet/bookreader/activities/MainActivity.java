@@ -1,7 +1,6 @@
 package com.github.axet.bookreader.activities;
 
 import android.Manifest;
-import android.app.SearchManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -46,7 +45,6 @@ import com.github.axet.bookreader.fragments.ReaderFragment;
 import com.github.axet.bookreader.widgets.FBReaderView;
 
 import org.geometerplus.android.fbreader.FBReader;
-import org.geometerplus.android.util.DeviceType;
 import org.geometerplus.android.util.SearchDialogUtil;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
 import org.geometerplus.fbreader.network.INetworkLink;
@@ -69,9 +67,6 @@ public class MainActivity extends FullscreenActivity
 
     public static final String[] PERMISSIONS = new String[]{Manifest.permission.READ_EXTERNAL_STORAGE};
 
-    public static final String ACTION_SEARCH = MainActivity.class.getCanonicalName() + ".ACTION_SEARCH";
-    public static final String ACTION_SEARCH_CLOSE = MainActivity.class.getCanonicalName() + ".ACTION_SEARCH_CLOSE";
-
     public Toolbar toolbar;
     Storage storage;
     OpenChoicer choicer;
@@ -91,6 +86,12 @@ public class MainActivity extends FullscreenActivity
             }
         }
     };
+
+    public interface SearchListener {
+        public void search(String s);
+
+        public void searchClose();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -176,7 +177,13 @@ public class MainActivity extends FullscreenActivity
                 @Override
                 public boolean onQueryTextSubmit(String query) {
                     searchView.clearFocus();
-                    sendBroadcast(new Intent(ACTION_SEARCH).putExtra("search", searchView.getQuery().toString()));
+                    FragmentManager fm = getSupportFragmentManager();
+                    for (Fragment f : fm.getFragments()) {
+                        if (f != null && f.isVisible() && f instanceof SearchListener) {
+                            SearchListener s = (SearchListener) f;
+                            s.search(searchView.getQuery().toString());
+                        }
+                    }
                     return true;
                 }
 
@@ -188,7 +195,13 @@ public class MainActivity extends FullscreenActivity
             searchView.setOnCloseListener(new SearchView.OnCloseListener() {
                 @Override
                 public boolean onClose() {
-                    sendBroadcast(new Intent(ACTION_SEARCH_CLOSE));
+                    FragmentManager fm = getSupportFragmentManager();
+                    for (Fragment f : fm.getFragments()) {
+                        if (f != null && f.isVisible() && f instanceof SearchListener) {
+                            SearchListener s = (SearchListener) f;
+                            s.searchClose();
+                        }
+                    }
                     return true;
                 }
             });
