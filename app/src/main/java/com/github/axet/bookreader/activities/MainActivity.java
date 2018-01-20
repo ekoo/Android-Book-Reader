@@ -1,6 +1,7 @@
 package com.github.axet.bookreader.activities;
 
 import android.Manifest;
+import android.app.SearchManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -10,6 +11,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
@@ -21,6 +23,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.preference.PreferenceManager;
+import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
@@ -42,17 +45,10 @@ import com.github.axet.bookreader.fragments.NetworkLibraryFragment;
 import com.github.axet.bookreader.fragments.ReaderFragment;
 import com.github.axet.bookreader.widgets.FBReaderView;
 
-import org.geometerplus.android.fbreader.network.Util;
-import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
-import org.geometerplus.android.util.UIUtil;
 import org.geometerplus.fbreader.network.INetworkLink;
 import org.geometerplus.fbreader.network.NetworkLibrary;
-import org.geometerplus.zlibrary.core.network.ZLNetworkException;
 import org.json.JSONArray;
-import org.json.JSONException;
 
-import java.net.URI;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -69,12 +65,19 @@ public class MainActivity extends FullscreenActivity
 
     public static final String[] PERMISSIONS = new String[]{Manifest.permission.READ_EXTERNAL_STORAGE};
 
+    public static final String ACTION_SEARCH = MainActivity.class.getCanonicalName() + ".ACTION_SEARCH";
+    public static final String ACTION_SEARCH_CLOSE = MainActivity.class.getCanonicalName() + ".ACTION_SEARCH_CLOSE";
+
     public Toolbar toolbar;
     Storage storage;
     OpenChoicer choicer;
     SubMenu networkMenu;
     Map<String, MenuItem> networkMenuMap = new TreeMap<>();
     public MenuItem libraryMenu;
+    public MenuItem homeMenu;
+    public MenuItem tocMenu;
+    public MenuItem searchMenu;
+    public SearchView searchView;
 
     BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
@@ -158,6 +161,35 @@ public class MainActivity extends FullscreenActivity
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
+
+        if (Build.VERSION.SDK_INT >= 11) {
+            searchView = (SearchView) menu.findItem(R.id.action_search).getActionView();
+            searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+                @Override
+                public boolean onQueryTextSubmit(String query) {
+                    searchView.clearFocus();
+                    sendBroadcast(new Intent(ACTION_SEARCH).putExtra("search", searchView.getQuery().toString()));
+                    return true;
+                }
+
+                @Override
+                public boolean onQueryTextChange(String newText) {
+                    return false;
+                }
+            });
+            searchView.setOnCloseListener(new SearchView.OnCloseListener() {
+                @Override
+                public boolean onClose() {
+                    sendBroadcast(new Intent(ACTION_SEARCH_CLOSE));
+                    return true;
+                }
+            });
+        }
+
+        homeMenu = menu.findItem(R.id.action_home);
+        tocMenu = menu.findItem(R.id.action_toc);
+        searchMenu = menu.findItem(R.id.action_search);
+
         return true;
     }
 

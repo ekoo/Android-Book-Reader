@@ -1,6 +1,9 @@
 package com.github.axet.bookreader.fragments;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.DataSetObserver;
 import android.net.Uri;
 import android.os.Bundle;
@@ -10,6 +13,9 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
@@ -73,6 +79,17 @@ public class NetworkLibraryFragment extends Fragment {
     NetworkLibrary lib;
     AndroidNetworkContext nc;
     SearchCatalogTree searchCatalog;
+    String host;
+    BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String a = intent.getAction();
+            if (a.equals(MainActivity.ACTION_SEARCH))
+                search(intent.getStringExtra("search"));
+            if (a.equals(MainActivity.ACTION_SEARCH_CLOSE))
+                search("");
+        }
+    };
 
     ArrayList<NetworkCatalogTree> toolbarItems = new ArrayList<>();
 
@@ -153,6 +170,12 @@ public class NetworkLibraryFragment extends Fragment {
         lib = NetworkLibrary.Instance(new Storage.Info(getContext()));
         n = lib.getLinkByUrl(u);
         books = new NetworkLibraryAdapter();
+
+        setHasOptionsMenu(true);
+
+        IntentFilter ff = new IntentFilter(MainActivity.ACTION_SEARCH);
+        ff.addAction(MainActivity.ACTION_SEARCH_CLOSE);
+        getContext().registerReceiver(receiver, ff);
 
         nc = new AndroidNetworkContext() {
             @Override
@@ -359,28 +382,15 @@ public class NetworkLibraryFragment extends Fragment {
 
         holder.create(v);
 
-        holder.search.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                search();
-                holder.hideKeyboard();
-            }
-        });
+        final MainActivity main = (MainActivity) getActivity();
 
-        final String host = n.getHostName();
+        host = n.getHostName();
         if (host == null || host.isEmpty()) {
-            holder.home.setVisibility(View.GONE);
+            main.searchMenu.setVisible(false);
         } else {
-            holder.home.setVisibility(View.VISIBLE);
-            holder.home.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    openBrowser("http://" + host);
-                }
-            });
+            main.searchMenu.setVisible(true);
         }
 
-        final MainActivity main = (MainActivity) getActivity();
         main.toolbar.setTitle(R.string.app_name);
         holder.grid.setAdapter(books);
         holder.grid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -449,9 +459,11 @@ public class NetworkLibraryFragment extends Fragment {
         super.onSaveInstanceState(outState);
     }
 
-    void search() {
+    void search(final String ss) {
+        if (ss == null || ss.isEmpty())
+            return;
         if (searchCatalog == null) {
-            books.filter = holder.edit.getText().toString();
+            books.filter = ss;
             books.refresh();
         } else {
             UIUtil.wait("search", new Runnable() {
@@ -476,7 +488,7 @@ public class NetworkLibraryFragment extends Fragment {
                         }
                     };
                     final NetworkCatalogItem i = n.libraryItem();
-                    final String myPattern = holder.edit.getText().toString();
+                    final String myPattern = ss;
                     final NetworkItemsLoader l = new NetworkItemsLoader(nc, searchCatalog) {
                         @Override
                         protected void onFinish(ZLNetworkException exception, boolean interrupted) {
@@ -524,6 +536,7 @@ public class NetworkLibraryFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        getContext().unregisterReceiver(receiver);
     }
 
     @Override
@@ -541,4 +554,23 @@ public class NetworkLibraryFragment extends Fragment {
         b.show(getFragmentManager(), "");
     }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_home) {
+            openBrowser("http://" + host);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        final MainActivity main = (MainActivity) getActivity();
+        if (host == null || host.isEmpty())
+            main.homeMenu.setVisible(false);
+        else
+            main.homeMenu.setVisible(true);
+        main.tocMenu.setVisible(false);
+    }
 }
