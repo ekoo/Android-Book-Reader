@@ -6,6 +6,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.DataSetObserver;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.BatteryManager;
 import android.os.Bundle;
@@ -59,9 +60,11 @@ public class ReaderFragment extends Fragment {
 
     public class TOCAdapter implements ListAdapter {
         ArrayList<TOCTree> tree = new ArrayList<>();
+        TOCTree current;
 
-        public TOCAdapter(List<TOCTree> ll) {
+        public TOCAdapter(List<TOCTree> ll, TOCTree current) {
             loadTOC(ll);
+            this.current = current;
         }
 
         void loadTOC(List<TOCTree> tree) {
@@ -69,6 +72,15 @@ public class ReaderFragment extends Fragment {
                 this.tree.add(t);
                 loadTOC(t.subtrees());
             }
+        }
+
+        public int getCurrent() {
+            for (int i = 0; i < tree.size(); i++) {
+                TOCTree t = tree.get(i);
+                if (equals(t, current))
+                    return i;
+            }
+            return -1;
         }
 
         @Override
@@ -118,8 +130,23 @@ public class ReaderFragment extends Fragment {
             }
             TOCTree tt = tree.get(position);
             TextView t = (TextView) convertView.findViewById(R.id.text);
+            if (equals(tt, current)) {
+                t.setTypeface(null, Typeface.BOLD);
+            } else {
+                t.setTypeface(null, Typeface.NORMAL);
+            }
             t.setText(tt.getText());
             return convertView;
+        }
+
+        boolean equals(TOCTree t, TOCTree t2) {
+            if (t == null || t2 == null)
+                return false;
+            TOCTree.Reference r1 = t.getReference();
+            TOCTree.Reference r2 = t2.getReference();
+            if (r1 == null || r2 == null)
+                return false;
+            return r1.ParagraphIndex == r2.ParagraphIndex;
         }
 
         @Override
@@ -251,9 +278,9 @@ public class ReaderFragment extends Fragment {
 
     void showTOC() {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        ArrayList<CharSequence> items = new ArrayList<>();
-        final TOCAdapter a = new TOCAdapter(view.app.Model.TOCTree.subtrees());
-        builder.setSingleChoiceItems(a, -1, new DialogInterface.OnClickListener() {
+        final TOCTree current = view.app.getCurrentTOCElement();
+        final TOCAdapter a = new TOCAdapter(view.app.Model.TOCTree.subtrees(), current);
+        builder.setSingleChoiceItems(a, a.getCurrent(), new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 view.gotoPosition(a.getItem(which).getReference());
