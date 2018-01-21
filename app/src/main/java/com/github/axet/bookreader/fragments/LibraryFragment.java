@@ -68,7 +68,6 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         View searchpanel;
         ViewGroup searchtoolbar;
 
-        Handler handler = new Handler();
         Context context;
 
         public FragmentHolder(Context context) {
