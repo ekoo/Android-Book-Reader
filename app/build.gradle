@@ -61,5 +61,5 @@ dependencies {
     compile 'com.github.axet:android-library:1.19.1' // compile project(':android-library')
     compile 'com.github.axet.fbreader:library:0.0.9'
     compile 'com.github.axet:djvulibre:0.0.2'
-    compile 'com.github.barteksc:pdfium-android:1.8.2'
+    compile 'com.github.axet:pdfium:1.8.2-1'
 }

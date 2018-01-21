@@ -4,12 +4,12 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
 import android.graphics.pdf.PdfRenderer;
 import android.os.ParcelFileDescriptor;
 
+import com.github.axet.androidlibrary.app.Native;
 import com.github.axet.bookreader.widgets.FBReaderView;
+import com.shockwave.pdfium.Config;
 import com.shockwave.pdfium.PdfDocument;
 import com.shockwave.pdfium.PdfiumCore;
 import com.shockwave.pdfium.util.Size;
@@ -28,14 +28,10 @@ import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.text.model.ZLTextMark;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
-import org.geometerplus.zlibrary.text.model.ZLTextStyleEntry;
-import org.geometerplus.zlibrary.text.model.ZLVideoEntry;
-import org.geometerplus.zlibrary.text.view.ZLTextControlElement;
 import org.geometerplus.zlibrary.ui.android.image.ZLBitmapImage;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,7 +41,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     public static final String EXT = "pdf";
 
-    public static PdfiumCore core; // context can be avoided
+    public static void init(Context context) {
+        if (Config.natives) {
+            Native.loadLibraries(context, new String[]{"modpng", "modft2", "modpdfium", "jniPdfium"});
+            Config.natives = false;
+        }
+    }
 
     @TargetApi(21)
     public static class PluginNativePage extends FBReaderView.PluginPage {
@@ -167,11 +168,14 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     }
 
     public static class PDFiumView extends FBReaderView.PluginView {
+        public PdfiumCore core;
         ParcelFileDescriptor fd;
         public PdfDocument doc;
 
+
         public PDFiumView(ZLFile f) {
             try {
+                core = new PdfiumCore();
                 fd = ParcelFileDescriptor.open(new File(f.getPath()), ParcelFileDescriptor.MODE_READ_ONLY);
                 doc = core.newDocument(fd);
                 current = new PluginPdfiumPage(core, doc);
@@ -299,6 +303,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     public void readMetainfo(AbstractBook book) throws BookReadingException {
         ZLFile f = BookUtil.fileByBook(book);
         try {
+            PdfiumCore core = new PdfiumCore();
             ParcelFileDescriptor fd = ParcelFileDescriptor.open(new File(f.getPath()), ParcelFileDescriptor.MODE_READ_ONLY);
             PdfDocument doc = core.newDocument(fd);
             PdfDocument.Meta info = core.getDocumentMeta(doc);

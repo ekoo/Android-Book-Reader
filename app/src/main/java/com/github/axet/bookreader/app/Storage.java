@@ -10,11 +10,9 @@ import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 import android.support.v7.preference.PreferenceManager;
 
-import com.github.axet.androidlibrary.app.Native;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
-import com.shockwave.pdfium.PdfiumCore;
 
 import org.apache.commons.io.IOUtils;
 import org.geometerplus.android.fbreader.libraryService.BookCollectionShadow;
@@ -115,6 +113,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 return null;
             }
         };
+        PDFPlugin.init(context);
         NetworkLibrary nlib = NetworkLibrary.Instance(new Storage.Info(context));
         if (!nlib.isInitialized()) {
             try {
@@ -150,10 +149,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     onCreate();
                 }
             };
-        }
-        if (PDFPlugin.core == null) {
-            Native.loadLibraries(context, new String[]{"modpng", "modft2", "modpdfium", "jniPdfium"});
-            PDFPlugin.core = new PdfiumCore(context);
         }
         Info info = new Info(context);
         FBReaderApp app = (FBReaderApp) FBReaderApp.Instance();
