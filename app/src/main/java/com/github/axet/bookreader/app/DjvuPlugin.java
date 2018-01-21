@@ -94,8 +94,11 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             drawWallpaper(canvas);
 
             PluginPage r = new PluginPage((PluginPage) current, index);
-            FBReaderView.RenderRect render = r.renderRect(w, h);
+            r.renderRect(w, h);
             current.updatePage(r);
+
+            r.scale(w, h);
+            FBReaderView.RenderRect render = r.renderRect(w, h);
 
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.ARGB_8888);
             bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
