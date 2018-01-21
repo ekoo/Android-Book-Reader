@@ -113,12 +113,12 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 return null;
             }
         };
-        PDFPlugin.init(context);
         NetworkLibrary nlib = NetworkLibrary.Instance(new Storage.Info(context));
         if (!nlib.isInitialized()) {
             try {
                 nlib.initialize(nc);
             } catch (ZLNetworkException e) {
+                throw new RuntimeException(e);
             }
             SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
             String json = shared.getString(MainApplication.PREFERENCE_CATALOGS, null);
@@ -150,6 +150,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
             };
         }
+        PDFPlugin.init(context);
         Info info = new Info(context);
         FBReaderApp app = (FBReaderApp) FBReaderApp.Instance();
         if (app == null) {

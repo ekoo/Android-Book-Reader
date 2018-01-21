@@ -45,12 +45,16 @@ import com.github.axet.bookreader.widgets.FBReaderView;
 
 import org.geometerplus.android.fbreader.FBReader;
 import org.geometerplus.android.util.SearchDialogUtil;
+import org.geometerplus.android.util.UIUtil;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
 import org.geometerplus.fbreader.fbreader.options.ColorProfile;
 import org.geometerplus.fbreader.network.INetworkLink;
 import org.geometerplus.fbreader.network.NetworkLibrary;
+import org.geometerplus.fbreader.network.tree.NetworkBookTree;
+import org.geometerplus.fbreader.tree.FBTree;
 import org.json.JSONArray;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -76,6 +80,8 @@ public class MainActivity extends FullscreenActivity
     public MenuItem tocMenu;
     public MenuItem searchMenu;
     public SearchView searchView;
+
+    NetworkLibrary nlib;
 
     BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
@@ -133,12 +139,26 @@ public class MainActivity extends FullscreenActivity
 
         loadIntent(getIntent());
 
-        reloadMenu();
+        UIUtil.wait("load catalogs", new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    nlib = Storage.getLib(MainActivity.this);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            reloadMenu();
+                        }
+                    });
+                } catch (Exception e) {
+                    Post(e);
+                }
+            }
+        }, this);
     }
 
     void reloadMenu() {
         networkMenu.clear();
-        NetworkLibrary nlib = Storage.getLib(this);
         List<String> ids = nlib.activeIds();
         for (int i = 0; i < ids.size(); i++) {
             final INetworkLink link = nlib.getLinkByUrl(ids.get(i));
@@ -431,8 +451,6 @@ public class MainActivity extends FullscreenActivity
     }
 
     public void openSettings() {
-        final NetworkLibrary nlib = Storage.getLib(this);
-
         final List<String> all = Storage.libAllIds(nlib);
         List<String> active = nlib.activeIds();
 
