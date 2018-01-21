@@ -11,6 +11,8 @@
 -keep class com.github.axet.djvulibre.DjvuLibre {*;}
 -keep class com.github.axet.djvulibre.DjvuLibre$Page {*;}
 
+-keep class com.github.axet.androidlibrary.widgets.SearchView {*;}
+
 -dontwarn org.geometerplus.**
 -dontwarn org.apache.**
 -dontwarn yuku.ambilwarna.**
