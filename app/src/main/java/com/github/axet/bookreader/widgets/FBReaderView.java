@@ -307,7 +307,7 @@ public class FBReaderView extends RelativeLayout {
                 ZLFile wallpaper = app.BookTextView.getWallpaperFile();
                 if (wallpaper != null)
                     this.wallpaper = BitmapFactory.decodeStream(wallpaper.getInputStream());
-                wallpaperColor = app.BookTextView.getBackgroundColor().intValue();
+                wallpaperColor = (0xff << 24) | app.BookTextView.getBackgroundColor().intValue();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
