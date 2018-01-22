@@ -387,10 +387,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     os.close();
                     is.close();
                     return toHex(digest.digest());
-                } catch (RuntimeException e) {
-                    throw e;
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
+                } catch (RuntimeException r) {
+                    throw r;
+                } catch (Exception r) {
+                    throw new RuntimeException(r);
                 }
             }
         }
