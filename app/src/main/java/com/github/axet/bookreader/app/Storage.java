@@ -998,8 +998,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     Bitmap renderView(View v) {
         DisplayMetrics m = getContext().getResources().getDisplayMetrics();
-        int w = (int) (m.widthPixels);
-        int h = (int) (m.heightPixels);
+        int w = (int) (720 * m.density / 2);
+        int h = (int) (1280 * m.density / 2);
         int ws = View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY);
         int hs = View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY);
         v.measure(ws, hs);
