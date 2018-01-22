@@ -43,7 +43,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     public static void init(Context context) {
         if (Config.natives) {
-            Native.loadLibraries(context, new String[]{"modpng", "modft2", "modpdfium", "jniPdfium"});
+            Native.loadLibraries(context, new String[]{"pdfium", "pdfiumjni"});
             Config.natives = false;
         }
     }

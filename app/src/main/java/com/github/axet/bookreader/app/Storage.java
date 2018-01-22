@@ -6,13 +6,19 @@ import android.content.SharedPreferences;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 import android.support.v7.preference.PreferenceManager;
+import android.util.DisplayMetrics;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.TextView;
 
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
+import com.github.axet.bookreader.widgets.FBReaderView;
 
 import org.apache.commons.io.IOUtils;
 import org.geometerplus.android.fbreader.libraryService.BookCollectionShadow;
@@ -85,7 +91,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     // disable broken, closed, or authorization only repos without free books / or open links
     public static List<String> disabledIds = Arrays.asList(
             "http://data.fbreader.org/catalogs/litres2/index.php5", // authorization
-            "http://www.freebookshub.com/feed/", // fake links
+            "http://www.freebookshub.com/feed/", // fake paid links
             "http://ebooks.qumran.org/opds/?lang=en", // timeout
             "http://ebooks.qumran.org/opds/?lang=de", // timeout
             "http://www.epubbud.com/feeds/catalog.atom", // ePub Bud has decided to wind down
@@ -913,8 +919,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
             FormatPlugin plugin = getPlugin(pluginCollection, book);
             ZLFile file = BookUtil.fileByBook(book.book);
-            ZLImage c = plugin.readCover(file);
-            return c;
+            return plugin.readCover(file);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -929,12 +934,12 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         if (fbook.info == null)
             fbook.info = new Storage.RecentInfo();
         fbook.info.md5 = fbook.md5;
+        final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
+        fbook.book = new org.geometerplus.fbreader.book.Book(-1, fbook.file.getPath(), null, null, null);
+        FormatPlugin plugin = getPlugin(pluginCollection, fbook);
         try {
-            final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
-            fbook.book = new org.geometerplus.fbreader.book.Book(-1, fbook.file.getPath(), null, null, null);
-            FormatPlugin plugin = getPlugin(pluginCollection, fbook);
             plugin.readMetainfo(fbook.book);
-        } catch (Exception e) {
+        } catch (BookReadingException e) {
             throw new RuntimeException(e);
         }
         if (fbook.info.title == null || fbook.info.title.isEmpty() || fbook.info.title.equals(fbook.md5)) {
@@ -953,13 +958,26 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     if (!p.isSynchronized())
                         p.synchronize();
                     image = p.getRealImage();
-
                 }
                 if (image instanceof ZLStreamImage) {
                     bm = BitmapFactory.decodeStream(((ZLStreamImage) image).inputStream());
                 }
                 if (image instanceof ZLBitmapImage) {
                     bm = ((ZLBitmapImage) image).getBitmap();
+                }
+                if (bm == null && (fbook.book.authors() != null || fbook.book.getTitle() != null)) {
+                    LayoutInflater inflater = LayoutInflater.from(getContext());
+                    View v = inflater.inflate(R.layout.cover_generate, null);
+                    TextView a = (TextView) v.findViewById(R.id.author);
+                    a.setText(fbook.book.authorsString(", "));
+                    TextView t = (TextView) v.findViewById(R.id.title);
+                    t.setText(fbook.book.getTitle());
+                    bm = renderView(v);
+                }
+                if (bm == null) {
+                    FBReaderView v = new FBReaderView(getContext(), new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow()));
+                    v.hideFooter = true;
+                    bm = renderView(v);
                 }
                 if (bm == null)
                     return;
@@ -976,6 +994,20 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
             }
         }
+    }
+
+    Bitmap renderView(View v) {
+        DisplayMetrics m = getContext().getResources().getDisplayMetrics();
+        int w = (int) (m.widthPixels);
+        int h = (int) (m.heightPixels);
+        int ws = View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY);
+        int hs = View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY);
+        v.measure(ws, hs);
+        v.layout(0, 0, v.getMeasuredWidth(), v.getMeasuredHeight());
+        Bitmap bm = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(bm);
+        v.draw(c);
+        return bm;
     }
 
     public ArrayList<Book> list() {
