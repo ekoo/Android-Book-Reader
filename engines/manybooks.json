@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "name": "ManyBooks Catalog",
+  "home": {
+    "get": "http://manybooks.net"
+  },
+  "search": "http://manybooks.net/opds/search.php?q={searchTerms}",
+  "catalog": "http://manybooks.net/opds/",
+  "default": "http://manybooks.net/opds/new_titles.php"
+}

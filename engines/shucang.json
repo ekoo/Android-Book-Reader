@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "name": "Shucang Catalog",
+  "home": {
+    "get": "http://www.shucang.org"
+  },
+  "search": "http://www.shucang.org/s/doclist.php?skey={searchTerms}",
+  "catalog": "http://www.shucang.org/s/index.php"
+}
