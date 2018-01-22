@@ -86,8 +86,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public static Detector[] supported() {
         return new Detector[]{new FileFB2(), new FileFB2Zip(), new FileEPUB(), new FileHTML(),
-                new FilePDF(), new FileDjvu(), new FileRTF(), new FileDoc(),
-                new FileMobi(), new FileTxt()};
+                new FilePDF(), new FileDjvu(), new FileRTF(), new FileRTFZip(), new FileDoc(),
+                new FileMobi(), new FileTxt(), new FileTxtZip()};
     }
 
     // disable broken, closed, or authorization only repos without free books / or open links
@@ -369,6 +369,30 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             public String extract(File f, File t) {
                 return null;
             }
+
+            public String extract(ZipEntry e, File f, File t) {
+                try {
+                    MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
+                    ZipFile zip = new ZipFile(f);
+                    InputStream is = zip.getInputStream(e);
+                    FileOutputStream os = new FileOutputStream(t);
+
+                    byte[] buf = new byte[BUF_SIZE];
+                    int len;
+                    while ((len = is.read(buf)) > 0) {
+                        digest.update(buf, 0, len);
+                        os.write(buf, 0, len);
+                    }
+
+                    os.close();
+                    is.close();
+                    return toHex(digest.digest());
+                } catch (RuntimeException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
         }
 
         public FileTypeDetectorZipExtract(Detector[] dd) {
@@ -576,7 +600,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
         @Override
         public void nextEntry(ZipEntry entry) {
-            if (Storage.getExt(entry.getName()).equals("fb2")) {
+            if (Storage.getExt(entry.getName()).toLowerCase().equals("fb2")) {
                 e = entry;
                 detected = true;
             }
@@ -585,27 +609,51 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
         @Override
         public String extract(File f, File t) {
-            try {
-                MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
-                ZipFile zip = new ZipFile(f);
-                InputStream is = zip.getInputStream(e);
-                FileOutputStream os = new FileOutputStream(t);
+            return extract(e, f, t);
+        }
+    }
 
-                byte[] buf = new byte[BUF_SIZE];
-                int len;
-                while ((len = is.read(buf)) > 0) {
-                    digest.update(buf, 0, len);
-                    os.write(buf, 0, len);
-                }
+    public static class FileTxtZip extends FileTypeDetectorZipExtract.Handler {
+        ZipEntry e;
 
-                os.close();
-                is.close();
-                return toHex(digest.digest());
-            } catch (RuntimeException e) {
-                throw e;
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+        public FileTxtZip() {
+            super("txt");
+        }
+
+        @Override
+        public void nextEntry(ZipEntry entry) {
+            if (Storage.getExt(entry.getName()).toLowerCase().equals("txt")) {
+                e = entry;
+                detected = true;
             }
+            done = true;
+        }
+
+        @Override
+        public String extract(File f, File t) {
+            return extract(e, f, t);
+        }
+    }
+
+    public static class FileRTFZip extends FileTypeDetectorZipExtract.Handler {
+        ZipEntry e;
+
+        public FileRTFZip() {
+            super("rtf");
+        }
+
+        @Override
+        public void nextEntry(ZipEntry entry) {
+            if (Storage.getExt(entry.getName()).toLowerCase().equals("rtf")) {
+                e = entry;
+                detected = true;
+            }
+            done = true;
+        }
+
+        @Override
+        public String extract(File f, File t) {
+            return extract(e, f, t);
         }
     }
 
@@ -771,7 +819,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         same = true;
                         break;
                     }
-                    if (getExt(e).equals(ext)) {
+                    if (getExt(e).toLowerCase().equals(ext)) {
                         same = true;
                         break;
                     }
