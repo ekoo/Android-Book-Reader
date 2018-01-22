@@ -68,6 +68,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
 import javax.xml.parsers.SAXParser;
@@ -77,13 +78,14 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public static final int MD5_SIZE = 32;
     public static final int COVER_SIZE = 128;
+    public static final int BUF_SIZE = 1024;
     public static final String COVER_EXT = "png";
     public static final String JSON_EXT = "json";
 
     public static ZLAndroidApplication zlib;
 
     public static Detector[] supported() {
-        return new Detector[]{new FileFB2(), new FileEPUB(), new FileHTML(),
+        return new Detector[]{new FileFB2(), new FileFB2Zip(), new FileEPUB(), new FileHTML(),
                 new FilePDF(), new FileDjvu(), new FileRTF(), new FileDoc(),
                 new FileMobi(), new FileTxt()};
     }
@@ -358,6 +360,22 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     }
 
+    public static class FileTypeDetectorZipExtract extends FileTypeDetectorZip {
+        public static class Handler extends FileTypeDetectorZip.Handler {
+            public Handler(String ext) {
+                super(ext);
+            }
+
+            public String extract(File f, File t) {
+                return null;
+            }
+        }
+
+        public FileTypeDetectorZipExtract(Detector[] dd) {
+            super(dd);
+        }
+    }
+
     public static class FileTypeDetectorZip {
         ArrayList<Handler> list = new ArrayList<>();
         ParcelFileDescriptor.AutoCloseInputStream is;
@@ -370,7 +388,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 super(ext);
             }
 
-            void nextEntry(ZipEntry entry) {
+            public void nextEntry(ZipEntry entry) {
             }
         }
 
@@ -546,6 +564,48 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public static class FileFB2 extends FileTypeDetectorXml.Handler {
         public FileFB2() {
             super("fb2", "FictionBook");
+        }
+    }
+
+    public static class FileFB2Zip extends FileTypeDetectorZipExtract.Handler {
+        ZipEntry e;
+
+        public FileFB2Zip() {
+            super("fb2");
+        }
+
+        @Override
+        public void nextEntry(ZipEntry entry) {
+            if (Storage.getExt(entry.getName()).equals("fb2")) {
+                e = entry;
+                detected = true;
+            }
+            done = true;
+        }
+
+        @Override
+        public String extract(File f, File t) {
+            try {
+                MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
+                ZipFile zip = new ZipFile(f);
+                InputStream is = zip.getInputStream(e);
+                FileOutputStream os = new FileOutputStream(t);
+
+                byte[] buf = new byte[BUF_SIZE];
+                int len;
+                while ((len = is.read(buf)) > 0) {
+                    digest.update(buf, 0, len);
+                    os.write(buf, 0, len);
+                }
+
+                os.close();
+                is.close();
+                return toHex(digest.digest());
+            } catch (RuntimeException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -871,7 +931,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             FileTypeDetectorZip zip = new FileTypeDetectorZip(dd);
             FileTypeDetector bin = new FileTypeDetector(dd);
 
-            byte[] buf = new byte[1024];
+            byte[] buf = new byte[BUF_SIZE];
             int len;
             while ((len = is.read(buf)) > 0) {
                 digest.update(buf, 0, len);
@@ -888,9 +948,25 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             zip.close();
             xml.close();
 
+            fbook.md5 = toHex(digest.digest());
+
             for (Detector d : dd) {
                 if (d.detected) {
                     fbook.ext = d.ext;
+                    if (d instanceof FileTypeDetectorZipExtract.Handler) {
+                        FileTypeDetectorZipExtract.Handler e = (FileTypeDetectorZipExtract.Handler) d;
+                        File z = fbook.file;
+                        if (f != null) {
+                            f = null; // force to delete
+                            fbook.file = File.createTempFile("book", ".tmp");
+                            fbook.md5 = e.extract(z, fbook.file);
+                        } else {
+                            File tmp = File.createTempFile("book", ".tmp");
+                            fbook.md5 = e.extract(z, tmp);
+                            z.delete();
+                            fbook.file = tmp;
+                        }
+                    }
                     break; // priority first - more imporant
                 }
             }
@@ -898,10 +974,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (fbook.ext == null) {
                 throw new RuntimeException("Unsupported format");
             }
-
-            byte messageDigest[] = digest.digest();
-
-            fbook.md5 = toHex(messageDigest);
         } catch (RuntimeException e) {
             throw e;
         } catch (IOException | NoSuchAlgorithmException e) {
@@ -965,13 +1037,15 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 if (image instanceof ZLBitmapImage) {
                     bm = ((ZLBitmapImage) image).getBitmap();
                 }
-                if (bm == null && (fbook.book.authors() != null || fbook.book.getTitle() != null)) {
+                boolean a = fbook.book.authors() != null;
+                boolean t = fbook.book.getTitle() != null && !fbook.book.getTitle().isEmpty();
+                if (bm == null && (a || t)) {
                     LayoutInflater inflater = LayoutInflater.from(getContext());
                     View v = inflater.inflate(R.layout.cover_generate, null);
-                    TextView a = (TextView) v.findViewById(R.id.author);
-                    a.setText(fbook.book.authorsString(", "));
-                    TextView t = (TextView) v.findViewById(R.id.title);
-                    t.setText(fbook.book.getTitle());
+                    TextView aa = (TextView) v.findViewById(R.id.author);
+                    aa.setText(fbook.book.authorsString(", "));
+                    TextView tt = (TextView) v.findViewById(R.id.title);
+                    tt.setText(fbook.book.getTitle());
                     bm = renderView(v);
                 }
                 if (bm == null) {
