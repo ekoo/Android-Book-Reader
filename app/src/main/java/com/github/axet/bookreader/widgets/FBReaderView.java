@@ -3,7 +3,6 @@ package com.github.axet.bookreader.widgets;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
-import android.app.SearchManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -12,7 +11,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
-import android.os.Build;
 import android.os.Parcelable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.RecyclerView;
@@ -41,7 +39,6 @@ import com.github.johnpersano.supertoasts.SuperToast;
 import com.github.johnpersano.supertoasts.util.OnClickWrapper;
 import com.github.johnpersano.supertoasts.util.OnDismissWrapper;
 
-import org.geometerplus.android.fbreader.FBReader;
 import org.geometerplus.android.fbreader.NavigationPopup;
 import org.geometerplus.android.fbreader.PopupPanel;
 import org.geometerplus.android.fbreader.SelectionPopup;
@@ -51,9 +48,7 @@ import org.geometerplus.android.fbreader.bookmark.EditBookmarkActivity;
 import org.geometerplus.android.fbreader.dict.DictionaryUtil;
 import org.geometerplus.android.fbreader.image.ImageViewActivity;
 import org.geometerplus.android.fbreader.libraryService.BookCollectionShadow;
-import org.geometerplus.android.util.DeviceType;
 import org.geometerplus.android.util.OrientationUtil;
-import org.geometerplus.android.util.SearchDialogUtil;
 import org.geometerplus.android.util.UIMessageUtil;
 import org.geometerplus.android.util.UIUtil;
 import org.geometerplus.fbreader.book.BookUtil;
@@ -482,21 +477,6 @@ public class FBReaderView extends RelativeLayout {
         @Override
         public int search(String text, int startIndex, int endIndex, boolean ignoreCase) {
             return 0;
-        }
-    }
-
-    public static class WallpaperLayout extends FrameLayout {
-        PluginView bg;
-
-        public WallpaperLayout(Context context) {
-            super(context);
-            bg = new PluginView();
-        }
-
-        @Override
-        protected void dispatchDraw(Canvas canvas) {
-            bg.drawWallpaper(canvas);
-            super.dispatchDraw(canvas);
         }
     }
 
