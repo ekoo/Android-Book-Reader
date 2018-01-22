@@ -1,49 +1,32 @@
 package com.github.axet.bookreader.fragments;
 
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.database.DataSetObserver;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.EditorInfo;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
-import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.ListAdapter;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.github.axet.androidlibrary.net.HttpClient;
-import com.github.axet.androidlibrary.widgets.HeaderGridView;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.BookDialog;
 import com.github.axet.bookreader.widgets.BrowserDialogFragment;
 
-import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
 import org.geometerplus.android.util.UIUtil;
-import org.geometerplus.fbreader.network.AllCatalogsSearchItem;
 import org.geometerplus.fbreader.network.INetworkLink;
-import org.geometerplus.fbreader.network.NetworkBookItem;
 import org.geometerplus.fbreader.network.NetworkCatalogItem;
 import org.geometerplus.fbreader.network.NetworkImage;
-import org.geometerplus.fbreader.network.NetworkItem;
 import org.geometerplus.fbreader.network.NetworkLibrary;
 import org.geometerplus.fbreader.network.NetworkOperationData;
 import org.geometerplus.fbreader.network.SearchItem;
@@ -60,14 +43,12 @@ import org.geometerplus.zlibrary.core.network.ZLNetworkContext;
 import org.geometerplus.zlibrary.core.network.ZLNetworkException;
 import org.geometerplus.zlibrary.core.network.ZLNetworkRequest;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class NetworkLibraryFragment extends Fragment implements MainActivity.SearchListener {
     public static final String TAG = NetworkLibraryFragment.class.getSimpleName();
@@ -77,7 +58,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     Storage storage;
     INetworkLink n;
     NetworkLibrary lib;
-    AndroidNetworkContext nc;
+    Storage.NetworkContext nc;
     SearchCatalogTree searchCatalog;
     String host;
 
@@ -163,22 +144,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
         setHasOptionsMenu(true);
 
-        nc = new AndroidNetworkContext() {
-            @Override
-            protected Context getContext() {
-                return NetworkLibraryFragment.this.getContext();
-            }
-
-            @Override
-            protected Map<String, String> authenticateWeb(URI uri, String realm, String authUrl, String completeUrl, String verificationUrl) {
-                return null;
-            }
-
-            @Override
-            protected void perform(ZLNetworkRequest request, int socketTimeout, int connectionTimeout) throws ZLNetworkException {
-                super.perform(request, HttpClient.CONNECTION_TIMEOUT, HttpClient.CONNECTION_TIMEOUT);
-            }
-        };
+        nc = new Storage.NetworkContext(getContext());
 
         final NetworkCatalogItem i = n.libraryItem();
         final NetworkCatalogTree tree = lib.getFakeCatalogTree(i);
@@ -288,18 +254,6 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     }
 
     void selectToolbar(View v) {
-        final AndroidNetworkContext nc = new AndroidNetworkContext() {
-            @Override
-            protected Context getContext() {
-                return NetworkLibraryFragment.this.getContext();
-            }
-
-            @Override
-            protected Map<String, String> authenticateWeb(URI uri, String realm, String authUrl, String completeUrl, String verificationUrl) {
-                return null;
-            }
-        };
-
         final NetworkCatalogTree tree = (NetworkCatalogTree) v.getTag();
         final NetworkItemsLoader l = new NetworkItemsLoader(nc, tree) {
             @Override
