@@ -1050,7 +1050,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 if (image instanceof ZLBitmapImage) {
                     bm = ((ZLBitmapImage) image).getBitmap();
                 }
-                boolean a = fbook.book.authors() != null;
+                boolean a = fbook.book.authors() != null && !fbook.book.authors().isEmpty();
                 boolean t = fbook.book.getTitle() != null && !fbook.book.getTitle().isEmpty();
                 if (bm == null && (a || t)) {
                     LayoutInflater inflater = LayoutInflater.from(getContext());
@@ -1064,6 +1064,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 if (bm == null) {
                     FBReaderView v = new FBReaderView(getContext(), new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow()));
                     v.hideFooter = true;
+                    v.loadBook(fbook);
                     bm = renderView(v);
                 }
                 if (bm == null)
