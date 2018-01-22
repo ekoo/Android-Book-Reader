@@ -14,7 +14,7 @@
         android:layout_margin="20dp"
         android:gravity="center"
         android:text="Гетте"
-        android:textSize="30dp" />
+        android:textSize="40dp" />
 
     <TextView
         android:id="@+id/title"
@@ -23,6 +23,6 @@
         android:layout_gravity="center"
         android:gravity="center"
         android:text="Фауст"
-        android:textSize="40dp"
+        android:textSize="60dp"
         android:textStyle="bold" />
 </com.github.axet.bookreader.widgets.WallpaperLayout>
