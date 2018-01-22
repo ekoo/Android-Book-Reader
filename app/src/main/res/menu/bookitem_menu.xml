@@ -4,21 +4,21 @@
     <item
         android:id="@+id/action_rename"
         android:orderInCategory="100"
-        android:title="Rename"
+        android:title="@string/book_rename"
         app:showAsAction="never" />
     <item
         android:id="@+id/action_open"
         android:orderInCategory="100"
-        android:title="Open"
+        android:title="@string/book_open"
         app:showAsAction="never" />
     <item
         android:id="@+id/action_share"
         android:orderInCategory="100"
-        android:title="Share"
+        android:title="@string/book_share"
         app:showAsAction="never" />
     <item
         android:id="@+id/action_delete"
         android:orderInCategory="100"
-        android:title="Delete"
+        android:title="@string/book_delete"
         app:showAsAction="never" />
 </menu>

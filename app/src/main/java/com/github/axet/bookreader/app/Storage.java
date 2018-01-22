@@ -86,57 +86,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public static ZLAndroidApplication zlib;
 
     public static Detector[] supported() {
-        return new Detector[]{new FileFB2(), new FileFB2Zip(), new FileEPUB(), new FileHTML(),
+        return new Detector[]{new FileFB2(), new FileFB2Zip(), new FileEPUB(), new FileHTML(), new FileHTMLZip(),
                 new FilePDF(), new FileDjvu(), new FileRTF(), new FileRTFZip(), new FileDoc(),
                 new FileMobi(), new FileTxt(), new FileTxtZip()};
-    }
-
-    // disable broken, closed, or authorization only repos without free books / or open links
-    public static List<String> disabledIds = Arrays.asList(
-            "http://data.fbreader.org/catalogs/litres2/index.php5", // authorization
-            "http://www.freebookshub.com/feed/", // fake paid links
-            "http://ebooks.qumran.org/opds/?lang=en", // timeout
-            "http://ebooks.qumran.org/opds/?lang=de", // timeout
-            "http://www.epubbud.com/feeds/catalog.atom", // ePub Bud has decided to wind down
-            "http://www.shucang.org/s/index.php" // timeout
-    );
-
-    public static List<String> libAllIds(NetworkLibrary nlib) {
-        List<String> all = nlib.allIds();
-        for (String id : disabledIds) {
-            nlib.setLinkActive(id, false);
-            all.remove(id);
-        }
-        return all;
-    }
-
-    public static NetworkLibrary getLib(final Context context) {
-        NetworkLibrary nlib = NetworkLibrary.Instance(new Storage.Info(context));
-        if (!nlib.isInitialized()) {
-            try {
-                nlib.initialize(new NetworkContext(context));
-            } catch (ZLNetworkException e) {
-                throw new RuntimeException(e);
-            }
-            SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
-            String json = shared.getString(MainApplication.PREFERENCE_CATALOGS, null);
-            if (json != null && !json.isEmpty()) {
-                try {
-                    List<String> all = nlib.allIds();
-                    for (String id : all)
-                        nlib.setLinkActive(id, false);
-                    JSONArray a = new JSONArray(json);
-                    for (int i = 0; i < a.length(); i++) {
-                        String id = a.getString(i);
-                        if (!disabledIds.contains(id))
-                            nlib.setLinkActive(id, true);
-                    }
-                } catch (JSONException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
-        return nlib;
     }
 
     public static FBReaderApp getApp(final Context context) {
@@ -185,29 +137,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             return BookUtil.getPlugin(c, b.book);
         } catch (BookReadingException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    public static class NetworkContext extends AndroidNetworkContext {
-        Context context;
-
-        public NetworkContext(Context context) {
-            this.context = context;
-        }
-
-        @Override
-        protected Context getContext() {
-            return context;
-        }
-
-        @Override
-        protected Map<String, String> authenticateWeb(URI uri, String realm, String authUrl, String completeUrl, String verificationUrl) {
-            return null;
-        }
-
-        @Override
-        protected void perform(ZLNetworkRequest request, int socketTimeout, int connectionTimeout) throws ZLNetworkException {
-            super.perform(request, HttpClient.CONNECTION_TIMEOUT, HttpClient.CONNECTION_TIMEOUT);
         }
     }
 
@@ -658,6 +587,29 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         @Override
         public void nextEntry(ZipEntry entry) {
             if (Storage.getExt(entry.getName()).toLowerCase().equals("rtf")) {
+                e = entry;
+                detected = true;
+            }
+            done = true;
+        }
+
+        @Override
+        public String extract(File f, File t) {
+            return extract(e, f, t);
+        }
+    }
+
+    public static class FileHTMLZip extends FileTypeDetectorZipExtract.Handler {
+        ZipEntry e;
+
+        public FileHTMLZip() {
+            super("html");
+        }
+
+        @Override
+        public void nextEntry(ZipEntry entry) {
+            String ext = Storage.getExt(entry.getName()).toLowerCase();
+            if (ext.equals("html")) {
                 e = entry;
                 detected = true;
             }

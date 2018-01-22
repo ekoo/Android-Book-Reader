@@ -6,9 +6,13 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.VectorDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -17,17 +21,19 @@ import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GravityCompat;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.preference.PreferenceManager;
 import android.support.v7.widget.SearchView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -36,6 +42,7 @@ import com.github.axet.androidlibrary.widgets.OpenChoicer;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
+import com.github.axet.bookreader.app.BooksCatalogs;
 import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.fragments.LibraryFragment;
@@ -45,16 +52,9 @@ import com.github.axet.bookreader.widgets.FBReaderView;
 
 import org.geometerplus.android.fbreader.FBReader;
 import org.geometerplus.android.util.SearchDialogUtil;
-import org.geometerplus.android.util.UIUtil;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
-import org.geometerplus.fbreader.fbreader.options.ColorProfile;
 import org.geometerplus.fbreader.network.INetworkLink;
-import org.geometerplus.fbreader.network.NetworkLibrary;
-import org.geometerplus.fbreader.network.tree.NetworkBookTree;
-import org.geometerplus.fbreader.tree.FBTree;
-import org.json.JSONArray;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -65,23 +65,24 @@ public class MainActivity extends FullscreenActivity
     public static final String TAG = MainActivity.class.getSimpleName();
 
     public static final String LIBRARY = "library";
-    public static final String SETTINGS = "settings";
+    public static final String ADD_CATALOG = "add_catalog";
 
     public static final int RESULT_FILE = 1;
+    public static final int RESULT_ADD_CATALOG = 2;
 
     public static final String[] PERMISSIONS = new String[]{Manifest.permission.READ_EXTERNAL_STORAGE};
 
     Storage storage;
     OpenChoicer choicer;
     SubMenu networkMenu;
+    SubMenu settingsMenu;
     Map<String, MenuItem> networkMenuMap = new TreeMap<>();
     public MenuItem libraryMenu;
     public MenuItem homeMenu;
     public MenuItem tocMenu;
     public MenuItem searchMenu;
     public SearchView searchView;
-
-    NetworkLibrary nlib;
+    BooksCatalogs catalogs;
 
     BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
@@ -123,8 +124,6 @@ public class MainActivity extends FullscreenActivity
 
         libraryMenu = navigationView.getMenu().findItem(R.id.nav_library);
 
-        openLibrary();
-
         TextView ver = (TextView) navigationHeader.findViewById(R.id.nav_version);
         try {
             PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
@@ -137,42 +136,44 @@ public class MainActivity extends FullscreenActivity
         Menu m = navigationView.getMenu();
         networkMenu = m.addSubMenu(R.string.network_library);
 
-        loadIntent(getIntent());
+        catalogs = new BooksCatalogs(this);
+        reloadMenu();
 
-        UIUtil.wait("load catalogs", new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    nlib = Storage.getLib(MainActivity.this);
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            reloadMenu();
-                        }
-                    });
-                } catch (Exception e) {
-                    Post(e);
-                }
-            }
-        }, this);
+        settingsMenu = m.addSubMenu(R.string.action_settings);
+        settingsMenu.setIcon(R.drawable.ic_settings_black_24dp);
+        MenuItem add = settingsMenu.add(R.string.add_catalog);
+        add.setIntent(new Intent(ADD_CATALOG));
+        add.setIcon(R.drawable.ic_add_black_24dp);
+
+        openLibrary();
+
+        loadIntent(getIntent());
     }
 
     void reloadMenu() {
+        int accent = ThemeUtils.getThemeColor(this, R.attr.colorAccent);
         networkMenu.clear();
-        List<String> ids = nlib.activeIds();
+        List<String> ids = catalogs.nlib.activeIds();
         for (int i = 0; i < ids.size(); i++) {
-            final INetworkLink link = nlib.getLinkByUrl(ids.get(i));
+            final INetworkLink link = catalogs.nlib.getLinkByUrl(ids.get(i));
             MenuItem m = networkMenu.add(link.getTitle());
             Intent intent = new Intent(LIBRARY);
             intent.putExtra("url", ids.get(i));
             m.setIntent(intent);
             m.setIcon(R.drawable.ic_drag_handle_black_24dp);
+            ImageButton b = new ImageButton(this);
+            b.setColorFilter(accent);
+            b.setImageResource(R.drawable.ic_delete_black_24dp);
+            b.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    ;
+                }
+            });
+            MenuItemCompat.setActionView(m, b);
             m.setCheckable(true);
             networkMenuMap.put(ids.get(i), m);
         }
-        MenuItem m = networkMenu.add(R.string.configure_catalogs);
-        m.setIntent(new Intent(SETTINGS));
-        m.setIcon(R.drawable.ic_settings_black_24dp);
     }
 
     @Override
@@ -297,8 +298,16 @@ public class MainActivity extends FullscreenActivity
                 case LIBRARY:
                     openLibrary(i.getStringExtra("url"));
                     break;
-                case SETTINGS:
-                    openSettings();
+                case ADD_CATALOG:
+                    choicer = new OpenChoicer(OpenFileDialog.DIALOG_TYPE.FILE_DIALOG, true) {
+                        @Override
+                        public void onResult(Uri uri) {
+                            super.onResult(uri);
+                        }
+                    };
+                    choicer.setPermissionsDialog(this, PERMISSIONS, RESULT_ADD_CATALOG);
+                    choicer.setStorageAccessFramework(this, RESULT_ADD_CATALOG);
+                    choicer.show(null);
                     break;
             }
         }
@@ -435,6 +444,7 @@ public class MainActivity extends FullscreenActivity
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         switch (requestCode) {
             case RESULT_FILE:
+            case RESULT_ADD_CATALOG:
                 choicer.onRequestPermissionsResult(permissions, grantResults);
                 break;
         }
@@ -445,58 +455,10 @@ public class MainActivity extends FullscreenActivity
         super.onActivityResult(requestCode, resultCode, data);
         switch (requestCode) {
             case RESULT_FILE:
+            case RESULT_ADD_CATALOG:
                 choicer.onActivityResult(resultCode, data);
                 break;
         }
-    }
-
-    public void openSettings() {
-        final List<String> all = Storage.libAllIds(nlib);
-        List<String> active = nlib.activeIds();
-
-        final String[] nn = new String[all.size()];
-        final boolean[] bb = new boolean[all.size()];
-        final INetworkLink[] nl = new INetworkLink[all.size()];
-
-        for (int i = 0; i < all.size(); i++) {
-            String id = all.get(i);
-            INetworkLink link = nlib.getLinkByUrl(id);
-            nn[i] = link.getTitle();
-            bb[i] = active.contains(id);
-            nl[i] = link;
-        }
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(R.string.configure_catalogs);
-        builder.setMultiChoiceItems(nn, bb, new DialogInterface.OnMultiChoiceClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which, boolean isChecked) {
-                bb[which] = isChecked;
-            }
-        });
-        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                JSONArray a = new JSONArray();
-                for (int i = 0; i < all.size(); i++) {
-                    nlib.setLinkActive(all.get(i), bb[i]);
-                    if (bb[i])
-                        a.put(all.get(i));
-                }
-                SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
-                SharedPreferences.Editor edit = shared.edit();
-                edit.putString(MainApplication.PREFERENCE_CATALOGS, a.toString());
-                edit.commit();
-                reloadMenu();
-            }
-        });
-        builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                ;
-            }
-        });
-        builder.show();
     }
 
     public static String toString(Throwable e) {

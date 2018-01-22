@@ -19,6 +19,7 @@ import android.widget.TextView;
 
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
+import com.github.axet.bookreader.app.BooksCatalogs;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.BookDialog;
 import com.github.axet.bookreader.widgets.BrowserDialogFragment;
@@ -58,7 +59,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     Storage storage;
     INetworkLink n;
     NetworkLibrary lib;
-    Storage.NetworkContext nc;
+    BooksCatalogs.NetworkContext nc;
     SearchCatalogTree searchCatalog;
     String host;
 
@@ -144,7 +145,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
         setHasOptionsMenu(true);
 
-        nc = new Storage.NetworkContext(getContext());
+        nc = new BooksCatalogs.NetworkContext(getContext());
 
         final NetworkCatalogItem i = n.libraryItem();
         final NetworkCatalogTree tree = lib.getFakeCatalogTree(i);

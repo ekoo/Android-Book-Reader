@@ -352,7 +352,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                     public boolean onMenuItemClick(MenuItem item) {
                         if (item.getItemId() == R.id.action_rename) {
                             final OpenFileDialog.EditTextDialog e = new OpenFileDialog.EditTextDialog(getContext());
-                            e.setTitle("Rename Book");
+                            e.setTitle(R.string.book_rename);
                             e.setText(b.info.title);
                             e.setPositiveButton(new DialogInterface.OnClickListener() {
                                 @Override
@@ -391,7 +391,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                         }
                         if (item.getItemId() == R.id.action_delete) {
                             AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                            builder.setTitle("Delete Book?");
+                            builder.setTitle(R.string.book_delete);
                             builder.setMessage(R.string.are_you_sure);
                             builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
                                 @Override
