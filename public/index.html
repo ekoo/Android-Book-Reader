@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css">
+<script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+<script src="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+</head>
+<body>
+  <div data-role="page">
+    <div data-role="header">
+      <h3>Book Reader</h3>
+    </div>
+    <div class="ui-body" data-role="main">
+      <p>Book Reader simple UI. Open gitlab.com <a href="https://gitlab.com/axet/android-book-reader">page</a>.</p>
+      <div>
+      <h3 class="ui-bar ui-bar-a">Search Engines</h3>
+      <ul data-role="listview">
+        <li><a href="https://gitlab.com/axet/android-book-reader/raw/master/engines/armebooks.json">
+          <h3>armebooks.json</h3>
+          <p>Հայերեն էլ. գրքեր</p>
+        </a></li>
+        <li><a href="https://gitlab.com/axet/android-book-reader/raw/master/engines/bokselskap.json">
+          <h3>armebooks.json</h3>
+          <p>Free Norwegian literature</p>
+        </a></li>
+        <li><a href="https://gitlab.com/axet/android-book-reader/raw/master/engines/ebooksgratuits.json">
+          <h3>ebooksgratuits.json</h3>
+          <p>Catalogue des livres</p>
+        </a></li>
+      </ul>
+      <h4 class="ui-bar ui-bar-a">Каталоги книг на русском</h4>
+      <ul data-role="listview">
+        <li><a href="https://gitlab.com/axet/android-book-reader/raw/master/engines/prochtenie.json">
+          <h3>prochtenie.json</h3>
+          <p>Что читать, что смотреть, куда ходить, как жить :)</p>
+        </a></li>
+      </ul>
+      <h3 class="ui-bar ui-bar-a">Manual install</h1>
+      <pre>./libtorrent/debug.sh && gradle installDebug</pre>
+      <h3 class="ui-bar ui-bar-a">Translate</h1>
+      <p>If you want to translate 'Book Reader' to your language please read following:</p>
+      <ul data-role="listview">
+        <a href="https://gitlab.com/axet/android-torrent-client/blob/master/docs/HOWTO-Translate.md">HOWTO-Translate.md</a>
+      </ul>
+    </div>
+    </div>
+  </div>
+</body>
+</html>
