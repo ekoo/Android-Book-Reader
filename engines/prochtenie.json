@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "name": "Прочтение",
+  "home": {
+    "get": "http://prochtenie.ru"
+  },
+  "default": "http://data.fbreader.org/catalogs/prochtenie/index.xml"
+}

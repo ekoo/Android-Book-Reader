@@ -1,35 +1,26 @@
 package com.github.axet.bookreader.fragments;
 
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.database.DataSetObserver;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.PopupMenu;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.EditorInfo;
-import android.view.inputmethod.InputMethodManager;
 import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.ProgressBar;
@@ -261,7 +252,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             LayoutInflater inflater = LayoutInflater.from(context);
-            View book = inflater.inflate(R.layout.bookitem_view, null, false);
+            View book = inflater.inflate(R.layout.book_item, null, false);
             ImageView image = (ImageView) book.findViewById(R.id.imageView);
             TextView text = (TextView) book.findViewById(R.id.textView);
             ProgressBar progress = (ProgressBar) book.findViewById(R.id.update_progress);

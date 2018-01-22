@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "name": "Wolne Lektury",
+  "home": {
+    "get": "http://www.wolnelektury.pl"
+  },
+  "search": "http://www.wolnelektury.pl/opds/search/?q={searchTerms}",
+  "catalog": "http://www.wolnelektury.pl/opds/"
+}

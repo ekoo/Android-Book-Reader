@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "name": "Feedbooks OPDS Catalog",
+  "home": {
+    "get": "http://www.feedbooks.com"
+  },
+  "catalog": "http://www.feedbooks.com/catalog.atom",
+  "search": "http://www.feedbooks.com/search.atom?query={searchTerms}",
+  "tops": {
+    "Recents": "http://www.feedbooks.com/books/recent.atom",
+    "Top": "http://www.feedbooks.com/books/top.atom?range=week",
+    "Free": "http://www.feedbooks.com/publicdomain/catalog.atom"
+  }
+}

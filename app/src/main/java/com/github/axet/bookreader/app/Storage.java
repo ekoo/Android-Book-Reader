@@ -35,6 +35,7 @@ import org.geometerplus.zlibrary.core.image.ZLFileImageProxy;
 import org.geometerplus.zlibrary.core.image.ZLImage;
 import org.geometerplus.zlibrary.core.image.ZLStreamImage;
 import org.geometerplus.zlibrary.core.network.ZLNetworkException;
+import org.geometerplus.zlibrary.core.network.ZLNetworkRequest;
 import org.geometerplus.zlibrary.core.util.SystemInfo;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
@@ -110,21 +111,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public static NetworkLibrary getLib(final Context context) {
-        AndroidNetworkContext nc = new AndroidNetworkContext() {
-            @Override
-            protected Context getContext() {
-                return context;
-            }
-
-            @Override
-            protected Map<String, String> authenticateWeb(URI uri, String realm, String authUrl, String completeUrl, String verificationUrl) {
-                return null;
-            }
-        };
         NetworkLibrary nlib = NetworkLibrary.Instance(new Storage.Info(context));
         if (!nlib.isInitialized()) {
             try {
-                nlib.initialize(nc);
+                nlib.initialize(new NetworkContext(context));
             } catch (ZLNetworkException e) {
                 throw new RuntimeException(e);
             }
@@ -195,6 +185,29 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             return BookUtil.getPlugin(c, b.book);
         } catch (BookReadingException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static class NetworkContext extends AndroidNetworkContext {
+        Context context;
+
+        public NetworkContext(Context context) {
+            this.context = context;
+        }
+
+        @Override
+        protected Context getContext() {
+            return context;
+        }
+
+        @Override
+        protected Map<String, String> authenticateWeb(URI uri, String realm, String authUrl, String completeUrl, String verificationUrl) {
+            return null;
+        }
+
+        @Override
+        protected void perform(ZLNetworkRequest request, int socketTimeout, int connectionTimeout) throws ZLNetworkException {
+            super.perform(request, HttpClient.CONNECTION_TIMEOUT, HttpClient.CONNECTION_TIMEOUT);
         }
     }
 

@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "name": "Free Books Hub",
+  "home": {
+    "get": "http://www.freebookshub.com"
+  },
+  "catalog": "http://www.freebookshub.com/feed/"
+}
