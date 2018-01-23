@@ -11,6 +11,9 @@
 -keep class com.github.axet.djvulibre.DjvuLibre {*;}
 -keep class com.github.axet.djvulibre.DjvuLibre$Page {*;}
 
+-keep class com.shockwave.pdfium.PdfiumCore {*;}
+-keep class com.shockwave.pdfium.util.Size {*;}
+
 -keep class com.github.axet.androidlibrary.widgets.SearchView {*;}
 
 -dontwarn org.geometerplus.**
