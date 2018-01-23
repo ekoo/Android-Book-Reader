@@ -7,7 +7,7 @@ import android.graphics.Canvas;
 import android.graphics.pdf.PdfRenderer;
 import android.os.ParcelFileDescriptor;
 
-import com.github.axet.androidlibrary.app.Native;
+import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.bookreader.widgets.FBReaderView;
 import com.shockwave.pdfium.Config;
 import com.shockwave.pdfium.PdfDocument;
@@ -41,9 +41,9 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     public static final String EXT = "pdf";
 
-    public static void init(Context context) {
+    static {
         if (Config.natives) {
-            Native.loadLibraries(context, new String[]{"pdfium", "pdfiumjni"});
+            Natives.loadLibraries(Storage.zlib.getBaseContext(), "pdfium", "pdfiumjni");
             Config.natives = false;
         }
     }

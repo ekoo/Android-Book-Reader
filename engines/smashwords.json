@@ -5,7 +5,7 @@
     "get": "http://www.smashwords.com"
   },
   "search": "http://www.smashwords.com/atom/search/books/epub/any?query={searchTerms}",
-  "catalog": "http://www.smashwords.com/atom",
+  "opds": "http://www.smashwords.com/atom",
   "tops": {
     "Recents": "https://www.smashwords.com/atom/books/1/newest/epub/any/0",
     "Top": "https://www.smashwords.com/atom/books/1/popular/epub/any/0"

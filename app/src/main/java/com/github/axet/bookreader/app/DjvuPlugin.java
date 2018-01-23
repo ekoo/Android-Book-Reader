@@ -4,13 +4,12 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 
-import com.github.axet.androidlibrary.app.Native;
+import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.djvulibre.Config;
 import com.github.axet.djvulibre.DjvuLibre;
 
 import org.geometerplus.fbreader.book.AbstractBook;
-import org.geometerplus.fbreader.book.Book;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
@@ -40,7 +39,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
     static {
         if (Config.natives) {
-            Native.loadLibraries(Storage.zlib.getBaseContext(), new String[]{"djvu", "djvulibrejni"});
+            Natives.loadLibraries(Storage.zlib.getBaseContext(), "djvu", "djvulibrejni");
             Config.natives = false;
         }
     }

@@ -2,9 +2,9 @@
   "version": 1,
   "name": "ՅԱՎՐՈՒՀՐԱՏ eBooks",
   "home": {
-    "get": "http://www.feedbooks.com"
+    "get": "http://armebooks.fbreader.org"
   },
-  "catalog": "http://armebooks.fbreader.org/books/index.xml",
+  "opds": "http://armebooks.fbreader.org/books/index.xml",
   "tops": {
     "Recents": "http://armebooks.fbreader.org/books/recent/recent_SIXMONTHS_Page_1.xml",
     "Top": "http://armebooks.fbreader.org/books/rated/rated_NOTRATED_Page_1.xml"

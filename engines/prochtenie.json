@@ -4,5 +4,6 @@
   "home": {
     "get": "http://prochtenie.ru"
   },
+  "opds": "http://data.fbreader.org/catalogs/prochtenie/index.xml",
   "default": "http://data.fbreader.org/catalogs/prochtenie/index.xml"
 }

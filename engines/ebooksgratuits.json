@@ -4,7 +4,7 @@
   "home": {
     "get": "http://www.ebooksgratuits.com"
   },
-  "catalog": "http://www.ebooksgratuits.com/opds/index.php",
+  "opds": "http://www.ebooksgratuits.com/opds/index.php",
   "search": "http://www.ebooksgratuits.com/opds/feed.php?mode=search&query={searchTerms}",
   "tops": {
     "Recents": "https://www.ebooksgratuits.com/opds/feed.php",

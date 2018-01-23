@@ -5,5 +5,5 @@
     "get": "http://www.allromanceebooks.com"
   },
   "search": "http://www.allromanceebooks.com/epub-feed.xml?search={searchTerms}",
-  "catalog": "http://www.allromanceebooks.com/epub-feed.xml"
+  "opds": "http://www.allromanceebooks.com/epub-feed.xml"
 }
