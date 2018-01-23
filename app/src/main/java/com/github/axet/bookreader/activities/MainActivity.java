@@ -56,6 +56,13 @@ import org.geometerplus.android.util.SearchDialogUtil;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
 import org.geometerplus.fbreader.network.INetworkLink;
 
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -319,7 +326,10 @@ public class MainActivity extends FullscreenActivity
                         @Override
                         public void onResult(Uri uri) {
                             try {
-                                addCatalog(uri);
+                                BooksCatalog ct = catalogs.load(uri);
+                                catalogs.save();
+                                reloadMenu();
+                                openLibrary(ct.getId());
                             } catch (RuntimeException e) {
                                 Post(e);
                             }
@@ -335,13 +345,6 @@ public class MainActivity extends FullscreenActivity
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
-    }
-
-    void addCatalog(Uri uri) {
-        BooksCatalog ct = catalogs.load(uri);
-        catalogs.save();
-        reloadMenu();
-        openLibrary(ct.getId());
     }
 
     @Override
@@ -387,7 +390,17 @@ public class MainActivity extends FullscreenActivity
                 try {
                     String s = u.getScheme();
                     if (s.equals("catalog")) {
-                        addCatalog(u);
+                        Uri.Builder b = u.buildUpon();
+                        b.scheme("http");
+                        final BooksCatalog ct = catalogs.load(b.build());
+                        catalogs.save();
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                reloadMenu();
+                                openLibrary(ct.getId());
+                            }
+                        });
                         return;
                     }
                     final Storage.Book fbook = storage.load(u);
