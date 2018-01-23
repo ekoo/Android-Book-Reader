@@ -170,9 +170,31 @@ public class BooksCatalogs {
         return list.get(i);
     }
 
-    public BooksCatalog load(Uri u) {
-        BooksCatalog ct = new BooksCatalog(context, u);
-        ct.url = u.toString();
+    public BooksCatalog load(Uri uri) {
+        BooksCatalog ct = new BooksCatalog();
+        String s = uri.getScheme();
+        try {
+            if (s.equals(ContentResolver.SCHEME_CONTENT)) {
+                ContentResolver resolver = context.getContentResolver();
+                InputStream is = resolver.openInputStream(uri);
+                ct.load(is);
+                is.close();
+            } else if (s.startsWith("http")) {
+                HttpClient client = new HttpClient();
+                HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
+                if (w.getError() != null)
+                    throw new RuntimeException(w.getError() + ": " + uri);
+                InputStream is = new BufferedInputStream(w.getInputStream());
+                is.close();
+            } else if (s.startsWith(ContentResolver.SCHEME_FILE)) {
+                File f = new File(uri.getPath());
+                FileInputStream is = new FileInputStream(f);
+                is.close();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        ct.url = uri.toString();
         ct.last = System.currentTimeMillis();
         delete(ct.getId());
         list.add(ct);

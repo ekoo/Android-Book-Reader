@@ -31,8 +31,7 @@ public class BooksCatalog {
         load(json);
     }
 
-    public BooksCatalog(Context context, Uri u) {
-        load(context, u);
+    public BooksCatalog() {
     }
 
     public void load(String json) {
@@ -48,36 +47,13 @@ public class BooksCatalog {
         }
     }
 
-    public void load(Context context, Uri uri) {
+    public void load(InputStream is) {
         String json = null;
-        String s = uri.getScheme();
         try {
-            if (s.equals(ContentResolver.SCHEME_CONTENT)) {
-                ContentResolver resolver = context.getContentResolver();
-                InputStream is = resolver.openInputStream(uri);
-                json = IOUtils.toString(is, Charset.defaultCharset());
-                is.close();
-            } else if (s.startsWith("http")) {
-                HttpClient client = new HttpClient();
-                HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
-                if (w.getError() != null)
-                    throw new RuntimeException(w.getError() + ": " + uri);
-                InputStream is = new BufferedInputStream(w.getInputStream());
-                json = IOUtils.toString(is, Charset.defaultCharset());
-                is.close();
-            } else if (s.startsWith(ContentResolver.SCHEME_FILE)) {
-                File f = new File(uri.getPath());
-                FileInputStream is = new FileInputStream(f);
-                json = IOUtils.toString(is, Charset.defaultCharset());
-                is.close();
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        try {
+            json = IOUtils.toString(is, Charset.defaultCharset());
             JSONObject o = new JSONObject(json);
             map = WebViewCustom.toMap(o);
-        } catch (JSONException e) {
+        } catch (JSONException | IOException e) {
             throw new RuntimeException(e);
         }
         load();
