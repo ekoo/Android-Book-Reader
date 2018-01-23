@@ -545,7 +545,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.action_home) {
-            openBrowser("http://" + host);
+            openBrowser(host);
             return true;
         }
         return super.onOptionsItemSelected(item);
