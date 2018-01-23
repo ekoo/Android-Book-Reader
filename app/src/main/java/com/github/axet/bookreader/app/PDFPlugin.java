@@ -44,7 +44,6 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     static {
         if (Config.natives) {
             Natives.loadLibraries(Storage.zlib.getBaseContext(), "pdfium", "pdfiumjni");
-            new Size(0,0); // preload Size class, JNI bugged on some devices
             Config.natives = false;
         }
     }
