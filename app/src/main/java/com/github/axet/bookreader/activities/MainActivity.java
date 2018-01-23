@@ -319,10 +319,7 @@ public class MainActivity extends FullscreenActivity
                         @Override
                         public void onResult(Uri uri) {
                             try {
-                                BooksCatalog ct = catalogs.load(uri);
-                                catalogs.save();
-                                reloadMenu();
-                                openLibrary(ct.getId());
+                                addCatalog(uri);
                             } catch (RuntimeException e) {
                                 Post(e);
                             }
@@ -338,6 +335,13 @@ public class MainActivity extends FullscreenActivity
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    void addCatalog(Uri uri) {
+        BooksCatalog ct = catalogs.load(uri);
+        catalogs.save();
+        reloadMenu();
+        openLibrary(ct.getId());
     }
 
     @Override
@@ -381,6 +385,11 @@ public class MainActivity extends FullscreenActivity
             @Override
             public void run() {
                 try {
+                    String s = u.getScheme();
+                    if (s.equals("catalog")) {
+                        addCatalog(u);
+                        return;
+                    }
                     final Storage.Book fbook = storage.load(u);
                     runOnUiThread(new Runnable() {
                         @Override
