@@ -4,7 +4,10 @@
   "home": {
     "get": "http://armebooks.fbreader.org"
   },
-  "opds": "http://armebooks.fbreader.org/books/index.xml",
+  "opds": {
+    "root": "http://armebooks.fbreader.org/books/index.xml",
+    "get": "tops"
+  },
   "tops": {
     "Recents": "http://armebooks.fbreader.org/books/recent/recent_SIXMONTHS_Page_1.xml",
     "Top": "http://armebooks.fbreader.org/books/rated/rated_NOTRATED_Page_1.xml"

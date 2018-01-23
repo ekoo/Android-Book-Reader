@@ -4,5 +4,7 @@
   "home": {
     "get": "http://www.freebookshub.com"
   },
-  "opds": "http://www.freebookshub.com/feed/"
+  "opds": {
+    "root": "http://www.freebookshub.com/feed/"
+  }
 }

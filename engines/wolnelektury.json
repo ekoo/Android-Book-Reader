@@ -4,6 +4,8 @@
   "home": {
     "get": "http://www.wolnelektury.pl"
   },
-  "search": "http://www.wolnelektury.pl/opds/search/?q={searchTerms}",
-  "opds": "http://www.wolnelektury.pl/opds/"
+  "opds": {
+    "root": "http://www.wolnelektury.pl/opds/",
+    "search": "http://www.wolnelektury.pl/opds/search/?q={searchTerms}"
+  }
 }

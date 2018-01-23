@@ -4,6 +4,8 @@
   "home": {
     "get": "http://www.bokselskap.no"
   },
-  "opds": "http://www.bokselskap.no/wp-content/themes/bokselskap/tekster/opds/root.xml",
-  "default": "http://www.bokselskap.no/wp-content/themes/bokselskap/tekster/opds/opds-katalog/opds_bokselskap_titler_nb_NO.xml"
+  "opds": {
+    "root": "http://www.bokselskap.no/wp-content/themes/bokselskap/tekster/opds/root.xml",
+    "get": "http://www.bokselskap.no/wp-content/themes/bokselskap/tekster/opds/opds-katalog/opds_bokselskap_titler_nb_NO.xml"
+  }
 }
