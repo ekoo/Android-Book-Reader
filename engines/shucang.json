@@ -4,6 +4,8 @@
   "home": {
     "get": "http://www.shucang.org"
   },
-  "search": "http://www.shucang.org/s/doclist.php?skey={searchTerms}",
-  "opds": "http://www.shucang.org/s/index.php"
+  "opds": {
+    "root": "http://www.shucang.org/s/index.php",
+    "search": "http://www.shucang.org/s/doclist.php?skey={searchTerms}",
+  }
 }

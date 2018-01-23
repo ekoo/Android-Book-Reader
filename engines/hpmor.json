@@ -4,6 +4,8 @@
   "home": {
     "get": "http://hpmor.ru"
   },
-  "opds": "http://hpmor.ru/files/opds2.xml",
-  "default": "http://hpmor.ru/files/opds2.xml"
+  "opds": {
+    "root": "http://hpmor.ru/files/opds2.xml",
+    "get": "http://hpmor.ru/files/opds2.xml"
+  }
 }

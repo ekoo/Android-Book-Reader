@@ -4,8 +4,11 @@
   "home": {
     "get": "http://www.feedbooks.com"
   },
-  "opds": "http://www.feedbooks.com/catalog.atom",
-  "search": "http://www.feedbooks.com/search.atom?query={searchTerms}",
+  "opds": {
+    "root": "http://www.feedbooks.com/catalog.atom",
+    "search": "http://www.feedbooks.com/search.atom?query={searchTerms}",
+    "get": "tops"
+  },
   "tops": {
     "Recents": "http://www.feedbooks.com/books/recent.atom",
     "Top": "http://www.feedbooks.com/books/top.atom?range=week"

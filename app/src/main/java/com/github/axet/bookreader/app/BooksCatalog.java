@@ -25,6 +25,7 @@ public class BooksCatalog {
     public String url;
     public Map<String, Object> map = new TreeMap<>();
     public Map<String, String> home;
+    public Map<String, String> opds;
     public Map<String, String> tops;
 
     public BooksCatalog(String json) {
@@ -61,6 +62,8 @@ public class BooksCatalog {
 
     void load() {
         home = (Map<String, String>) map.get("home");
+        if (map.get("opds") instanceof Map)
+            opds = (Map<String, String>) map.get("opds");
         tops = (Map<String, String>) map.get("tops");
     }
 

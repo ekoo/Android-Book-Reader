@@ -4,7 +4,9 @@
   "home": {
     "get": "http://manybooks.net"
   },
-  "search": "http://manybooks.net/opds/search.php?q={searchTerms}",
-  "opds": "http://manybooks.net/opds/",
-  "default": "http://manybooks.net/opds/new_titles.php"
+  "opds": {
+    "root": "http://manybooks.net/opds/",
+    "search": "http://manybooks.net/opds/search.php?q={searchTerms}",
+    "get": "http://manybooks.net/opds/new_titles.php"
+  },
 }

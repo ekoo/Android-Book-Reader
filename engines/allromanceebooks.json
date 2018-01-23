@@ -4,6 +4,8 @@
   "home": {
     "get": "http://www.allromanceebooks.com"
   },
-  "search": "http://www.allromanceebooks.com/epub-feed.xml?search={searchTerms}",
-  "opds": "http://www.allromanceebooks.com/epub-feed.xml"
+  "opds": {
+    "root": "http://www.allromanceebooks.com/epub-feed.xml",
+    "search": "http://www.allromanceebooks.com/epub-feed.xml?search={searchTerms}"
+  }
 }

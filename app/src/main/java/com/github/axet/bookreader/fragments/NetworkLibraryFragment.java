@@ -72,7 +72,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     String host;
     BooksCatalogs catalogs;
     OPDSNetworkLink link;
-    NetworkCatalogItem item;
+    String def;
 
     ArrayList<NetworkCatalogTree> toolbarItems = new ArrayList<>();
 
@@ -158,18 +158,17 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         setHasOptionsMenu(true);
 
         UrlInfoCollection<UrlInfoWithDate> infos = new UrlInfoCollection<>();
-        infos.addInfo(new UrlInfoWithDate(UrlInfo.Type.Catalog, (String) n.map.get("opds"), MimeType.APP_ATOM_XML));
-        if (n.map.get("search") != null) {
-            final OpenSearchDescription descr = OpenSearchDescription.createDefault((String) n.map.get("search"), MimeType.APP_ATOM_XML);
+        infos.addInfo(new UrlInfoWithDate(UrlInfo.Type.Catalog, n.opds.get("root"), MimeType.APP_ATOM_XML));
+        if (n.opds.get("search") != null) {
+            final OpenSearchDescription descr = OpenSearchDescription.createDefault((String) n.opds.get("search"), MimeType.APP_ATOM_XML);
             if (descr.isValid()) {
                 infos.addInfo(new UrlInfoWithDate(UrlInfo.Type.Search, descr.makeQuery("%s"), MimeType.APP_ATOM_XML));
             }
         }
         link = new OPDSPredefinedNetworkLink(lib, -1, "", "", "", "", infos);
-        item = link.libraryItem();
 
         toolbarItems.clear();
-        if (n.map.get("search") != null) {
+        if (n.opds.get("search") != null) {
             SearchItem item = new SingleCatalogSearchItem(link);
             final NetworkCatalogTree tree = lib.getFakeCatalogTree(item);
             searchCatalog = new SearchCatalogTree(tree, item);
@@ -190,14 +189,17 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
         nc = new BooksCatalogs.NetworkContext(getContext());
 
-        if (n.map.get("default") != null) {
+        if (n.opds.get("get") != null) {
+            String get = n.opds.get("get");
+            if (!get.equals("tops"))
+                def = get;
             loadDefault();
         }
     }
 
     void loadDefault() {
         UrlInfoCollection<UrlInfoWithDate> ii = new UrlInfoCollection<>();
-        ii.addInfo(new UrlInfoWithDate(UrlInfo.Type.Catalog, (String) n.map.get("default"), MimeType.APP_ATOM_XML));
+        ii.addInfo(new UrlInfoWithDate(UrlInfo.Type.Catalog, def, MimeType.APP_ATOM_XML));
         OPDSPredefinedNetworkLink link = new OPDSPredefinedNetworkLink(lib, -1, "", "", "", "", ii);
         final NetworkCatalogItem item = link.libraryItem();
         final NetworkCatalogTree tree = lib.getFakeCatalogTree(item);
@@ -563,7 +565,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     @Override
     public void searchClose() {
         books.filter = null;
-        if (n.map.get("default") != null) {
+        if (def != null) {
             loadDefault();
         }
         books.refresh();

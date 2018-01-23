@@ -185,10 +185,12 @@ public class BooksCatalogs {
                 if (w.getError() != null)
                     throw new RuntimeException(w.getError() + ": " + uri);
                 InputStream is = new BufferedInputStream(w.getInputStream());
+                ct.load(is);
                 is.close();
             } else if (s.startsWith(ContentResolver.SCHEME_FILE)) {
                 File f = new File(uri.getPath());
                 FileInputStream is = new FileInputStream(f);
+                ct.load(is);
                 is.close();
             }
         } catch (IOException e) {
@@ -196,8 +198,11 @@ public class BooksCatalogs {
         }
         ct.url = uri.toString();
         ct.last = System.currentTimeMillis();
-        delete(ct.getId());
-        list.add(ct);
+        BooksCatalog ct2 = find(uri.toString());
+        if (ct2 != null)
+            list.set(list.indexOf(ct2), ct);
+        else
+            list.add(ct);
         return ct;
     }
 
