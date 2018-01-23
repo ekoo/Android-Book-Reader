@@ -8,5 +8,5 @@
     "root": "http://manybooks.net/opds/",
     "search": "http://manybooks.net/opds/search.php?q={searchTerms}",
     "get": "http://manybooks.net/opds/new_titles.php"
-  },
+  }
 }
