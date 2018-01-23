@@ -21,6 +21,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -168,19 +171,34 @@ public class BooksCatalogs {
     }
 
     public BooksCatalog load(Uri u) {
-        ContentResolver resolver = context.getContentResolver();
+        String json;
+        String s = u.getScheme();
         try {
-            InputStream is = resolver.openInputStream(u);
-            String json = IOUtils.toString(is, Charset.defaultCharset());
-            BooksCatalog ct = new BooksCatalog(json);
-            ct.url = u;
-            ct.last = System.currentTimeMillis();
-            delete(ct.getId());
-            list.add(ct);
-            return ct;
+            if (s.startsWith("http")) {
+                HttpClient client = new HttpClient();
+                HttpClient.DownloadResponse w = client.getResponse(null, u.toString());
+                if (w.getError() != null)
+                    throw new RuntimeException(w.getError() + ": " + u);
+                InputStream is = new BufferedInputStream(w.getInputStream());
+                json = IOUtils.toString(is, Charset.defaultCharset());
+            } else if (s.startsWith("file")) {
+                File f = new File(u.getPath());
+                FileInputStream is = new FileInputStream(f);
+                json = IOUtils.toString(is, Charset.defaultCharset());
+            } else {
+                ContentResolver resolver = context.getContentResolver();
+                InputStream is = resolver.openInputStream(u);
+                json = IOUtils.toString(is, Charset.defaultCharset());
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        BooksCatalog ct = new BooksCatalog(json);
+        ct.url = u;
+        ct.last = System.currentTimeMillis();
+        delete(ct.getId());
+        list.add(ct);
+        return ct;
     }
 
     public void load() {
