@@ -89,7 +89,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         }
 
         public void refresh() {
-            if (filter == null || filter.isEmpty()) {
+            if (searchCatalog != null || filter == null || filter.isEmpty()) {
                 list = bookItems;
                 views.clear();
                 images.clear();
@@ -160,18 +160,18 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         UrlInfoCollection<UrlInfoWithDate> infos = new UrlInfoCollection<>();
         infos.addInfo(new UrlInfoWithDate(UrlInfo.Type.Catalog, (String) n.map.get("opds"), MimeType.APP_ATOM_XML));
         if (n.map.get("search") != null) {
-            final OpenSearchDescription descr = OpenSearchDescription.createDefault(n.map.get("search"), MimeType.APP_ATOM_XML);
+            final OpenSearchDescription descr = OpenSearchDescription.createDefault((String) n.map.get("search"), MimeType.APP_ATOM_XML);
             if (descr.isValid()) {
                 infos.addInfo(new UrlInfoWithDate(UrlInfo.Type.Search, descr.makeQuery("%s"), MimeType.APP_ATOM_XML));
             }
         }
         link = new OPDSPredefinedNetworkLink(lib, -1, "", "", "", "", infos);
         item = link.libraryItem();
-        final NetworkCatalogTree tree = lib.getFakeCatalogTree(item);
 
         toolbarItems.clear();
         if (n.map.get("search") != null) {
             SearchItem item = new SingleCatalogSearchItem(link);
+            final NetworkCatalogTree tree = lib.getFakeCatalogTree(item);
             searchCatalog = new SearchCatalogTree(tree, item);
         }
         if (n.tops != null) {
@@ -191,44 +191,53 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         nc = new BooksCatalogs.NetworkContext(getContext());
 
         if (n.map.get("default") != null) {
-            final NetworkItemsLoader l = new NetworkItemsLoader(nc, tree) {
-                @Override
-                protected void onFinish(ZLNetworkException exception, boolean interrupted) {
-                }
-
-                @Override
-                protected void doBefore() throws ZLNetworkException {
-                }
-
-                @Override
-                protected void load() throws ZLNetworkException {
-                }
-            };
-
-            UIUtil.wait("load catalogs", new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        if (l.Tree.subtrees().isEmpty())
-                            item.loadChildren(l);
-                        books.bookItems = new ArrayList<>();
-                        for (FBTree c : l.Tree.subtrees()) {
-                            if (c instanceof NetworkBookTree)
-                                books.bookItems.add(c);
-                        }
-                        getActivity().runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                loadView();
-                            }
-                        });
-                    } catch (Exception e) {
-                        MainActivity main = (MainActivity) getActivity();
-                        main.Post(e);
-                    }
-                }
-            }, getContext());
+            loadDefault();
         }
+    }
+
+    void loadDefault() {
+        UrlInfoCollection<UrlInfoWithDate> ii = new UrlInfoCollection<>();
+        ii.addInfo(new UrlInfoWithDate(UrlInfo.Type.Catalog, (String) n.map.get("default"), MimeType.APP_ATOM_XML));
+        OPDSPredefinedNetworkLink link = new OPDSPredefinedNetworkLink(lib, -1, "", "", "", "", ii);
+        final NetworkCatalogItem item = link.libraryItem();
+        final NetworkCatalogTree tree = lib.getFakeCatalogTree(item);
+        final NetworkItemsLoader l = new NetworkItemsLoader(nc, tree) {
+            @Override
+            protected void onFinish(ZLNetworkException exception, boolean interrupted) {
+            }
+
+            @Override
+            protected void doBefore() throws ZLNetworkException {
+            }
+
+            @Override
+            protected void load() throws ZLNetworkException {
+            }
+        };
+
+        UIUtil.wait("load catalogs", new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (l.Tree.subtrees().isEmpty())
+                        item.loadChildren(l);
+                    books.bookItems = new ArrayList<>();
+                    for (FBTree c : l.Tree.subtrees()) {
+                        if (c instanceof NetworkBookTree)
+                            books.bookItems.add(c);
+                    }
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            loadView();
+                        }
+                    });
+                } catch (Exception e) {
+                    MainActivity main = (MainActivity) getActivity();
+                    main.Post(e);
+                }
+            }
+        }, getContext());
     }
 
     void loadView() {
@@ -553,5 +562,10 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
     @Override
     public void searchClose() {
+        books.filter = null;
+        if (n.map.get("default") != null) {
+            loadDefault();
+        }
+        books.refresh();
     }
 }

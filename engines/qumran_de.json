@@ -2,7 +2,7 @@
   "version": 1,
   "name": "Qumran DE",
   "home": {
-    "get": "http://ebooks.qumran.org"
+    "get": "http://ebooks.qumran.org/?lang=de"
   },
   "opds": "http://ebooks.qumran.org/opds/?lang=de",
   "search": "http://ebooks.qumran.org/opds/?lang=de&pageformat=opds&prefix=searchresults&q={searchTerms}",

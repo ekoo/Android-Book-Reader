@@ -100,7 +100,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
             };
         }
-        PDFPlugin.init(context);
         Info info = new Info(context);
         FBReaderApp app = (FBReaderApp) FBReaderApp.Instance();
         if (app == null) {

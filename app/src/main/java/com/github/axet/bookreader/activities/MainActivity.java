@@ -175,6 +175,7 @@ public class MainActivity extends FullscreenActivity
                         public void onClick(DialogInterface dialog, int which) {
                             catalogs.delete(ct.getId());
                             catalogs.save();
+                            reloadMenu();
                         }
                     });
                     builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
@@ -182,6 +183,7 @@ public class MainActivity extends FullscreenActivity
                         public void onClick(DialogInterface dialog, int which) {
                         }
                     });
+                    builder.show();
                 }
             });
             MenuItemCompat.setActionView(m, b);
@@ -317,9 +319,10 @@ public class MainActivity extends FullscreenActivity
                         @Override
                         public void onResult(Uri uri) {
                             try {
-                                catalogs.load(uri);
+                                BooksCatalog ct = catalogs.load(uri);
                                 catalogs.save();
                                 reloadMenu();
+                                openLibrary(ct.getId());
                             } catch (RuntimeException e) {
                                 Post(e);
                             }

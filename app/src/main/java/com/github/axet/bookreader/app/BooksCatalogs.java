@@ -167,7 +167,7 @@ public class BooksCatalogs {
         return list.get(i);
     }
 
-    public void load(Uri u) {
+    public BooksCatalog load(Uri u) {
         ContentResolver resolver = context.getContentResolver();
         try {
             InputStream is = resolver.openInputStream(u);
@@ -175,7 +175,9 @@ public class BooksCatalogs {
             BooksCatalog ct = new BooksCatalog(json);
             ct.url = u;
             ct.last = System.currentTimeMillis();
+            delete(ct.getId());
             list.add(ct);
+            return ct;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

@@ -2,7 +2,7 @@
   "version": 1,
   "name": "ՅԱՎՐՈՒՀՐԱՏ eBooks",
   "home": {
-    "get": "http://www.feedbooks.com"
+    "get": "http://armebooks.fbreader.org"
   },
   "opds": "http://armebooks.fbreader.org/books/index.xml",
   "tops": {
