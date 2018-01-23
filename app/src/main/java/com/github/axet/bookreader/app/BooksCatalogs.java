@@ -1,14 +1,17 @@
 package com.github.axet.bookreader.app;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.preference.PreferenceManager;
 
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.bookreader.R;
 
+import org.apache.commons.io.IOUtils;
 import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
 import org.geometerplus.fbreader.network.INetworkLink;
 import org.geometerplus.fbreader.network.NetworkLibrary;
@@ -16,15 +19,21 @@ import org.geometerplus.zlibrary.core.network.ZLNetworkException;
 import org.geometerplus.zlibrary.core.network.ZLNetworkRequest;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 public class BooksCatalogs {
-    public NetworkLibrary nlib;
     public Context context;
+    public NetworkLibrary nlib;
+    public ArrayList<BooksCatalog> list = new ArrayList<>();
 
     // disable broken, closed, or authorization only repos without free books / or open links
     public static List<String> disabledIds = Arrays.asList(
@@ -99,7 +108,7 @@ public class BooksCatalogs {
 
     public BooksCatalogs(Context context) {
         this.context = context;
-        nlib = getLib(context);
+        load();
     }
 
     public void openSettings() {
@@ -148,5 +157,66 @@ public class BooksCatalogs {
             }
         });
         builder.show();
+    }
+
+    public int getCount() {
+        return list.size();
+    }
+
+    public BooksCatalog getCatalog(int i) {
+        return list.get(i);
+    }
+
+    public void load(Uri u) {
+        ContentResolver resolver = context.getContentResolver();
+        try {
+            InputStream is = resolver.openInputStream(u);
+            String json = IOUtils.toString(is, Charset.defaultCharset());
+            BooksCatalog ct = new BooksCatalog(json);
+            ct.url = u;
+            ct.last = System.currentTimeMillis();
+            list.add(ct);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void load() {
+        list.clear();
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
+        int count = shared.getInt(MainApplication.PREFERENCE_CATALOGS_PREFIX + MainApplication.PREFERENCE_CATALOGS_COUNT, -1);
+        for (int i = 0; i < count; i++) {
+            String json = shared.getString(MainApplication.PREFERENCE_CATALOGS_PREFIX + i, "");
+            BooksCatalog ct = new BooksCatalog(json);
+            list.add(ct);
+        }
+    }
+
+    public void save() {
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
+        SharedPreferences.Editor edit = shared.edit();
+        edit.putInt(MainApplication.PREFERENCE_CATALOGS_PREFIX + MainApplication.PREFERENCE_CATALOGS_COUNT, list.size());
+        for (int i = 0; i < list.size(); i++) {
+            JSONObject o = list.get(i).save();
+            edit.putString(MainApplication.PREFERENCE_CATALOGS_PREFIX + i, o.toString());
+        }
+        edit.commit();
+    }
+
+    public BooksCatalog find(String u) {
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).getId().equals(u)) {
+                return list.get(i);
+            }
+        }
+        return null;
+    }
+
+    public void delete(String id) {
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).getId().equals(id)) {
+                list.remove(i);
+            }
+        }
     }
 }

@@ -42,6 +42,7 @@ import com.github.axet.androidlibrary.widgets.OpenChoicer;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
+import com.github.axet.bookreader.app.BooksCatalog;
 import com.github.axet.bookreader.app.BooksCatalogs;
 import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
@@ -153,12 +154,11 @@ public class MainActivity extends FullscreenActivity
     void reloadMenu() {
         int accent = ThemeUtils.getThemeColor(this, R.attr.colorAccent);
         networkMenu.clear();
-        List<String> ids = catalogs.nlib.activeIds();
-        for (int i = 0; i < ids.size(); i++) {
-            final INetworkLink link = catalogs.nlib.getLinkByUrl(ids.get(i));
-            MenuItem m = networkMenu.add(link.getTitle());
+        for (int i = 0; i < catalogs.getCount(); i++) {
+            final BooksCatalog ct = catalogs.getCatalog(i);
+            MenuItem m = networkMenu.add(ct.getTitle());
             Intent intent = new Intent(LIBRARY);
-            intent.putExtra("url", ids.get(i));
+            intent.putExtra("url", ct.getId());
             m.setIntent(intent);
             m.setIcon(R.drawable.ic_drag_handle_black_24dp);
             ImageButton b = new ImageButton(this);
@@ -167,12 +167,26 @@ public class MainActivity extends FullscreenActivity
             b.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    ;
+                    AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                    builder.setTitle(R.string.book_delete);
+                    builder.setMessage(R.string.are_you_sure);
+                    builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            catalogs.delete(ct.getId());
+                            catalogs.save();
+                        }
+                    });
+                    builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                        }
+                    });
                 }
             });
             MenuItemCompat.setActionView(m, b);
             m.setCheckable(true);
-            networkMenuMap.put(ids.get(i), m);
+            networkMenuMap.put(ct.getId(), m);
         }
     }
 
@@ -302,7 +316,13 @@ public class MainActivity extends FullscreenActivity
                     choicer = new OpenChoicer(OpenFileDialog.DIALOG_TYPE.FILE_DIALOG, true) {
                         @Override
                         public void onResult(Uri uri) {
-                            super.onResult(uri);
+                            try {
+                                catalogs.load(uri);
+                                catalogs.save();
+                                reloadMenu();
+                            } catch (RuntimeException e) {
+                                Post(e);
+                            }
                         }
                     };
                     choicer.setPermissionsDialog(this, PERMISSIONS, RESULT_ADD_CATALOG);
@@ -432,6 +452,7 @@ public class MainActivity extends FullscreenActivity
     protected void onDestroy() {
         super.onDestroy();
         unregisterReceiver(receiver);
+        catalogs.save();
     }
 
     @Override

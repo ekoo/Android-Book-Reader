@@ -19,6 +19,7 @@ import android.widget.TextView;
 
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
+import com.github.axet.bookreader.app.BooksCatalog;
 import com.github.axet.bookreader.app.BooksCatalogs;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.BookDialog;
@@ -32,17 +33,24 @@ import org.geometerplus.fbreader.network.NetworkLibrary;
 import org.geometerplus.fbreader.network.NetworkOperationData;
 import org.geometerplus.fbreader.network.SearchItem;
 import org.geometerplus.fbreader.network.SingleCatalogSearchItem;
+import org.geometerplus.fbreader.network.opds.OPDSCatalogItem;
+import org.geometerplus.fbreader.network.opds.OPDSNetworkLink;
+import org.geometerplus.fbreader.network.opds.OPDSPredefinedNetworkLink;
+import org.geometerplus.fbreader.network.opds.OpenSearchDescription;
 import org.geometerplus.fbreader.network.tree.CatalogExpander;
 import org.geometerplus.fbreader.network.tree.NetworkBookTree;
 import org.geometerplus.fbreader.network.tree.NetworkCatalogTree;
 import org.geometerplus.fbreader.network.tree.NetworkItemsLoader;
 import org.geometerplus.fbreader.network.tree.SearchCatalogTree;
 import org.geometerplus.fbreader.network.urlInfo.UrlInfo;
+import org.geometerplus.fbreader.network.urlInfo.UrlInfoCollection;
+import org.geometerplus.fbreader.network.urlInfo.UrlInfoWithDate;
 import org.geometerplus.fbreader.tree.FBTree;
 import org.geometerplus.zlibrary.core.image.ZLImage;
 import org.geometerplus.zlibrary.core.network.ZLNetworkContext;
 import org.geometerplus.zlibrary.core.network.ZLNetworkException;
 import org.geometerplus.zlibrary.core.network.ZLNetworkRequest;
+import org.geometerplus.zlibrary.core.util.MimeType;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -57,11 +65,14 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     LibraryFragment.FragmentHolder holder;
     NetworkLibraryAdapter books;
     Storage storage;
-    INetworkLink n;
+    BooksCatalog n;
     NetworkLibrary lib;
     BooksCatalogs.NetworkContext nc;
     SearchCatalogTree searchCatalog;
     String host;
+    BooksCatalogs catalogs;
+    OPDSNetworkLink link;
+    NetworkCatalogItem item;
 
     ArrayList<NetworkCatalogTree> toolbarItems = new ArrayList<>();
 
@@ -137,56 +148,87 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         storage = new Storage(getContext());
+        catalogs = new BooksCatalogs(getContext());
         holder = new LibraryFragment.FragmentHolder(getContext());
         String u = getArguments().getString("url");
         lib = NetworkLibrary.Instance(new Storage.Info(getContext()));
-        n = lib.getLinkByUrl(u);
         books = new NetworkLibraryAdapter();
+        n = catalogs.find(u);
 
         setHasOptionsMenu(true);
 
+        UrlInfoCollection<UrlInfoWithDate> infos = new UrlInfoCollection<>();
+        infos.addInfo(new UrlInfoWithDate(UrlInfo.Type.Catalog, (String) n.map.get("opds"), MimeType.APP_ATOM_XML));
+        if (n.map.get("search") != null) {
+            final OpenSearchDescription descr = OpenSearchDescription.createDefault(n.map.get("search"), MimeType.APP_ATOM_XML);
+            if (descr.isValid()) {
+                infos.addInfo(new UrlInfoWithDate(UrlInfo.Type.Search, descr.makeQuery("%s"), MimeType.APP_ATOM_XML));
+            }
+        }
+        link = new OPDSPredefinedNetworkLink(lib, -1, "", "", "", "", infos);
+        item = link.libraryItem();
+        final NetworkCatalogTree tree = lib.getFakeCatalogTree(item);
+
+        toolbarItems.clear();
+        if (n.map.get("search") != null) {
+            SearchItem item = new SingleCatalogSearchItem(link);
+            searchCatalog = new SearchCatalogTree(tree, item);
+        }
+        if (n.tops != null) {
+            for (String key : n.tops.keySet()) {
+                String url = n.tops.get(key);
+
+                UrlInfoCollection<UrlInfoWithDate> ii = new UrlInfoCollection<>();
+                ii.addInfo(new UrlInfoWithDate(UrlInfo.Type.Catalog, url, MimeType.APP_ATOM_XML));
+                INetworkLink link = new OPDSPredefinedNetworkLink(lib, -1, "", key, "", "", ii);
+                NetworkCatalogItem item = link.libraryItem();
+
+                NetworkCatalogTree t = lib.getFakeCatalogTree(item);
+                toolbarItems.add(t);
+            }
+        }
+
         nc = new BooksCatalogs.NetworkContext(getContext());
 
-        final NetworkCatalogItem i = n.libraryItem();
-        final NetworkCatalogTree tree = lib.getFakeCatalogTree(i);
-        final NetworkItemsLoader l = new NetworkItemsLoader(nc, tree) {
-            @Override
-            protected void onFinish(ZLNetworkException exception, boolean interrupted) {
-            }
-
-            @Override
-            protected void doBefore() throws ZLNetworkException {
-            }
-
-            @Override
-            protected void load() throws ZLNetworkException {
-            }
-        };
-        UIUtil.wait("load catalogs", new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (l.Tree.subtrees().isEmpty())
-                        i.loadChildren(l);
-                    toolbarItems.clear();
-                    expandCatalogs(toolbarItems, l.Tree);
-                    books.bookItems = new ArrayList<>();
-                    for (FBTree c : l.Tree.subtrees()) {
-                        if (c instanceof NetworkBookTree)
-                            books.bookItems.add(c);
-                    }
-                    getActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            loadView();
-                        }
-                    });
-                } catch (Exception e) {
-                    MainActivity main = (MainActivity) getActivity();
-                    main.Post(e);
+        if (n.map.get("default") != null) {
+            final NetworkItemsLoader l = new NetworkItemsLoader(nc, tree) {
+                @Override
+                protected void onFinish(ZLNetworkException exception, boolean interrupted) {
                 }
-            }
-        }, getContext());
+
+                @Override
+                protected void doBefore() throws ZLNetworkException {
+                }
+
+                @Override
+                protected void load() throws ZLNetworkException {
+                }
+            };
+
+            UIUtil.wait("load catalogs", new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if (l.Tree.subtrees().isEmpty())
+                            item.loadChildren(l);
+                        books.bookItems = new ArrayList<>();
+                        for (FBTree c : l.Tree.subtrees()) {
+                            if (c instanceof NetworkBookTree)
+                                books.bookItems.add(c);
+                        }
+                        getActivity().runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                loadView();
+                            }
+                        });
+                    } catch (Exception e) {
+                        MainActivity main = (MainActivity) getActivity();
+                        main.Post(e);
+                    }
+                }
+            }, getContext());
+        }
     }
 
     void loadView() {
@@ -228,10 +270,6 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     void loadtoolBar() {
         holder.searchtoolbar.removeAllViews();
         for (FBTree b : toolbarItems) {
-            if (b instanceof SearchCatalogTree) {
-                searchCatalog = (SearchCatalogTree) b;
-                continue;
-            }
             LayoutInflater inflater = LayoutInflater.from(getContext());
             final View t = inflater.inflate(R.layout.networktoolbar_item, null);
             ImageView iv = (ImageView) t.findViewById(R.id.toolbar_icon_image);
@@ -325,7 +363,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
         final MainActivity main = (MainActivity) getActivity();
 
-        host = n.getHostName();
+        host = n.home.get("get");
         if (host == null || host.isEmpty()) {
             main.searchMenu.setVisible(false);
         } else {
@@ -410,7 +448,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
             UIUtil.wait("search", new Runnable() {
                 @Override
                 public void run() {
-                    final SingleCatalogSearchItem s = new SingleCatalogSearchItem(n) {
+                    final SingleCatalogSearchItem s = new SingleCatalogSearchItem(link) {
                         NetworkOperationData data;
 
                         @Override
@@ -428,7 +466,6 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                             nc.perform(request);
                         }
                     };
-                    final NetworkCatalogItem i = n.libraryItem();
                     final String myPattern = ss;
                     final NetworkItemsLoader l = new NetworkItemsLoader(nc, searchCatalog) {
                         @Override

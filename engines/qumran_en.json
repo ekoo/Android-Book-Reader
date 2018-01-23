@@ -4,7 +4,7 @@
   "home": {
     "get": "http://ebooks.qumran.org"
   },
-  "catalog": "http://ebooks.qumran.org/opds/?lang=en",
+  "opds": "http://ebooks.qumran.org/opds/?lang=en",
   "search": "http://ebooks.qumran.org/opds/?lang=en&pageformat=opds&prefix=searchresults&q={searchTerms}",
   "default": "https://ebooks.qumran.org/opds/index.php?prefix=titles&amp;lang=en"
 }

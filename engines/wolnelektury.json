@@ -5,5 +5,5 @@
     "get": "http://www.wolnelektury.pl"
   },
   "search": "http://www.wolnelektury.pl/opds/search/?q={searchTerms}",
-  "catalog": "http://www.wolnelektury.pl/opds/"
+  "opds": "http://www.wolnelektury.pl/opds/"
 }

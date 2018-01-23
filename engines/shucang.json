@@ -5,5 +5,5 @@
     "get": "http://www.shucang.org"
   },
   "search": "http://www.shucang.org/s/doclist.php?skey={searchTerms}",
-  "catalog": "http://www.shucang.org/s/index.php"
+  "opds": "http://www.shucang.org/s/index.php"
 }

@@ -4,6 +4,6 @@
   "home": {
     "get": "http://flaschenpost.piratenpartei.de"
   },
-  "catalog": "http://flaschenpost.piratenpartei.de/catalog/",
+  "opds": "http://flaschenpost.piratenpartei.de/catalog/",
   "default": "https://flaschenpost.piratenpartei.de/catalog/date/all.xml"
 }
