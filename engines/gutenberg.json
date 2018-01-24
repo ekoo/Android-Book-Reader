@@ -10,8 +10,8 @@
     "get": "tops"
   },
   "tops": {
-    "Recents": "m.gutenberg.org/ebooks/search.opds/?sort_order=release_date",
-    "Top": "m.gutenberg.org/ebooks/search.opds/?sort_order=downloads",
-    "Random": "m.gutenberg.org/ebooks/search.opds/?sort_order=random"
+    "Recents": "http://m.gutenberg.org/ebooks/search.opds/?sort_order=release_date",
+    "Top": "http://m.gutenberg.org/ebooks/search.opds/?sort_order=downloads",
+    "Random": "http://m.gutenberg.org/ebooks/search.opds/?sort_order=random"
   }
 }
