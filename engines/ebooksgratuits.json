@@ -14,6 +14,7 @@
     "Top": "https://www.ebooksgratuits.com/opds/feed.php?mode=rate",
     "Aventures": "https://www.ebooksgratuits.com/opds/feed.php?mode=genre&id=2",
     "Fantastique": "https://www.ebooksgratuits.com/opds/feed.php?mode=genre&id=3",
-    " Historique": "https://www.ebooksgratuits.com/opds/feed.php?mode=genre&id=4"
+    "Historique": "https://www.ebooksgratuits.com/opds/feed.php?mode=genre&id=4",
+    "Humour": "https://www.ebooksgratuits.com/opds/feed.php?mode=genre&id=7"
   }
 }
