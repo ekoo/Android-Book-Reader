@@ -352,13 +352,6 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
         final MainActivity main = (MainActivity) getActivity();
 
-        host = n.home.get("get");
-        if (host == null || host.isEmpty()) {
-            main.searchMenu.setVisible(false);
-        } else {
-            main.searchMenu.setVisible(true);
-        }
-
         main.toolbar.setTitle(R.string.app_name);
         holder.grid.setAdapter(books);
         holder.grid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -574,6 +567,14 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         final MainActivity main = (MainActivity) getActivity();
+
+        host = n.home.get("get");
+        if (host == null || host.isEmpty()) {
+            main.searchMenu.setVisible(false);
+        } else {
+            main.searchMenu.setVisible(true);
+        }
+
         if (host == null || host.isEmpty())
             main.homeMenu.setVisible(false);
         else
