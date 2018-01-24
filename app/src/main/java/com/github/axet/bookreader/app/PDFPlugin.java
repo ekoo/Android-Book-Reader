@@ -172,7 +172,6 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         ParcelFileDescriptor fd;
         public PdfDocument doc;
 
-
         public PDFiumView(ZLFile f) {
             try {
                 core = new PdfiumCore();

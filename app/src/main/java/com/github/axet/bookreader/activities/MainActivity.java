@@ -384,7 +384,7 @@ public class MainActivity extends FullscreenActivity
         final AlertDialog d = builder.create();
         d.show();
 
-        Thread thread = new Thread() {
+        Thread thread = new Thread("load book") {
             @Override
             public void run() {
                 try {

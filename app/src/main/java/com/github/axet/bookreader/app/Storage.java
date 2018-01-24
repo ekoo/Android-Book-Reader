@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 import android.support.v7.preference.PreferenceManager;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TextView;
@@ -76,6 +77,8 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 public class Storage extends com.github.axet.androidlibrary.app.Storage {
+
+    public static String TAG = Storage.class.getCanonicalName();
 
     public static final int MD5_SIZE = 32;
     public static final int COVER_SIZE = 128;
@@ -378,7 +381,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 @Override
                 public void run() {
                     try {
-                        zip = new ZipInputStream(is);
+                        zip = new ZipInputStream(is); // throws MALFORMED if encoding is incorrect
                         ZipEntry entry;
                         while ((entry = zip.getNextEntry()) != null) {
                             for (Handler h : new ArrayList<>(list)) {
@@ -388,6 +391,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                             }
                         }
                     } catch (Exception e) {
+                        Log.d(TAG, "zip Error", e);
                     } finally {
                         try {
                             is.close();
@@ -544,8 +548,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (Storage.getExt(entry.getName()).toLowerCase().equals("fb2")) {
                 e = entry;
                 detected = true;
+                done = true;
             }
-            done = true;
         }
 
         @Override
@@ -566,8 +570,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (Storage.getExt(entry.getName()).toLowerCase().equals("txt")) {
                 e = entry;
                 detected = true;
+                done = true;
             }
-            done = true;
         }
 
         @Override
@@ -588,8 +592,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (Storage.getExt(entry.getName()).toLowerCase().equals("rtf")) {
                 e = entry;
                 detected = true;
+                done = true;
             }
-            done = true;
         }
 
         @Override
@@ -611,8 +615,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (ext.equals("html")) {
                 e = entry;
                 detected = true;
+                done = true;
             }
-            done = true;
         }
 
         @Override
