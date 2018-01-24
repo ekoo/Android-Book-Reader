@@ -11,6 +11,10 @@
   },
   "tops": {
     "Recents": "http://www.feedbooks.com/books/recent.atom",
-    "Top": "http://www.feedbooks.com/books/top.atom?range=week"
+    "Top": "http://www.feedbooks.com/books/top.atom?range=week",
+    "Classics": "http://www.feedbooks.com/store/top.atom?category=FBFIC004000",
+    "Science Fiction": "http://www.feedbooks.com/store/top.atom?category=FBFIC028000",
+    "Humorous": "http://www.feedbooks.com/store/top.atom?category=FBFIC016000",
+    "Fantasy": "http://www.feedbooks.com/store/top.atom?category=FBFIC009000"
   }
 }
