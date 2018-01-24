@@ -58,6 +58,11 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         View toolbar;
         View searchpanel;
         ViewGroup searchtoolbar;
+        View footer;
+        View footerButtons;
+        View footerNext;
+        View footerProgress;
+        View footerStop;
 
         Context context;
 
@@ -66,12 +71,23 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
 
         public void create(View v) {
+            grid = (HeaderGridView) v.findViewById(R.id.grid);
+
+            LayoutInflater inflater = LayoutInflater.from(context);
+
             toolbar = v.findViewById(R.id.search_header_toolbar_parent);
             searchpanel = v.findViewById(R.id.search_panel);
             searchtoolbar = (ViewGroup) v.findViewById(R.id.search_header_toolbar);
 
             toolbar.setVisibility(View.GONE);
-            grid = (HeaderGridView) v.findViewById(R.id.grid);
+
+            footer = inflater.inflate(R.layout.library_footer, null);
+            footerButtons = footer.findViewById(R.id.search_footer_buttons);
+            footerNext = footer.findViewById(R.id.search_footer_next);
+            footerProgress = footer.findViewById(R.id.search_footer_progress);
+            footerStop = footer.findViewById(R.id.search_footer_stop);
+
+            grid.addFooterView(footer);
         }
     }
 
@@ -329,6 +345,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         View v = inflater.inflate(R.layout.fragment_library, container, false);
 
         holder.create(v);
+        holder.footer.setVisibility(View.GONE);
 
         final MainActivity main = (MainActivity) getActivity();
         main.toolbar.setTitle(R.string.app_name);
