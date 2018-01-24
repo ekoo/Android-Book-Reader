@@ -17,6 +17,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.BooksCatalog;
@@ -74,13 +75,10 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     OPDSNetworkLink link;
     String def;
 
-    ArrayList<NetworkCatalogTree> toolbarItems = new ArrayList<>();
+    ArrayList<NetworkItemsLoader> toolbarItems = new ArrayList<>();
 
     public class NetworkLibraryAdapter extends LibraryFragment.BooksAdapter {
         List<FBTree> list = new ArrayList<>();
-        Map<Uri, LibraryFragment.BookViewHolder> views = new TreeMap<>();
-        Map<ImageView, LibraryFragment.BookViewHolder> images = new HashMap<>();
-        DataSetObserver listener;
         String filter;
         List<FBTree> bookItems = new ArrayList<>();
 
@@ -154,6 +152,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         lib = NetworkLibrary.Instance(new Storage.Info(getContext()));
         books = new NetworkLibraryAdapter();
         n = catalogs.find(u);
+        nc = new BooksCatalogs.NetworkContext(getContext());
 
         setHasOptionsMenu(true);
 
@@ -176,18 +175,9 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         if (n.tops != null) {
             for (String key : n.tops.keySet()) {
                 String url = n.tops.get(key);
-
-                UrlInfoCollection<UrlInfoWithDate> ii = new UrlInfoCollection<>();
-                ii.addInfo(new UrlInfoWithDate(UrlInfo.Type.Catalog, url, MimeType.APP_ATOM_XML));
-                INetworkLink link = new OPDSPredefinedNetworkLink(lib, -1, "", key, "", "", ii);
-                NetworkCatalogItem item = link.libraryItem();
-
-                NetworkCatalogTree t = lib.getFakeCatalogTree(item);
-                toolbarItems.add(t);
+                toolbarItems.add(getCatalogItem(url, key));
             }
         }
-
-        nc = new BooksCatalogs.NetworkContext(getContext());
 
         if (n.opds.get("get") != null) {
             String get = n.opds.get("get");
@@ -197,10 +187,10 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         }
     }
 
-    void loadDefault() {
+    public NetworkItemsLoader getCatalogItem(String url, String name) {
         UrlInfoCollection<UrlInfoWithDate> ii = new UrlInfoCollection<>();
-        ii.addInfo(new UrlInfoWithDate(UrlInfo.Type.Catalog, def, MimeType.APP_ATOM_XML));
-        OPDSPredefinedNetworkLink link = new OPDSPredefinedNetworkLink(lib, -1, "", "", "", "", ii);
+        ii.addInfo(new UrlInfoWithDate(UrlInfo.Type.Catalog, url, MimeType.APP_ATOM_XML));
+        OPDSPredefinedNetworkLink link = new OPDSPredefinedNetworkLink(lib, -1, "", name, "", "", ii);
         final NetworkCatalogItem item = link.libraryItem();
         final NetworkCatalogTree tree = lib.getFakeCatalogTree(item);
         final NetworkItemsLoader l = new NetworkItemsLoader(nc, tree) {
@@ -216,18 +206,18 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
             protected void load() throws ZLNetworkException {
             }
         };
+        return l;
+    }
 
+    void loadDefault() {
+        final NetworkItemsLoader l = getCatalogItem(def, "default");
         UIUtil.wait("load catalogs", new Runnable() {
             @Override
             public void run() {
                 try {
                     if (l.Tree.subtrees().isEmpty())
-                        item.loadChildren(l);
-                    books.bookItems = new ArrayList<>();
-                    for (FBTree c : l.Tree.subtrees()) {
-                        if (c instanceof NetworkBookTree)
-                            books.bookItems.add(c);
-                    }
+                        l.Tree.Item.loadChildren(l);
+                    books.bookItems = l.Tree.subtrees();
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -280,13 +270,13 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
     void loadtoolBar() {
         holder.searchtoolbar.removeAllViews();
-        for (FBTree b : toolbarItems) {
+        for (NetworkItemsLoader b : toolbarItems) {
             LayoutInflater inflater = LayoutInflater.from(getContext());
             final View t = inflater.inflate(R.layout.networktoolbar_item, null);
             ImageView iv = (ImageView) t.findViewById(R.id.toolbar_icon_image);
             iv.setImageResource(R.drawable.ic_sort_black_24dp);
             TextView tv = (TextView) t.findViewById(R.id.toolbar_icon_text);
-            tv.setText(b.getName().trim());
+            tv.setText(b.Tree.getName().trim());
             t.setTag(b);
             t.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -304,27 +294,13 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     }
 
     void selectToolbar(View v) {
-        final NetworkCatalogTree tree = (NetworkCatalogTree) v.getTag();
-        final NetworkItemsLoader l = new NetworkItemsLoader(nc, tree) {
-            @Override
-            protected void onFinish(ZLNetworkException exception, boolean interrupted) {
-            }
-
-            @Override
-            protected void doBefore() throws ZLNetworkException {
-            }
-
-            @Override
-            protected void load() throws ZLNetworkException {
-            }
-        };
-
+        final NetworkItemsLoader l = (NetworkItemsLoader) v.getTag();
         UIUtil.wait("load books", new Runnable() {
             @Override
             public void run() {
                 try {
                     if (l.Tree.subtrees().isEmpty()) {
-                        new CatalogExpander(nc, l.Tree, false, false).run();
+                        new CatalogExpander(l.NetworkContext, l.Tree, false, false).run();
                     }
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
@@ -335,6 +311,8 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                             loadBooks();
                         }
                     });
+                } catch (RuntimeException e) {
+                    throw e;
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -348,9 +326,9 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
             return;
         for (int i = 0; i < holder.searchtoolbar.getChildCount(); i++) {
             View v = holder.searchtoolbar.getChildAt(i);
-            NetworkCatalogTree b = (NetworkCatalogTree) v.getTag();
+            NetworkItemsLoader b = (NetworkItemsLoader) v.getTag();
             ImageButton k = (ImageButton) v.findViewById(R.id.toolbar_icon_image);
-            if (b.getUniqueKey().Id.equals(id)) {
+            if (b.Tree.getUniqueKey().Id.equals(id)) {
                 int[] states = new int[]{
                         android.R.attr.state_checked,
                 };
@@ -387,38 +365,45 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 try {
-                    FBTree b = books.getItem(position);
-                    final NetworkBookTree n = (NetworkBookTree) b;
-                    String u = n.Book.getUrl(UrlInfo.Type.Book);
-                    if (u == null) {
-                        u = n.Book.getUrl(UrlInfo.Type.BookBuyInBrowser);
-                        if (u == null)
-                            u = n.Book.getUrl(UrlInfo.Type.HtmlPage);
-                        if (n.Book.Id.startsWith("http"))
-                            u = n.Book.Id;
-                        if (u == null) {
-                            Thread thread = new Thread() {
-                                @Override
-                                public void run() {
-                                    n.Book.loadFullInformation(nc);
-                                    getActivity().runOnUiThread(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            BookDialog d = new BookDialog();
-                                            d.a.myTree = n;
-                                            d.a.myBook = n.Book;
-                                            d.show(getFragmentManager(), "");
-                                        }
-                                    });
-                                }
-                            };
-                            thread.start();
-                            return;
+                    final FBTree b = books.getItem(position);
+                    if (b instanceof NetworkCatalogTree) {
+                        UIUtil.wait("load", new Runnable() {
+                            @Override
+                            public void run() {
+                                final NetworkCatalogTree tree = (NetworkCatalogTree) b;
+                                final NetworkItemsLoader l = new NetworkItemsLoader(nc, tree) {
+                                    @Override
+                                    protected void onFinish(ZLNetworkException exception, boolean interrupted) {
+                                    }
 
-                        }
-                        openBrowser(u);
-                    } else {
-                        main.loadBook(Uri.parse(u));
+                                    @Override
+                                    protected void doBefore() throws ZLNetworkException {
+                                    }
+
+                                    @Override
+                                    protected void load() throws ZLNetworkException {
+                                    }
+                                };
+                                if (l.Tree.subtrees().isEmpty()) {
+                                    new CatalogExpander(l.NetworkContext, l.Tree, false, false).run();
+                                }
+                                getActivity().runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        if (tree.subtrees().isEmpty())
+                                            return;
+                                        for (FBTree t : tree.subtrees()) {
+                                            if (t instanceof NetworkBookTree) {
+                                                loadBook((NetworkBookTree) t);
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                        }, getContext());
+                    }
+                    if (b instanceof NetworkBookTree) {
+                        loadBook((NetworkBookTree) b);
                     }
                 } catch (RuntimeException e) {
                     main.Error(e);
@@ -427,6 +412,40 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         });
 
         return v;
+    }
+
+    void loadBook(final NetworkBookTree n) {
+        final MainActivity main = (MainActivity) getActivity();
+        String u = n.Book.getUrl(UrlInfo.Type.Book);
+        if (u == null) {
+            u = n.Book.getUrl(UrlInfo.Type.BookBuyInBrowser);
+            if (u == null)
+                u = n.Book.getUrl(UrlInfo.Type.HtmlPage);
+            if (n.Book.Id.startsWith(WebViewCustom.SCHEME_HTTP))
+                u = n.Book.Id;
+            if (u == null) {
+                UIUtil.wait("load", new Runnable() {
+                    @Override
+                    public void run() {
+                        n.Book.loadFullInformation(nc);
+                        getActivity().runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                BookDialog d = new BookDialog();
+                                d.a.myTree = n;
+                                d.a.myBook = n.Book;
+                                d.show(getFragmentManager(), "");
+                            }
+                        });
+                    }
+                }, getContext());
+                return;
+
+            }
+            openBrowser(u);
+        } else {
+            main.loadBook(Uri.parse(u));
+        }
     }
 
     @Override
