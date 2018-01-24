@@ -495,6 +495,8 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     void loadBook(final NetworkBookTree n) {
         final MainActivity main = (MainActivity) getActivity();
         String u = n.Book.getUrl(UrlInfo.Type.Book);
+        if (u == null)
+            u = n.Book.getUrl(UrlInfo.Type.BookFullOrDemo);
         if (u == null) {
             u = n.Book.getUrl(UrlInfo.Type.BookBuyInBrowser);
             if (u == null)

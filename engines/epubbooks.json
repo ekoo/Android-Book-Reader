@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "name": "epubbooks каталог книг",
+  "name": "epubBooks",
   "home": {
     "get": "http://epubbooks.ru"
   },
