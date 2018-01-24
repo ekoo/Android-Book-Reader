@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "name": "epubbooks каталог книг",
+  "home": {
+    "get": "http://epubbooks.ru"
+  },
+  "opds": {
+    "root": "http://epubbooks.ru/index.xml",
+    "search": "http://epubbooks.ru/catalog.php?q={searchTerms}",
+    "get": "tops"
+  },
+  "tops": {
+    "Recents": "http://epubbooks.ru/lastadd.xml",
+    "Top": "http://epubbooks.ru/count.xml",
+    "Best": "http://epubbooks.ru/BookOfTheMonth.xml",
+    "Античная литература": "http://epubbooks.ru/genres/5.xml",
+    "Зарубежная фантастика": "http://epubbooks.ru/genres/64.xml",
+    "Зарубежные приключения": "http://epubbooks.ru/genres/71.xml"
+  }
+}
