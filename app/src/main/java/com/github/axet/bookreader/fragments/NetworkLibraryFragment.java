@@ -69,13 +69,71 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     BooksCatalog n;
     NetworkLibrary lib;
     BooksCatalogs.NetworkContext nc;
-    SearchCatalogTree searchCatalog;
+    SearchCatalog searchCatalog;
     String host;
     BooksCatalogs catalogs;
     OPDSNetworkLink link;
-    String def;
+    NetworkItemsLoader def;
 
     ArrayList<NetworkItemsLoader> toolbarItems = new ArrayList<>();
+
+    public class SearchCatalog {
+        NetworkOperationData data;
+        NetworkItemsLoader l;
+        String pattern;
+
+        public SearchCatalog(INetworkLink link) {
+            SearchItem item = new SingleCatalogSearchItem(link) {
+                @Override
+                public void runSearch(ZLNetworkContext nc, NetworkItemsLoader loader, String pattern) throws ZLNetworkException {
+                    data = Link.createOperationData(loader);
+                    ZLNetworkRequest request = Link.simpleSearchRequest(pattern, data);
+                    nc.perform(request);
+                    if (loader.confirmInterruption()) {
+                        return;
+                    }
+                }
+            };
+            final NetworkCatalogTree tree = lib.getFakeCatalogTree(item);
+            final SearchCatalogTree s = new SearchCatalogTree(tree, item);
+            l = new NetworkItemsLoader(nc, s) {
+                @Override
+                protected void onFinish(ZLNetworkException exception, boolean interrupted) {
+                }
+
+                @Override
+                protected void doBefore() throws ZLNetworkException {
+                }
+
+                @Override
+                protected void load() throws ZLNetworkException {
+                    final SearchItem item = (SearchItem) Tree.Item;
+                    if (pattern.equals(item.getPattern())) {
+                        if (Tree.hasChildren()) {
+                            return;
+                        }
+                    } else {
+                        Tree.clearCatalog();
+                    }
+                    item.runSearch(nc, this, pattern);
+                }
+            };
+        }
+
+        public void search(String p) {
+            pattern = p;
+            l.run();
+        }
+
+        public void resume() {
+            try {
+                ZLNetworkRequest request = data.resume();
+                nc.perform(request);
+            } catch (ZLNetworkException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
 
     public class NetworkLibraryAdapter extends LibraryFragment.BooksAdapter {
         List<FBTree> list = new ArrayList<>();
@@ -168,9 +226,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
         toolbarItems.clear();
         if (n.opds.get("search") != null) {
-            SearchItem item = new SingleCatalogSearchItem(link);
-            final NetworkCatalogTree tree = lib.getFakeCatalogTree(item);
-            searchCatalog = new SearchCatalogTree(tree, item);
+            searchCatalog = new SearchCatalog(link);
         }
         if (n.tops != null) {
             for (String key : n.tops.keySet()) {
@@ -181,9 +237,10 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
         if (n.opds.get("get") != null) {
             String get = n.opds.get("get");
-            if (!get.equals("tops"))
-                def = get;
-            loadDefault();
+            if (!get.equals("tops")) {
+                def = getCatalogItem(get, "default");
+                loadDefault();
+            }
         }
     }
 
@@ -210,14 +267,14 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     }
 
     void loadDefault() {
-        final NetworkItemsLoader l = getCatalogItem(def, "default");
         UIUtil.wait("load catalogs", new Runnable() {
             @Override
             public void run() {
                 try {
-                    if (l.Tree.subtrees().isEmpty())
-                        l.Tree.Item.loadChildren(l);
-                    books.bookItems = l.Tree.subtrees();
+                    if (def.Tree.subtrees().isEmpty())
+                        def.Tree.Item.loadChildren(def);
+                    books.bookItems = def.Tree.subtrees();
+                    books.filter = null;
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -307,14 +364,13 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                         public void run() {
                             getArguments().putString("toolbar", l.Tree.getUniqueKey().Id);
                             books.bookItems = l.Tree.subtrees();
+                            books.filter = null;
                             selectToolbar();
                             loadBooks();
                         }
                     });
                 } catch (RuntimeException e) {
-                    throw e;
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
+                    ((MainActivity) getActivity()).Post(e);
                 }
             }
         }, getContext());
@@ -349,6 +405,33 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         View v = inflater.inflate(R.layout.fragment_library, container, false);
 
         holder.create(v);
+        holder.footer.setVisibility(View.GONE);
+        holder.footerNext.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                UIUtil.wait("search", new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            final int old = searchCatalog.l.Tree.subtrees().size();
+                            searchCatalog.resume();
+                            getActivity().runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (old == searchCatalog.l.Tree.subtrees().size())
+                                        holder.footer.setVisibility(View.GONE);
+                                    books.bookItems = searchCatalog.l.Tree.subtrees();
+                                    books.filter = null;
+                                    books.refresh();
+                                }
+                            });
+                        } catch (RuntimeException e) {
+                            ((MainActivity) getActivity()).Post(e);
+                        }
+                    }
+                }, getContext());
+            }
+        });
 
         final MainActivity main = (MainActivity) getActivity();
 
@@ -363,35 +446,37 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                         UIUtil.wait("load", new Runnable() {
                             @Override
                             public void run() {
-                                final NetworkCatalogTree tree = (NetworkCatalogTree) b;
-                                final NetworkItemsLoader l = new NetworkItemsLoader(nc, tree) {
-                                    @Override
-                                    protected void onFinish(ZLNetworkException exception, boolean interrupted) {
-                                    }
+                                try {
+                                    final NetworkCatalogTree tree = (NetworkCatalogTree) b;
+                                    final NetworkItemsLoader l = new NetworkItemsLoader(nc, tree) {
+                                        @Override
+                                        protected void onFinish(ZLNetworkException exception, boolean interrupted) {
+                                        }
 
-                                    @Override
-                                    protected void doBefore() throws ZLNetworkException {
-                                    }
+                                        @Override
+                                        protected void doBefore() throws ZLNetworkException {
+                                        }
 
-                                    @Override
-                                    protected void load() throws ZLNetworkException {
+                                        @Override
+                                        protected void load() throws ZLNetworkException {
+                                        }
+                                    };
+                                    if (l.Tree.subtrees().isEmpty()) {
+                                        new CatalogExpander(l.NetworkContext, l.Tree, false, false).run();
                                     }
-                                };
-                                if (l.Tree.subtrees().isEmpty()) {
-                                    new CatalogExpander(l.NetworkContext, l.Tree, false, false).run();
-                                }
-                                getActivity().runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        if (tree.subtrees().isEmpty())
-                                            return;
-                                        for (FBTree t : tree.subtrees()) {
-                                            if (t instanceof NetworkBookTree) {
-                                                loadBook((NetworkBookTree) t);
+                                    getActivity().runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            for (FBTree t : tree.subtrees()) {
+                                                if (t instanceof NetworkBookTree) {
+                                                    loadBook((NetworkBookTree) t);
+                                                }
                                             }
                                         }
-                                    }
-                                });
+                                    });
+                                } catch (RuntimeException e) {
+                                    ((MainActivity) getActivity()).Post(e);
+                                }
                             }
                         }, getContext());
                     }
@@ -420,16 +505,20 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                 UIUtil.wait("load", new Runnable() {
                     @Override
                     public void run() {
-                        n.Book.loadFullInformation(nc);
-                        getActivity().runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                BookDialog d = new BookDialog();
-                                d.a.myTree = n;
-                                d.a.myBook = n.Book;
-                                d.show(getFragmentManager(), "");
-                            }
-                        });
+                        try {
+                            n.Book.loadFullInformation(nc);
+                            getActivity().runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    BookDialog d = new BookDialog();
+                                    d.a.myTree = n;
+                                    d.a.myBook = n.Book;
+                                    d.show(getFragmentManager(), "");
+                                }
+                            });
+                        } catch (RuntimeException e) {
+                            ((MainActivity) getActivity()).Post(e);
+                        }
                     }
                 }, getContext());
                 return;
@@ -471,54 +560,19 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
             UIUtil.wait("search", new Runnable() {
                 @Override
                 public void run() {
-                    final SingleCatalogSearchItem s = new SingleCatalogSearchItem(link) {
-                        NetworkOperationData data;
-
-                        @Override
-                        public void runSearch(ZLNetworkContext nc, NetworkItemsLoader loader, String pattern) throws ZLNetworkException {
-                            NetworkOperationData data = Link.createOperationData(loader);
-                            ZLNetworkRequest request = Link.simpleSearchRequest(pattern, data);
-                            nc.perform(request);
-                            if (loader.confirmInterruption()) {
-                                return;
+                    try {
+                        searchCatalog.search(ss);
+                        getActivity().runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                books.bookItems = searchCatalog.l.Tree.subtrees();
+                                books.filter = null;
+                                books.refresh();
                             }
-                        }
-
-                        public void resume() throws ZLNetworkException {
-                            ZLNetworkRequest request = data.resume();
-                            nc.perform(request);
-                        }
-                    };
-                    final String myPattern = ss;
-                    final NetworkItemsLoader l = new NetworkItemsLoader(nc, searchCatalog) {
-                        @Override
-                        protected void onFinish(ZLNetworkException exception, boolean interrupted) {
-                        }
-
-                        @Override
-                        protected void doBefore() throws ZLNetworkException {
-                        }
-
-                        @Override
-                        protected void load() throws ZLNetworkException {
-                            final SearchItem item = (SearchItem) Tree.Item;
-                            if (myPattern.equals(item.getPattern())) {
-                                if (Tree.hasChildren()) {
-                                    return;
-                                }
-                            }
-                            s.runSearch(nc, this, myPattern);
-                        }
-                    };
-                    l.run();
-                    getActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            books.bookItems = l.Tree.subtrees();
-                            books.filter = null;
-                            books.refresh();
-                        }
-                    });
+                        });
+                    } catch (RuntimeException e) {
+                        ((MainActivity) getActivity()).Post(e);
+                    }
                 }
             }, getContext());
         }
