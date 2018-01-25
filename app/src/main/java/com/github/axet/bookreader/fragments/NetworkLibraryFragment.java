@@ -1,7 +1,6 @@
 package com.github.axet.bookreader.fragments;
 
 import android.content.Context;
-import android.database.DataSetObserver;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -17,6 +16,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
@@ -34,7 +34,6 @@ import org.geometerplus.fbreader.network.NetworkLibrary;
 import org.geometerplus.fbreader.network.NetworkOperationData;
 import org.geometerplus.fbreader.network.SearchItem;
 import org.geometerplus.fbreader.network.SingleCatalogSearchItem;
-import org.geometerplus.fbreader.network.opds.OPDSCatalogItem;
 import org.geometerplus.fbreader.network.opds.OPDSNetworkLink;
 import org.geometerplus.fbreader.network.opds.OPDSPredefinedNetworkLink;
 import org.geometerplus.fbreader.network.opds.OpenSearchDescription;
@@ -53,12 +52,16 @@ import org.geometerplus.zlibrary.core.network.ZLNetworkException;
 import org.geometerplus.zlibrary.core.network.ZLNetworkRequest;
 import org.geometerplus.zlibrary.core.util.MimeType;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.TreeMap;
+
+import cz.msebera.android.httpclient.impl.client.CloseableHttpClient;
+import cz.msebera.android.httpclient.impl.client.HttpClientBuilder;
 
 public class NetworkLibraryFragment extends Fragment implements MainActivity.SearchListener {
     public static final String TAG = NetworkLibraryFragment.class.getSimpleName();
@@ -74,6 +77,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     BooksCatalogs catalogs;
     OPDSNetworkLink link;
     NetworkItemsLoader def;
+    String useragent;
 
     ArrayList<NetworkItemsLoader> toolbarItems = new ArrayList<>();
 
@@ -234,6 +238,8 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                 toolbarItems.add(getCatalogItem(url, key));
             }
         }
+
+        useragent = n.opds.get("user-agent");
 
         if (n.opds.get("get") != null) {
             String get = n.opds.get("get");
@@ -470,6 +476,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                             for (FBTree t : tree.subtrees()) {
                                                 if (t instanceof NetworkBookTree) {
                                                     loadBook((NetworkBookTree) t);
+                                                    return;
                                                 }
                                             }
                                         }
@@ -492,16 +499,30 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         return v;
     }
 
+    UrlInfo getUrl(final NetworkBookTree n, UrlInfo.Type t) {
+        List<UrlInfo> ll = n.Book.getAllInfos(t);
+        if (ll.size() == 0)
+            return null;
+        return ll.get(0);
+    }
+
     void loadBook(final NetworkBookTree n) {
         final MainActivity main = (MainActivity) getActivity();
-        String u = n.Book.getUrl(UrlInfo.Type.Book);
+        UrlInfo u = getUrl(n, UrlInfo.Type.Book);
+        if (u == null)
+            u = getUrl(n, UrlInfo.Type.BookFullOrDemo);
         if (u == null) {
-            u = n.Book.getUrl(UrlInfo.Type.BookBuyInBrowser);
+            u = getUrl(n, UrlInfo.Type.BookBuyInBrowser);
             if (u == null)
-                u = n.Book.getUrl(UrlInfo.Type.HtmlPage);
-            if (n.Book.Id.startsWith(WebViewCustom.SCHEME_HTTP))
-                u = n.Book.Id;
+                u = getUrl(n, UrlInfo.Type.HtmlPage);
+            String url = null;
             if (u == null) {
+                if (n.Book.Id.startsWith(WebViewCustom.SCHEME_HTTP))
+                    url = n.Book.Id;
+            } else {
+                url = u.Url;
+            }
+            if (url == null) {
                 UIUtil.wait("load", new Runnable() {
                     @Override
                     public void run() {
@@ -522,11 +543,53 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                     }
                 }, getContext());
                 return;
-
             }
-            openBrowser(u);
+            openBrowser(url);
         } else {
-            main.loadBook(Uri.parse(u));
+            final Uri uri = Uri.parse(u.Url);
+            final String mimetype = u.Mime.toString(); // gutenberg fake mimetypes when it want to open browser
+            UIUtil.wait("load book", new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        HttpClient client = new HttpClient() {
+                            @Override
+                            protected CloseableHttpClient build(HttpClientBuilder builder) {
+                                if (useragent != null)
+                                    builder.setUserAgent(useragent);
+                                return super.build(builder);
+                            }
+                        };
+                        HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
+                        if (w.getError() != null)
+                            throw new RuntimeException(w.getError() + ": " + uri);
+                        if (mimetype != null && !w.getMimeType().equals(mimetype)) {
+                            main.runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    BrowserDialogFragment b = BrowserDialogFragment.create(uri.toString());
+                                    b.show(getFragmentManager(), "");
+                                }
+                            });
+                            return;
+                        }
+                        InputStream is = new BufferedInputStream(w.getInputStream());
+                        final Storage.Book fbook = storage.load(is, null);
+                        storage.load(fbook);
+                        File r = Storage.recentFile(fbook);
+                        if (!r.exists())
+                            storage.save(fbook);
+                        main.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                main.loadBook(fbook);
+                            }
+                        });
+                    } catch (IOException e) {
+                        main.Post(e);
+                    }
+                }
+            }, getContext());
         }
     }
 
