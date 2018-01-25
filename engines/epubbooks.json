@@ -10,7 +10,7 @@
     "get": "tops"
   },
   "tops": {
-    "Последние": "http://epubbooks.ru/lastadd.xml",
+    "Новинки": "http://epubbooks.ru/lastadd.xml",
     "Топ": "http://epubbooks.ru/count.xml",
     "Рекомендуем": "http://epubbooks.ru/BookOfTheMonth.xml",
     "Античная литература": "http://epubbooks.ru/genres/5.xml",
