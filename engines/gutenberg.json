@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "name": "Project Gutenberg",
+  "home": {
+    "get": "http://www.gutenberg.org"
+  },
+  "opds": {
+    "user-agent": "Wget/1.18",
+    "root": "http://m.gutenberg.org/ebooks/?format=opds",
+    "search": "http://m.gutenberg.org/ebooks/search.opds/?query={searchTerms}",
+    "get": "tops"
+  },
+  "tops": {
+    "Recents": "http://m.gutenberg.org/ebooks/search.opds/?sort_order=release_date",
+    "Top": "http://m.gutenberg.org/ebooks/search.opds/?sort_order=downloads",
+    "Random": "http://m.gutenberg.org/ebooks/search.opds/?sort_order=random"
+  }
+}
