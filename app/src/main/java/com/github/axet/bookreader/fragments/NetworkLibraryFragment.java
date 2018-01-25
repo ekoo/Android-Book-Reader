@@ -586,7 +586,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                 main.loadBook(fbook);
                             }
                         });
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         main.Post(e);
                     }
                 }
