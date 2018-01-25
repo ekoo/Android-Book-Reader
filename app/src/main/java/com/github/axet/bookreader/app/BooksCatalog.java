@@ -23,6 +23,7 @@ import java.util.TreeMap;
 public class BooksCatalog {
     public Long last;
     public String url;
+    public String cookies;
     public Map<String, Object> map = new TreeMap<>();
     public Map<String, String> home;
     public Map<String, String> opds;
@@ -85,5 +86,9 @@ public class BooksCatalog {
 
     public String getTitle() {
         return (String) map.get("name");
+    }
+
+    public void setCookies(String s) {
+        cookies = s;
     }
 }

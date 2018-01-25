@@ -19,6 +19,7 @@ import android.widget.TextView;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
+import com.github.axet.bookreader.widgets.BrowserDialogFragment;
 import com.github.axet.bookreader.widgets.FBReaderView;
 
 import org.apache.commons.io.IOUtils;
