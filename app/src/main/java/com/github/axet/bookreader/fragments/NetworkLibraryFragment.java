@@ -479,6 +479,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                                     return;
                                                 }
                                             }
+                                            main.Error("Empty Url");
                                         }
                                     });
                                 } catch (RuntimeException e) {
