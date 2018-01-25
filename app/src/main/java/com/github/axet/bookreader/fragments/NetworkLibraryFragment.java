@@ -16,6 +16,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.github.axet.androidlibrary.app.SuperUser;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
@@ -51,6 +52,8 @@ import org.geometerplus.zlibrary.core.network.ZLNetworkContext;
 import org.geometerplus.zlibrary.core.network.ZLNetworkException;
 import org.geometerplus.zlibrary.core.network.ZLNetworkRequest;
 import org.geometerplus.zlibrary.core.util.MimeType;
+import org.json.JSONArray;
+import org.json.JSONException;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -59,6 +62,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import cz.msebera.android.httpclient.impl.client.CloseableHttpClient;
 import cz.msebera.android.httpclient.impl.client.HttpClientBuilder;
@@ -77,6 +82,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     BooksCatalogs catalogs;
     OPDSNetworkLink link;
     NetworkItemsLoader def;
+    ArrayList<Pattern> ignore;
     String useragent;
 
     ArrayList<NetworkItemsLoader> toolbarItems = new ArrayList<>();
@@ -146,6 +152,30 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
         public NetworkLibraryAdapter() {
             super(getContext());
+        }
+
+        public void load(List<FBTree> ll) {
+            if (ignore != null) {
+                books.bookItems = new ArrayList<>();
+                for (FBTree l : ll) {
+                    if (ignore(l))
+                        continue;
+                    books.bookItems.add(l);
+                }
+            } else {
+                books.bookItems = ll;
+            }
+            books.filter = null;
+        }
+
+        boolean ignore(FBTree l) {
+            for (Pattern p : ignore) {
+                Matcher m = p.matcher(l.getName());
+                if (m.find()) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public void refresh() {
@@ -218,8 +248,17 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
         setHasOptionsMenu(true);
 
+        ArrayList a = (ArrayList) n.opds.get("ignore");
+        if (a != null) {
+            ignore = new ArrayList<>();
+            for (Object i : a) {
+                Pattern p = Pattern.compile(SuperUser.wildcard((String) i));
+                ignore.add(p);
+            }
+        }
+
         UrlInfoCollection<UrlInfoWithDate> infos = new UrlInfoCollection<>();
-        infos.addInfo(new UrlInfoWithDate(UrlInfo.Type.Catalog, n.opds.get("root"), MimeType.APP_ATOM_XML));
+        infos.addInfo(new UrlInfoWithDate(UrlInfo.Type.Catalog, (String) n.opds.get("root"), MimeType.APP_ATOM_XML));
         if (n.opds.get("search") != null) {
             final OpenSearchDescription descr = OpenSearchDescription.createDefault((String) n.opds.get("search"), MimeType.APP_ATOM_XML);
             if (descr.isValid()) {
@@ -239,10 +278,10 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
             }
         }
 
-        useragent = n.opds.get("user-agent");
+        useragent = (String) n.opds.get("user-agent");
 
         if (n.opds.get("get") != null) {
-            String get = n.opds.get("get");
+            String get = (String) n.opds.get("get");
             if (!get.equals("tops")) {
                 def = getCatalogItem(get, "default");
                 loadDefault();
@@ -279,8 +318,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                 try {
                     if (def.Tree.subtrees().isEmpty())
                         def.Tree.Item.loadChildren(def);
-                    books.bookItems = def.Tree.subtrees();
-                    books.filter = null;
+                    books.load(def.Tree.subtrees());
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -369,8 +407,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                         @Override
                         public void run() {
                             getArguments().putString("toolbar", l.Tree.getUniqueKey().Id);
-                            books.bookItems = l.Tree.subtrees();
-                            books.filter = null;
+                            books.load(l.Tree.subtrees());
                             selectToolbar();
                             loadBooks();
                         }
@@ -629,8 +666,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                         getActivity().runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                books.bookItems = searchCatalog.l.Tree.subtrees();
-                                books.filter = null;
+                                books.load(searchCatalog.l.Tree.subtrees());
                                 books.refresh();
                             }
                         });
