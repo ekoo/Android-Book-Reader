@@ -607,7 +607,8 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                         HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
                         if (w.getError() != null)
                             throw new RuntimeException(w.getError() + ": " + uri);
-                        if (w.getResponse().getEntity().getContentType() != null && mimetype != null && !w.getMimeType().equals(mimetype)) {
+                        String wm = w.getMimeType();
+                        if (w.getResponse().getEntity().getContentType() != null && mimetype != null && !wm.equals(mimetype) && wm.startsWith("text")) {
                             main.runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
