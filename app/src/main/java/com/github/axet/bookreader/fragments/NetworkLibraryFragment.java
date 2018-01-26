@@ -282,7 +282,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
         useragent = (String) n.opds.get("user-agent");
 
-        if(useragent == null) {
+        if (useragent == null) {
             useragent = ZLNetworkUtil.getUserAgent();
         }
 
@@ -607,7 +607,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                         HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
                         if (w.getError() != null)
                             throw new RuntimeException(w.getError() + ": " + uri);
-                        if (mimetype != null && !w.getMimeType().equals(mimetype)) {
+                        if (w.getResponse().getEntity().getContentType() != null && mimetype != null && !w.getMimeType().equals(mimetype)) {
                             main.runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
