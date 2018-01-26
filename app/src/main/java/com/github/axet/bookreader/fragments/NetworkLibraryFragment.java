@@ -1,5 +1,6 @@
 package com.github.axet.bookreader.fragments;
 
+import android.app.Activity;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
@@ -52,6 +53,7 @@ import org.geometerplus.zlibrary.core.network.ZLNetworkContext;
 import org.geometerplus.zlibrary.core.network.ZLNetworkException;
 import org.geometerplus.zlibrary.core.network.ZLNetworkRequest;
 import org.geometerplus.zlibrary.core.util.MimeType;
+import org.geometerplus.zlibrary.core.util.ZLNetworkUtil;
 import org.json.JSONArray;
 import org.json.JSONException;
 
@@ -280,6 +282,10 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
         useragent = (String) n.opds.get("user-agent");
 
+        if(useragent == null) {
+            useragent = ZLNetworkUtil.getUserAgent();
+        }
+
         if (n.opds.get("get") != null) {
             String get = (String) n.opds.get("get");
             if (!get.equals("tops")) {
@@ -412,7 +418,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                             loadBooks();
                         }
                     });
-                } catch (RuntimeException e) {
+                } catch (Exception e) {
                     ((MainActivity) getActivity()).Post(e);
                 }
             }
@@ -468,7 +474,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                     books.refresh();
                                 }
                             });
-                        } catch (RuntimeException e) {
+                        } catch (Exception e) {
                             ((MainActivity) getActivity()).Post(e);
                         }
                     }
@@ -519,7 +525,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                             main.Error("Empty Url");
                                         }
                                     });
-                                } catch (RuntimeException e) {
+                                } catch (Exception e) {
                                     ((MainActivity) getActivity()).Post(e);
                                 }
                             }
@@ -575,7 +581,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                     d.show(getFragmentManager(), "");
                                 }
                             });
-                        } catch (RuntimeException e) {
+                        } catch (Exception e) {
                             ((MainActivity) getActivity()).Post(e);
                         }
                     }
@@ -670,7 +676,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                 books.refresh();
                             }
                         });
-                    } catch (RuntimeException e) {
+                    } catch (Exception e) {
                         ((MainActivity) getActivity()).Post(e);
                     }
                 }

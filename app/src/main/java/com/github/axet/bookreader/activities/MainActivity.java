@@ -330,7 +330,7 @@ public class MainActivity extends FullscreenActivity
                                 catalogs.save();
                                 reloadMenu();
                                 openLibrary(ct.getId());
-                            } catch (RuntimeException e) {
+                            } catch (Exception e) {
                                 Post(e);
                             }
                         }
@@ -410,7 +410,7 @@ public class MainActivity extends FullscreenActivity
                             loadBook(fbook);
                         }
                     });
-                } catch (RuntimeException e) {
+                } catch (Exception e) {
                     Post(e);
                 } finally {
                     runOnUiThread(new Runnable() {
