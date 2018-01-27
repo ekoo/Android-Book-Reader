@@ -1,10 +1,13 @@
 package com.github.axet.bookreader.widgets;
 
+import android.net.Uri;
 import android.os.Bundle;
 import android.webkit.WebView;
 
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.bookreader.activities.MainActivity;
+
+import java.net.URL;
 
 public class BrowserDialogFragment extends com.github.axet.androidlibrary.widgets.BrowserDialogFragment {
 
@@ -16,9 +19,18 @@ public class BrowserDialogFragment extends com.github.axet.androidlibrary.widget
         return f;
     }
 
+    public static BrowserDialogFragment createHtml(String base, String html) {
+        BrowserDialogFragment f = new BrowserDialogFragment();
+        Bundle args = new Bundle();
+        args.putString("base", base);
+        args.putString("html", html);
+        f.setArguments(args);
+        return f;
+    }
+
     @Override
     public HttpClient createHttpClient() {
-        HttpClient hc =  super.createHttpClient();
+        HttpClient hc = super.createHttpClient();
         hc.getCookieStore();
         return hc;
     }
@@ -29,8 +41,20 @@ public class BrowserDialogFragment extends com.github.axet.androidlibrary.widget
     }
 
     @Override
-    public boolean onDownloadStart(String base, String url, String userAgent, String contentDisposition, String mimetype, long contentLength) {
-        return super.onDownloadStart(base, url, userAgent, contentDisposition, mimetype, contentLength);
+    public boolean onDownloadStart(final String base, final String url, String userAgent, String contentDisposition, String mimetype, long contentLength) {
+        final MainActivity main = ((MainActivity) getActivity());
+        main.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                main.loadBook(Uri.parse(url), new Runnable() {
+                    @Override
+                    public void run() {
+                        dismiss();
+                    }
+                });
+            }
+        });
+        return true; // super.onDownloadStart(base, url, userAgent, contentDisposition, mimetype, contentLength);
     }
 
     @Override
