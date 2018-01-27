@@ -750,7 +750,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         public String md5;
         public org.geometerplus.fbreader.book.Book book;
         public String ext;
-        public Storage.RecentInfo info;
+        public RecentInfo info;
         public File cover;
 
         public boolean isLoaded() {
@@ -1020,8 +1020,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (r.exists())
                 fbook.info = new RecentInfo(r);
         }
-        if (fbook.info == null)
-            fbook.info = new Storage.RecentInfo();
+        if (fbook.info == null) {
+            fbook.info = new RecentInfo();
+            fbook.info.created = System.currentTimeMillis();
+        }
         fbook.info.md5 = fbook.md5;
         final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
         fbook.book = new org.geometerplus.fbreader.book.Book(-1, fbook.file.getPath(), null, null, null);
@@ -1136,7 +1138,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (r.exists())
                 b.info = new RecentInfo(r);
             if (b.info == null) {
-                b.info = new Storage.RecentInfo();
+                b.info = new RecentInfo();
                 b.info.created = System.currentTimeMillis();
             }
             list.add(b);
