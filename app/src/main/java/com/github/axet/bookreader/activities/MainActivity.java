@@ -294,7 +294,7 @@ public class MainActivity extends FullscreenActivity
             choicer = new OpenChoicer(OpenFileDialog.DIALOG_TYPE.FILE_DIALOG, true) {
                 @Override
                 public void onResult(Uri uri) {
-                    loadBook(uri);
+                    loadBook(uri, null);
                 }
             };
             choicer.setStorageAccessFramework(this, RESULT_FILE);
@@ -364,10 +364,10 @@ public class MainActivity extends FullscreenActivity
             u = intent.getData();
         if (u == null)
             return;
-        loadBook(u);
+        loadBook(u, null);
     }
 
-    public void loadBook(final Uri u) {
+    public void loadBook(final Uri u, final Runnable success) {
         FragmentManager fm = getSupportFragmentManager();
         fm.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
 
@@ -399,6 +399,8 @@ public class MainActivity extends FullscreenActivity
                             public void run() {
                                 reloadMenu();
                                 openLibrary(ct.getId());
+                                if (success != null)
+                                    success.run();
                             }
                         });
                         return;
@@ -408,6 +410,8 @@ public class MainActivity extends FullscreenActivity
                         @Override
                         public void run() {
                             loadBook(fbook);
+                            if (success != null)
+                                success.run();
                         }
                     });
                 } catch (Exception e) {

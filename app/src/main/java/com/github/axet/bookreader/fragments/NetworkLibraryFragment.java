@@ -604,7 +604,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                 return super.build(builder);
                             }
                         };
-                        HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
+                        final HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
                         if (w.getError() != null)
                             throw new RuntimeException(w.getError() + ": " + uri);
                         String wm = w.getMimeType();
@@ -612,7 +612,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                             main.runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    BrowserDialogFragment b = BrowserDialogFragment.create(uri.toString());
+                                    BrowserDialogFragment b = BrowserDialogFragment.createHtml(uri.toString(), w.getHtml());
                                     b.show(getFragmentManager(), "");
                                 }
                             });
