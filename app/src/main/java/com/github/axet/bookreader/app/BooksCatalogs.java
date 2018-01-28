@@ -9,6 +9,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.preference.PreferenceManager;
 
 import com.github.axet.androidlibrary.net.HttpClient;
+import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 
 import org.apache.commons.io.IOUtils;
@@ -179,7 +180,7 @@ public class BooksCatalogs {
                 InputStream is = resolver.openInputStream(uri);
                 ct.load(is);
                 is.close();
-            } else if (s.startsWith("http")) {
+            } else if (s.startsWith(WebViewCustom.SCHEME_HTTP)) {
                 HttpClient client = new HttpClient();
                 HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
                 if (w.getError() != null)
