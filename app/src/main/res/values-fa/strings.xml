@@ -1,0 +1,31 @@
+<resources>
+    <string name="app_name">Book Reader</string>
+
+    <string-array name="theme_text">
+        <item>پوسته روشن</item>
+        <item>پوسته تاریک</item>
+    </string-array>
+
+    <string-array name="theme_value" translatable="false">
+        <item>@string/Theme_Light</item>
+        <item>@string/Theme_Dark</item>
+    </string-array>
+
+    <string name="navigation_drawer_open">باز کردن منو کشویی</string>
+    <string name="navigation_drawer_close">بستن منو کشویی</string>
+
+    <string name="action_settings">تنظیمات</string>
+    <string name="add_catalog">افزودن کاتالوگ کتاب</string>
+    <string name="network_library">کتابخانه شبکه</string>
+    <string name="loading_book">بارگزاری کتاب</string>
+    <string name="title_activity_settings">تنظیمات</string>
+    <string name="open_file">باز کردن فایل</string>
+    <string name="catalog_home">خانه</string>
+    <string name="book_toc">فهرست</string>
+    <string name="search">جستجو</string>
+    <string name="book_rename">تغییر نام</string>
+    <string name="book_open">باز کردن</string>
+    <string name="book_share">اشتراک</string>
+    <string name="book_delete">حذف</string>
+    <string name="my_library">کتابخانه من</string>
+</resources>
