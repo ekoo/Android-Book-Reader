@@ -751,4 +751,12 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         }
         books.refresh();
     }
+
+    @Override
+    public String getHint() {
+        if(searchCatalog==null)
+            return getString(R.string.search_local);
+        else
+            return getString(R.string.search_network);
+    }
 }

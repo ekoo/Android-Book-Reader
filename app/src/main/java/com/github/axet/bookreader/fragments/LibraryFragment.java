@@ -479,4 +479,9 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     public void searchClose() {
         search("");
     }
+
+    @Override
+    public String getHint() {
+        return getString(R.string.search_local);
+    }
 }

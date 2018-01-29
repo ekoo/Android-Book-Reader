@@ -23,4 +23,7 @@
     <string name="book_share">बाँड्नुहोस</string>
     <string name="book_delete">हटाउनुहोस्</string>
     <string name="my_library">मेरो पुस्तकालय</string>
+    <string name="search_local">Local Search&#8230;</string>
+    <string name="search_network">Network Search&#8230;</string>
+    <string name="search_book">Book Search&#8230;</string>
 </resources>

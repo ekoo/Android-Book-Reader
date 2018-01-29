@@ -104,6 +104,8 @@ public class MainActivity extends FullscreenActivity
     };
 
     public interface SearchListener {
+        String getHint();
+
         void search(String s);
 
         void searchClose();
@@ -238,6 +240,18 @@ public class MainActivity extends FullscreenActivity
                 @Override
                 public boolean onQueryTextChange(String newText) {
                     return false;
+                }
+            });
+            searchView.setOnSearchClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    FragmentManager fm = getSupportFragmentManager();
+                    for (Fragment f : fm.getFragments()) {
+                        if (f != null && f.isVisible() && f instanceof SearchListener) {
+                            SearchListener s = (SearchListener) f;
+                            searchView.setQueryHint(s.getHint());
+                        }
+                    }
                 }
             });
             searchView.setOnCloseListener(new SearchView.OnCloseListener() {
