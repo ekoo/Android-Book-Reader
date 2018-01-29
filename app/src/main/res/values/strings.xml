@@ -1,6 +1,16 @@
 <resources>
     <string name="app_name">Book Reader</string>
 
+    <string-array name="theme_text">
+        <item>Theme Light</item>
+        <item>Theme Dark</item>
+    </string-array>
+
+    <string-array name="theme_value" translatable="false">
+        <item>@string/Theme_Light</item>
+        <item>@string/Theme_Dark</item>
+    </string-array>
+
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
@@ -18,13 +28,4 @@
     <string name="book_share">Share</string>
     <string name="book_delete">Delete</string>
     <string name="my_library">My Library</string>
-
-    <string-array name="theme_text">
-        <item>Theme Light</item>
-        <item>Theme Dark</item>
-    </string-array>
-    <string-array name="theme_value">
-        <item>@string/Theme_Light</item>
-        <item>@string/Theme_Dark</item>
-    </string-array>
 </resources>
