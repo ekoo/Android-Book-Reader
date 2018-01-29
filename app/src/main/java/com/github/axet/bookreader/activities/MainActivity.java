@@ -41,6 +41,7 @@ import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.OpenChoicer;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
+import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.BooksCatalog;
 import com.github.axet.bookreader.app.BooksCatalogs;
@@ -74,6 +75,7 @@ public class MainActivity extends FullscreenActivity
 
     public static final String LIBRARY = "library";
     public static final String ADD_CATALOG = "add_catalog";
+    public static final String SCHEME_CATALOG = "catalog";
 
     public static final int RESULT_FILE = 1;
     public static final int RESULT_ADD_CATALOG = 2;
@@ -389,9 +391,9 @@ public class MainActivity extends FullscreenActivity
             public void run() {
                 try {
                     String s = u.getScheme();
-                    if (s.equals("catalog")) {
+                    if (s.equals(SCHEME_CATALOG)) {
                         Uri.Builder b = u.buildUpon();
-                        b.scheme("http");
+                        b.scheme(WebViewCustom.SCHEME_HTTP);
                         final BooksCatalog ct = catalogs.load(b.build());
                         catalogs.save();
                         runOnUiThread(new Runnable() {

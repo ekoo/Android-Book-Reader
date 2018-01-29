@@ -29,6 +29,7 @@ import android.widget.TextView;
 import com.github.axet.androidlibrary.services.FileProvider;
 import com.github.axet.androidlibrary.widgets.HeaderGridView;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
+import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.Storage;
@@ -118,7 +119,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             Bitmap bm = null;
             try {
                 String s = u.getScheme();
-                if (s.startsWith("http")) {
+                if (s.startsWith(WebViewCustom.SCHEME_HTTP)) {
                     InputStream in = new URL(u.toString()).openStream();
                     bm = BitmapFactory.decodeStream(in);
                 } else {

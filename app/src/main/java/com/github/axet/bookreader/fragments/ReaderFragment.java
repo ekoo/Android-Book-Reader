@@ -94,7 +94,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         @Override
         public void unregisterDataSetObserver(DataSetObserver observer) {
-
         }
 
         @Override

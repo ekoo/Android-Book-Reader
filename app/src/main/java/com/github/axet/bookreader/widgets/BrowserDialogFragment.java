@@ -9,6 +9,10 @@ import com.github.axet.bookreader.activities.MainActivity;
 
 import java.net.URL;
 
+import cz.msebera.android.httpclient.client.config.CookieSpecs;
+import cz.msebera.android.httpclient.client.config.RequestConfig;
+import cz.msebera.android.httpclient.impl.client.BasicCookieStore;
+
 public class BrowserDialogFragment extends com.github.axet.androidlibrary.widgets.BrowserDialogFragment {
 
     public static BrowserDialogFragment create(String url) {
@@ -30,8 +34,19 @@ public class BrowserDialogFragment extends com.github.axet.androidlibrary.widget
 
     @Override
     public HttpClient createHttpClient() {
-        HttpClient hc = super.createHttpClient();
-        hc.getCookieStore();
+        HttpClient hc = new HttpClient() {
+            @Override
+            public RequestConfig build(RequestConfig config) {
+                return super.build(config);
+            }
+
+            @Override
+            public RequestConfig build(RequestConfig.Builder builder) {
+                builder.setCookieSpec(CookieSpecs.STANDARD); // DEFAULT fails with NetscapeDraftSpec.EXPIRES_PATTERN date format
+                return super.build(builder);
+            }
+        };
+        hc.setCookieStore(new BasicCookieStore()); // enable cookies
         return hc;
     }
 
