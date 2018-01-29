@@ -19,3 +19,7 @@ If you want to translate 'Book Reader' to your language  please read following:
 # Screenshots
 
 ![shot](/docs/shot.png)
+
+# Contributors
+
+  * nepali translation thanks to @bkb
