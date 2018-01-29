@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">Book Reader</string>
+
+    <string-array name="theme_text">
+        <item>Светлая тема</item>
+        <item>Темная тема</item>
+    </string-array>
+
+    <string name="navigation_drawer_open">Открыть меню</string>
+    <string name="navigation_drawer_close">Закрыть меню</string>
+
+    <string name="add_catalog">Добавить каталог книг</string>
+    <string name="network_library">Сетевая библиотека</string>
+    <string name="loading_book">Загрузка книги</string>
+    <string name="open_file">Открыть файл</string>
+    <string name="catalog_home">Домой</string>
+    <string name="book_toc">Оглавление</string>
+    <string name="search">Поиск</string>
+    <string name="book_rename">Переименовать</string>
+    <string name="book_open">Открыть</string>
+    <string name="book_delete">Удалить</string>
+    <string name="my_library">Моя библиотека</string>
+    <string name="search_local">Поиск по списку&#8230;</string>
+    <string name="search_network">Поиск по сети&#8230;</string>
+    <string name="search_book">Поиск по книге&#8230;</string>
+</resources>

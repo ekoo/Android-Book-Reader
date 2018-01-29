@@ -151,7 +151,7 @@ public class MainActivity extends FullscreenActivity
         catalogs = new BooksCatalogs(this);
         reloadMenu();
 
-        settingsMenu = m.addSubMenu(R.string.action_settings);
+        settingsMenu = m.addSubMenu(R.string.menu_settings);
         settingsMenu.setIcon(R.drawable.ic_settings_black_24dp);
         MenuItem add = settingsMenu.add(R.string.add_catalog);
         add.setIntent(new Intent(ADD_CATALOG));
