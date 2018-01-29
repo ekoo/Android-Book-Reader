@@ -326,8 +326,48 @@ public class FBReaderView extends RelativeLayout {
             current.load(p);
         }
 
-        public void onScrollingFinished(ZLViewEnums.PageIndex index) {
+        public boolean onScrollingFinished(ZLViewEnums.PageIndex index) {
+            PluginPage old = new PluginPage(current) {
+                @Override
+                public void load() {
+                }
+
+                @Override
+                public int getPagesCount() {
+                    return current.getPagesCount();
+                }
+            };
             current.load(index);
+            PluginPage r;
+            switch(index) {
+                case previous:
+                    r = new PluginPage(current, ZLViewEnums.PageIndex.next) {
+                        @Override
+                        public void load() {
+                        }
+
+                        @Override
+                        public int getPagesCount() {
+                            return current.getPagesCount();
+                        }
+                    };
+                    break;
+                case next:
+                    r = new PluginPage(current, ZLViewEnums.PageIndex.previous) {
+                        @Override
+                        public void load() {
+                        }
+
+                        @Override
+                        public int getPagesCount() {
+                            return current.getPagesCount();
+                        }
+                    };
+                    break;
+                default:
+                    return false;
+            }
+            return !old.equals(r.pageNumber, r.pageOffset); // need redraw cache true/false?
         }
 
         public ZLTextFixedPosition getPosition() {
@@ -374,10 +414,12 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public synchronized void onScrollingFinished(PageIndex pageIndex) {
-            if (pluginview != null)
-                pluginview.onScrollingFinished(pageIndex);
-            else
+            if (pluginview != null) {
+                if (pluginview.onScrollingFinished(pageIndex))
+                    widget.reset();
+            } else {
                 super.onScrollingFinished(pageIndex);
+            }
         }
 
         @Override
@@ -402,6 +444,125 @@ public class FBReaderView extends RelativeLayout {
                 return null;
             else
                 return super.getFooterArea();
+        }
+    }
+
+    public class FBAndroidWidget extends ZLAndroidWidget {
+        public FBAndroidWidget() {
+            super(FBReaderView.this.getContext());
+            ZLApplication = new ZLAndroidWidget.ZLApplicationInstance() {
+                public ZLApplication Instance() {
+                    return app;
+                }
+            };
+            setFocusable(true);
+        }
+
+        @Override
+        public void setScreenBrightness(int percent) {
+            if (percent < 1) {
+                percent = 1;
+            } else if (percent > 100) {
+                percent = 100;
+            }
+
+            final float level;
+            final Integer oldColorLevel = myColorLevel;
+            if (percent >= 25) {
+                // 100 => 1f; 25 => .01f
+                level = .01f + (percent - 25) * .99f / 75;
+                myColorLevel = null;
+            } else {
+                level = .01f;
+                myColorLevel = 0x60 + (0xFF - 0x60) * Math.max(percent, 0) / 25;
+            }
+
+            final WindowManager.LayoutParams attrs = w.getAttributes();
+            attrs.screenBrightness = level;
+            w.setAttributes(attrs);
+
+            if (oldColorLevel != myColorLevel) {
+                updateColorLevel();
+                postInvalidate();
+            }
+        }
+
+        @Override
+        public int getScreenBrightness() {
+            if (myColorLevel != null) {
+                return (myColorLevel - 0x60) * 25 / (0xFF - 0x60);
+            }
+
+            float level = w.getAttributes().screenBrightness;
+            level = level >= 0 ? level : .5f;
+
+            // level = .01f + (percent - 25) * .99f / 75;
+            return 25 + (int) ((level - .01f) * 75 / .99f);
+        }
+
+        @Override
+        public boolean onKeyDown(int keyCode, KeyEvent event) {
+            return false;
+        }
+
+        @Override
+        public boolean onKeyUp(int keyCode, KeyEvent event) {
+            return false;
+        }
+
+        @Override
+        public void drawOnBitmap(Bitmap bitmap, ZLViewEnums.PageIndex index) {
+            if (pluginview != null)
+                pluginview.drawOnBitmap(bitmap, getWidth(), getMainAreaHeight(), index);
+            else
+                super.drawOnBitmap(bitmap, index);
+        }
+
+        @Override
+        public void repaint() {
+            super.repaint();
+        }
+    }
+
+    public class FBApplicationWindow implements ZLApplicationWindow {
+        @Override
+        public void setWindowTitle(String title) {
+            FBReaderView.this.title = title;
+        }
+
+        @Override
+        public void showErrorMessage(String resourceKey) {
+        }
+
+        @Override
+        public void showErrorMessage(String resourceKey, String parameter) {
+        }
+
+        @Override
+        public ZLApplication.SynchronousExecutor createExecutor(String key) {
+            return null;
+        }
+
+        @Override
+        public void processException(Exception e) {
+        }
+
+        @Override
+        public void refresh() {
+        }
+
+        @Override
+        public ZLViewWidget getViewWidget() {
+            return widget;
+        }
+
+        @Override
+        public void close() {
+        }
+
+        @Override
+        public int getBatteryLevel() {
+            return battery;
         }
     }
 
@@ -436,7 +597,6 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public void removeAllMarks() {
-
         }
 
         @Override
@@ -512,116 +672,10 @@ public class FBReaderView extends RelativeLayout {
 
     public void create(final FBReaderApp app) {
         this.app = app;
-        widget = new ZLAndroidWidget(getContext()) {
-            @Override
-            public void setScreenBrightness(int percent) {
-                if (percent < 1) {
-                    percent = 1;
-                } else if (percent > 100) {
-                    percent = 100;
-                }
-
-                final float level;
-                final Integer oldColorLevel = myColorLevel;
-                if (percent >= 25) {
-                    // 100 => 1f; 25 => .01f
-                    level = .01f + (percent - 25) * .99f / 75;
-                    myColorLevel = null;
-                } else {
-                    level = .01f;
-                    myColorLevel = 0x60 + (0xFF - 0x60) * Math.max(percent, 0) / 25;
-                }
-
-                final WindowManager.LayoutParams attrs = w.getAttributes();
-                attrs.screenBrightness = level;
-                w.setAttributes(attrs);
-
-                if (oldColorLevel != myColorLevel) {
-                    updateColorLevel();
-                    postInvalidate();
-                }
-            }
-
-            @Override
-            public int getScreenBrightness() {
-                if (myColorLevel != null) {
-                    return (myColorLevel - 0x60) * 25 / (0xFF - 0x60);
-                }
-
-                float level = w.getAttributes().screenBrightness;
-                level = level >= 0 ? level : .5f;
-
-                // level = .01f + (percent - 25) * .99f / 75;
-                return 25 + (int) ((level - .01f) * 75 / .99f);
-            }
-
-            @Override
-            public boolean onKeyDown(int keyCode, KeyEvent event) {
-                return false;
-            }
-
-            @Override
-            public boolean onKeyUp(int keyCode, KeyEvent event) {
-                return false;
-            }
-
-            @Override
-            public void drawOnBitmap(Bitmap bitmap, ZLViewEnums.PageIndex index) {
-                if (pluginview != null)
-                    pluginview.drawOnBitmap(bitmap, getWidth(), getMainAreaHeight(), index);
-                else
-                    super.drawOnBitmap(bitmap, index);
-            }
-        };
-        widget.ZLApplication = new ZLAndroidWidget.ZLApplicationInstance() {
-            public ZLApplication Instance() {
-                return app;
-            }
-        };
-        widget.setFocusable(true);
+        widget = new FBAndroidWidget();
         addView(widget, new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-        app.setWindow(new ZLApplicationWindow() {
-            @Override
-            public void setWindowTitle(String title) {
-                FBReaderView.this.title = title;
-            }
-
-            @Override
-            public void showErrorMessage(String resourceKey) {
-            }
-
-            @Override
-            public void showErrorMessage(String resourceKey, String parameter) {
-            }
-
-            @Override
-            public ZLApplication.SynchronousExecutor createExecutor(String key) {
-                return null;
-            }
-
-            @Override
-            public void processException(Exception e) {
-            }
-
-            @Override
-            public void refresh() {
-            }
-
-            @Override
-            public ZLViewWidget getViewWidget() {
-                return widget;
-            }
-
-            @Override
-            public void close() {
-            }
-
-            @Override
-            public int getBatteryLevel() {
-                return battery;
-            }
-        });
+        app.setWindow(new FBApplicationWindow());
         app.initWindow();
 
         if (app.getPopupById(TextSearchPopup.ID) == null) {
