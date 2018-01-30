@@ -104,6 +104,8 @@ public class MainActivity extends FullscreenActivity
     };
 
     public interface SearchListener {
+        String getHint();
+
         void search(String s);
 
         void searchClose();
@@ -149,7 +151,7 @@ public class MainActivity extends FullscreenActivity
         catalogs = new BooksCatalogs(this);
         reloadMenu();
 
-        settingsMenu = m.addSubMenu(R.string.action_settings);
+        settingsMenu = m.addSubMenu(R.string.menu_settings);
         settingsMenu.setIcon(R.drawable.ic_settings_black_24dp);
         MenuItem add = settingsMenu.add(R.string.add_catalog);
         add.setIntent(new Intent(ADD_CATALOG));
@@ -238,6 +240,18 @@ public class MainActivity extends FullscreenActivity
                 @Override
                 public boolean onQueryTextChange(String newText) {
                     return false;
+                }
+            });
+            searchView.setOnSearchClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    FragmentManager fm = getSupportFragmentManager();
+                    for (Fragment f : fm.getFragments()) {
+                        if (f != null && f.isVisible() && f instanceof SearchListener) {
+                            SearchListener s = (SearchListener) f;
+                            searchView.setQueryHint(s.getHint());
+                        }
+                    }
                 }
             });
             searchView.setOnCloseListener(new SearchView.OnCloseListener() {

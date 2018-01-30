@@ -315,4 +315,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             }
         }
     }
+
+    @Override
+    public String getHint() {
+        return getString(R.string.search_book);
+    }
 }

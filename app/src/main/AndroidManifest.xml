@@ -218,7 +218,7 @@
 
         <activity
             android:name=".activities.SettingsActivity"
-            android:label="@string/title_activity_settings"
+            android:label="@string/menu_settings"
             android:theme="@style/AppThemeLight.NoActionBar"></activity>
     </application>
 

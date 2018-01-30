@@ -9,18 +9,18 @@
     <string name="navigation_drawer_open">नेभिगेशन ड्रअर खोल्नुहोस्</string>
     <string name="navigation_drawer_close">नेभिगेशन ड्रअर बन्द गर्नुहोस्</string>
 
-    <string name="action_settings">सेटिङ्ग</string>
     <string name="add_catalog">किताबको सूची थप्नुहोस्</string>
     <string name="network_library">अन्लाईन पुस्तकालय</string>
     <string name="loading_book">किताब लोड हुँदैछ।</string>
-    <string name="title_activity_settings">सेटिङ्ग</string>
     <string name="open_file">फाईल खोल्नुहोस्</string>
     <string name="catalog_home">गृह</string>
     <string name="book_toc">शीर्षकहरू</string>
     <string name="search">खोज्नुहोस्</string>
     <string name="book_rename">पुनः नामाकरण</string>
     <string name="book_open">खोल्नुहोस्</string>
-    <string name="book_share">बाँड्नुहोस</string>
     <string name="book_delete">हटाउनुहोस्</string>
     <string name="my_library">मेरो पुस्तकालय</string>
+    <string name="search_local">स्थानीय खोजी&#8230;</string>
+    <string name="search_network">अन्लाइन खोजी&#8230;</string>
+    <string name="search_book">किताब खोजी&#8230;</string>
 </resources>
