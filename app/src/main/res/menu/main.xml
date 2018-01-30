@@ -2,26 +2,26 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:id="@+id/action_file"
-        android:orderInCategory="100"
-        android:title="@string/open_file"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/action_home"
-        android:icon="@drawable/ic_home_white_24dp"
-        android:title="@string/catalog_home"
-        app:showAsAction="always" />
+        android:id="@+id/action_search"
+        android:icon="@drawable/ic_search_white_24dp"
+        android:title="@string/search"
+        app:actionViewClass="com.github.axet.androidlibrary.widgets.SearchView"
+        app:showAsAction="collapseActionView|ifRoom" />
     <item
         android:id="@+id/action_toc"
         android:icon="@drawable/ic_toc_white_24dp"
         android:title="@string/book_toc"
         app:showAsAction="always" />
     <item
-        android:id="@+id/action_search"
-        android:icon="@drawable/ic_search_white_24dp"
-        android:title="@string/search"
-        app:actionViewClass="com.github.axet.androidlibrary.widgets.SearchView"
-        app:showAsAction="collapseActionView|ifRoom" />
+        android:id="@+id/action_home"
+        android:icon="@drawable/ic_home_white_24dp"
+        android:title="@string/catalog_home"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/action_file"
+        android:orderInCategory="100"
+        android:title="@string/open_file"
+        app:showAsAction="never" />
     <item
         android:id="@+id/action_settings"
         android:orderInCategory="100"
