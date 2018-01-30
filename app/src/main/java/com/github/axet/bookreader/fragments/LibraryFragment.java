@@ -95,13 +95,14 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     public static class BookViewHolder {
         public Bitmap bm;
         public HashSet<ImageView> views = new HashSet<>(); // one task can set multiple ImageView's, except reused ones;
-        public ProgressBar progress;
+        public HashSet<ProgressBar> progress = new HashSet<>();
+        public boolean done;
 
         public BookViewHolder() {
         }
 
         public BookViewHolder(ProgressBar p, ImageView i) {
-            progress = p;
+            progress.add(p);
             views.add(i);
         }
     }
@@ -111,7 +112,6 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
         public DownloadImageTask(BookViewHolder b) {
             book = b;
-            book.progress.setVisibility(View.VISIBLE);
         }
 
         protected Bitmap doInBackground(Uri... urls) {
@@ -132,8 +132,9 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
 
         protected void onPostExecute(Bitmap result) {
-            if (book.progress != null)
-                book.progress.setVisibility(View.GONE);
+            book.done = true;
+            for (ProgressBar p : book.progress)
+                p.setVisibility(View.GONE);
             book.bm = result;
             if (book.bm == null)
                 return;
@@ -273,7 +274,6 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             ImageView image = (ImageView) book.findViewById(R.id.imageView);
             TextView text = (TextView) book.findViewById(R.id.textView);
             ProgressBar progress = (ProgressBar) book.findViewById(R.id.update_progress);
-
             progress.setVisibility(View.GONE);
 
             Uri cover = getCover(position);
@@ -282,11 +282,12 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                 BookViewHolder task = images.get(image);
                 if (task != null) { // reuse image
                     task.views.remove(image);
-                    task.progress = null;
+                    task.progress.remove(progress);
                 }
                 task = views.get(cover);
                 if (task != null) { // add new ImageView to populate on finish
                     task.views.add(image);
+                    task.progress.add(progress);
                 }
                 if (task == null) {
                     task = new BookViewHolder(progress, image);
@@ -295,6 +296,9 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                     new LibraryFragment.DownloadImageTask(task).execute(cover);
                 } else if (task.bm != null) {
                     image.setImageBitmap(task.bm);
+                }
+                for (ProgressBar p : task.progress) {
+                    p.setVisibility(task.done ? View.GONE : View.VISIBLE);
                 }
             }
 
