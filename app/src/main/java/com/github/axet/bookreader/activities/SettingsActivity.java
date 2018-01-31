@@ -122,11 +122,6 @@ public class SettingsActivity extends AppCompatSettingsThemeActivity {
         getSupportFragmentManager().beginTransaction().replace(android.R.id.content, new GeneralPreferenceFragment()).commit();
     }
 
-    @Override
-    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        super.onSharedPreferenceChanged(sharedPreferences, key);
-    }
-
     /**
      * Set up the {@link android.app.ActionBar}, if the API is available.
      */
