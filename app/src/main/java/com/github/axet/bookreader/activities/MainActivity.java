@@ -91,7 +91,6 @@ public class MainActivity extends FullscreenActivity
     public MenuItem homeMenu;
     public MenuItem tocMenu;
     public MenuItem searchMenu;
-    public SearchView searchView;
     BooksCatalogs catalogs;
 
     BroadcastReceiver receiver = new BroadcastReceiver() {
@@ -221,53 +220,51 @@ public class MainActivity extends FullscreenActivity
         tocMenu = menu.findItem(R.id.action_toc);
         searchMenu = menu.findItem(R.id.action_search);
 
-        if (Build.VERSION.SDK_INT >= 11) {
-            searchView = (SearchView) searchMenu.getActionView();
-            searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-                @Override
-                public boolean onQueryTextSubmit(String query) {
-                    searchView.clearFocus();
-                    FragmentManager fm = getSupportFragmentManager();
-                    for (Fragment f : fm.getFragments()) {
-                        if (f != null && f.isVisible() && f instanceof SearchListener) {
-                            SearchListener s = (SearchListener) f;
-                            s.search(searchView.getQuery().toString());
-                        }
+        final SearchView searchView = (SearchView) MenuItemCompat.getActionView(searchMenu);
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                searchView.clearFocus();
+                FragmentManager fm = getSupportFragmentManager();
+                for (Fragment f : fm.getFragments()) {
+                    if (f != null && f.isVisible() && f instanceof SearchListener) {
+                        SearchListener s = (SearchListener) f;
+                        s.search(searchView.getQuery().toString());
                     }
-                    return true;
                 }
+                return true;
+            }
 
-                @Override
-                public boolean onQueryTextChange(String newText) {
-                    return false;
-                }
-            });
-            searchView.setOnSearchClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    FragmentManager fm = getSupportFragmentManager();
-                    for (Fragment f : fm.getFragments()) {
-                        if (f != null && f.isVisible() && f instanceof SearchListener) {
-                            SearchListener s = (SearchListener) f;
-                            searchView.setQueryHint(s.getHint());
-                        }
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                return false;
+            }
+        });
+        searchView.setOnSearchClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FragmentManager fm = getSupportFragmentManager();
+                for (Fragment f : fm.getFragments()) {
+                    if (f != null && f.isVisible() && f instanceof SearchListener) {
+                        SearchListener s = (SearchListener) f;
+                        searchView.setQueryHint(s.getHint());
                     }
                 }
-            });
-            searchView.setOnCloseListener(new SearchView.OnCloseListener() {
-                @Override
-                public boolean onClose() {
-                    FragmentManager fm = getSupportFragmentManager();
-                    for (Fragment f : fm.getFragments()) {
-                        if (f != null && f.isVisible() && f instanceof SearchListener) {
-                            SearchListener s = (SearchListener) f;
-                            s.searchClose();
-                        }
+            }
+        });
+        searchView.setOnCloseListener(new SearchView.OnCloseListener() {
+            @Override
+            public boolean onClose() {
+                FragmentManager fm = getSupportFragmentManager();
+                for (Fragment f : fm.getFragments()) {
+                    if (f != null && f.isVisible() && f instanceof SearchListener) {
+                        SearchListener s = (SearchListener) f;
+                        s.searchClose();
                     }
-                    return true;
                 }
-            });
-        }
+                return true;
+            }
+        });
 
         return true;
     }

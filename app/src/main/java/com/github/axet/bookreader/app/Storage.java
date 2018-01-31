@@ -161,17 +161,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
     }
 
-    public static String toHex(byte[] messageDigest) {
-        StringBuilder hexString = new StringBuilder();
-        for (byte aMessageDigest : messageDigest) {
-            String h = Integer.toHexString(0xFF & aMessageDigest);
-            while (h.length() < 2)
-                h = "0" + h;
-            hexString.append(h);
-        }
-        return hexString.toString();
-    }
-
     public static String getTitle(Book book) {
         String a = book.book.authorsString(", ");
         String t = book.book.getTitle();
@@ -331,7 +320,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
                     os.close();
                     is.close();
-                    return toHex(digest.digest());
+                    return Storage.toHex(digest.digest());
                 } catch (RuntimeException r) {
                     throw r;
                 } catch (Exception r) {
@@ -931,6 +920,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public Book load(InputStream is, File f) {
+        boolean tmp = f == null;
         Book fbook = new Book();
         try {
             FileOutputStream os = null;
@@ -973,15 +963,15 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     if (d instanceof FileTypeDetectorZipExtract.Handler) {
                         FileTypeDetectorZipExtract.Handler e = (FileTypeDetectorZipExtract.Handler) d;
                         File z = fbook.file;
-                        if (f != null) {
-                            f = null; // force to delete
-                            fbook.file = File.createTempFile("book", ".tmp");
+                        if (!tmp) {
+                            fbook.file = File.createTempFile("book", ".tmp", context.getCacheDir());
                             fbook.md5 = e.extract(z, fbook.file);
+                            tmp = true; // force to delete 'fbook.file'
                         } else {
-                            File tmp = File.createTempFile("book", ".tmp");
-                            fbook.md5 = e.extract(z, tmp);
+                            File tt = File.createTempFile("book", ".tmp", context.getCacheDir());
+                            fbook.md5 = e.extract(z, tt);
                             z.delete();
-                            fbook.file = tmp;
+                            fbook.file = tt;
                         }
                     }
                     break; // priority first - more imporant
@@ -994,12 +984,12 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         } catch (RuntimeException e) {
             throw e;
         } catch (IOException | NoSuchAlgorithmException e) {
-            if (fbook.file != null)
+            if (tmp && fbook.file != null)
                 fbook.file.delete();
             throw new RuntimeException(e);
         }
         File storage = getLocalStorage();
-        fbook.store(storage, f == null);
+        fbook.store(storage, tmp);
         return fbook;
     }
 
@@ -1112,6 +1102,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public void list(ArrayList<Book> list, File storage) {
+        if (storage == null)
+            return;
         File[] ff = storage.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
