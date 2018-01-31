@@ -599,9 +599,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                     try {
                         InputStream is;
                         if (Build.VERSION.SDK_INT < 11) {
-                            HttpURLConnection conn = HttpClient.openConnection(uri);
-                            // if (useragent != null)
-                            //     conn.setRequestProperty("User-Agent", useragent);
+                            HttpURLConnection conn = HttpClient.openConnection(uri, useragent);
                             is = conn.getInputStream();
                         } else {
                             HttpClient client = new HttpClient() {

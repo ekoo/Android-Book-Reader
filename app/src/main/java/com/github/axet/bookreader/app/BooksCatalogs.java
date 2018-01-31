@@ -188,7 +188,7 @@ public class BooksCatalogs {
             } else if (s.startsWith(WebViewCustom.SCHEME_HTTP)) {
                 if (Build.VERSION.SDK_INT < 11) {
                     HttpURLConnection conn = HttpClient.openConnection(uri);
-                    InputStream is = conn.getInputStream();
+                    InputStream is = new BufferedInputStream(conn.getInputStream());
                     ct.load(is);
                     is.close();
                 } else {
