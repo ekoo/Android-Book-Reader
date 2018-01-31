@@ -103,7 +103,16 @@ public class SettingsActivity extends AppCompatSettingsThemeActivity {
     @Override
     protected void attachBaseContext(Context newBase) {
         super.attachBaseContext(newBase);
-        createTheme(MainApplication.PREFERENCE_THEME, R.string.Theme_Dark, R.style.AppThemeLight, R.style.AppThemeDark);
+    }
+
+    @Override
+    public int getAppTheme() {
+        return MainApplication.getTheme(this, R.style.AppThemeLight, R.style.AppThemeDark);
+    }
+
+    @Override
+    public String getAppThemeKey() {
+        return MainApplication.PREFERENCE_THEME;
     }
 
     @Override
@@ -111,11 +120,6 @@ public class SettingsActivity extends AppCompatSettingsThemeActivity {
         super.onCreate(savedInstanceState);
         setupActionBar();
         getSupportFragmentManager().beginTransaction().replace(android.R.id.content, new GeneralPreferenceFragment()).commit();
-    }
-
-    @Override
-    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        super.onSharedPreferenceChanged(sharedPreferences, key);
     }
 
     /**

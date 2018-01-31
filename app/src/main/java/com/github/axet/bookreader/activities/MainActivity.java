@@ -113,7 +113,6 @@ public class MainActivity extends FullscreenActivity
     @Override
     protected void attachBaseContext(Context newBase) {
         super.attachBaseContext(newBase);
-        createTheme(MainApplication.PREFERENCE_THEME, R.string.Theme_Dark, R.style.AppThemeLight_NoActionBar, R.style.AppThemeDark_NoActionBar);
     }
 
     @Override
