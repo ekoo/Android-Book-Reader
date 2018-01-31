@@ -24,6 +24,7 @@ import android.view.accessibility.AccessibilityEvent;
 
 import com.github.axet.androidlibrary.widgets.AppCompatThemeActivity;
 import com.github.axet.bookreader.R;
+import com.github.axet.bookreader.app.MainApplication;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
@@ -242,6 +243,11 @@ public class FullscreenActivity extends AppCompatThemeActivity {
             }
         });
         decorView = w.getDecorView();
+    }
+
+    @Override
+    public int getAppTheme() {
+        return MainApplication.getTheme(this, R.style.AppThemeLight_NoActionBar, R.style.AppThemeDark_NoActionBar);
     }
 
     @Override
