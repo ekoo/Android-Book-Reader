@@ -20,6 +20,7 @@ import android.widget.TextView;
 
 import com.github.axet.androidlibrary.app.SuperUser;
 import com.github.axet.androidlibrary.net.HttpClient;
+import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
@@ -599,10 +600,18 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                     try {
                         InputStream is;
                         if (Build.VERSION.SDK_INT < 11) {
-                            HttpURLConnection conn = HttpClient.openConnection(uri);
-                            // if (useragent != null)
-                            //     conn.setRequestProperty("User-Agent", useragent);
+                            HttpURLConnection conn = HttpClient.openConnection(uri, useragent);
                             is = conn.getInputStream();
+                            String wm = conn.getContentType();
+                            if (wm != null && mimetype != null && !wm.equals(mimetype) && wm.startsWith("text")) {
+                                main.runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        AboutPreferenceCompat.openUrl(getContext(), uri.toString());
+                                    }
+                                });
+                                return;
+                            }
                         } else {
                             HttpClient client = new HttpClient() {
                                 @Override
@@ -720,8 +729,12 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     }
 
     public void openBrowser(String u) {
-        BrowserDialogFragment b = BrowserDialogFragment.create(u);
-        b.show(getFragmentManager(), "");
+        if (Build.VERSION.SDK_INT < 11) {
+            AboutPreferenceCompat.openUrl(getContext(), u);
+        } else {
+            BrowserDialogFragment b = BrowserDialogFragment.create(u);
+            b.show(getFragmentManager(), "");
+        }
     }
 
     @Override
