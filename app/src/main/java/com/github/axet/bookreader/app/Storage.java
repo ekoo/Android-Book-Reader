@@ -1101,6 +1101,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public void list(ArrayList<Book> list, File storage) {
+        if (storage == null)
+            return;
         File[] ff = storage.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
