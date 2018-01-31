@@ -927,7 +927,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
             fbook.file = f;
             if (fbook.file == null) {
-                fbook.file = File.createTempFile("book", ".tmp");
+                fbook.file = File.createTempFile("book", ".tmp", context.getCacheDir());
                 os = new FileOutputStream(fbook.file);
             }
 

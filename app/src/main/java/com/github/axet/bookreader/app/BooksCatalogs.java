@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.os.Build;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.preference.PreferenceManager;
 
@@ -27,7 +28,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -181,13 +186,20 @@ public class BooksCatalogs {
                 ct.load(is);
                 is.close();
             } else if (s.startsWith(WebViewCustom.SCHEME_HTTP)) {
-                HttpClient client = new HttpClient();
-                HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
-                if (w.getError() != null)
-                    throw new RuntimeException(w.getError() + ": " + uri);
-                InputStream is = new BufferedInputStream(w.getInputStream());
-                ct.load(is);
-                is.close();
+                if (Build.VERSION.SDK_INT < 11) {
+                    HttpURLConnection conn = HttpClient.openConnection(uri);
+                    InputStream is = conn.getInputStream();
+                    ct.load(is);
+                    is.close();
+                } else {
+                    HttpClient client = new HttpClient();
+                    HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
+                    if (w.getError() != null)
+                        throw new RuntimeException(w.getError() + ": " + uri);
+                    InputStream is = new BufferedInputStream(w.getInputStream());
+                    ct.load(is);
+                    is.close();
+                }
             } else if (s.startsWith(ContentResolver.SCHEME_FILE)) {
                 File f = new File(uri.getPath());
                 FileInputStream is = new FileInputStream(f);
