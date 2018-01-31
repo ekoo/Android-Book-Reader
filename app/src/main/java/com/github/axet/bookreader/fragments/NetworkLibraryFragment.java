@@ -254,7 +254,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         if (a != null) {
             ignore = new ArrayList<>();
             for (Object i : a) {
-                Pattern p = Pattern.compile(SuperUser.wildcard((String) i));
+                Pattern p = Pattern.compile(Storage.wildcard((String) i));
                 ignore.add(p);
             }
         }

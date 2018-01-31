@@ -161,17 +161,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
     }
 
-    public static String toHex(byte[] messageDigest) {
-        StringBuilder hexString = new StringBuilder();
-        for (byte aMessageDigest : messageDigest) {
-            String h = Integer.toHexString(0xFF & aMessageDigest);
-            while (h.length() < 2)
-                h = "0" + h;
-            hexString.append(h);
-        }
-        return hexString.toString();
-    }
-
     public static String getTitle(Book book) {
         String a = book.book.authorsString(", ");
         String t = book.book.getTitle();
@@ -331,7 +320,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
                     os.close();
                     is.close();
-                    return toHex(digest.digest());
+                    return Storage.toHex(digest.digest());
                 } catch (RuntimeException r) {
                     throw r;
                 } catch (Exception r) {
