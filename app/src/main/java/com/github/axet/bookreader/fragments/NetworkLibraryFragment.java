@@ -3,6 +3,7 @@ package com.github.axet.bookreader.fragments;
 import android.app.Activity;
 import android.content.Context;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -61,6 +62,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -281,7 +283,6 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         }
 
         useragent = (String) n.opds.get("user-agent");
-
         if (useragent == null) {
             useragent = ZLNetworkUtil.getUserAgent();
         }
@@ -596,29 +597,37 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                 @Override
                 public void run() {
                     try {
-                        HttpClient client = new HttpClient() {
-                            @Override
-                            protected CloseableHttpClient build(HttpClientBuilder builder) {
-                                if (useragent != null)
-                                    builder.setUserAgent(useragent);
-                                return super.build(builder);
-                            }
-                        };
-                        final HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
-                        if (w.getError() != null)
-                            throw new RuntimeException(w.getError() + ": " + uri);
-                        String wm = w.getMimeType();
-                        if (w.getResponse().getEntity().getContentType() != null && mimetype != null && !wm.equals(mimetype) && wm.startsWith("text")) {
-                            main.runOnUiThread(new Runnable() {
+                        InputStream is;
+                        if (Build.VERSION.SDK_INT < 11) {
+                            HttpURLConnection conn = HttpClient.openConnection(uri);
+                            // if (useragent != null)
+                            //     conn.setRequestProperty("User-Agent", useragent);
+                            is = conn.getInputStream();
+                        } else {
+                            HttpClient client = new HttpClient() {
                                 @Override
-                                public void run() {
-                                    BrowserDialogFragment b = BrowserDialogFragment.createHtml(uri.toString(), w.getHtml());
-                                    b.show(getFragmentManager(), "");
+                                protected CloseableHttpClient build(HttpClientBuilder builder) {
+                                    if (useragent != null)
+                                        builder.setUserAgent(useragent);
+                                    return super.build(builder);
                                 }
-                            });
-                            return;
+                            };
+                            final HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
+                            if (w.getError() != null)
+                                throw new RuntimeException(w.getError() + ": " + uri);
+                            String wm = w.getMimeType();
+                            if (w.getResponse().getEntity().getContentType() != null && mimetype != null && !wm.equals(mimetype) && wm.startsWith("text")) {
+                                main.runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        BrowserDialogFragment b = BrowserDialogFragment.createHtml(uri.toString(), w.getHtml());
+                                        b.show(getFragmentManager(), "");
+                                    }
+                                });
+                                return;
+                            }
+                            is = new BufferedInputStream(w.getInputStream());
                         }
-                        InputStream is = new BufferedInputStream(w.getInputStream());
                         final Storage.Book fbook = storage.load(is, null);
                         storage.load(fbook);
                         File r = Storage.recentFile(fbook);
@@ -754,7 +763,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
     @Override
     public String getHint() {
-        if(searchCatalog==null)
+        if (searchCatalog == null)
             return getString(R.string.search_local);
         else
             return getString(R.string.search_network);
