@@ -904,7 +904,11 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
         File r = recentFile(fbook);
         if (r.exists()) {
-            fbook.info = new RecentInfo(r);
+            try {
+                fbook.info = new RecentInfo(r);
+            } catch (RuntimeException e) {
+                Log.d(TAG, "Unable to load info", e);
+            }
         }
         if (fbook.info == null) {
             fbook.info = new RecentInfo();
@@ -1008,7 +1012,11 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         File r = recentFile(fbook);
         if (fbook.info == null) {
             if (r.exists())
-                fbook.info = new RecentInfo(r);
+                try {
+                    fbook.info = new RecentInfo(r);
+                } catch (RuntimeException e) {
+                    Log.d(TAG, "Unable to load info", e);
+                }
         }
         if (fbook.info == null) {
             fbook.info = new RecentInfo();
@@ -1127,8 +1135,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (cover.exists())
                 b.cover = cover;
             File r = recentFile(b);
-            if (r.exists())
-                b.info = new RecentInfo(r);
+            if (r.exists()) {
+                try {
+                    b.info = new RecentInfo(r);
+                } catch (RuntimeException e) {
+                    Log.d(TAG, "Unable to load info", e);
+                }
+            }
             if (b.info == null) {
                 b.info = new RecentInfo();
                 b.info.created = System.currentTimeMillis();

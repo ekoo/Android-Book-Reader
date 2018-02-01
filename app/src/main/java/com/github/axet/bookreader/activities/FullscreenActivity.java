@@ -251,6 +251,11 @@ public class FullscreenActivity extends AppCompatThemeActivity {
     }
 
     @Override
+    public int getAppThemePopup() {
+        return MainApplication.getTheme(this, R.style.AppThemeLight_PopupOverlay, R.style.AppThemeDark_PopupOverlay);
+    }
+
+    @Override
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
     }
