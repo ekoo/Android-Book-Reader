@@ -28,4 +28,5 @@
     <string name="search_local">Local Search&#8230;</string>
     <string name="search_network">Network Search&#8230;</string>
     <string name="search_book">Book Search&#8230;</string>
+    <string name="pref_theme_title">Theme</string>
 </resources>
