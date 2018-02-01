@@ -7,6 +7,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -14,8 +15,10 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.app.SuperUser;
@@ -393,7 +396,9 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                     selectToolbar(t);
                 }
             });
-            holder.searchtoolbar.addView(t);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.gravity = Gravity.CENTER;
+            holder.searchtoolbar.addView(t, lp);
         }
 
         if (holder.searchtoolbar.getChildCount() == 0)

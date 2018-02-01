@@ -22,6 +22,7 @@ import android.view.ViewGroup;
 import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListAdapter;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -58,7 +59,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
         View toolbar;
         View searchpanel;
-        ViewGroup searchtoolbar;
+        LinearLayout searchtoolbar;
         View footer;
         View footerButtons;
         View footerNext;
@@ -78,7 +79,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
             toolbar = v.findViewById(R.id.search_header_toolbar_parent);
             searchpanel = v.findViewById(R.id.search_panel);
-            searchtoolbar = (ViewGroup) v.findViewById(R.id.search_header_toolbar);
+            searchtoolbar = (LinearLayout) v.findViewById(R.id.search_header_toolbar);
 
             toolbar.setVisibility(View.GONE);
 
