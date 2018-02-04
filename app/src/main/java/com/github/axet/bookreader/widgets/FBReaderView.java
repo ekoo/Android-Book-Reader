@@ -339,7 +339,7 @@ public class FBReaderView extends RelativeLayout {
             };
             current.load(index);
             PluginPage r;
-            switch(index) {
+            switch (index) {
                 case previous:
                     r = new PluginPage(current, ZLViewEnums.PageIndex.next) {
                         @Override
@@ -882,6 +882,7 @@ public class FBReaderView extends RelativeLayout {
 
                                 final FBReaderView r = new FBReaderView(getContext(), new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow()));
                                 r.hideFooter = true;
+                                r.setWindow(w);
                                 LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 
                                 ll.addView(f, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
