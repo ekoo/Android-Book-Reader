@@ -336,9 +336,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public static class FileTypeDetectorZip {
         ArrayList<Handler> list = new ArrayList<>();
-        ParcelFileDescriptor.AutoCloseInputStream is;
         ParcelFileDescriptor.AutoCloseOutputStream os;
-        ZipInputStream zip;
         Thread thread;
 
         public static class Handler extends Detector {
@@ -359,6 +357,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
             }
 
+            final ParcelFileDescriptor.AutoCloseInputStream is;
             try {
                 ParcelFileDescriptor[] pp = ParcelFileDescriptor.createPipe();
                 is = new ParcelFileDescriptor.AutoCloseInputStream(pp[0]);
@@ -370,6 +369,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             thread = new Thread("zip detector") {
                 @Override
                 public void run() {
+                    ZipInputStream zip = null;
                     try {
                         zip = new ZipInputStream(is); // throws MALFORMED if encoding is incorrect
                         ZipEntry entry;
