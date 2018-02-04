@@ -69,6 +69,8 @@ import org.geometerplus.fbreader.util.TextSnippet;
 import org.geometerplus.zlibrary.core.application.ZLApplication;
 import org.geometerplus.zlibrary.core.application.ZLApplicationWindow;
 import org.geometerplus.zlibrary.core.filesystem.ZLFile;
+import org.geometerplus.zlibrary.core.options.ZLBooleanOption;
+import org.geometerplus.zlibrary.core.options.ZLIntegerRangeOption;
 import org.geometerplus.zlibrary.core.resources.ZLResource;
 import org.geometerplus.zlibrary.core.view.ZLView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
@@ -105,7 +107,6 @@ public class FBReaderView extends RelativeLayout {
     public Window w;
     public Storage.Book book;
     public PluginView pluginview;
-    public boolean hideFooter = false;
 
     public static class PluginRect {
         public int x; // lower left x
@@ -437,14 +438,6 @@ public class FBReaderView extends RelativeLayout {
             else
                 super.gotoPage(page);
         }
-
-        @Override
-        public FBView.Footer getFooterArea() {
-            if (hideFooter)
-                return null;
-            else
-                return super.getFooterArea();
-        }
     }
 
     public class FBAndroidWidget extends ZLAndroidWidget {
@@ -648,6 +641,8 @@ public class FBReaderView extends RelativeLayout {
     public FBReaderView(Context context, FBReaderApp app) {
         super(context);
         create(app);
+        app.ViewOptions.ScrollbarType = new ZLIntegerRangeOption("", "", 0, 0, 0);
+        app.MiscOptions.AllowScreenBrightnessAdjustment = new ZLBooleanOption("", "", false);
     }
 
     public FBReaderView(Context context, AttributeSet attrs) {
@@ -700,7 +695,7 @@ public class FBReaderView extends RelativeLayout {
         app.BookTextView = new CustomView(app);
         app.setView(app.BookTextView);
 
-        app.ViewOptions.ScrollbarType.setValue(FBView.SCROLLBAR_SHOW_AS_FOOTER);
+        app.ViewOptions.ScrollbarType = new ZLIntegerRangeOption("", "", 0, 0, FBView.SCROLLBAR_SHOW_AS_FOOTER);
         app.ViewOptions.getFooterOptions().ShowProgress.setValue(FooterOptions.ProgressDisplayType.asPages);
     }
 
@@ -755,7 +750,7 @@ public class FBReaderView extends RelativeLayout {
 
     public void setWindow(Window w) {
         this.w = w;
-        app.MiscOptions.AllowScreenBrightnessAdjustment.setValue(true);
+        app.MiscOptions.AllowScreenBrightnessAdjustment = new ZLBooleanOption("", "", true);
     }
 
     public void setActivity(final Activity a) {
@@ -881,8 +876,6 @@ public class FBReaderView extends RelativeLayout {
                                 f.addView(c, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.RIGHT | Gravity.TOP));
 
                                 final FBReaderView r = new FBReaderView(getContext(), new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow()));
-                                r.hideFooter = true;
-                                r.setWindow(w);
                                 LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 
                                 ll.addView(f, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));

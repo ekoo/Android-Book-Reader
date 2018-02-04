@@ -38,6 +38,7 @@ import org.geometerplus.zlibrary.core.image.ZLImage;
 import org.geometerplus.zlibrary.core.image.ZLStreamImage;
 import org.geometerplus.zlibrary.core.network.ZLNetworkException;
 import org.geometerplus.zlibrary.core.network.ZLNetworkRequest;
+import org.geometerplus.zlibrary.core.options.ZLIntegerRangeOption;
 import org.geometerplus.zlibrary.core.util.SystemInfo;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
@@ -1067,7 +1068,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
                 if (bm == null) {
                     FBReaderView v = new FBReaderView(getContext(), new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow()));
-                    v.hideFooter = true;
                     v.loadBook(fbook);
                     bm = renderView(v);
                 }
