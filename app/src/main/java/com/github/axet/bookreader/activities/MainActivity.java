@@ -270,22 +270,6 @@ public class MainActivity extends FullscreenActivity
             return true;
         }
 
-        if (id == R.id.action_search) {
-            if (Build.VERSION.SDK_INT < 11) {
-                final FBReaderApp app = Storage.getApp(MainActivity.this);
-                SearchDialogUtil.showDialog(this, FBReader.class, app.MiscOptions.TextSearchPattern.getValue(), new DialogInterface.OnCancelListener() {
-                            @Override
-                            public void onCancel(DialogInterface di) {
-                                final FBReaderApp.PopupPanel popup = app.getActivePopup();
-                                if (popup != null) {
-                                    app.showPopup(popup.getId());
-                                }
-                            }
-                        }
-                );
-            }
-        }
-
         if (id == R.id.action_file) {
             choicer = new OpenChoicer(OpenFileDialog.DIALOG_TYPE.FILE_DIALOG, true) {
                 @Override

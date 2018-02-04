@@ -854,7 +854,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public Storage(Context context) {
         super(context);
-        getApp(context);
     }
 
     public void save(Book book) {
