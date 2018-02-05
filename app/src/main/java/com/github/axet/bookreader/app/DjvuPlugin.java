@@ -39,7 +39,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
     static {
         if (Config.natives) {
-            Natives.loadLibraries(Storage.zlib.getBaseContext(), "djvu", "djvulibrejni");
+            Natives.loadLibraries(Storage.zlib, "djvu", "djvulibrejni");
             Config.natives = false;
         }
     }

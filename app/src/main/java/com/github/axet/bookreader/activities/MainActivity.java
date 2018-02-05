@@ -1,6 +1,7 @@
 package com.github.axet.bookreader.activities;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -107,8 +108,7 @@ public class MainActivity extends FullscreenActivity
         registerReceiver(receiver, new IntentFilter(FBReaderView.ACTION_MENU));
 
         drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        final ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        final ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
@@ -205,6 +205,7 @@ public class MainActivity extends FullscreenActivity
 
         final SearchView searchView = (SearchView) MenuItemCompat.getActionView(searchMenu);
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @SuppressLint("RestrictedApi")
             @Override
             public boolean onQueryTextSubmit(String query) {
                 searchView.clearFocus();
@@ -224,6 +225,7 @@ public class MainActivity extends FullscreenActivity
             }
         });
         searchView.setOnSearchClickListener(new View.OnClickListener() {
+            @SuppressLint("RestrictedApi")
             @Override
             public void onClick(View v) {
                 FragmentManager fm = getSupportFragmentManager();
@@ -236,6 +238,7 @@ public class MainActivity extends FullscreenActivity
             }
         });
         searchView.setOnCloseListener(new SearchView.OnCloseListener() {
+            @SuppressLint("RestrictedApi")
             @Override
             public boolean onClose() {
                 FragmentManager fm = getSupportFragmentManager();
@@ -268,22 +271,6 @@ public class MainActivity extends FullscreenActivity
         if (id == R.id.action_settings) {
             SettingsActivity.startActivity(this);
             return true;
-        }
-
-        if (id == R.id.action_search) {
-            if (Build.VERSION.SDK_INT < 11) {
-                final FBReaderApp app = Storage.getApp(MainActivity.this);
-                SearchDialogUtil.showDialog(this, FBReader.class, app.MiscOptions.TextSearchPattern.getValue(), new DialogInterface.OnCancelListener() {
-                            @Override
-                            public void onCancel(DialogInterface di) {
-                                final FBReaderApp.PopupPanel popup = app.getActivePopup();
-                                if (popup != null) {
-                                    app.showPopup(popup.getId());
-                                }
-                            }
-                        }
-                );
-            }
         }
 
         if (id == R.id.action_file) {

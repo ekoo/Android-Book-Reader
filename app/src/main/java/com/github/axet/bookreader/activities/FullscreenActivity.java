@@ -10,6 +10,7 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v7.view.WindowCallbackWrapper;
 import android.support.v7.widget.Toolbar;
 import android.view.ActionMode;
 import android.view.KeyEvent;
@@ -94,137 +95,6 @@ public class FullscreenActivity extends AppCompatThemeActivity {
     public NavigationView navigationView;
     public Toolbar toolbar;
 
-    public static class WindowCallback implements Window.Callback {
-        Window.Callback callback;
-
-        public WindowCallback(Window.Callback callback) {
-            this.callback = callback;
-        }
-
-        @Override
-        public boolean dispatchKeyEvent(KeyEvent event) {
-            return callback.dispatchKeyEvent(event);
-        }
-
-        @TargetApi(11)
-        @Override
-        public boolean dispatchKeyShortcutEvent(KeyEvent event) {
-            return callback.dispatchKeyShortcutEvent(event);
-        }
-
-        @Override
-        public boolean dispatchTouchEvent(MotionEvent event) {
-            return callback.dispatchTouchEvent(event);
-        }
-
-        @Override
-        public boolean dispatchTrackballEvent(MotionEvent event) {
-            return callback.dispatchTrackballEvent(event);
-        }
-
-        @TargetApi(12)
-        @Override
-        public boolean dispatchGenericMotionEvent(MotionEvent event) {
-            return callback.dispatchGenericMotionEvent(event);
-        }
-
-        @Override
-        public boolean dispatchPopulateAccessibilityEvent(AccessibilityEvent event) {
-            return callback.dispatchPopulateAccessibilityEvent(event);
-        }
-
-        @Nullable
-        @Override
-        public View onCreatePanelView(int featureId) {
-            return callback.onCreatePanelView(featureId);
-        }
-
-        @Override
-        public boolean onCreatePanelMenu(int featureId, Menu menu) {
-            return callback.onCreatePanelMenu(featureId, menu);
-        }
-
-        @Override
-        public boolean onPreparePanel(int featureId, View view, Menu menu) {
-            return callback.onPreparePanel(featureId, view, menu);
-        }
-
-        @Override
-        public boolean onMenuOpened(int featureId, Menu menu) {
-            return callback.onMenuOpened(featureId, menu);
-        }
-
-        @Override
-        public boolean onMenuItemSelected(int featureId, MenuItem item) {
-            return callback.onMenuItemSelected(featureId, item);
-        }
-
-        @Override
-        public void onWindowAttributesChanged(WindowManager.LayoutParams attrs) {
-            callback.onWindowAttributesChanged(attrs);
-        }
-
-        @Override
-        public void onContentChanged() {
-            callback.onContentChanged();
-        }
-
-        @Override
-        public void onWindowFocusChanged(boolean hasFocus) {
-            callback.onWindowFocusChanged(hasFocus);
-        }
-
-        @Override
-        public void onAttachedToWindow() {
-            callback.onAttachedToWindow();
-        }
-
-        @Override
-        public void onDetachedFromWindow() {
-            callback.onDetachedFromWindow();
-        }
-
-        @Override
-        public void onPanelClosed(int featureId, Menu menu) {
-            callback.onPanelClosed(featureId, menu);
-        }
-
-        @Override
-        public boolean onSearchRequested() {
-            return callback.onSearchRequested();
-        }
-
-        @TargetApi(23)
-        @Override
-        public boolean onSearchRequested(SearchEvent searchEvent) {
-            return callback.onSearchRequested(searchEvent);
-        }
-
-        @Nullable
-        @Override
-        public ActionMode onWindowStartingActionMode(ActionMode.Callback callback) {
-            return null; // callback.onWindowStartingActionMode(callback);
-        }
-
-        @Nullable
-        @Override
-        public ActionMode onWindowStartingActionMode(ActionMode.Callback callback, int type) {
-            return null; // callback.onWindowStartingActionMode(callback, type);
-        }
-
-        @TargetApi(11)
-        @Override
-        public void onActionModeStarted(ActionMode mode) {
-            callback.onActionModeStarted(mode);
-        }
-
-        @TargetApi(11)
-        @Override
-        public void onActionModeFinished(ActionMode mode) {
-            callback.onActionModeFinished(mode);
-        }
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -234,7 +104,8 @@ public class FullscreenActivity extends AppCompatThemeActivity {
 
         w = getWindow();
         final Window.Callback callback = w.getCallback();
-        w.setCallback(new WindowCallback(callback) {
+        w.setCallback(new WindowCallbackWrapper(callback) {
+            @SuppressLint("RestrictedApi")
             @Override
             public void onWindowFocusChanged(boolean hasFocus) {
                 super.onWindowFocusChanged(hasFocus);
@@ -303,8 +174,7 @@ public class FullscreenActivity extends AppCompatThemeActivity {
         // Set the content to appear under the system bars so that the content
         // doesn't resize when the system bars hide and show.
         if (Build.VERSION.SDK_INT >= 11)
-            decorView.setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                             | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                             | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                             | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION // hide nav bar
@@ -319,8 +189,7 @@ public class FullscreenActivity extends AppCompatThemeActivity {
 // except for the ones that make the content appear under the system bars.
     private void showSystemUI() {
         if (Build.VERSION.SDK_INT >= 11)
-            decorView.setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         if (Build.VERSION.SDK_INT >= 14)
             drawer.setFitsSystemWindows(true);
         drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);

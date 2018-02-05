@@ -1,10 +1,10 @@
 package com.github.axet.bookreader.app;
 
 import android.annotation.TargetApi;
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.pdf.PdfRenderer;
+import android.os.Build;
 import android.os.ParcelFileDescriptor;
 
 import com.github.axet.androidlibrary.app.Natives;
@@ -43,7 +43,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     static {
         if (Config.natives) {
-            Natives.loadLibraries(Storage.zlib.getBaseContext(), "pdfium", "pdfiumjni");
+            Natives.loadLibraries(Storage.zlib, "modpdfium", "pdfiumjni");
             Config.natives = false;
         }
     }
@@ -213,7 +213,6 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             canvas.drawBitmap(bm, render.toRect(bm.getWidth(), bm.getHeight()), render.dst, paint);
             bm.recycle();
         }
-
     }
 
     public static class PDFTextModel extends PDFiumView implements ZLTextModel {
