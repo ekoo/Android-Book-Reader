@@ -1,19 +1,11 @@
 package com.github.axet.bookreader.app;
 
-import android.content.ContentResolver;
-import android.content.Context;
-import android.net.Uri;
-
-import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 
 import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
