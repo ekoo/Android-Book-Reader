@@ -278,7 +278,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     void showTOC() {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        final TOCTree current = view.app.getCurrentTOCElement();
+        final TOCTree current = view.getCurrentTOCElement();
         final TOCAdapter a = new TOCAdapter(view.app.Model.TOCTree.subtrees(), current);
         builder.setSingleChoiceItems(a, a.getCurrent(), new DialogInterface.OnClickListener() {
             @Override
