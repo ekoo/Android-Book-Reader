@@ -21,8 +21,8 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CheckedTextView;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListAdapter;
 import android.widget.TextView;
 
@@ -44,6 +44,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     Storage storage;
     FBReaderView view;
+    AlertDialog tocdialog;
 
     BroadcastReceiver battery = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -123,6 +124,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 convertView = inflater.inflate(R.layout.toc_item, null);
             }
             TOCTree tt = tree.get(position);
+            ImageView ex = (ImageView) convertView.findViewById(R.id.expand);
+            ex.setVisibility(View.GONE);
+            convertView.setPadding(20 * tt.Level, 0, 0, 0);
             ImageView i = (ImageView) convertView.findViewById(R.id.image);
             TextView t = (TextView) convertView.findViewById(R.id.text);
             if (equals(tt, current)) {
@@ -292,7 +296,14 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             public void onClick(DialogInterface dialog, int which) {
             }
         });
-        builder.show();
+        tocdialog = builder.create();
+        tocdialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+                ;
+            }
+        });
+        tocdialog.show();
     }
 
     @Override
