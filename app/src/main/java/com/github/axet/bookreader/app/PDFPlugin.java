@@ -17,6 +17,7 @@ import com.shockwave.pdfium.util.Size;
 import org.geometerplus.fbreader.book.AbstractBook;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.bookmodel.BookModel;
+import org.geometerplus.fbreader.bookmodel.TOCTree;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
 import org.geometerplus.fbreader.formats.BookReadingException;
 import org.geometerplus.fbreader.formats.BuiltinFormatPlugin;
@@ -348,6 +349,22 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     @Override
     public void readModel(BookModel model) throws BookReadingException {
-        model.setBookTextModel(new PDFTextModel(BookUtil.fileByBook(model.Book)));
+        PDFTextModel m = new PDFTextModel(BookUtil.fileByBook(model.Book));
+        model.setBookTextModel(m);
+        List<PdfDocument.Bookmark> bookmarks = m.core.getTableOfContents(m.doc);
+        loadTOC(bookmarks, model.TOCTree);
+    }
+
+    void loadTOC(List<PdfDocument.Bookmark> bb, TOCTree tree) {
+        for (PdfDocument.Bookmark b : bb) {
+            String tt = b.getTitle();
+            if (tt.isEmpty() && !b.hasChildren())
+                continue;
+            TOCTree t = new TOCTree(tree);
+            t.setText(tt);
+            t.setReference(null, (int) b.getPageIdx());
+            if (b.hasChildren())
+                loadTOC(b.getChildren(), t);
+        }
     }
 }

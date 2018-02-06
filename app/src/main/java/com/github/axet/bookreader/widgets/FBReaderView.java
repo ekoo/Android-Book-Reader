@@ -398,6 +398,21 @@ public class FBReaderView extends RelativeLayout {
 
         public void close() {
         }
+
+        public TOCTree getCurrentTOCElement(TOCTree TOCTree) {
+            TOCTree treeToSelect = null;
+            for (TOCTree tree : TOCTree) {
+                final TOCTree.Reference reference = tree.getReference();
+                if (reference == null) {
+                    continue;
+                }
+                if (reference.ParagraphIndex > current.pageNumber) {
+                    break;
+                }
+                treeToSelect = tree;
+            }
+            return treeToSelect;
+        }
     }
 
     public class CustomView extends FBView {
@@ -1117,6 +1132,14 @@ public class FBReaderView extends RelativeLayout {
             pluginview.gotoPosition(p);
         else
             app.BookTextView.gotoPosition(p);
+        widget.reset();
         widget.repaint();
+    }
+
+    public TOCTree getCurrentTOCElement() {
+        if (pluginview != null)
+            return pluginview.getCurrentTOCElement(app.Model.TOCTree);
+        else
+            return app.getCurrentTOCElement();
     }
 }
