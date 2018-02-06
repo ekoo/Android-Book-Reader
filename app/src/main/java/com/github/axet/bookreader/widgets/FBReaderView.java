@@ -6,6 +6,7 @@ import android.app.Application;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -13,6 +14,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.Parcelable;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.preference.PreferenceManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
@@ -32,6 +34,7 @@ import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.DjvuPlugin;
+import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.PDFPlugin;
 import com.github.axet.bookreader.app.Storage;
 import com.github.johnpersano.supertoasts.SuperActivityToast;
@@ -51,8 +54,10 @@ import org.geometerplus.android.fbreader.libraryService.BookCollectionShadow;
 import org.geometerplus.android.util.OrientationUtil;
 import org.geometerplus.android.util.UIMessageUtil;
 import org.geometerplus.android.util.UIUtil;
+import org.geometerplus.fbreader.book.Book;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.book.Bookmark;
+import org.geometerplus.fbreader.book.IBookCollection;
 import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.bookmodel.FBHyperlinkType;
 import org.geometerplus.fbreader.bookmodel.TOCTree;
@@ -61,6 +66,7 @@ import org.geometerplus.fbreader.fbreader.DictionaryHighlighting;
 import org.geometerplus.fbreader.fbreader.FBAction;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
 import org.geometerplus.fbreader.fbreader.FBView;
+import org.geometerplus.fbreader.fbreader.options.ColorProfile;
 import org.geometerplus.fbreader.fbreader.options.FooterOptions;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
@@ -72,6 +78,7 @@ import org.geometerplus.zlibrary.core.filesystem.ZLFile;
 import org.geometerplus.zlibrary.core.options.ZLBooleanOption;
 import org.geometerplus.zlibrary.core.options.ZLIntegerRangeOption;
 import org.geometerplus.zlibrary.core.resources.ZLResource;
+import org.geometerplus.zlibrary.core.util.SystemInfo;
 import org.geometerplus.zlibrary.core.view.ZLView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.core.view.ZLViewWidget;
@@ -87,6 +94,7 @@ import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextRegion;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
 import org.geometerplus.zlibrary.text.view.ZLTextWordRegionSoul;
+import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 import java.io.IOException;
@@ -648,13 +656,23 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
-    public FBReaderView(Context context) {
-        super(context);
-        create();
+    public class FBReaderApp extends org.geometerplus.fbreader.fbreader.FBReaderApp {
+        public FBReaderApp(org.geometerplus.zlibrary.core.util.SystemInfo systemInfo, IBookCollection<Book> collection) {
+            super(systemInfo, collection);
+        }
+
+        @Override
+        public TOCTree getCurrentTOCElement() {
+            if (pluginview != null)
+                return pluginview.getCurrentTOCElement(Model.TOCTree);
+            else
+                return super.getCurrentTOCElement();
+        }
     }
 
-    public FBReaderView(Context context, FBReaderApp app) {
+    public FBReaderView(Context context) { // create child view
         super(context);
+        FBReaderApp app = new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow());
         create(app);
         app.ViewOptions.ScrollbarType = new ZLIntegerRangeOption("", "", 0, 0, 0);
         app.MiscOptions.AllowScreenBrightnessAdjustment = new ZLBooleanOption("", "", false);
@@ -676,8 +694,25 @@ public class FBReaderView extends RelativeLayout {
         create();
     }
 
+    public FBReaderApp getApp(final Context context) {
+        if (Storage.zlib == null) {
+            Storage.zlib = new ZLAndroidApplication() {
+                {
+                    attachBaseContext(context);
+                    onCreate();
+                }
+            };
+        }
+        Storage.Info info = new Storage.Info(context);
+        FBReaderApp app = (FBReaderApp) FBReaderView.FBReaderApp.Instance();
+        if (app == null) {
+            app = new FBReaderApp(info, new BookCollectionShadow());
+        }
+        return app;
+    }
+
     public void create() {
-        create(Storage.getApp(getContext()));
+        create(getApp(getContext()));
     }
 
     public void create(final FBReaderApp app) {
@@ -890,7 +925,7 @@ public class FBReaderView extends RelativeLayout {
                                 c.setColorFilter(ThemeUtils.getThemeColor(getContext(), R.attr.colorAccent));
                                 f.addView(c, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.RIGHT | Gravity.TOP));
 
-                                final FBReaderView r = new FBReaderView(getContext(), new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow()));
+                                final FBReaderView r = new FBReaderView(getContext());
                                 LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 
                                 ll.addView(f, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -1136,10 +1171,19 @@ public class FBReaderView extends RelativeLayout {
         widget.repaint();
     }
 
-    public TOCTree getCurrentTOCElement() {
-        if (pluginview != null)
-            return pluginview.getCurrentTOCElement(app.Model.TOCTree);
-        else
-            return app.getCurrentTOCElement();
+
+    public void setColorProfile() {
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+        if (shared.getString(MainApplication.PREFERENCE_THEME, "").equals(getContext().getString(R.string.Theme_Dark))) {
+            setColorProfile(ColorProfile.NIGHT);
+        } else {
+            setColorProfile(ColorProfile.DAY);
+        }
+    }
+
+    public void setColorProfile(String p) {
+        app.ViewOptions.ColorProfileName.setValue(p);
+        app.getViewWidget().reset();
+        app.getViewWidget().repaint();
     }
 }

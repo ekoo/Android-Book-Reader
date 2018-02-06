@@ -197,7 +197,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         view = (FBReaderView) v.findViewById(R.id.main_view);
 
-        Storage.setColorProfile(getContext());
+        view.setColorProfile();
 
         Context context = getContext();
         context.registerReceiver(battery, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
@@ -278,7 +278,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     void showTOC() {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        final TOCTree current = view.getCurrentTOCElement();
+        final TOCTree current = view.app.getCurrentTOCElement();
         final TOCAdapter a = new TOCAdapter(view.app.Model.TOCTree.subtrees(), current);
         builder.setSingleChoiceItems(a, a.getCurrent(), new DialogInterface.OnClickListener() {
             @Override
@@ -309,9 +309,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         if (key.equals(MainApplication.PREFERENCE_THEME)) {
             if (sharedPreferences.getString(key, "").equals(getString(R.string.Theme_Dark))) {
-                Storage.setColorProfile(getContext(), ColorProfile.NIGHT);
+                view.setColorProfile(ColorProfile.NIGHT);
             } else {
-                Storage.setColorProfile(getContext(), ColorProfile.DAY);
+                view.setColorProfile(ColorProfile.DAY);
             }
         }
     }

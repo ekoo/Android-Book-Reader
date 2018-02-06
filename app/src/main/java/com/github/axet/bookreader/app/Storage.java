@@ -19,26 +19,20 @@ import android.widget.TextView;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
-import com.github.axet.bookreader.widgets.BrowserDialogFragment;
 import com.github.axet.bookreader.widgets.FBReaderView;
 
 import org.apache.commons.io.IOUtils;
 import org.geometerplus.android.fbreader.libraryService.BookCollectionShadow;
-import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
 import org.geometerplus.fbreader.fbreader.options.ColorProfile;
 import org.geometerplus.fbreader.formats.BookReadingException;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
-import org.geometerplus.fbreader.network.NetworkLibrary;
 import org.geometerplus.zlibrary.core.filesystem.ZLFile;
 import org.geometerplus.zlibrary.core.image.ZLFileImageProxy;
 import org.geometerplus.zlibrary.core.image.ZLImage;
 import org.geometerplus.zlibrary.core.image.ZLStreamImage;
-import org.geometerplus.zlibrary.core.network.ZLNetworkException;
-import org.geometerplus.zlibrary.core.network.ZLNetworkRequest;
-import org.geometerplus.zlibrary.core.options.ZLIntegerRangeOption;
 import org.geometerplus.zlibrary.core.util.SystemInfo;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
@@ -63,14 +57,10 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
-import java.net.URI;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
@@ -94,39 +84,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return new Detector[]{new FileFB2(), new FileFB2Zip(), new FileEPUB(), new FileHTML(), new FileHTMLZip(),
                 new FilePDF(), new FileDjvu(), new FileRTF(), new FileRTFZip(), new FileDoc(),
                 new FileMobi(), new FileTxt(), new FileTxtZip()};
-    }
-
-    public static FBReaderApp getApp(final Context context) {
-        if (zlib == null) {
-            zlib = new ZLAndroidApplication() {
-                {
-                    attachBaseContext(context);
-                    onCreate();
-                }
-            };
-        }
-        Info info = new Info(context);
-        FBReaderApp app = (FBReaderApp) FBReaderApp.Instance();
-        if (app == null) {
-            app = new FBReaderApp(info, new BookCollectionShadow());
-        }
-        return app;
-    }
-
-    public static void setColorProfile(Context context) {
-        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
-        if (shared.getString(MainApplication.PREFERENCE_THEME, "").equals(context.getString(R.string.Theme_Dark))) {
-            Storage.setColorProfile(context, ColorProfile.NIGHT);
-        } else {
-            Storage.setColorProfile(context, ColorProfile.DAY);
-        }
-    }
-
-    public static void setColorProfile(Context context, String p) {
-        FBReaderApp app = getApp(context);
-        app.ViewOptions.ColorProfileName.setValue(p);
-        app.getViewWidget().reset();
-        app.getViewWidget().repaint();
     }
 
     public static FormatPlugin getPlugin(PluginCollection c, Storage.Book b) {
@@ -1066,7 +1023,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     bm = renderView(v);
                 }
                 if (bm == null) {
-                    FBReaderView v = new FBReaderView(getContext(), new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow()));
+                    FBReaderView v = new FBReaderView(getContext());
                     v.loadBook(fbook);
                     bm = renderView(v);
                 }

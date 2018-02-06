@@ -27,7 +27,6 @@ public class MainApplication extends MultiDexApplication {
     @Override
     public void onCreate() {
         super.onCreate();
-        Storage.getApp(this); // init context
     }
 
 }
