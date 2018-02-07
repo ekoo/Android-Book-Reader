@@ -307,7 +307,7 @@ public class FBReaderView extends RelativeLayout {
 
         public PluginView() {
             try {
-                FBReaderApp app = ((FBReaderApp) FBReaderApp.Instance());
+                org.geometerplus.fbreader.fbreader.FBReaderApp app = new org.geometerplus.fbreader.fbreader.FBReaderApp(Storage.systeminfo, new BookCollectionShadow());
                 ZLFile wallpaper = app.BookTextView.getWallpaperFile();
                 if (wallpaper != null)
                     this.wallpaper = BitmapFactory.decodeStream(wallpaper.getInputStream());
