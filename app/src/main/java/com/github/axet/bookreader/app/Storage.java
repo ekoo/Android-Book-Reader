@@ -79,6 +79,20 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public static final String JSON_EXT = "json";
 
     public static ZLAndroidApplication zlib;
+    public static Storage.Info systeminfo;
+
+    public static void init(final Context context) {
+        if (Storage.systeminfo == null)
+            Storage.systeminfo = new Storage.Info(context);
+        if (Storage.zlib == null) {
+            Storage.zlib = new ZLAndroidApplication() {
+                {
+                    attachBaseContext(context);
+                    onCreate();
+                }
+            };
+        }
+    }
 
     public static Detector[] supported() {
         return new Detector[]{new FileFB2(), new FileFB2Zip(), new FileEPUB(), new FileHTML(), new FileHTMLZip(),

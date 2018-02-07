@@ -63,7 +63,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         void loadTOC(TreeListView.TreeNode r, List<TOCTree> tree) {
             for (TOCTree t : tree) {
-                TreeListView.TreeNode n = new TreeListView.TreeNode(t);
+                TreeListView.TreeNode n = new TreeListView.TreeNode(r, t);
                 r.nodes.add(n);
                 if (equals(t, current)) {
                     n.selected = true; // current selected
@@ -102,7 +102,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             else
                 ex.setVisibility(View.VISIBLE);
             ex.setImageResource(t.expanded ? R.drawable.ic_expand_less_black_24dp : R.drawable.ic_expand_more_black_24dp);
-            convertView.setPadding(20 * tt.Level, 0, 0, 0);
+            convertView.setPadding(20 * t.level, 0, 0, 0);
             ImageView i = (ImageView) convertView.findViewById(R.id.image);
             TextView textView = (TextView) convertView.findViewById(R.id.text);
             if (t.selected) {

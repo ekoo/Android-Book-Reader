@@ -187,7 +187,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
     }
 
     public DjvuPlugin() {
-        super(FBReaderApp.Instance().SystemInfo, EXT);
+        super(Storage.systeminfo, EXT);
     }
 
     @Override
