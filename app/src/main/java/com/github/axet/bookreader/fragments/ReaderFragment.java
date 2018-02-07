@@ -57,6 +57,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         public TOCAdapter(List<TOCTree> ll, TOCTree current) {
             this.current = current;
+            this.root.level = -1;
             loadTOC(root, ll);
             load();
         }

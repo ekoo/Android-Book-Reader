@@ -8,10 +8,12 @@ import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.djvulibre.Config;
 import com.github.axet.djvulibre.DjvuLibre;
+import com.shockwave.pdfium.PdfDocument;
 
 import org.geometerplus.fbreader.book.AbstractBook;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.bookmodel.BookModel;
+import org.geometerplus.fbreader.bookmodel.TOCTree;
 import org.geometerplus.fbreader.fbreader.FBReaderApp;
 import org.geometerplus.fbreader.formats.BookReadingException;
 import org.geometerplus.fbreader.formats.BuiltinFormatPlugin;
@@ -240,6 +242,35 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
     @Override
     public void readModel(BookModel model) throws BookReadingException {
-        model.setBookTextModel(new DjvuTextModel(BookUtil.fileByBook(model.Book)));
+        DjvuTextModel m = new DjvuTextModel(BookUtil.fileByBook(model.Book));
+        model.setBookTextModel(m);
+        DjvuLibre.Bookmark[] bookmarks = m.doc.getBookmarks();
+        loadTOC(0, 0, bookmarks, model.TOCTree);
+    }
+
+    int loadTOC(int pos, int level, DjvuLibre.Bookmark[] bb, TOCTree tree) {
+        int count = 0;
+        TOCTree last = null;
+        for (int i = pos; i < bb.length; ) {
+            DjvuLibre.Bookmark b = bb[i];
+            String tt = b.title;
+            if (tt.isEmpty())
+                continue;
+            if (b.level > level) {
+                int c = loadTOC(i, b.level, bb, last);
+                i += c;
+                count += c;
+            } else if (b.level < level) {
+                break;
+            } else {
+                TOCTree t = new TOCTree(tree);
+                t.setText(tt);
+                t.setReference(null, b.page);
+                last = t;
+                i++;
+                count++;
+            }
+        }
+        return count;
     }
 }
