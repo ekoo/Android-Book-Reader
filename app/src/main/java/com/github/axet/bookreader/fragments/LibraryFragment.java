@@ -406,7 +406,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                             Intent intent = new Intent(Intent.ACTION_SEND);
                             intent.setType(type);
                             intent.putExtra(Intent.EXTRA_EMAIL, "");
-                            intent.putExtra(Intent.EXTRA_SUBJECT, b.info.title);
+                            intent.putExtra(Intent.EXTRA_SUBJECT, b.info.title + "." + ext);
                             intent.putExtra(Intent.EXTRA_TEXT, getString(R.string.shared_via, getString(R.string.app_name)));
                             intent.putExtra(Intent.EXTRA_STREAM, uri);
                             FileProvider.grantPermissions(getContext(), intent, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
