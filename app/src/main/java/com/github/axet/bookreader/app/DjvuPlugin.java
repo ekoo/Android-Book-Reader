@@ -245,6 +245,8 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         DjvuTextModel m = new DjvuTextModel(BookUtil.fileByBook(model.Book));
         model.setBookTextModel(m);
         DjvuLibre.Bookmark[] bookmarks = m.doc.getBookmarks();
+        if (bookmarks == null)
+            return;
         loadTOC(0, 0, bookmarks, model.TOCTree);
     }
 
