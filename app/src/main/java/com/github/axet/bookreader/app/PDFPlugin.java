@@ -295,7 +295,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     }
 
     public PDFPlugin() {
-        super(FBReaderApp.Instance().SystemInfo, EXT);
+        super(Storage.systeminfo, EXT);
     }
 
     @Override

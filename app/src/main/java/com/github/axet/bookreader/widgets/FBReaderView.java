@@ -695,16 +695,7 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public FBReaderApp getApp() {
-        if (Storage.zlib == null) {
-            Storage.zlib = new ZLAndroidApplication() {
-                {
-                    attachBaseContext(getContext());
-                    onCreate();
-                }
-            };
-        }
-        Storage.Info info = new Storage.Info(getContext());
-        return new FBReaderApp(info, new BookCollectionShadow());
+        return new FBReaderApp(Storage.systeminfo, new BookCollectionShadow());
     }
 
     public void create() {
