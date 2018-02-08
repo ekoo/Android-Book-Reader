@@ -10,6 +10,7 @@
 
 -keep class com.github.axet.djvulibre.DjvuLibre {*;}
 -keep class com.github.axet.djvulibre.DjvuLibre$Page {*;}
+-keep class com.github.axet.djvulibre.DjvuLibre$Bookmark {*;}
 
 -keep class com.shockwave.pdfium.PdfiumCore {*;}
 -keep class com.shockwave.pdfium.util.Size {*;}
