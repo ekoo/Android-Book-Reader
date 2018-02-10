@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -18,6 +19,7 @@ import android.support.v7.preference.PreferenceManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -37,6 +39,7 @@ import com.github.axet.bookreader.app.DjvuPlugin;
 import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.PDFPlugin;
 import com.github.axet.bookreader.app.Storage;
+import com.github.axet.k2pdfopt.K2PdfOpt;
 import com.github.johnpersano.supertoasts.SuperActivityToast;
 import com.github.johnpersano.supertoasts.SuperToast;
 import com.github.johnpersano.supertoasts.util.OnClickWrapper;
@@ -64,7 +67,6 @@ import org.geometerplus.fbreader.bookmodel.TOCTree;
 import org.geometerplus.fbreader.fbreader.ActionCode;
 import org.geometerplus.fbreader.fbreader.DictionaryHighlighting;
 import org.geometerplus.fbreader.fbreader.FBAction;
-import org.geometerplus.fbreader.fbreader.FBReaderApp;
 import org.geometerplus.fbreader.fbreader.FBView;
 import org.geometerplus.fbreader.fbreader.options.ColorProfile;
 import org.geometerplus.fbreader.fbreader.options.FooterOptions;
@@ -78,7 +80,6 @@ import org.geometerplus.zlibrary.core.filesystem.ZLFile;
 import org.geometerplus.zlibrary.core.options.ZLBooleanOption;
 import org.geometerplus.zlibrary.core.options.ZLIntegerRangeOption;
 import org.geometerplus.zlibrary.core.resources.ZLResource;
-import org.geometerplus.zlibrary.core.util.SystemInfo;
 import org.geometerplus.zlibrary.core.view.ZLView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.core.view.ZLViewWidget;
@@ -94,7 +95,6 @@ import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextRegion;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
 import org.geometerplus.zlibrary.text.view.ZLTextWordRegionSoul;
-import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 import java.io.IOException;
@@ -150,6 +150,7 @@ public class FBReaderView extends RelativeLayout {
         public PluginRect pageBox; // pageBox sizes
         public int pageStep; // pageBox sizes, page step size (fullscreen height == pageStep + pageOverlap)
         public int pageOverlap; // pageBox sizes, page overlap size (fullscreen height == pageStep + pageOverlap)
+        public int dpi; // pageBox dpi, set manually
 
         public PluginPage() {
         }
@@ -226,6 +227,7 @@ public class FBReaderView extends RelativeLayout {
             pageBox.w = w;
             pageBox.h = (int) (pageBox.h * ratio);
             pageOffset = (int) (pageOffset * ratio);
+            dpi = (int) (dpi * ratio);
         }
 
         public RenderRect renderRect(int w, int h) {
@@ -299,11 +301,88 @@ public class FBReaderView extends RelativeLayout {
         public Rect dst;
     }
 
+    public static class Reflow {
+        public K2PdfOpt k2 = new K2PdfOpt();
+        public int current = 0; // current view position
+        public int render = 0; // next render position
+        public int page = 0; // document page
+
+        public Reflow(Context context, int w, int h, int page) {
+            DisplayMetrics d = context.getResources().getDisplayMetrics();
+            k2.create(d.densityDpi, w, h);
+            this.page = page;
+        }
+
+        public void load(Bitmap bm) {
+            current = 0;
+            render = 0;
+            k2.load(bm);
+        }
+
+        public void load(Bitmap bm, int page, int current) {
+            load(bm, page);
+            this.current = current;
+        }
+
+        public void load(Bitmap bm, int page) {
+            current = page;
+            render = 0;
+            k2.load(bm);
+            while (render < page) {
+                k2.skipNext();
+                render++;
+            }
+        }
+
+        public int count() {
+            int count = 0;
+            while (k2.hasNext()) {
+                k2.skipNext();
+                count++;
+            }
+            return count;
+        }
+
+        public Bitmap render(ZLViewEnums.PageIndex index) {
+            Bitmap bm = k2.renderNext();
+            render++;
+            return bm;
+        }
+
+        public boolean canScroll(ZLViewEnums.PageIndex index) {
+            switch (index) {
+                case previous:
+                    return current > 0;
+                case next:
+                    return k2.hasNext();
+                default:
+                    return true; // current???
+            }
+        }
+
+        public void onScrollingFinished(ZLViewEnums.PageIndex index) {
+            switch (index) {
+                case next:
+                    current++;
+                    break;
+                case previous:
+                    current--;
+                    break;
+            }
+        }
+
+        public void close() {
+            k2.close();
+        }
+    }
+
     public static class PluginView {
         public Bitmap wallpaper;
         public int wallpaperColor;
         public Paint paint = new Paint();
         public PluginPage current;
+        public boolean reflow = false;
+        public Reflow reflower;
 
         public PluginView() {
             try {
@@ -336,6 +415,14 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public boolean onScrollingFinished(ZLViewEnums.PageIndex index) {
+            if (reflower != null) {
+                reflower.onScrollingFinished(index);
+                if (reflower.page != current.pageNumber) {
+                    current.pageNumber = reflower.page;
+                    current.load();
+                }
+                return false;
+            }
             PluginPage old = new PluginPage(current) {
                 @Override
                 public void load() {
@@ -376,7 +463,7 @@ public class FBReaderView extends RelativeLayout {
                 default:
                     return false;
             }
-            return !old.equals(r.pageNumber, r.pageOffset); // need redraw cache true/false?
+            return !old.equals(r.pageNumber, r.pageOffset); // need reset cache true/false?
         }
 
         public ZLTextFixedPosition getPosition() {
@@ -384,6 +471,10 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public boolean canScroll(ZLView.PageIndex index) {
+            if (reflower != null) {
+                if (reflower.canScroll(index))
+                    return true;
+            }
             PluginPage r = new PluginPage(current, index) {
                 @Override
                 public void load() {
@@ -401,7 +492,109 @@ public class FBReaderView extends RelativeLayout {
             return new ZLTextView.PagePosition(current.pageNumber, current.getPagesCount());
         }
 
-        public void drawOnBitmap(Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
+        public Bitmap render(int w, int h, int page) {
+            return null;
+        }
+
+        public void drawOnBitmap(Context context, Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
+            Canvas canvas = new Canvas(bitmap);
+            drawWallpaper(canvas);
+            if (reflow) {
+                Bitmap bm = null;
+                if (reflower != null) {
+                    int render; // render reflow page index
+                    int page;
+                    switch (index) {
+                        case previous:
+                            render = reflower.current - 1;
+                            page = reflower.page;
+                            if (render < 0) {
+                                int current = reflower.current;
+                                bm = render(w, h, page);
+                                reflower = new Reflow(context, w, h, page);
+                                reflower.load(bm);
+                                int count = reflower.count();
+                                reflower.load(bm, render + count, count + current); // set pointer to current page, wait for onScrollingFinished
+                            } else {
+                                int current = reflower.current;
+                                bm = render(w, h, page);
+                                reflower.load(bm, render, current);
+                            }
+                            bm = reflower.render(index);
+                            break;
+                        case current:
+                            render = reflower.current;
+                            bm = render(w, h, reflower.page);
+                            reflower.load(bm, render);
+                            bm = reflower.render(index);
+                            break;
+                        case next:
+                            bm = reflower.render(index);
+                            if (bm == null) {
+                                render = reflower.current - reflower.render; // jump for render pages
+                                page = reflower.page;
+                                if (render > 1) { // check do we need just between pageNumbers if current > count
+                                    page++;
+                                    bm = render(w, h, page);
+                                    reflower = new Reflow(context, w, h, page);
+                                    reflower.load(bm);
+                                    int count = reflower.count();
+                                    reflower.load(bm, render);
+                                    bm = reflower.render(index);
+                                }
+                            }
+                            break;
+                    }
+                }
+                if (bm == null) {
+                    int page = current.pageNumber;
+                    switch (index) {
+                        case next:
+                            page++;
+                            break;
+                        case previous:
+                            page--;
+                            break;
+                    }
+                    bm = render(w, h, page);
+                    if (bm != null) {
+                        int current = 0;
+                        if (reflower != null) {
+                            reflower.close();
+                            current = -1; //  continious scrolling from previous reflower
+                        }
+                        reflower = new Reflow(context, w, h, page);
+                        reflower.load(bm, 0, current);
+                        bm = reflower.render(index);
+                    }
+                }
+                if (bm != null) {
+                    Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
+                    float wr = w / (float) bm.getWidth();
+                    float hr = h / (float) bm.getHeight();
+                    int dh = (int) (bm.getHeight() * wr);
+                    int dw = (int) (bm.getWidth() * hr);
+                    Rect dst;
+                    if (dh > h) { // scaling width max makes it too high
+                        int mid = (w - dw) / 2;
+                        dst = new Rect(mid, 0, dw + mid, h); // scale it by height max and take calulated width
+                    } else { // take width
+                        int mid = (h - dh) / 2;
+                        dst = new Rect(0, mid, w, dh + mid); // scale it by width max and take calulated height
+                    }
+                    canvas.drawBitmap(bm, src, dst, paint);
+                    bm.recycle();
+                    return;
+                }
+            }
+            if (reflower != null) {
+                reflower.close();
+                reflower = null;
+            }
+            draw(canvas, w, h, index);
+        }
+
+        public void draw(Canvas bitmap, int w, int h, ZLView.PageIndex index) {
         }
 
         public void close() {
@@ -529,7 +722,7 @@ public class FBReaderView extends RelativeLayout {
         @Override
         public void drawOnBitmap(Bitmap bitmap, ZLViewEnums.PageIndex index) {
             if (pluginview != null)
-                pluginview.drawOnBitmap(bitmap, getWidth(), getMainAreaHeight(), index);
+                pluginview.drawOnBitmap(getContext(), bitmap, getWidth(), getMainAreaHeight(), index);
             else
                 super.drawOnBitmap(bitmap, index);
         }
@@ -1154,8 +1347,7 @@ public class FBReaderView extends RelativeLayout {
             pluginview.gotoPosition(p);
         else
             app.BookTextView.gotoPosition(p);
-        widget.reset();
-        widget.repaint();
+        reset();
     }
 
 
@@ -1170,7 +1362,11 @@ public class FBReaderView extends RelativeLayout {
 
     public void setColorProfile(String p) {
         app.ViewOptions.ColorProfileName.setValue(p);
-        app.getViewWidget().reset();
-        app.getViewWidget().repaint();
+        reset();
+    }
+
+    public void reset() {
+        widget.reset();
+        widget.repaint();
     }
 }
