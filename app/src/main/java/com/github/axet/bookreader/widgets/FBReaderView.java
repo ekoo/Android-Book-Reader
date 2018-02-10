@@ -302,7 +302,7 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public static class Reflow {
-        public K2PdfOpt k2 = new K2PdfOpt();
+        public K2PdfOpt k2;
         public int current = 0; // current view position
         public int render = 0; // next render position
         public int page = 0; // document page
@@ -311,19 +311,22 @@ public class FBReaderView extends RelativeLayout {
         Context context;
 
         public Reflow(Context context, int w, int h, int page) {
-            DisplayMetrics d = context.getResources().getDisplayMetrics();
-            k2.create(w, h, d.densityDpi);
             this.context = context;
             this.page = page;
-            this.w = w;
-            this.h = h;
+            reset(w, h);
+        }
+
+        public void reset() {
+            w = 0;
+            h = 0;
         }
 
         public void reset(int w, int h) {
             if (this.w != w || this.h != h) {
-                k2.close();
-                DisplayMetrics d = context.getResources().getDisplayMetrics();
+                if (k2 != null)
+                    k2.close();
                 k2 = new K2PdfOpt();
+                DisplayMetrics d = context.getResources().getDisplayMetrics();
                 k2.create(w, h, d.densityDpi);
                 this.w = w;
                 this.h = h;
@@ -431,6 +434,11 @@ public class FBReaderView extends RelativeLayout {
 
         public void gotoPosition(ZLTextPosition p) {
             current.load(p);
+            if (reflower != null) {
+                reflower.reset();
+                reflower.page = current.pageNumber;
+                reflower.current = 0;
+            }
         }
 
         public boolean onScrollingFinished(ZLViewEnums.PageIndex index) {
@@ -761,6 +769,11 @@ public class FBReaderView extends RelativeLayout {
         @Override
         public void reset() {
             super.reset();
+            if (pluginview != null) {
+                if (pluginview.reflower != null) {
+                    pluginview.reflower.reset();
+                }
+            }
         }
     }
 

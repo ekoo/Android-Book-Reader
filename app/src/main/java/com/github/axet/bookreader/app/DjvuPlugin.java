@@ -1,5 +1,6 @@
 package com.github.axet.bookreader.app;
 
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -57,6 +58,13 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             load(index);
         }
 
+        public PluginPage(PluginPage r, int page) {
+            this(r);
+            pageNumber = page;
+            pageOffset = 0;
+            load();
+        }
+
         public PluginPage(DjvuLibre d) {
             doc = d;
             load();
@@ -65,6 +73,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         public void load() {
             DjvuLibre.Page p = doc.getPageInfo(pageNumber);
             pageBox = new FBReaderView.PluginRect(0, 0, p.width, p.height);
+            dpi = p.dpi;
         }
 
         @Override
@@ -86,6 +95,19 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
+        }
+
+        @Override
+        public Bitmap render(int w, int h, int page) {
+            PluginPage r = new PluginPage((PluginPage) current, page);
+            r.renderRect(w, h);
+            r.scale(w, h);
+            FBReaderView.RenderRect render = r.renderRect(w, h);
+            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.ARGB_8888);
+            bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
+            doc.renderPage(bm, r.pageNumber, 0, 0, r.pageBox.w, r.pageBox.h, render.x, render.y, render.w, render.h);
+            bm.setDensity(r.dpi);
+            return bm;
         }
 
         @Override
