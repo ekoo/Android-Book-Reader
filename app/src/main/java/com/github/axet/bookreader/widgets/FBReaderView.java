@@ -343,7 +343,7 @@ public class FBReaderView extends RelativeLayout {
             return count;
         }
 
-        public Bitmap render(ZLViewEnums.PageIndex index) {
+        public Bitmap render() {
             Bitmap bm = k2.renderNext();
             render++;
             return bm;
@@ -502,47 +502,53 @@ public class FBReaderView extends RelativeLayout {
             if (reflow) {
                 Bitmap bm = null;
                 if (reflower != null) {
-                    int render; // render reflow page index
-                    int page;
+                    int render = reflower.current; // render reflow page index
+                    int page = reflower.page; // render pageNumber
                     switch (index) {
-                        case previous:
-                            render = reflower.current - 1;
-                            page = reflower.page;
+                        case previous: // TODO prev can point to many (no more then 2) pages behind, we need to walk every page manually
+                            render -= 1;
                             if (render < 0) {
-                                int current = reflower.current;
-                                bm = render(w, h, page);
-                                reflower = new Reflow(context, w, h, page);
-                                reflower.load(bm);
-                                int count = reflower.count();
-                                reflower.load(bm, render + count, count + current); // set pointer to current page, wait for onScrollingFinished
-                            } else {
-                                int current = reflower.current;
-                                bm = render(w, h, page);
-                                reflower.load(bm, render, current);
-                            }
-                            bm = reflower.render(index);
-                            break;
-                        case current:
-                            render = reflower.current;
-                            bm = render(w, h, reflower.page);
-                            reflower.load(bm, render);
-                            bm = reflower.render(index);
-                            break;
-                        case next:
-                            bm = reflower.render(index);
-                            if (bm == null) {
-                                render = reflower.current - reflower.render; // jump for render pages
-                                page = reflower.page;
-                                if (render > 1) { // check do we need just between pageNumbers if current > count
-                                    page++;
+                                int r = -1;
+                                while (r < 0) {
+                                    page--;
                                     bm = render(w, h, page);
                                     reflower = new Reflow(context, w, h, page);
                                     reflower.load(bm);
                                     int count = reflower.count();
-                                    reflower.load(bm, render);
-                                    bm = reflower.render(index);
+                                    r = count + render;
+                                    render = render + count;
+                                }
+                                reflower.load(bm, r, r + 1); // set pointer to current page, wait for onScrollingFinished
+                            } else {
+                                bm = render(w, h, page);
+                                reflower.load(bm, render, render + 1);
+                            }
+                            bm = reflower.render();
+                            break;
+                        case current:
+                            bm = render(w, h, reflower.page);
+                            reflower.load(bm, render);
+                            bm = reflower.render();
+                            break;
+                        case next: // next can point to many (no more then 2) pages ahead, we need to walk every page manually
+                            render += 1;
+                            int jump = render - reflower.render + 1;
+                            while (jump > 1 && reflower.k2.hasNext()) {
+                                reflower.k2.skipNext();
+                                jump--;
+                            }
+                            while (jump > 1) {
+                                page++;
+                                current.pageNumber = page;
+                                bm = render(w, h, page);
+                                reflower = new Reflow(context, w, h, page);
+                                reflower.load(bm);
+                                while (jump > 1 && reflower.k2.hasNext()) {
+                                    reflower.k2.skipNext();
+                                    jump--;
                                 }
                             }
+                            bm = reflower.render();
                             break;
                     }
                 }
@@ -565,7 +571,7 @@ public class FBReaderView extends RelativeLayout {
                         }
                         reflower = new Reflow(context, w, h, page);
                         reflower.load(bm, 0, current);
-                        bm = reflower.render(index);
+                        bm = reflower.render();
                     }
                 }
                 if (bm != null) {
