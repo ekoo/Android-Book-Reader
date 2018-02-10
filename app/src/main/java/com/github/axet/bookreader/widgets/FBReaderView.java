@@ -306,11 +306,28 @@ public class FBReaderView extends RelativeLayout {
         public int current = 0; // current view position
         public int render = 0; // next render position
         public int page = 0; // document page
+        int w;
+        int h;
+        Context context;
 
         public Reflow(Context context, int w, int h, int page) {
             DisplayMetrics d = context.getResources().getDisplayMetrics();
-            k2.create(d.densityDpi, w, h);
+            k2.create(w, h, d.densityDpi);
+            this.context = context;
             this.page = page;
+            this.w = w;
+            this.h = h;
+        }
+
+        public void reset(int w, int h) {
+            if (this.w != w || this.h != h) {
+                k2.close();
+                DisplayMetrics d = context.getResources().getDisplayMetrics();
+                k2 = new K2PdfOpt();
+                k2.create(w, h, d.densityDpi);
+                this.w = w;
+                this.h = h;
+            }
         }
 
         public void load(Bitmap bm) {
@@ -334,12 +351,10 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public int count() {
-            int count = 0;
             while (k2.hasNext()) {
-                k2.skipNext();
-                count++;
+                skipNext();
             }
-            return count;
+            return render;
         }
 
         public Bitmap render() {
@@ -506,10 +521,11 @@ public class FBReaderView extends RelativeLayout {
             if (reflow) {
                 Bitmap bm = null;
                 if (reflower != null) {
+                    reflower.reset(w, h);
                     int render = reflower.current; // render reflow page index
                     int page = reflower.page; // render pageNumber
                     switch (index) {
-                        case previous: // TODO prev can point to many (no more then 2) pages behind, we need to walk every page manually
+                        case previous: // prev can point to many (no more then 2) pages behind, we need to walk every page manually
                             render -= 1;
                             if (render < 0) {
                                 int r = -1;
@@ -740,6 +756,11 @@ public class FBReaderView extends RelativeLayout {
         @Override
         public void repaint() {
             super.repaint();
+        }
+
+        @Override
+        public void reset() {
+            super.reset();
         }
     }
 
