@@ -248,7 +248,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         main.searchMenu.setVisible(view.pluginview == null); // pdf and djvu do not support search
         reflow = menu.findItem(R.id.action_reflow);
         reflow.setVisible(view.pluginview != null);
-        reflow.setChecked(view.pluginview.reflow);
+        if (view.pluginview != null)
+            reflow.setChecked(view.pluginview.reflow);
     }
 
     void showTOC() {
