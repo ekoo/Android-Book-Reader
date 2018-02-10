@@ -1,14 +1,16 @@
 package com.github.axet.bookreader.app;
 
 import android.annotation.TargetApi;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.pdf.PdfRenderer;
-import android.os.Build;
 import android.os.ParcelFileDescriptor;
+import android.util.DisplayMetrics;
 
 import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.bookreader.widgets.FBReaderView;
+import com.github.axet.k2pdfopt.K2PdfOpt;
 import com.shockwave.pdfium.Config;
 import com.shockwave.pdfium.PdfDocument;
 import com.shockwave.pdfium.PdfiumCore;
@@ -18,7 +20,6 @@ import org.geometerplus.fbreader.book.AbstractBook;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.bookmodel.TOCTree;
-import org.geometerplus.fbreader.fbreader.FBReaderApp;
 import org.geometerplus.fbreader.formats.BookReadingException;
 import org.geometerplus.fbreader.formats.BuiltinFormatPlugin;
 import org.geometerplus.zlibrary.core.encodings.EncodingCollection;
@@ -108,10 +109,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public void drawOnBitmap(Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
-            Canvas canvas = new Canvas(bitmap);
-            drawWallpaper(canvas);
-
+        public void draw(Canvas canvas, int w, int h, ZLView.PageIndex index) {
             PluginNativePage r = new PluginNativePage((PluginNativePage) current, index);
             PdfRenderer.Page page = doc.openPage(r.pageNumber);
             r.load(page);
@@ -147,6 +145,13 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             load(index);
         }
 
+        public PluginPdfiumPage(PluginPdfiumPage r, int page) {
+            this(r);
+            pageNumber = page;
+            pageOffset = 0;
+            load();
+        }
+
         public PluginPdfiumPage(PdfiumCore c, PdfDocument d) {
             core = c;
             doc = d;
@@ -165,6 +170,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         void load(int index) {
             Size s = core.getPageSize(doc, index);
             pageBox = new FBReaderView.PluginRect(0, 0, s.getWidth(), s.getHeight());
+            dpi = Resources.getSystem().getDisplayMetrics().densityDpi;
         }
     }
 
@@ -194,10 +200,21 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public void drawOnBitmap(Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
-            Canvas canvas = new Canvas(bitmap);
-            drawWallpaper(canvas);
+        public Bitmap render(int w, int h, int page) {
+            PluginPdfiumPage r = new PluginPdfiumPage((PluginPdfiumPage) current, page);
+            r.load(r.pageNumber);
+            r.renderRect(w, h);
+            r.scale(w, h);
 
+            core.openPage(doc, r.pageNumber);
+            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.ARGB_8888);
+            core.renderPageBitmap(doc, bm, r.pageNumber, 0, 0, bm.getWidth(), bm.getHeight());
+            bm.setDensity(r.dpi);
+            return bm;
+        }
+
+        @Override
+        public void draw(Canvas canvas, int w, int h, ZLView.PageIndex index) {
             PluginPdfiumPage r = new PluginPdfiumPage((PluginPdfiumPage) current, index);
             r.load(r.pageNumber);
 
@@ -327,7 +344,9 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         PDFiumView view = new PDFiumView(f);
         view.current.scale(Storage.COVER_SIZE, Storage.COVER_SIZE); // reduce render memory footprint
         Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.ARGB_8888);
-        view.drawOnBitmap(bm, bm.getWidth(), bm.getHeight(), ZLViewEnums.PageIndex.current);
+        Canvas canvas = new Canvas(bm);
+        view.drawWallpaper(canvas);
+        view.draw(canvas, bm.getWidth(), bm.getHeight(), ZLViewEnums.PageIndex.current);
         view.close();
         return new ZLBitmapImage(bm);
     }

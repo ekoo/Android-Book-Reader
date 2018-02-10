@@ -7,8 +7,6 @@ import android.webkit.WebView;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.bookreader.activities.MainActivity;
 
-import java.net.URL;
-
 import cz.msebera.android.httpclient.client.config.CookieSpecs;
 import cz.msebera.android.httpclient.client.config.RequestConfig;
 import cz.msebera.android.httpclient.impl.client.BasicCookieStore;

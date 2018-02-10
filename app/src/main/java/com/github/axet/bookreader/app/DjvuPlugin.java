@@ -1,5 +1,6 @@
 package com.github.axet.bookreader.app;
 
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -8,13 +9,11 @@ import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.djvulibre.Config;
 import com.github.axet.djvulibre.DjvuLibre;
-import com.shockwave.pdfium.PdfDocument;
 
 import org.geometerplus.fbreader.book.AbstractBook;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.bookmodel.TOCTree;
-import org.geometerplus.fbreader.fbreader.FBReaderApp;
 import org.geometerplus.fbreader.formats.BookReadingException;
 import org.geometerplus.fbreader.formats.BuiltinFormatPlugin;
 import org.geometerplus.zlibrary.core.encodings.EncodingCollection;
@@ -59,6 +58,13 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             load(index);
         }
 
+        public PluginPage(PluginPage r, int page) {
+            this(r);
+            pageNumber = page;
+            pageOffset = 0;
+            load();
+        }
+
         public PluginPage(DjvuLibre d) {
             doc = d;
             load();
@@ -67,6 +73,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         public void load() {
             DjvuLibre.Page p = doc.getPageInfo(pageNumber);
             pageBox = new FBReaderView.PluginRect(0, 0, p.width, p.height);
+            dpi = p.dpi;
         }
 
         @Override
@@ -90,10 +97,21 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             }
         }
 
-        public void drawOnBitmap(Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
-            Canvas canvas = new Canvas(bitmap);
-            drawWallpaper(canvas);
+        @Override
+        public Bitmap render(int w, int h, int page) {
+            PluginPage r = new PluginPage((PluginPage) current, page);
+            r.renderRect(w, h);
+            r.scale(w, h);
+            FBReaderView.RenderRect render = r.renderRect(w, h);
+            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.ARGB_8888);
+            bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
+            doc.renderPage(bm, r.pageNumber, 0, 0, r.pageBox.w, r.pageBox.h, render.x, render.y, render.w, render.h);
+            bm.setDensity(r.dpi);
+            return bm;
+        }
 
+        @Override
+        public void draw(Canvas canvas, int w, int h, ZLView.PageIndex index) {
             PluginPage r = new PluginPage((PluginPage) current, index);
             r.renderRect(w, h);
             current.updatePage(r);
@@ -220,7 +238,9 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         DjvuView view = new DjvuView(file);
         view.current.scale(Storage.COVER_SIZE, Storage.COVER_SIZE); // reduce render memory footprint
         Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.ARGB_8888);
-        view.drawOnBitmap(bm, bm.getWidth(), bm.getHeight(), ZLViewEnums.PageIndex.current);
+        Canvas canvas = new Canvas(bm);
+        view.drawWallpaper(canvas);
+        view.draw(canvas, bm.getWidth(), bm.getHeight(), ZLViewEnums.PageIndex.current);
         view.close();
         return new ZLBitmapImage(bm);
     }

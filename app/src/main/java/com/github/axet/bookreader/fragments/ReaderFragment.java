@@ -43,6 +43,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     Storage storage;
     FBReaderView view;
     AlertDialog tocdialog;
+    MenuItem reflow;
 
     BroadcastReceiver battery = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -57,7 +58,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         public TOCAdapter(List<TOCTree> ll, TOCTree current) {
             this.current = current;
-            this.root.level = -1;
             loadTOC(root, ll);
             load();
         }
@@ -226,9 +226,15 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.action_toc) {
+        int id = item.getItemId();
+        if (id == R.id.action_toc) {
             showTOC();
             return true;
+        }
+        if (id == R.id.action_reflow) {
+            view.pluginview.reflow = !view.pluginview.reflow;
+            view.reset();
+            reflow.setChecked(view.pluginview.reflow);
         }
         return super.onOptionsItemSelected(item);
     }
@@ -240,6 +246,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         main.homeMenu.setVisible(false);
         main.tocMenu.setVisible(view.app.Model.TOCTree != null && view.app.Model.TOCTree.hasChildren());
         main.searchMenu.setVisible(view.pluginview == null); // pdf and djvu do not support search
+        reflow = menu.findItem(R.id.action_reflow);
+        reflow.setVisible(view.pluginview != null);
+        reflow.setChecked(view.pluginview.reflow);
     }
 
     void showTOC() {

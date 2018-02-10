@@ -10,7 +10,6 @@ import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
@@ -45,10 +44,6 @@ import com.github.axet.bookreader.fragments.LibraryFragment;
 import com.github.axet.bookreader.fragments.NetworkLibraryFragment;
 import com.github.axet.bookreader.fragments.ReaderFragment;
 import com.github.axet.bookreader.widgets.FBReaderView;
-
-import org.geometerplus.android.fbreader.FBReader;
-import org.geometerplus.android.util.SearchDialogUtil;
-import org.geometerplus.fbreader.fbreader.FBReaderApp;
 
 import java.util.Map;
 import java.util.TreeMap;

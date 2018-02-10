@@ -4,7 +4,6 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
@@ -19,9 +18,6 @@ import android.view.MenuItem;
 import com.github.axet.androidlibrary.widgets.AppCompatSettingsThemeActivity;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.MainApplication;
-import com.github.axet.bookreader.app.Storage;
-
-import org.geometerplus.fbreader.fbreader.options.ColorProfile;
 
 /**
  * A {@link PreferenceActivity} that presents a set of application settings. On

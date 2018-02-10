@@ -1,27 +1,18 @@
 package com.github.axet.bookreader.activities;
 
 import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
 import android.os.Build;
-import android.support.annotation.Nullable;
+import android.os.Bundle;
+import android.os.Handler;
 import android.support.design.widget.NavigationView;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
-import android.os.Handler;
 import android.support.v7.view.WindowCallbackWrapper;
 import android.support.v7.widget.Toolbar;
-import android.view.ActionMode;
-import android.view.KeyEvent;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.MotionEvent;
-import android.view.SearchEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.view.accessibility.AccessibilityEvent;
 
 import com.github.axet.androidlibrary.widgets.AppCompatThemeActivity;
 import com.github.axet.bookreader.R;

@@ -13,6 +13,12 @@
         android:title="@string/book_toc"
         app:showAsAction="always" />
     <item
+        android:id="@+id/action_reflow"
+        android:checkable="true"
+        android:icon="@drawable/ic_wrap_text_white_24dp"
+        android:title="Re-flow"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/action_home"
         android:icon="@drawable/ic_home_white_24dp"
         android:title="@string/catalog_home"
