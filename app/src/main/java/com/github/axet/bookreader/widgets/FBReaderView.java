@@ -329,8 +329,7 @@ public class FBReaderView extends RelativeLayout {
             render = 0;
             k2.load(bm);
             while (render < page) {
-                k2.skipNext();
-                render++;
+                skipNext();
             }
         }
 
@@ -347,6 +346,11 @@ public class FBReaderView extends RelativeLayout {
             Bitmap bm = k2.renderNext();
             render++;
             return bm;
+        }
+
+        public void skipNext() {
+            k2.skipNext();
+            render++;
         }
 
         public boolean canScroll(ZLViewEnums.PageIndex index) {
@@ -532,19 +536,19 @@ public class FBReaderView extends RelativeLayout {
                             break;
                         case next: // next can point to many (no more then 2) pages ahead, we need to walk every page manually
                             render += 1;
-                            int jump = render - reflower.render + 1;
-                            while (jump > 1 && reflower.k2.hasNext()) {
-                                reflower.k2.skipNext();
+                            int jump = render - reflower.render;
+                            while (jump > 0 && reflower.k2.hasNext()) {
+                                reflower.skipNext();
                                 jump--;
                             }
-                            while (jump > 1) {
+                            while (jump > 0) {
                                 page++;
                                 current.pageNumber = page;
                                 bm = render(w, h, page);
                                 reflower = new Reflow(context, w, h, page);
                                 reflower.load(bm);
-                                while (jump > 1 && reflower.k2.hasNext()) {
-                                    reflower.k2.skipNext();
+                                while (jump > 0 && reflower.k2.hasNext()) {
+                                    reflower.skipNext();
                                     jump--;
                                 }
                             }
