@@ -102,10 +102,9 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             PluginPage r = new PluginPage((PluginPage) current, page);
             r.renderRect(w, h);
             r.scale(w, h);
-            FBReaderView.RenderRect render = r.renderRect(w, h);
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.ARGB_8888);
             bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
-            doc.renderPage(bm, r.pageNumber, 0, 0, r.pageBox.w, r.pageBox.h, render.x, render.y, render.w, render.h);
+            doc.renderPage(bm, r.pageNumber, 0, 0, r.pageBox.w, r.pageBox.h, 0, 0, r.pageBox.w, r.pageBox.h);
             bm.setDensity(r.dpi);
             return bm;
         }
