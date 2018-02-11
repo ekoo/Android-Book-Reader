@@ -15,6 +15,8 @@
 -keep class com.shockwave.pdfium.PdfiumCore {*;}
 -keep class com.shockwave.pdfium.util.Size {*;}
 
+-keep class com.github.axet.k2pdfopt.K2PdfOpt {*;}
+
 -keep class com.github.axet.androidlibrary.widgets.SearchView {*;}
 
 -dontwarn org.geometerplus.**
