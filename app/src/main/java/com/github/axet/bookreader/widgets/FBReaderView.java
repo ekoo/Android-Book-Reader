@@ -454,6 +454,11 @@ public class FBReaderView extends RelativeLayout {
                     current.pageOffset = 0;
                     current.load();
                 }
+                if (reflower.current - reflower.render == 0 && !reflower.k2.hasNext()) { // current points to next page +1
+                    current.pageNumber = reflower.page + 1;
+                    current.pageOffset = 0;
+                    current.load();
+                }
                 return false;
             }
             PluginPage old = new PluginPage(current) {
