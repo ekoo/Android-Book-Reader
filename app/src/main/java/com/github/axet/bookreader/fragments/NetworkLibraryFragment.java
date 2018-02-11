@@ -30,6 +30,7 @@ import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.BookDialog;
 import com.github.axet.bookreader.widgets.BrowserDialogFragment;
 
+import org.apache.commons.io.IOUtils;
 import org.geometerplus.android.util.UIUtil;
 import org.geometerplus.fbreader.network.INetworkLink;
 import org.geometerplus.fbreader.network.NetworkCatalogItem;
@@ -61,6 +62,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -604,10 +606,12 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                             is = conn.getInputStream();
                             String wm = conn.getContentType();
                             if (wm != null && mimetype != null && !wm.equals(mimetype) && wm.startsWith("text")) {
+                                final String html = IOUtils.toString(is, Charset.defaultCharset());
                                 main.runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        AboutPreferenceCompat.openUrl(getContext(), uri.toString());
+                                        BrowserDialogFragment b = BrowserDialogFragment.createHtml(uri.toString(), html);
+                                        b.show(getFragmentManager(), "");
                                     }
                                 });
                                 return;
