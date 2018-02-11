@@ -43,6 +43,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             Natives.loadLibraries(Storage.zlib, "djvu", "djvulibrejni");
             Config.natives = false;
         }
+        Storage.K2PdfOptInit(Storage.zlib);
     }
 
     public static class PluginPage extends FBReaderView.PluginPage {

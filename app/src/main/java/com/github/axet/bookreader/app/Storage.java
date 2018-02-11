@@ -17,11 +17,14 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TextView;
 
+import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.widgets.FBReaderView;
+import com.github.axet.k2pdfopt.Config;
+import com.github.axet.k2pdfopt.K2PdfOpt;
 
 import org.apache.commons.io.IOUtils;
 import org.geometerplus.fbreader.book.BookUtil;
@@ -93,6 +96,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     onCreate();
                 }
             };
+        }
+    }
+
+    public static void K2PdfOptInit(Context context) {
+        if (Config.natives) {
+            Natives.loadLibraries(context, "willus", "k2pdfopt", "k2pdfoptjni");
+            Config.natives = false;
         }
     }
 
