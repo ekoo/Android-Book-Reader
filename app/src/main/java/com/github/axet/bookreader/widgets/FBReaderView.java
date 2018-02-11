@@ -449,6 +449,11 @@ public class FBReaderView extends RelativeLayout {
                     current.pageOffset = 0;
                     current.load();
                 }
+                if (reflower.current == -1) {
+                    current.pageNumber = reflower.page - 1;
+                    current.pageOffset = 0;
+                    current.load();
+                }
                 return false;
             }
             PluginPage old = new PluginPage(current) {
@@ -574,6 +579,7 @@ public class FBReaderView extends RelativeLayout {
                             while (jump > 0) {
                                 page++;
                                 current.pageNumber = page;
+                                current.pageOffset = 0;
                                 bm = render(w, h, page);
                                 reflower = new Reflow(context, w, h, page);
                                 reflower.load(bm);
@@ -917,8 +923,7 @@ public class FBReaderView extends RelativeLayout {
 
     public FBReaderView(Context context) { // create child view
         super(context);
-        FBReaderApp app = new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow());
-        create(app);
+        create();
         app.ViewOptions.ScrollbarType = new ZLIntegerRangeOption("", "", 0, 0, 0);
         app.MiscOptions.AllowScreenBrightnessAdjustment = new ZLBooleanOption("", "", false);
     }
@@ -939,16 +944,8 @@ public class FBReaderView extends RelativeLayout {
         create();
     }
 
-    public FBReaderApp getApp() {
-        return new FBReaderApp(Storage.systeminfo, new BookCollectionShadow());
-    }
-
     public void create() {
-        create(getApp());
-    }
-
-    public void create(final FBReaderApp app) {
-        this.app = app;
+        this.app = new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow());
         widget = new FBAndroidWidget();
         addView(widget, new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
