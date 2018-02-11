@@ -636,7 +636,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                             }
                             is = new BufferedInputStream(w.getInputStream());
                         }
-                        final Storage.Book fbook = storage.load(is, null);
+                        final Storage.Book fbook = storage.load(is, null); // we have to download content first, then determine it type. not using load(uri)
                         storage.load(fbook);
                         File r = Storage.recentFile(fbook);
                         if (!r.exists())
