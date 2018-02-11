@@ -204,8 +204,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             PluginPdfiumPage r = new PluginPdfiumPage((PluginPdfiumPage) current, page);
             r.load(r.pageNumber);
             r.renderRect(w, h);
-            r.scale(w, h);
-
+            r.scale(w * 2, h * 2);
             core.openPage(doc, r.pageNumber);
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.ARGB_8888);
             core.renderPageBitmap(doc, bm, r.pageNumber, 0, 0, bm.getWidth(), bm.getHeight());
