@@ -446,6 +446,7 @@ public class FBReaderView extends RelativeLayout {
                 reflower.onScrollingFinished(index);
                 if (reflower.page != current.pageNumber) {
                     current.pageNumber = reflower.page;
+                    current.pageOffset = 0;
                     current.load();
                 }
                 return false;

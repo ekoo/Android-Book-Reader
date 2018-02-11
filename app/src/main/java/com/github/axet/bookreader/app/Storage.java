@@ -3,11 +3,13 @@ package com.github.axet.bookreader.app;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
+import android.provider.MediaStore;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -56,6 +58,8 @@ import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
@@ -837,10 +841,21 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public Book load(Uri uri) {
         Book fbook;
+        String contentDisposition = null;
         String s = uri.getScheme();
         if (s.equals(ContentResolver.SCHEME_CONTENT)) {
             ContentResolver resolver = context.getContentResolver();
             try {
+                Cursor meta = resolver.query(uri, null, null, null, null);
+                if (meta != null) {
+                    try {
+                        if (meta.moveToFirst()) {
+                            contentDisposition = meta.getString(meta.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME));
+                        }
+                    } finally {
+                        meta.close();
+                    }
+                }
                 AssetFileDescriptor fd = resolver.openAssetFileDescriptor(uri, "r");
                 AssetFileDescriptor.AutoCloseInputStream is = new AssetFileDescriptor.AutoCloseInputStream(fd);
                 fbook = load(is, null);
@@ -854,6 +869,12 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
                 if (w.getError() != null)
                     throw new RuntimeException(w.getError() + ": " + uri);
+                if (w.contentDisposition != null) {
+                    Pattern cp = Pattern.compile("filename=[\"]*([^\"]*)[\"]*");
+                    Matcher cm = cp.matcher(w.contentDisposition);
+                    if (cm.find())
+                        contentDisposition = cm.group(1);
+                }
                 InputStream is = new BufferedInputStream(w.getInputStream());
                 fbook = load(is, null);
             } catch (IOException e) {
@@ -882,7 +903,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
         load(fbook);
         if (fbook.info.title == null || fbook.info.title.isEmpty() || fbook.info.title.equals(fbook.md5)) {
-            fbook.info.title = Storage.getNameNoExt(uri.getLastPathSegment());
+            if (contentDisposition != null && !contentDisposition.isEmpty())
+                fbook.info.title = contentDisposition;
+            else
+                fbook.info.title = Storage.getNameNoExt(uri.getLastPathSegment());
         }
         if (!r.exists())
             save(fbook);
