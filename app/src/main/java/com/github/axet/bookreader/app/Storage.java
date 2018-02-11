@@ -8,6 +8,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.net.Uri;
+import android.os.Build;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.util.DisplayMetrics;
@@ -17,6 +18,7 @@ import android.view.View;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.net.HttpClient;
+import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.widgets.FBReaderView;
@@ -54,6 +56,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
+import java.net.HttpURLConnection;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -865,17 +868,23 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             }
         } else if (s.startsWith(WebViewCustom.SCHEME_HTTP)) {
             try {
-                HttpClient client = new HttpClient();
-                HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
-                if (w.getError() != null)
-                    throw new RuntimeException(w.getError() + ": " + uri);
-                if (w.contentDisposition != null) {
-                    Pattern cp = Pattern.compile("filename=[\"]*([^\"]*)[\"]*");
-                    Matcher cm = cp.matcher(w.contentDisposition);
-                    if (cm.find())
-                        contentDisposition = cm.group(1);
+                InputStream is;
+                if (Build.VERSION.SDK_INT < 11) {
+                    HttpURLConnection conn = HttpClient.openConnection(uri, HttpClient.USER_AGENT);
+                    is = conn.getInputStream();
+                } else {
+                    HttpClient client = new HttpClient();
+                    HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
+                    if (w.getError() != null)
+                        throw new RuntimeException(w.getError() + ": " + uri);
+                    if (w.contentDisposition != null) {
+                        Pattern cp = Pattern.compile("filename=[\"]*([^\"]*)[\"]*");
+                        Matcher cm = cp.matcher(w.contentDisposition);
+                        if (cm.find())
+                            contentDisposition = cm.group(1);
+                    }
+                    is = new BufferedInputStream(w.getInputStream());
                 }
-                InputStream is = new BufferedInputStream(w.getInputStream());
                 fbook = load(is, null);
             } catch (IOException e) {
                 throw new RuntimeException(e);

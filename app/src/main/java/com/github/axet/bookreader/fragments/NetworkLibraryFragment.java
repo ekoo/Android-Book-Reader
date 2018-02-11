@@ -597,6 +597,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                 @Override
                 public void run() {
                     try {
+                        String contentDisposition = null;
                         InputStream is;
                         if (Build.VERSION.SDK_INT < 11) {
                             HttpURLConnection conn = HttpClient.openConnection(uri, useragent);
@@ -623,6 +624,12 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                             final HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
                             if (w.getError() != null)
                                 throw new RuntimeException(w.getError() + ": " + uri);
+                            if (w.contentDisposition != null) {
+                                Pattern cp = Pattern.compile("filename=[\"]*([^\"]*)[\"]*");
+                                Matcher cm = cp.matcher(w.contentDisposition);
+                                if (cm.find())
+                                    contentDisposition = cm.group(1);
+                            }
                             String wm = w.getMimeType();
                             if (w.getResponse().getEntity().getContentType() != null && mimetype != null && !wm.equals(mimetype) && wm.startsWith("text")) {
                                 main.runOnUiThread(new Runnable() {
@@ -636,8 +643,14 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                             }
                             is = new BufferedInputStream(w.getInputStream());
                         }
-                        final Storage.Book fbook = storage.load(is, null);
+                        final Storage.Book fbook = storage.load(is, null); // we have to download content first, then determine it type. not using load(uri)
                         storage.load(fbook);
+                        if (fbook.info.title == null || fbook.info.title.isEmpty() || fbook.info.title.equals(fbook.md5)) {
+                            if (contentDisposition != null && !contentDisposition.isEmpty())
+                                fbook.info.title = contentDisposition;
+                            else
+                                fbook.info.title = Storage.getNameNoExt(uri.getLastPathSegment());
+                        }
                         File r = Storage.recentFile(fbook);
                         if (!r.exists())
                             storage.save(fbook);

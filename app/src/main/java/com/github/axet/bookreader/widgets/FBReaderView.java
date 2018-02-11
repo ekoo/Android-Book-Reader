@@ -543,20 +543,24 @@ public class FBReaderView extends RelativeLayout {
                                     bm = render(w, h, page);
                                     reflower = new Reflow(context, w, h, page);
                                     reflower.load(bm);
+                                    bm.recycle();
                                     int count = reflower.count();
                                     r = count + render;
                                     render = render + count;
                                 }
                                 reflower.load(bm, r, r + 1); // set pointer to current page, wait for onScrollingFinished
+                                bm.recycle();
                             } else {
                                 bm = render(w, h, page);
                                 reflower.load(bm, render, render + 1);
+                                bm.recycle();
                             }
                             bm = reflower.render();
                             break;
                         case current:
                             bm = render(w, h, reflower.page);
                             reflower.load(bm, render);
+                            bm.recycle();
                             bm = reflower.render();
                             break;
                         case next: // next can point to many (no more then 2) pages ahead, we need to walk every page manually
@@ -572,6 +576,7 @@ public class FBReaderView extends RelativeLayout {
                                 bm = render(w, h, page);
                                 reflower = new Reflow(context, w, h, page);
                                 reflower.load(bm);
+                                bm.recycle();
                                 while (jump > 0 && reflower.k2.hasNext()) {
                                     reflower.skipNext();
                                     jump--;
@@ -600,6 +605,7 @@ public class FBReaderView extends RelativeLayout {
                         }
                         reflower = new Reflow(context, w, h, page);
                         reflower.load(bm, 0, current);
+                        bm.recycle();
                         bm = reflower.render();
                     }
                 }
