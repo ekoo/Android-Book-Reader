@@ -1,6 +1,11 @@
 # Book Reader
 
-Book Reader simple UI. Based on FBReader (https://github.com/geometer/FBReaderJ):
+Book Reader simple UI. Based on many open-source projects:
+
+  * FBReader (https://gitlab.com/axet/android-fbreader-library)
+  * Pdfium (https://gitlab.com/axet/android-pdfium)
+  * Djvulibre (https://gitlab.com/axet/android-djvulibre)
+  * K2PdfOpt (https://gitlab.com/axet/android-k2pdfopt)
 
 Supported formats: fb2, html, txt, epub, mobi, rtf, doc, pdf, djvu.
 
