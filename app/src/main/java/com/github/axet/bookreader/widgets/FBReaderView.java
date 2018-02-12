@@ -984,6 +984,9 @@ public class FBReaderView extends RelativeLayout {
         app.BookTextView = new CustomView(app);
         app.setView(app.BookTextView);
 
+        SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(getContext());
+        int d = shared.getInt(MainApplication.PREFERENCE_FONTSIZE_FBREADER, app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.getValue());
+        app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.setValue(d);
         app.ViewOptions.ScrollbarType = new ZLIntegerRangeOption("", "", 0, 0, FBView.SCROLLBAR_SHOW_AS_FOOTER);
         app.ViewOptions.getFooterOptions().ShowProgress.setValue(FooterOptions.ProgressDisplayType.asPages);
     }
