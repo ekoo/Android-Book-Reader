@@ -469,11 +469,12 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
-        final MainActivity main = (MainActivity) getActivity();
-        main.homeMenu.setVisible(false);
-        main.tocMenu.setVisible(false);
-        MenuItem reflow = menu.findItem(R.id.action_reflow);
-        reflow.setVisible(false);
+        MenuItem homeMenu = menu.findItem(R.id.action_home);
+        MenuItem tocMenu = menu.findItem(R.id.action_toc);
+        MenuItem searchMenu = menu.findItem(R.id.action_search);
+        searchMenu.setVisible(true);
+        homeMenu.setVisible(false);
+        tocMenu.setVisible(false);
     }
 
     public void search(String s) {

@@ -6,13 +6,16 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.BatteryManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
+import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -21,11 +24,14 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.widgets.TreeListView;
 import com.github.axet.bookreader.R;
+import com.github.axet.bookreader.activities.FullscreenActivity;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
@@ -34,16 +40,24 @@ import com.github.axet.bookreader.widgets.FBReaderView;
 import org.geometerplus.fbreader.bookmodel.TOCTree;
 import org.geometerplus.fbreader.fbreader.ActionCode;
 import org.geometerplus.fbreader.fbreader.options.ColorProfile;
+import org.geometerplus.zlibrary.core.options.ZLIntegerRangeOption;
 
 import java.util.List;
 
-public class ReaderFragment extends Fragment implements MainActivity.SearchListener, SharedPreferences.OnSharedPreferenceChangeListener {
+public class ReaderFragment extends Fragment implements MainActivity.SearchListener, SharedPreferences.OnSharedPreferenceChangeListener, FullscreenActivity.FullscreenListener {
     public static final String TAG = ReaderFragment.class.getSimpleName();
 
     Storage storage;
     FBReaderView view;
     AlertDialog tocdialog;
-    MenuItem reflow;
+    View toolbarBottom;
+    View reflow;
+    View fontsize;
+    TextView fontsizetext;
+    TextView fontsizepopup_text;
+    SeekBar fontsizepopup_seek;
+    View fontsizepopup_minus;
+    View fontsizepopup_plus;
 
     BroadcastReceiver battery = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -159,8 +173,27 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                              Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_reader, container, false);
 
+        toolbarBottom = v.findViewById(R.id.toolbar_bottom);
+        reflow = toolbarBottom.findViewById(R.id.toolbar_reflow);
+        final View fontsize_popup = v.findViewById(R.id.fontsize_popup);
+        fontsizepopup_text = (TextView) fontsize_popup.findViewById(R.id.fontsize_text);
+        fontsizepopup_plus = fontsize_popup.findViewById(R.id.fontsize_plus);
+        fontsizepopup_minus = fontsize_popup.findViewById(R.id.fontsize_minus);
+        fontsizepopup_seek = (SeekBar) fontsize_popup.findViewById(R.id.fontsize_seek);
+        fontsize = v.findViewById(R.id.toolbar_fontsize);
+        fontsize.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (fontsize_popup.getVisibility() == View.VISIBLE) {
+                    fontsize_popup.setVisibility(View.GONE);
+                } else {
+                    fontsize_popup.setVisibility(View.VISIBLE);
+                    updateFontsize();
+                }
+            }
+        });
+        fontsize_popup.setVisibility(View.GONE);
         final MainActivity main = (MainActivity) getActivity();
-
         view = (FBReaderView) v.findViewById(R.id.main_view);
 
         view.setColorProfile();
@@ -183,7 +216,152 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             main.openLibrary();
         }
 
+        reflow.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                view.pluginview.reflow = !view.pluginview.reflow;
+                view.reset();
+                toolbarUpdate();
+            }
+        });
+        reflow.setVisibility(view.pluginview != null ? View.VISIBLE : View.GONE);
+        toolbarUpdate();
+
         return v;
+    }
+
+    void toolbarUpdate() {
+        if (view.pluginview == null) {
+            reflow.setVisibility(View.GONE);
+        } else {
+            if (view.pluginview.reflow) {
+                ViewCompat.setBackgroundTintMode(reflow, PorterDuff.Mode.MULTIPLY);
+            } else {
+                ViewCompat.setBackgroundTintMode(reflow, PorterDuff.Mode.SRC_IN);
+            }
+        }
+        fontsize.setVisibility((view.pluginview == null || view.pluginview.reflow) ? View.VISIBLE : View.GONE);
+
+        fontsizetext = (TextView) fontsize.findViewById(R.id.toolbar_icon_text);
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+        if (view.pluginview == null) {
+            fontsizetext.setText("" + view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.getValue());
+        } else {
+            float f = shared.getFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, MainApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
+            fontsizetext.setText(String.format("%.1f", f));
+        }
+    }
+
+    void updateFontsize() {
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+        if (view.pluginview == null) {
+            int f = view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.getValue();
+            final int start = 20;
+            final int end = 80;
+            fontsizepopup_seek.setMax(end - start);
+            fontsizepopup_seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    fontsizepopup_text.setText(Integer.toString(progress + start));
+                }
+
+                @Override
+                public void onStartTrackingTouch(SeekBar seekBar) {
+                }
+
+                @Override
+                public void onStopTrackingTouch(SeekBar seekBar) {
+                    int p = fontsizepopup_seek.getProgress();
+                    setFontsizeFB(start + p);
+                }
+            });
+            fontsizepopup_seek.setProgress(f - start);
+            fontsizepopup_minus.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    int p = fontsizepopup_seek.getProgress();
+                    p--;
+                    if (p < 0)
+                        p = 0;
+                    fontsizepopup_seek.setProgress(p);
+                    setFontsizeFB(start + p);
+                }
+            });
+            fontsizepopup_plus.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    int p = fontsizepopup_seek.getProgress();
+                    p++;
+                    if (p >= end - start)
+                        p = end - start;
+                    fontsizepopup_seek.setProgress(p);
+                    setFontsizeFB(start + p);
+                }
+            });
+        } else {
+            float f = shared.getFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, MainApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
+            final float start = 0.3f;
+            final float end = 1.5f;
+            final float step = 0.1f;
+            fontsizepopup_seek.setMax((int) ((end - start) * 10));
+            fontsizepopup_seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    fontsizepopup_text.setText(String.format("%.1f", (progress / 10f + start)));
+                }
+
+                @Override
+                public void onStartTrackingTouch(SeekBar seekBar) {
+                }
+
+                @Override
+                public void onStopTrackingTouch(SeekBar seekBar) {
+                    float p = fontsizepopup_seek.getProgress() / 10f;
+                    setFontsizeReflow(start + p);
+                }
+            });
+            fontsizepopup_seek.setProgress((int) ((f - start) * 10));
+            fontsizepopup_minus.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    float p = fontsizepopup_seek.getProgress() / 10f;
+                    p -= step;
+                    if (p < 0)
+                        p = 0;
+                    fontsizepopup_seek.setProgress((int) (p * 10));
+                    setFontsizeReflow(start + p);
+                }
+            });
+            fontsizepopup_plus.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    float p = fontsizepopup_seek.getProgress() / 10f;
+                    p += step;
+                    if (p >= end - start)
+                        p = end - start;
+                    fontsizepopup_seek.setProgress((int) (p * 10));
+                    setFontsizeReflow(start + p);
+                }
+            });
+        }
+    }
+
+    void setFontsizeFB(int p) {
+        ZLIntegerRangeOption option = view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption;
+        option.setValue(p);
+        view.app.clearTextCaches();
+        view.app.getViewWidget().repaint();
+        toolbarUpdate();
+    }
+
+    void setFontsizeReflow(float p) {
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+        SharedPreferences.Editor editor = shared.edit();
+        editor.putFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, p);
+        editor.apply();
+        view.pluginview.reflower.k2.setFontSize(p);
+        view.reset();
+        toolbarUpdate();
     }
 
     @Override
@@ -231,25 +409,18 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             showTOC();
             return true;
         }
-        if (id == R.id.action_reflow) {
-            view.pluginview.reflow = !view.pluginview.reflow;
-            view.reset();
-            reflow.setChecked(view.pluginview.reflow);
-        }
         return super.onOptionsItemSelected(item);
     }
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
-        final MainActivity main = (MainActivity) getActivity();
-        main.homeMenu.setVisible(false);
-        main.tocMenu.setVisible(view.app.Model.TOCTree != null && view.app.Model.TOCTree.hasChildren());
-        main.searchMenu.setVisible(view.pluginview == null); // pdf and djvu do not support search
-        reflow = menu.findItem(R.id.action_reflow);
-        reflow.setVisible(view.pluginview != null);
-        if (view.pluginview != null)
-            reflow.setChecked(view.pluginview.reflow);
+        MenuItem homeMenu = menu.findItem(R.id.action_home);
+        MenuItem tocMenu = menu.findItem(R.id.action_toc);
+        MenuItem searchMenu = menu.findItem(R.id.action_search);
+        homeMenu.setVisible(false);
+        tocMenu.setVisible(view.app.Model.TOCTree != null && view.app.Model.TOCTree.hasChildren());
+        searchMenu.setVisible(view.pluginview == null); // pdf and djvu do not support search
     }
 
     void showTOC() {
@@ -309,5 +480,14 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     @Override
     public String getHint() {
         return getString(R.string.search_book);
+    }
+
+    @Override
+    public void onFullscreenChanged(boolean f) {
+        if (f) {
+            toolbarBottom.setVisibility(View.GONE);
+        } else {
+            toolbarBottom.setVisibility(View.VISIBLE);
+        }
     }
 }

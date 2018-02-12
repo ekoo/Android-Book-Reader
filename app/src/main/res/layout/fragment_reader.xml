@@ -1,4 +1,4 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -7,6 +7,27 @@
     <com.github.axet.bookreader.widgets.FBReaderView
         android:id="@+id/main_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:layout_above="@id/toolbar_bottom" />
 
-</FrameLayout>
+    <FrameLayout
+        android:id="@+id/fontsize_popup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/toolbar_bottom"
+        android:layout_margin="5dp"
+        android:background="@drawable/fontsize_round"
+        android:padding="5dp">
+
+        <include layout="@layout/fontsize_popup" />
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/toolbar_bottom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true">
+
+        <include layout="@layout/toolbar_bottom" />
+    </FrameLayout>
+</RelativeLayout>

@@ -319,7 +319,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     }
 
     void loadDefault() {
-        UIUtil.wait("load catalogs", new Runnable() {
+        UIUtil.wait("loadingBookList", new Runnable() {
             @Override
             public void run() {
                 try {
@@ -405,7 +405,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
     void selectToolbar(View v) {
         final NetworkItemsLoader l = (NetworkItemsLoader) v.getTag();
-        UIUtil.wait("load books", new Runnable() {
+        UIUtil.wait("loadingBookList", new Runnable() {
             @Override
             public void run() {
                 try {
@@ -495,7 +495,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                 try {
                     final FBTree b = books.getItem(position);
                     if (b instanceof NetworkCatalogTree) {
-                        UIUtil.wait("load", new Runnable() {
+                        UIUtil.wait("loadingBook", new Runnable() {
                             @Override
                             public void run() {
                                 try {
@@ -570,7 +570,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                 url = u.Url;
             }
             if (url == null) {
-                UIUtil.wait("load", new Runnable() {
+                UIUtil.wait("loadingBook", new Runnable() {
                     @Override
                     public void run() {
                         try {
@@ -595,7 +595,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         } else {
             final Uri uri = Uri.parse(u.Url);
             final String mimetype = u.Mime.toString(); // gutenberg fake mimetypes when it want to open browser
-            UIUtil.wait("load book", new Runnable() {
+            UIUtil.wait("loadingBook", new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -767,20 +767,22 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         super.onCreateOptionsMenu(menu, inflater);
         final MainActivity main = (MainActivity) getActivity();
 
+        MenuItem homeMenu = menu.findItem(R.id.action_home);
+        MenuItem tocMenu = menu.findItem(R.id.action_toc);
+        MenuItem searchMenu = menu.findItem(R.id.action_search);
+
         host = n.home.get("get");
         if (host == null || host.isEmpty()) {
-            main.searchMenu.setVisible(false);
+            searchMenu.setVisible(false);
         } else {
-            main.searchMenu.setVisible(true);
+            searchMenu.setVisible(true);
         }
 
         if (host == null || host.isEmpty())
-            main.homeMenu.setVisible(false);
+            homeMenu.setVisible(false);
         else
-            main.homeMenu.setVisible(true);
-        main.tocMenu.setVisible(false);
-        MenuItem reflow = menu.findItem(R.id.action_reflow);
-        reflow.setVisible(false);
+            homeMenu.setVisible(true);
+        tocMenu.setVisible(false);
     }
 
     @Override
