@@ -171,7 +171,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         void load(int index) {
             Size s = core.getPageSize(doc, index);
             pageBox = new FBReaderView.PluginRect(0, 0, s.getWidth(), s.getHeight());
-            dpi = Resources.getSystem().getDisplayMetrics().densityDpi;
+            dpi = Resources.getSystem().getDisplayMetrics().densityDpi; // Pdfium page units in 72 dpi, converted by java library to system dpi
         }
     }
 

@@ -5,6 +5,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.view.WindowCallbackWrapper;
@@ -86,6 +88,10 @@ public class FullscreenActivity extends AppCompatThemeActivity {
     public NavigationView navigationView;
     public Toolbar toolbar;
 
+    public interface FullscreenListener {
+        void onFullscreenChanged(boolean f);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -126,7 +132,7 @@ public class FullscreenActivity extends AppCompatThemeActivity {
         setFullscreen(!fullscreen);
     }
 
-    @SuppressLint("InlinedApi")
+    @SuppressLint({"InlinedApi", "RestrictedApi"})
     public void setFullscreen(boolean b) {
         fullscreen = b;
         if (b) {
@@ -148,6 +154,13 @@ public class FullscreenActivity extends AppCompatThemeActivity {
             mHideHandler.removeCallbacks(mHidePart2Runnable);
             mHideHandler.postDelayed(mShowPart2Runnable, UI_ANIMATION_DELAY);
         }
+
+        FragmentManager fm = getSupportFragmentManager();
+        for (Fragment f : fm.getFragments()) {
+            if (f != null && f instanceof FullscreenListener) {
+                ((FullscreenListener) f).onFullscreenChanged(b);
+            }
+        }
     }
 
     /**
@@ -166,11 +179,11 @@ public class FullscreenActivity extends AppCompatThemeActivity {
         // doesn't resize when the system bars hide and show.
         if (Build.VERSION.SDK_INT >= 11)
             decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION // hide nav bar
-                            | View.SYSTEM_UI_FLAG_FULLSCREEN // hide status bar
-                            | View.SYSTEM_UI_FLAG_IMMERSIVE);
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION // hide nav bar
+                    | View.SYSTEM_UI_FLAG_FULLSCREEN // hide status bar
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE);
         if (Build.VERSION.SDK_INT >= 14)
             drawer.setFitsSystemWindows(false);
         drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);

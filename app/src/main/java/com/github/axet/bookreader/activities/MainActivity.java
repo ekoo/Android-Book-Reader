@@ -2,6 +2,7 @@ package com.github.axet.bookreader.activities;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -12,7 +13,10 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.design.internal.SnackbarContentLayout;
+import android.support.design.widget.BaseTransientBottomBar;
 import android.support.design.widget.NavigationView;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
@@ -23,10 +27,12 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.SearchView;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -67,10 +73,7 @@ public class MainActivity extends FullscreenActivity
     SubMenu networkMenu;
     SubMenu settingsMenu;
     Map<String, MenuItem> networkMenuMap = new TreeMap<>();
-    public MenuItem libraryMenu;
-    public MenuItem homeMenu;
-    public MenuItem tocMenu;
-    public MenuItem searchMenu;
+    public MenuItem libraryMenu; // navigation drawer
     BooksCatalogs catalogs;
 
     BroadcastReceiver receiver = new BroadcastReceiver() {
@@ -194,9 +197,9 @@ public class MainActivity extends FullscreenActivity
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
 
-        homeMenu = menu.findItem(R.id.action_home);
-        tocMenu = menu.findItem(R.id.action_toc);
-        searchMenu = menu.findItem(R.id.action_search);
+        MenuItem homeMenu = menu.findItem(R.id.action_home);
+        MenuItem tocMenu = menu.findItem(R.id.action_toc);
+        MenuItem searchMenu = menu.findItem(R.id.action_search);
 
         final SearchView searchView = (SearchView) MenuItemCompat.getActionView(searchMenu);
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {

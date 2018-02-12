@@ -19,12 +19,9 @@ import android.widget.TextView;
 
 import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.androidlibrary.net.HttpClient;
-import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.widgets.FBReaderView;
-import com.github.axet.k2pdfopt.Config;
-import com.github.axet.k2pdfopt.K2PdfOpt;
 
 import org.apache.commons.io.IOUtils;
 import org.geometerplus.fbreader.book.BookUtil;
@@ -100,9 +97,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public static void K2PdfOptInit(Context context) {
-        if (Config.natives) {
+        if (com.github.axet.k2pdfopt.Config.natives) {
             Natives.loadLibraries(context, "willus", "k2pdfopt", "k2pdfoptjni");
-            Config.natives = false;
+            com.github.axet.k2pdfopt.Config.natives = false;
         }
     }
 
@@ -864,6 +861,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     try {
                         if (meta.moveToFirst()) {
                             contentDisposition = meta.getString(meta.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME));
+                            contentDisposition = Storage.getNameNoExt(contentDisposition);
                         }
                     } finally {
                         meta.close();
@@ -890,8 +888,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     if (w.contentDisposition != null) {
                         Pattern cp = Pattern.compile("filename=[\"]*([^\"]*)[\"]*");
                         Matcher cm = cp.matcher(w.contentDisposition);
-                        if (cm.find())
+                        if (cm.find()) {
                             contentDisposition = cm.group(1);
+                            contentDisposition = Storage.getNameNoExt(contentDisposition);
+                        }
                     }
                     is = new BufferedInputStream(w.getInputStream());
                 }

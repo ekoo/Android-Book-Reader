@@ -323,11 +323,16 @@ public class FBReaderView extends RelativeLayout {
 
         public void reset(int w, int h) {
             if (this.w != w || this.h != h) {
-                if (k2 != null)
+                SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(context);
+                Float old = shared.getFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, MainApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
+                if (k2 != null) {
+                    old = k2.getFontSize();
                     k2.close();
+                }
                 k2 = new K2PdfOpt();
                 DisplayMetrics d = context.getResources().getDisplayMetrics();
                 k2.create(w, h, d.densityDpi);
+                k2.setFontSize(old);
                 this.w = w;
                 this.h = h;
             }
