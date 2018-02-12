@@ -227,6 +227,11 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         reflow.setVisibility(view.pluginview != null ? View.VISIBLE : View.GONE);
         toolbarUpdate();
 
+        if (view.pluginview == null) { // initial set for fbreader renderer
+            int f = getFontsizeFB();
+            setFontsizeFB(f);
+        }
+
         return v;
     }
 
@@ -245,9 +250,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         fontsizetext = (TextView) fontsize.findViewById(R.id.toolbar_icon_text);
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         if (view.pluginview == null) {
-            fontsizetext.setText("" + view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.getValue());
+            fontsizetext.setText("" + getFontsizeFB());
         } else {
-            float f = shared.getFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, MainApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
+            float f = getFontsizeReflow();
             fontsizetext.setText(String.format("%.1f", f));
         }
     }
@@ -255,7 +260,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     void updateFontsize() {
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         if (view.pluginview == null) {
-            int f = view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.getValue();
+            int f = getFontsizeFB();
             final int start = 20;
             final int end = 80;
             fontsizepopup_seek.setMax(end - start);
@@ -299,15 +304,15 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 }
             });
         } else {
-            float f = shared.getFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, MainApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
-            final float start = 0.3f;
-            final float end = 1.5f;
-            final float step = 0.1f;
-            fontsizepopup_seek.setMax((int) ((end - start) * 10));
+            int f = (int) (getFontsizeReflow() * 10);
+            final int start = 3;
+            final int end = 15;
+            final int step = 1;
+            fontsizepopup_seek.setMax(end - start);
             fontsizepopup_seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                    fontsizepopup_text.setText(String.format("%.1f", (progress / 10f + start)));
+                    fontsizepopup_text.setText(String.format("%.1f", (start + progress) / 10f));
                 }
 
                 @Override
@@ -316,42 +321,57 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
                 @Override
                 public void onStopTrackingTouch(SeekBar seekBar) {
-                    float p = fontsizepopup_seek.getProgress() / 10f;
-                    setFontsizeReflow(start + p);
+                    float p = fontsizepopup_seek.getProgress();
+                    setFontsizeReflow((start + p) / 10f);
                 }
             });
-            fontsizepopup_seek.setProgress((int) ((f - start) * 10));
+            fontsizepopup_seek.setProgress(f - start);
             fontsizepopup_minus.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    float p = fontsizepopup_seek.getProgress() / 10f;
+                    int p = fontsizepopup_seek.getProgress();
                     p -= step;
                     if (p < 0)
                         p = 0;
-                    fontsizepopup_seek.setProgress((int) (p * 10));
-                    setFontsizeReflow(start + p);
+                    fontsizepopup_seek.setProgress(p);
+                    setFontsizeReflow((start + p) / 10f);
                 }
             });
             fontsizepopup_plus.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    float p = fontsizepopup_seek.getProgress() / 10f;
+                    int p = fontsizepopup_seek.getProgress();
                     p += step;
                     if (p >= end - start)
                         p = end - start;
-                    fontsizepopup_seek.setProgress((int) (p * 10));
-                    setFontsizeReflow(start + p);
+                    fontsizepopup_seek.setProgress(p);
+                    setFontsizeReflow((start + p) / 10f);
                 }
             });
         }
     }
 
+    public int getFontsizeFB() {
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+        int d = view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.getValue();
+        return shared.getInt(MainApplication.PREFERENCE_FONTSIZE_FBREADER, d);
+    }
+
     void setFontsizeFB(int p) {
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+        SharedPreferences.Editor edit = shared.edit();
+        edit.putInt(MainApplication.PREFERENCE_FONTSIZE_FBREADER, p);
+        edit.apply();
         ZLIntegerRangeOption option = view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption;
         option.setValue(p);
         view.app.clearTextCaches();
         view.app.getViewWidget().repaint();
         toolbarUpdate();
+    }
+
+    float getFontsizeReflow() {
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+        return shared.getFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, MainApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
     }
 
     void setFontsizeReflow(float p) {
