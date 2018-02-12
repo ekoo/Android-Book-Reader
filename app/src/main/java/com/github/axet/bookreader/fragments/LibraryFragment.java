@@ -472,6 +472,8 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         MenuItem homeMenu = menu.findItem(R.id.action_home);
         MenuItem tocMenu = menu.findItem(R.id.action_toc);
         MenuItem searchMenu = menu.findItem(R.id.action_search);
+        MenuItem reflow = menu.findItem(R.id.action_reflow);
+        reflow.setVisible(false);
         searchMenu.setVisible(true);
         homeMenu.setVisible(false);
         tocMenu.setVisible(false);

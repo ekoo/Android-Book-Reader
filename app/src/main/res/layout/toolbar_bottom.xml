@@ -7,16 +7,6 @@
     android:background="?attr/colorPrimary"
     android:orientation="horizontal">
 
-    <ImageButton
-        android:id="@+id/toolbar_reflow"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:clickable="false"
-        android:gravity="center"
-        android:tint="?attr/colorAccent"
-        app:srcCompat="@drawable/ic_wrap_text_white_24dp" />
-
     <FrameLayout
         android:id="@+id/toolbar_fontsize"
         android:layout_width="wrap_content"

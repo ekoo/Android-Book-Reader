@@ -765,11 +765,12 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
-        final MainActivity main = (MainActivity) getActivity();
 
         MenuItem homeMenu = menu.findItem(R.id.action_home);
         MenuItem tocMenu = menu.findItem(R.id.action_toc);
         MenuItem searchMenu = menu.findItem(R.id.action_search);
+        MenuItem reflow = menu.findItem(R.id.action_reflow);
+        reflow.setVisible(false);
 
         host = n.home.get("get");
         if (host == null || host.isEmpty()) {

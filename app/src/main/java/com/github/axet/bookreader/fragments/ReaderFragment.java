@@ -51,7 +51,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     FBReaderView view;
     AlertDialog tocdialog;
     View toolbarBottom;
-    View reflow;
     View fontsize;
     TextView fontsizetext;
     TextView fontsizepopup_text;
@@ -174,7 +173,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         View v = inflater.inflate(R.layout.fragment_reader, container, false);
 
         toolbarBottom = v.findViewById(R.id.toolbar_bottom);
-        reflow = toolbarBottom.findViewById(R.id.toolbar_reflow);
         final View fontsize_popup = v.findViewById(R.id.fontsize_popup);
         fontsizepopup_text = (TextView) fontsize_popup.findViewById(R.id.fontsize_text);
         fontsizepopup_plus = fontsize_popup.findViewById(R.id.fontsize_plus);
@@ -216,15 +214,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             main.openLibrary();
         }
 
-        reflow.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                view.pluginview.reflow = !view.pluginview.reflow;
-                view.reset();
-                toolbarUpdate();
-            }
-        });
-        reflow.setVisibility(view.pluginview != null ? View.VISIBLE : View.GONE);
         toolbarUpdate();
 
         if (view.pluginview == null) { // initial set for fbreader renderer
@@ -236,15 +225,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     }
 
     void toolbarUpdate() {
-        if (view.pluginview == null) {
-            reflow.setVisibility(View.GONE);
-        } else {
-            if (view.pluginview.reflow) {
-                ViewCompat.setBackgroundTintMode(reflow, PorterDuff.Mode.MULTIPLY);
-            } else {
-                ViewCompat.setBackgroundTintMode(reflow, PorterDuff.Mode.SRC_IN);
-            }
-        }
         fontsize.setVisibility((view.pluginview == null || view.pluginview.reflow) ? View.VISIBLE : View.GONE);
 
         fontsizetext = (TextView) fontsize.findViewById(R.id.toolbar_icon_text);
@@ -429,6 +409,11 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             showTOC();
             return true;
         }
+        if (id == R.id.action_reflow) {
+            view.pluginview.reflow = !view.pluginview.reflow;
+            view.reset();
+            toolbarUpdate();
+        }
         return super.onOptionsItemSelected(item);
     }
 
@@ -441,6 +426,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         homeMenu.setVisible(false);
         tocMenu.setVisible(view.app.Model.TOCTree != null && view.app.Model.TOCTree.hasChildren());
         searchMenu.setVisible(view.pluginview == null); // pdf and djvu do not support search
+        MenuItem reflow = menu.findItem(R.id.action_reflow);
+        reflow.setVisible(view.pluginview != null);
     }
 
     void showTOC() {

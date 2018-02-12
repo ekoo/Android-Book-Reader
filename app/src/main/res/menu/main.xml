@@ -18,6 +18,11 @@
         android:title="@string/catalog_home"
         app:showAsAction="always" />
     <item
+        android:id="@+id/action_reflow"
+        android:icon="@drawable/ic_wrap_text_white_24dp"
+        android:title="Reflow"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/action_file"
         android:orderInCategory="100"
         android:title="@string/open_file"
