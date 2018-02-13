@@ -216,11 +216,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         toolbarUpdate();
 
-        if (view.pluginview == null) { // initial set for fbreader renderer
-            int f = getFontsizeFB();
-            setFontsizeFB(f);
-        }
-
         return v;
     }
 
@@ -332,9 +327,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     }
 
     public int getFontsizeFB() {
-        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
-        int d = view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.getValue();
-        return shared.getInt(MainApplication.PREFERENCE_FONTSIZE_FBREADER, d);
+        return view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.getValue();
     }
 
     void setFontsizeFB(int p) {
