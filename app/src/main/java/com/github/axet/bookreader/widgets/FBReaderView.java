@@ -304,7 +304,6 @@ public class FBReaderView extends RelativeLayout {
     public static class Reflow {
         public K2PdfOpt k2;
         public int current = 0; // current view position
-        public int render = 0; // next render position
         public int page = 0; // document page
         int w;
         int h;
@@ -340,40 +339,21 @@ public class FBReaderView extends RelativeLayout {
 
         public void load(Bitmap bm) {
             current = 0;
-            render = 0;
             k2.load(bm);
-        }
-
-        public void load(Bitmap bm, int page, int current) {
-            load(bm, page);
-            this.current = current;
         }
 
         public void load(Bitmap bm, int page) {
             current = page;
-            render = 0;
             k2.load(bm);
-            while (render < page) {
-                skipNext();
-            }
         }
 
         public int count() {
-            while (k2.hasNext()) {
-                skipNext();
-            }
-            return render;
+            return k2.getCount();
         }
 
-        public Bitmap render() {
-            Bitmap bm = k2.renderNext();
-            render++;
+        public Bitmap render(int page) {
+            Bitmap bm = k2.renderPage(page);
             return bm;
-        }
-
-        public void skipNext() {
-            k2.skipNext();
-            render++;
         }
 
         public boolean canScroll(ZLViewEnums.PageIndex index) {
@@ -381,7 +361,7 @@ public class FBReaderView extends RelativeLayout {
                 case previous:
                     return current > 0;
                 case next:
-                    return k2.hasNext();
+                    return current < count();
                 default:
                     return true; // current???
             }
@@ -459,7 +439,7 @@ public class FBReaderView extends RelativeLayout {
                     current.pageOffset = 0;
                     current.load();
                 }
-                if (reflower.current - reflower.render == 0 && !reflower.k2.hasNext()) { // current points to next page +1
+                if (reflower.current >= reflower.count()) { // current points to next page +1
                     current.pageNumber = reflower.page + 1;
                     current.pageOffset = 0;
                     current.load();
@@ -564,42 +544,31 @@ public class FBReaderView extends RelativeLayout {
                                     r = count + render;
                                     render = render + count;
                                 }
-                                reflower.load(bm, r, r + 1); // set pointer to current page, wait for onScrollingFinished
-                                bm.recycle();
-                            } else {
-                                bm = render(w, h, page);
-                                reflower.load(bm, render, render + 1);
+                                render = r;
+                                reflower.load(bm, r + 1); // set pointer to current page, wait for onScrollingFinished
                                 bm.recycle();
                             }
-                            bm = reflower.render();
+                            bm = reflower.render(render);
                             break;
                         case current:
                             bm = render(w, h, reflower.page);
                             reflower.load(bm, render);
                             bm.recycle();
-                            bm = reflower.render();
+                            bm = reflower.render(render);
                             break;
                         case next: // next can point to many (no more then 2) pages ahead, we need to walk every page manually
                             render += 1;
-                            int jump = render - reflower.render;
-                            while (jump > 0 && reflower.k2.hasNext()) {
-                                reflower.skipNext();
-                                jump--;
-                            }
-                            while (jump > 0) {
+                            while (reflower.count() - render <= 0) {
                                 page++;
+                                render -= reflower.count();
                                 current.pageNumber = page;
                                 current.pageOffset = 0;
                                 bm = render(w, h, page);
                                 reflower = new Reflow(context, w, h, page);
-                                reflower.load(bm);
+                                reflower.load(bm, render - 1);
                                 bm.recycle();
-                                while (jump > 0 && reflower.k2.hasNext()) {
-                                    reflower.skipNext();
-                                    jump--;
-                                }
                             }
-                            bm = reflower.render();
+                            bm = reflower.render(render);
                             break;
                     }
                 }
@@ -621,9 +590,9 @@ public class FBReaderView extends RelativeLayout {
                             current = -1; //  continious scrolling from previous reflower
                         }
                         reflower = new Reflow(context, w, h, page);
-                        reflower.load(bm, 0, current);
+                        reflower.load(bm, current);
                         bm.recycle();
-                        bm = reflower.render();
+                        bm = reflower.render(0);
                     }
                 }
                 if (bm != null) {
