@@ -59,7 +59,7 @@ dependencies {
     implementation 'com.android.support:support-vector-drawable:25.3.1'
     testImplementation 'junit:junit:4.12'
     compile 'com.github.axet:android-library:1.20.4' // compile project(':android-library')
-    compile 'com.github.axet.fbreader:library:0.0.15'
+    compile 'com.github.axet.fbreader:library:0.0.17'
     compile 'com.github.axet:djvulibre:0.0.6'
     compile 'com.github.axet:pdfium:1.8.2-6'
     compile 'com.github.axet:k2pdfopt:0.0.5'
