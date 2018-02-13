@@ -903,8 +903,18 @@ public class FBReaderView extends RelativeLayout {
     public FBReaderView(Context context) { // create child view
         super(context);
         create();
-        app.ViewOptions.ScrollbarType = new ZLIntegerRangeOption("", "", 0, 0, 0);
-        app.MiscOptions.AllowScreenBrightnessAdjustment = new ZLBooleanOption("", "", false);
+        app.ViewOptions.ScrollbarType = new ZLIntegerRangeOption("", "", 0, 0, 0) {
+            @Override
+            public int getValue() {
+                return 0;
+            }
+        };
+        app.MiscOptions.AllowScreenBrightnessAdjustment = new ZLBooleanOption("", "", false) {
+            @Override
+            public boolean getValue() {
+                return false;
+            }
+        };
     }
 
     public FBReaderView(Context context, AttributeSet attrs) {
@@ -924,7 +934,7 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void create() {
-        this.app = new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow());
+        app = new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow());
         widget = new FBAndroidWidget();
         addView(widget, new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
@@ -956,7 +966,12 @@ public class FBReaderView extends RelativeLayout {
         SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(getContext());
         int d = shared.getInt(MainApplication.PREFERENCE_FONTSIZE_FBREADER, app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.getValue());
         app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.setValue(d);
-        app.ViewOptions.ScrollbarType = new ZLIntegerRangeOption("", "", 0, 0, FBView.SCROLLBAR_SHOW_AS_FOOTER);
+        app.ViewOptions.ScrollbarType = new ZLIntegerRangeOption("", "", 0, 0, 0) {
+            @Override
+            public int getValue() {
+                return FBView.SCROLLBAR_SHOW_AS_FOOTER;
+            }
+        };
         app.ViewOptions.getFooterOptions().ShowProgress.setValue(FooterOptions.ProgressDisplayType.asPages);
     }
 
@@ -1011,7 +1026,12 @@ public class FBReaderView extends RelativeLayout {
 
     public void setWindow(Window w) {
         this.w = w;
-        app.MiscOptions.AllowScreenBrightnessAdjustment = new ZLBooleanOption("", "", true);
+        app.MiscOptions.AllowScreenBrightnessAdjustment = new ZLBooleanOption("", "", true) {
+            @Override
+            public boolean getValue() {
+                return true;
+            }
+        };
     }
 
     public void setActivity(final Activity a) {
