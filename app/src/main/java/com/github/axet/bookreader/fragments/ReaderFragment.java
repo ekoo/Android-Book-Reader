@@ -13,6 +13,7 @@ import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.BatteryManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewCompat;
@@ -57,12 +58,17 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     SeekBar fontsizepopup_seek;
     View fontsizepopup_minus;
     View fontsizepopup_plus;
+    Handler handler = new Handler();
+    Runnable time = new Runnable() {
+        @Override
+        public void run() {
+            updateTime();
+        }
+    };
 
     BroadcastReceiver battery = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
-            int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-            int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
-            view.battery = level * 100 / scale;
+            onReceiveBattery(intent);
         }
     };
 
@@ -167,6 +173,21 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         ((MainActivity) getActivity()).clearMenu();
     }
 
+    void onReceiveBattery(Intent intent) {
+        int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+        int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+        view.battery = level * 100 / scale;
+        view.widget.repaint();
+    }
+
+    void updateTime() {
+        long s60 = 60 * 1000;
+        long secs = System.currentTimeMillis() % s60;
+        handler.removeCallbacks(time);
+        handler.postDelayed(time, s60 - secs);
+        view.widget.repaint();
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -197,7 +218,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         view.setColorProfile();
 
         Context context = getContext();
-        context.registerReceiver(battery, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        onReceiveBattery(context.registerReceiver(battery, new IntentFilter(Intent.ACTION_BATTERY_CHANGED)));
 
         view.setWindow(getActivity().getWindow());
         view.setActivity(getActivity());
@@ -215,6 +236,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         }
 
         toolbarUpdate();
+
+        updateTime();
 
         return v;
     }
@@ -393,6 +416,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         context.unregisterReceiver(battery);
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         shared.unregisterOnSharedPreferenceChangeListener(this);
+        handler.removeCallbacks(time);
     }
 
     @Override
