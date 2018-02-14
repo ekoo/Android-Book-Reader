@@ -258,12 +258,22 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         @Override
         public int getParagraphsNumber() {
-            return pars.size();
+            return core.getPageCount(doc);
         }
 
         @Override
         public ZLTextParagraph getParagraph(int index) {
-            return pars.get(index);
+            return new ZLTextParagraph() {
+                @Override
+                public EntryIterator iterator() {
+                    return null;
+                }
+
+                @Override
+                public byte getKind() {
+                    return Kind.END_OF_TEXT_PARAGRAPH;
+                }
+            };
         }
 
         @Override
@@ -297,7 +307,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         @Override
         public int getTextLength(int index) {
-            return 0;
+            return index; // index - page
         }
 
         @Override
