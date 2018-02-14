@@ -308,6 +308,7 @@ public class FBReaderView extends RelativeLayout {
         int w;
         int h;
         Context context;
+        public boolean reflowDebug;
 
         public Reflow(Context context, int w, int h, int page) {
             this.context = context;
@@ -332,6 +333,8 @@ public class FBReaderView extends RelativeLayout {
                 DisplayMetrics d = context.getResources().getDisplayMetrics();
                 k2.create(w, h, d.densityDpi);
                 k2.setFontSize(old);
+                k2.setVerbose(reflowDebug);
+                k2.setShowMarkedSource(reflowDebug);
                 this.w = w;
                 this.h = h;
             }
@@ -553,8 +556,10 @@ public class FBReaderView extends RelativeLayout {
                         case current:
                             bm = render(w, h, reflower.page);
                             reflower.load(bm, render);
-                            bm.recycle();
-                            bm = reflower.render(render);
+                            if (!reflower.reflowDebug) {
+                                bm.recycle();
+                                bm = reflower.render(render);
+                            }
                             break;
                         case next: // next can point to many (no more then 2) pages ahead, we need to walk every page manually
                             render += 1;
