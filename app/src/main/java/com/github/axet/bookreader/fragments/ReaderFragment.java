@@ -6,9 +6,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.res.ColorStateList;
 import android.graphics.Color;
-import android.graphics.PorterDuff;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.BatteryManager;
@@ -16,7 +14,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
-import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -25,7 +22,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -205,6 +201,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                     if (view.pluginview.reflowDebug)
                         view.pluginview.reflow = true;
                     view.reset();
+                    updateToolbar();
                 }
             });
         }
@@ -249,14 +246,14 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             main.openLibrary();
         }
 
-        toolbarUpdate();
+        updateToolbar();
 
         updateTime();
 
         return v;
     }
 
-    void toolbarUpdate() {
+    void updateToolbar() {
         fontsize.setVisibility((view.pluginview == null || view.pluginview.reflow) ? View.VISIBLE : View.GONE);
 
         fontsizetext = (TextView) fontsize.findViewById(R.id.toolbar_icon_text);
@@ -376,7 +373,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         option.setValue(p);
         view.app.clearTextCaches();
         view.app.getViewWidget().repaint();
-        toolbarUpdate();
+        updateToolbar();
     }
 
     float getFontsizeReflow() {
@@ -391,7 +388,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         editor.apply();
         view.pluginview.reflower.k2.setFontSize(p);
         view.reset();
-        toolbarUpdate();
+        updateToolbar();
     }
 
     @Override
@@ -443,7 +440,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         if (id == R.id.action_reflow) {
             view.pluginview.reflow = !view.pluginview.reflow;
             view.reset();
-            toolbarUpdate();
+            updateToolbar();
         }
         return super.onOptionsItemSelected(item);
     }

@@ -429,6 +429,21 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public boolean onScrollingFinished(ZLViewEnums.PageIndex index) {
+            if (reflow && reflowDebug) {
+                switch (index) {
+                    case previous:
+                        current.pageNumber--;
+                        current.pageOffset = 0;
+                        current.load();
+                        break;
+                    case next:
+                        current.pageNumber++;
+                        current.pageOffset = 0;
+                        current.load();
+                        break;
+                }
+                return false;
+            }
             if (reflower != null) {
                 reflower.onScrollingFinished(index);
                 if (reflower.page != current.pageNumber) {
