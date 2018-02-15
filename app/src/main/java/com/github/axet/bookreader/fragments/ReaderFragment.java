@@ -201,8 +201,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             debug.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (view.pluginview.reflower != null)
-                        view.pluginview.reflower.reflowDebug = !view.pluginview.reflower.reflowDebug;
+                    view.pluginview.reflowDebug = !view.pluginview.reflowDebug;
                     view.reset();
                 }
             });
