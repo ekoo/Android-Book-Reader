@@ -202,6 +202,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 @Override
                 public void onClick(View v) {
                     view.pluginview.reflowDebug = !view.pluginview.reflowDebug;
+                    if (view.pluginview.reflowDebug)
+                        view.pluginview.reflow = true;
                     view.reset();
                 }
             });
