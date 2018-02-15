@@ -31,6 +31,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.widgets.TreeListView;
+import com.github.axet.bookreader.BuildConfig;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.FullscreenActivity;
 import com.github.axet.bookreader.activities.MainActivity;
@@ -194,6 +195,19 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         View v = inflater.inflate(R.layout.fragment_reader, container, false);
 
         toolbarBottom = v.findViewById(R.id.toolbar_bottom);
+        if (BuildConfig.DEBUG) {
+            View debug = toolbarBottom.findViewById(R.id.toolbar_debug);
+            debug.setVisibility(View.VISIBLE);
+            debug.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    view.pluginview.reflowDebug = !view.pluginview.reflowDebug;
+                    if (view.pluginview.reflowDebug)
+                        view.pluginview.reflow = true;
+                    view.reset();
+                }
+            });
+        }
         final View fontsize_popup = v.findViewById(R.id.fontsize_popup);
         fontsizepopup_text = (TextView) fontsize_popup.findViewById(R.id.fontsize_text);
         fontsizepopup_plus = fontsize_popup.findViewById(R.id.fontsize_plus);

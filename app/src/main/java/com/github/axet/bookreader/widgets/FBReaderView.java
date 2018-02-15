@@ -342,8 +342,9 @@ public class FBReaderView extends RelativeLayout {
             k2.load(bm);
         }
 
-        public void load(Bitmap bm, int page) {
-            current = page;
+        public void load(Bitmap bm, int page, int current) {
+            this.page = page;
+            this.current = current;
             k2.load(bm);
         }
 
@@ -389,6 +390,7 @@ public class FBReaderView extends RelativeLayout {
         public Paint paint = new Paint();
         public PluginPage current;
         public boolean reflow = false;
+        public boolean reflowDebug;
         public Reflow reflower;
 
         public PluginView() {
@@ -523,77 +525,71 @@ public class FBReaderView extends RelativeLayout {
             Canvas canvas = new Canvas(bitmap);
             drawWallpaper(canvas);
             if (reflow) {
+                if (reflower == null) {
+                    int page = current.pageNumber;
+                    reflower = new Reflow(context, w, h, page);
+                }
                 Bitmap bm = null;
-                if (reflower != null) {
-                    reflower.reset(w, h);
-                    int render = reflower.current; // render reflow page index
-                    int page = reflower.page; // render pageNumber
+                reflower.reset(w, h);
+                int render = reflower.current; // render reflow page index
+                int page = reflower.page; // render pageNumber
+                if (reflowDebug) {
                     switch (index) {
-                        case previous: // prev can point to many (no more then 2) pages behind, we need to walk every page manually
-                            render -= 1;
-                            if (render < 0) {
-                                int r = -1;
-                                while (r < 0) {
-                                    page--;
-                                    if (bm != null)
-                                        bm.recycle();
-                                    bm = render(w, h, page);
-                                    reflower = new Reflow(context, w, h, page);
-                                    reflower.load(bm);
-                                    int count = reflower.count();
-                                    r = count + render;
-                                    render = render + count;
-                                }
-                                render = r;
-                                reflower.load(bm, r + 1); // set pointer to current page, wait for onScrollingFinished
-                                bm.recycle();
-                            }
-                            bm = reflower.render(render);
+                        case previous:
+                            page = current.pageNumber - 1;
+                            break;
+                        case next:
+                            page = current.pageNumber + 1;
                             break;
                         case current:
-                            bm = render(w, h, reflower.page);
-                            reflower.load(bm, render);
+                            break;
+                    }
+                    index = ZLViewEnums.PageIndex.current;
+                    render = 0;
+                }
+                switch (index) {
+                    case previous: // prev can point to many (no more then 2) pages behind, we need to walk every page manually
+                        render -= 1;
+                        while (render < 0) {
+                            page--;
+                            bm = render(w, h, page);
+                            reflower.load(bm);
+                            bm.recycle();
+                            int count = reflower.count();
+                            render = render + count;
+                            reflower.page = page;
+                            reflower.current = render + 1;
+                        }
+                        bm = reflower.render(render);
+                        break;
+                    case current:
+                        bm = render(w, h, page);
+                        if (reflowDebug) {
+                            reflower.k2.setVerbose(true);
+                            reflower.k2.setShowMarkedSource(true);
+                        }
+                        reflower.load(bm, page, render);
+                        if (reflowDebug) {
+                            reflower.close();
+                            reflower = null;
+                        } else {
                             bm.recycle();
                             bm = reflower.render(render);
-                            break;
-                        case next: // next can point to many (no more then 2) pages ahead, we need to walk every page manually
-                            render += 1;
-                            while (reflower.count() - render <= 0) {
-                                page++;
-                                render -= reflower.count();
-                                current.pageNumber = page;
-                                current.pageOffset = 0;
-                                bm = render(w, h, page);
-                                reflower = new Reflow(context, w, h, page);
-                                reflower.load(bm, render - 1);
-                                bm.recycle();
-                            }
-                            bm = reflower.render(render);
-                            break;
-                    }
-                }
-                if (bm == null) {
-                    int page = current.pageNumber;
-                    switch (index) {
-                        case next:
-                            page++;
-                            break;
-                        case previous:
-                            page--;
-                            break;
-                    }
-                    bm = render(w, h, page);
-                    if (bm != null) {
-                        int current = 0;
-                        if (reflower != null) {
-                            reflower.close();
-                            current = -1; //  continious scrolling from previous reflower
                         }
-                        reflower = new Reflow(context, w, h, page);
-                        reflower.load(bm, current);
-                        bm.recycle();
-                        bm = reflower.render(0);
-                    }
+                        break;
+                    case next: // next can point to many (no more then 2) pages ahead, we need to walk every page manually
+                        render += 1;
+                        while (reflower.count() - render <= 0) {
+                            page++;
+                            render -= reflower.count();
+                            current.pageNumber = page;
+                            current.pageOffset = 0;
+                            bm = render(w, h, page);
+                            reflower.load(bm, page, render - 1);
+                            bm.recycle();
+                        }
+                        bm = reflower.render(render);
+                        break;
                 }
                 if (bm != null) {
                     Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
