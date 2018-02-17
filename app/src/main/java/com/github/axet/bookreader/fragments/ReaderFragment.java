@@ -39,6 +39,7 @@ import org.geometerplus.fbreader.bookmodel.TOCTree;
 import org.geometerplus.fbreader.fbreader.ActionCode;
 import org.geometerplus.fbreader.fbreader.options.ColorProfile;
 import org.geometerplus.zlibrary.core.options.ZLIntegerRangeOption;
+import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 
 import java.util.List;
 
@@ -49,6 +50,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     FBReaderView view;
     AlertDialog tocdialog;
     View toolbarBottom;
+    View rtl;
     View fontsize;
     TextView fontsizetext;
     TextView fontsizepopup_text;
@@ -191,6 +193,14 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         View v = inflater.inflate(R.layout.fragment_reader, container, false);
 
         toolbarBottom = v.findViewById(R.id.toolbar_bottom);
+        rtl = toolbarBottom.findViewById(R.id.toolbar_rtl);
+        rtl.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                view.app.BookTextView.rtlMode = !view.app.BookTextView.rtlMode;
+                view.reset();
+            }
+        });
         final View fontsize_popup = v.findViewById(R.id.fontsize_popup);
         fontsizepopup_text = (TextView) fontsize_popup.findViewById(R.id.fontsize_text);
         fontsizepopup_plus = fontsize_popup.findViewById(R.id.fontsize_plus);
@@ -211,6 +221,13 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         fontsize_popup.setVisibility(View.GONE);
         final MainActivity main = (MainActivity) getActivity();
         view = (FBReaderView) v.findViewById(R.id.main_view);
+
+        view.listener = new FBReaderView.PageTurningListener() {
+            @Override
+            public void onScrollingFinished(ZLViewEnums.PageIndex index) {
+                updateToolbar();
+            }
+        };
 
         view.setColorProfile();
 
@@ -251,6 +268,13 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         updateTime();
 
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                updateToolbar(); // update toolbar after page been drawen to detect RTL
+            }
+        });
+
         return v;
     }
 
@@ -258,13 +282,15 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         fontsize.setVisibility((view.pluginview == null || view.pluginview.reflow) ? View.VISIBLE : View.GONE);
 
         fontsizetext = (TextView) fontsize.findViewById(R.id.toolbar_icon_text);
-        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         if (view.pluginview == null) {
             fontsizetext.setText("" + getFontsizeFB());
         } else {
             float f = getFontsizeReflow();
             fontsizetext.setText(String.format("%.1f", f));
         }
+
+        if (!view.app.BookTextView.rtlMode && view.app.BookTextView.rtlDetected)
+            rtl.setVisibility(View.VISIBLE);
     }
 
     void updateFontsize() {

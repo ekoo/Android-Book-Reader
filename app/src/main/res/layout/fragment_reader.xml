@@ -14,10 +14,7 @@
         android:id="@+id/fontsize_popup"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@id/toolbar_bottom"
-        android:layout_margin="5dp"
-        android:background="@drawable/fontsize_round"
-        android:padding="5dp">
+        android:layout_above="@id/toolbar_bottom">
 
         <include layout="@layout/fontsize_popup" />
     </FrameLayout>
