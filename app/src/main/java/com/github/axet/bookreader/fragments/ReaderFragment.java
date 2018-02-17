@@ -51,6 +51,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     AlertDialog tocdialog;
     View toolbarBottom;
     View rtl;
+    TextView rtlText;
     View fontsize;
     TextView fontsizetext;
     TextView fontsizepopup_text;
@@ -194,11 +195,13 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         toolbarBottom = v.findViewById(R.id.toolbar_bottom);
         rtl = toolbarBottom.findViewById(R.id.toolbar_rtl);
+        rtlText = (TextView) toolbarBottom.findViewById(R.id.toolbar_rtl_text);
         rtl.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 view.app.BookTextView.rtlMode = !view.app.BookTextView.rtlMode;
                 view.reset();
+                updateToolbar();
             }
         });
         final View fontsize_popup = v.findViewById(R.id.fontsize_popup);
@@ -289,8 +292,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             fontsizetext.setText(String.format("%.1f", f));
         }
 
-        if (!view.app.BookTextView.rtlMode && view.app.BookTextView.rtlDetected)
+        if (!view.app.BookTextView.rtlMode && view.app.BookTextView.rtlDetected) {
             rtl.setVisibility(View.VISIBLE);
+        }
+        rtlText.setText(view.app.BookTextView.rtlMode ? "RTL" : "LTR");
     }
 
     void updateFontsize() {

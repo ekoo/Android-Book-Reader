@@ -44,12 +44,31 @@
         app:srcCompat="@drawable/ic_bug_report_black_24dp"
         tools:visibility="visible" />
 
-    <ImageButton
+    <FrameLayout
         android:id="@+id/toolbar_rtl"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:tint="?attr/colorAccent"
         android:visibility="gone"
-        app:srcCompat="@drawable/ic_gesture_black_24dp"
-        tools:visibility="visible" />
+        tools:visibility="visible">
+
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:clickable="false"
+            android:gravity="center"
+            android:tint="?attr/colorAccent"
+            app:srcCompat="@drawable/ic_gesture_black_24dp" />
+
+        <TextView
+            android:id="@+id/toolbar_rtl_text"
+            style="@style/toolbar_icon_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="7dp"
+            android:maxWidth="60dp"
+            android:singleLine="true"
+            android:text="LRT" />
+    </FrameLayout>
 </LinearLayout>
