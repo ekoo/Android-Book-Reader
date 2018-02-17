@@ -6,9 +6,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.res.ColorStateList;
 import android.graphics.Color;
-import android.graphics.PorterDuff;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.BatteryManager;
@@ -16,7 +14,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
-import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -25,7 +22,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -43,6 +39,7 @@ import org.geometerplus.fbreader.bookmodel.TOCTree;
 import org.geometerplus.fbreader.fbreader.ActionCode;
 import org.geometerplus.fbreader.fbreader.options.ColorProfile;
 import org.geometerplus.zlibrary.core.options.ZLIntegerRangeOption;
+import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 
 import java.util.List;
 
@@ -53,6 +50,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     FBReaderView view;
     AlertDialog tocdialog;
     View toolbarBottom;
+    View rtl;
     View fontsize;
     TextView fontsizetext;
     TextView fontsizepopup_text;
@@ -195,19 +193,14 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         View v = inflater.inflate(R.layout.fragment_reader, container, false);
 
         toolbarBottom = v.findViewById(R.id.toolbar_bottom);
-        if (BuildConfig.DEBUG) {
-            View debug = toolbarBottom.findViewById(R.id.toolbar_debug);
-            debug.setVisibility(View.VISIBLE);
-            debug.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    view.pluginview.reflowDebug = !view.pluginview.reflowDebug;
-                    if (view.pluginview.reflowDebug)
-                        view.pluginview.reflow = true;
-                    view.reset();
-                }
-            });
-        }
+        rtl = toolbarBottom.findViewById(R.id.toolbar_rtl);
+        rtl.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                view.app.BookTextView.rtlMode = !view.app.BookTextView.rtlMode;
+                view.reset();
+            }
+        });
         final View fontsize_popup = v.findViewById(R.id.fontsize_popup);
         fontsizepopup_text = (TextView) fontsize_popup.findViewById(R.id.fontsize_text);
         fontsizepopup_plus = fontsize_popup.findViewById(R.id.fontsize_plus);
@@ -229,6 +222,13 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         final MainActivity main = (MainActivity) getActivity();
         view = (FBReaderView) v.findViewById(R.id.main_view);
 
+        view.listener = new FBReaderView.PageTurningListener() {
+            @Override
+            public void onScrollingFinished(ZLViewEnums.PageIndex index) {
+                updateToolbar();
+            }
+        };
+
         view.setColorProfile();
 
         Context context = getContext();
@@ -249,24 +249,48 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             main.openLibrary();
         }
 
-        toolbarUpdate();
+        if (BuildConfig.DEBUG && view.pluginview != null) {
+            View debug = toolbarBottom.findViewById(R.id.toolbar_debug);
+            debug.setVisibility(View.VISIBLE);
+            debug.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    view.pluginview.reflowDebug = !view.pluginview.reflowDebug;
+                    if (view.pluginview.reflowDebug)
+                        view.pluginview.reflow = true;
+                    view.reset();
+                    updateToolbar();
+                }
+            });
+        }
+
+        updateToolbar();
 
         updateTime();
+
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                updateToolbar(); // update toolbar after page been drawen to detect RTL
+            }
+        });
 
         return v;
     }
 
-    void toolbarUpdate() {
+    void updateToolbar() {
         fontsize.setVisibility((view.pluginview == null || view.pluginview.reflow) ? View.VISIBLE : View.GONE);
 
         fontsizetext = (TextView) fontsize.findViewById(R.id.toolbar_icon_text);
-        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         if (view.pluginview == null) {
             fontsizetext.setText("" + getFontsizeFB());
         } else {
             float f = getFontsizeReflow();
             fontsizetext.setText(String.format("%.1f", f));
         }
+
+        if (!view.app.BookTextView.rtlMode && view.app.BookTextView.rtlDetected)
+            rtl.setVisibility(View.VISIBLE);
     }
 
     void updateFontsize() {
@@ -376,7 +400,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         option.setValue(p);
         view.app.clearTextCaches();
         view.app.getViewWidget().repaint();
-        toolbarUpdate();
+        updateToolbar();
     }
 
     float getFontsizeReflow() {
@@ -391,7 +415,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         editor.apply();
         view.pluginview.reflower.k2.setFontSize(p);
         view.reset();
-        toolbarUpdate();
+        updateToolbar();
     }
 
     @Override
@@ -443,7 +467,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         if (id == R.id.action_reflow) {
             view.pluginview.reflow = !view.pluginview.reflow;
             view.reset();
-            toolbarUpdate();
+            updateToolbar();
         }
         return super.onOptionsItemSelected(item);
     }

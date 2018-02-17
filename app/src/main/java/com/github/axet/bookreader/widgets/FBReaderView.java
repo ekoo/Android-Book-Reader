@@ -7,7 +7,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -115,6 +114,7 @@ public class FBReaderView extends RelativeLayout {
     public Window w;
     public Storage.Book book;
     public PluginView pluginview;
+    public PageTurningListener listener;
 
     public static class PluginRect {
         public int x; // lower left x
@@ -384,6 +384,10 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
+    public interface PageTurningListener {
+        void onScrollingFinished(ZLViewEnums.PageIndex index);
+    }
+
     public static class PluginView {
         public Bitmap wallpaper;
         public int wallpaperColor;
@@ -429,6 +433,21 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public boolean onScrollingFinished(ZLViewEnums.PageIndex index) {
+            if (reflow && reflowDebug) {
+                switch (index) {
+                    case previous:
+                        current.pageNumber--;
+                        current.pageOffset = 0;
+                        current.load();
+                        break;
+                    case next:
+                        current.pageNumber++;
+                        current.pageOffset = 0;
+                        current.load();
+                        break;
+                }
+                return false;
+            }
             if (reflower != null) {
                 reflower.onScrollingFinished(index);
                 if (reflower.page != current.pageNumber) {
@@ -660,6 +679,8 @@ public class FBReaderView extends RelativeLayout {
             } else {
                 super.onScrollingFinished(pageIndex);
             }
+            if (listener != null)
+                listener.onScrollingFinished(pageIndex);
         }
 
         @Override
