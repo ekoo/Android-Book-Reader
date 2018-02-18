@@ -1,6 +1,7 @@
 package com.github.axet.bookreader.fragments;
 
 import android.content.Context;
+import android.net.Network;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -33,12 +34,14 @@ import com.github.axet.bookreader.widgets.BrowserDialogFragment;
 import org.apache.commons.io.IOUtils;
 import org.geometerplus.android.util.UIUtil;
 import org.geometerplus.fbreader.network.INetworkLink;
+import org.geometerplus.fbreader.network.NetworkBookItem;
 import org.geometerplus.fbreader.network.NetworkCatalogItem;
 import org.geometerplus.fbreader.network.NetworkImage;
 import org.geometerplus.fbreader.network.NetworkLibrary;
 import org.geometerplus.fbreader.network.NetworkOperationData;
 import org.geometerplus.fbreader.network.SearchItem;
 import org.geometerplus.fbreader.network.SingleCatalogSearchItem;
+import org.geometerplus.fbreader.network.opds.OPDSBookItem;
 import org.geometerplus.fbreader.network.opds.OPDSNetworkLink;
 import org.geometerplus.fbreader.network.opds.OPDSPredefinedNetworkLink;
 import org.geometerplus.fbreader.network.opds.OpenSearchDescription;
@@ -158,6 +161,11 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
             super(getContext());
         }
 
+        @Override
+        public int getLayout() {
+            return holder.layout;
+        }
+
         public void load(List<FBTree> ll) {
             if (ignore != null) {
                 books.bookItems = new ArrayList<>();
@@ -206,6 +214,21 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         @Override
         public FBTree getItem(int position) {
             return list.get(position);
+        }
+
+        @Override
+        public String getAuthors(int position) {
+            String a = "";
+            FBTree b = list.get(position);
+            if (b instanceof NetworkBookTree) {
+                NetworkBookTree i = (NetworkBookTree) b;
+                for (NetworkBookItem.AuthorData d : i.Book.Authors) {
+                    if (!a.isEmpty())
+                        a += ", ";
+                    a += d.DisplayName;
+                }
+            }
+            return a;
         }
 
         @Override
