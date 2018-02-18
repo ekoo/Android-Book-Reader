@@ -16,6 +16,7 @@ public class MainApplication extends MultiDexApplication {
     public static String PREFERENCE_FONTSIZE_FBREADER = "fontsize_fb";
     public static String PREFERENCE_FONTSIZE_REFLOW = "fontsize_reflow";
     public static float PREFERENCE_FONTSIZE_REFLOW_DEFAULT = 0.8f;
+    public static String PREFERENCE_LIBRARY_LAYOUT = "library_layout";
 
     public static int getTheme(Context context, int light, int dark) {
         final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);

@@ -25,6 +25,6 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true">
 
-        <include layout="@layout/toolbar_bottom" />
+        <include layout="@layout/toolbar_reader_bottom" />
     </FrameLayout>
 </RelativeLayout>

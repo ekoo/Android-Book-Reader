@@ -601,8 +601,6 @@ public class FBReaderView extends RelativeLayout {
                         while (reflower.count() - render <= 0) {
                             page++;
                             render -= reflower.count();
-                            current.pageNumber = page;
-                            current.pageOffset = 0;
                             bm = render(w, h, page);
                             reflower.load(bm, page, render - 1);
                             bm.recycle();

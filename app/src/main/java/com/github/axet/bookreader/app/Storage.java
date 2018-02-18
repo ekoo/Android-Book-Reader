@@ -142,7 +142,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
     }
 
-    public static String getTitle(Book book) {
+    public static String getName(Book book) {
         String a = book.book.authorsString(", ");
         String t = book.book.getTitle();
         if (t.equals(book.md5))
@@ -157,6 +157,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         else
             m = a + " - " + t;
         return m;
+    }
+
+    public static String getTitle(Book book) {
+        String t = book.book.getTitle();
+        if (t.equals(book.md5))
+            t = null;
+        return t;
     }
 
     public static File coverFile(Book book) {
@@ -784,6 +791,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         public long created;
         public long last;
         public ZLTextPosition position;
+        public String authors;
         public String title;
 
         public RecentInfo() {
@@ -809,6 +817,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             md5 = o.getString("md5");
             created = o.optLong("created", 0);
             last = o.getLong("last");
+            authors = o.optString("authors", null);
             title = o.optString("title", null);
             JSONArray a = o.optJSONArray("position");
             if (a != null)
@@ -820,6 +829,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             o.put("md5", md5);
             o.put("created", created);
             o.put("last", last);
+            o.put("authors", authors);
             o.put("title", title);
             if (position != null) {
                 JSONArray a = new JSONArray();
@@ -1040,10 +1050,11 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         } catch (BookReadingException e) {
             throw new RuntimeException(e);
         }
+        if (fbook.info.authors == null || fbook.info.authors.isEmpty()) {
+            fbook.info.authors = fbook.book.authorsString(", ");
+        }
         if (fbook.info.title == null || fbook.info.title.isEmpty() || fbook.info.title.equals(fbook.md5)) {
-            String title = getTitle(fbook);
-            if (title != null && !title.isEmpty())
-                fbook.info.title = title;
+            fbook.info.title = getTitle(fbook);
         }
         File cover = coverFile(fbook);
         if (!cover.exists() || cover.length() == 0) {

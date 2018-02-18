@@ -3,12 +3,14 @@ package com.github.axet.bookreader.fragments;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.DataSetObserver;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.PopupMenu;
@@ -33,6 +35,7 @@ import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
+import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
 
 import java.io.InputStream;
@@ -57,6 +60,8 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     public static class FragmentHolder {
         HeaderGridView grid;
 
+        public int layout;
+
         View toolbar;
         View searchpanel;
         LinearLayout searchtoolbar;
@@ -65,6 +70,8 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         View footerNext;
         View footerProgress;
         View footerStop;
+        View toolbarBottom;
+        ImageView toolbar_list;
 
         Context context;
 
@@ -88,8 +95,55 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             footerNext = footer.findViewById(R.id.search_footer_next);
             footerProgress = footer.findViewById(R.id.search_footer_progress);
             footerStop = footer.findViewById(R.id.search_footer_stop);
+            toolbarBottom = v.findViewById(R.id.toolbar_bottom);
+
+            toolbar_list = (ImageView) toolbarBottom.findViewById(R.id.toolbar_view);
+            toolbar_list.setVisibility(View.VISIBLE);
 
             grid.addFooterView(footer);
+
+            final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
+
+            toolbar_list.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    SharedPreferences.Editor editor = shared.edit();
+                    if (layout == R.layout.book_list_item) {
+                        editor.putString(MainApplication.PREFERENCE_LIBRARY_LAYOUT, "book_item");
+                    } else {
+                        editor.putString(MainApplication.PREFERENCE_LIBRARY_LAYOUT, "book_list_item");
+                    }
+                    editor.commit();
+                    updateGrid();
+                }
+            });
+            updateGrid();
+        }
+
+        void updateGrid() {
+            final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
+
+            layout = R.layout.book_item;
+            if (shared.getString(MainApplication.PREFERENCE_LIBRARY_LAYOUT, "").equals("book_list_item")) {
+                grid.setNumColumns(1);
+                layout = R.layout.book_list_item;
+            } else {
+                grid.setNumColumns(4);
+                layout = R.layout.book_item;
+            }
+
+            BooksAdapter a = (BooksAdapter) grid.getAdapter();
+            if (a != null)
+                a.notifyDataSetChanged();
+            updateToolbar();
+        }
+
+        public void updateToolbar() {
+            if (layout == R.layout.book_item) {
+                toolbar_list.setImageResource(R.drawable.ic_view_module_black_24dp);
+            } else {
+                toolbar_list.setImageResource(R.drawable.ic_view_list_black_24dp);
+            }
         }
     }
 
@@ -169,11 +223,22 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             super(getContext());
         }
 
+        @Override
+        public int getLayout() {
+            return holder.layout;
+        }
+
         public Uri getCover(int position) {
             Storage.Book b = list.get(position);
             if (b.cover != null)
                 return Uri.fromFile(b.cover);
             return null;
+        }
+
+        @Override
+        public String getAuthors(int position) {
+            Storage.Book b = list.get(position);
+            return b.info.authors;
         }
 
         @Override
@@ -226,6 +291,14 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             return null;
         }
 
+        public int getLayout() {
+            return -1;
+        }
+
+        public String getAuthors(int position) {
+            return "";
+        }
+
         public String getTitle(int position) {
             return "";
         }
@@ -271,10 +344,11 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             LayoutInflater inflater = LayoutInflater.from(context);
-            View book = inflater.inflate(R.layout.book_item, null, false);
-            ImageView image = (ImageView) book.findViewById(R.id.imageView);
-            TextView text = (TextView) book.findViewById(R.id.textView);
-            ProgressBar progress = (ProgressBar) book.findViewById(R.id.update_progress);
+            View book = inflater.inflate(getLayout(), null, false);
+            ImageView image = (ImageView) book.findViewById(R.id.book_cover);
+            TextView aa = (TextView) book.findViewById(R.id.book_authors);
+            TextView tt = (TextView) book.findViewById(R.id.book_title);
+            ProgressBar progress = (ProgressBar) book.findViewById(R.id.book_progress);
             progress.setVisibility(View.GONE);
 
             Uri cover = getCover(position);
@@ -303,9 +377,21 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                 }
             }
 
-            text.setText(getTitle(position));
+            setText(aa, getAuthors(position));
+            setText(tt, getTitle(position));
 
             return book;
+        }
+
+        void setText(TextView t, String s) {
+            if (t == null)
+                return;
+            if (s == null || s.isEmpty()) {
+                t.setVisibility(View.GONE);
+                return;
+            }
+            t.setVisibility(View.VISIBLE);
+            t.setText(s);
         }
 
         @Override
