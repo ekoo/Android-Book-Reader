@@ -9,6 +9,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
@@ -48,6 +49,7 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.ThreadPoolExecutor;
 
 public class LibraryFragment extends Fragment implements MainActivity.SearchListener {
     public static final String TAG = LibraryFragment.class.getSimpleName();
@@ -147,38 +149,35 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
     }
 
-    public static class BookViewHolder {
+    public static class DownloadImageTask extends AsyncTask<Uri, Void, Bitmap> {
         public Bitmap bm;
         public HashSet<ImageView> views = new HashSet<>(); // one task can set multiple ImageView's, except reused ones;
         public HashSet<ProgressBar> progress = new HashSet<>();
         public boolean done;
+        public boolean start;
+        public Uri cover;
 
-        public BookViewHolder() {
-        }
-
-        public BookViewHolder(ProgressBar p, ImageView i) {
+        public DownloadImageTask(ProgressBar p, ImageView i, Uri c) {
             progress.add(p);
             views.add(i);
+            cover = c;
         }
-    }
 
-    public static class DownloadImageTask extends AsyncTask<Uri, Void, Bitmap> {
-        BookViewHolder book;
-
-        public DownloadImageTask(BookViewHolder b) {
-            book = b;
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
         }
 
         protected Bitmap doInBackground(Uri... urls) {
-            Uri u = urls[0];
+            start = true;
             Bitmap bm = null;
             try {
-                String s = u.getScheme();
+                String s = cover.getScheme();
                 if (s.startsWith(WebViewCustom.SCHEME_HTTP)) {
-                    InputStream in = new URL(u.toString()).openStream();
+                    InputStream in = new URL(cover.toString()).openStream();
                     bm = BitmapFactory.decodeStream(in);
                 } else {
-                    bm = BitmapFactory.decodeFile(u.getPath());
+                    bm = BitmapFactory.decodeFile(cover.getPath());
                 }
             } catch (Exception e) {
                 Log.e(TAG, "broken download", e);
@@ -187,14 +186,14 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
 
         protected void onPostExecute(Bitmap result) {
-            book.done = true;
-            for (ProgressBar p : book.progress)
+            done = true;
+            for (ProgressBar p : progress)
                 p.setVisibility(View.GONE);
-            book.bm = result;
-            if (book.bm == null)
+            bm = result;
+            if (bm == null)
                 return;
-            for (ImageView v : book.views)
-                v.setImageBitmap(book.bm);
+            for (ImageView v : views)
+                v.setImageBitmap(bm);
         }
     }
 
@@ -277,8 +276,8 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     }
 
     public static abstract class BooksAdapter implements ListAdapter {
-        Map<Uri, BookViewHolder> views = new TreeMap<>();
-        Map<ImageView, BookViewHolder> images = new HashMap<>();
+        Map<Uri, DownloadImageTask> views = new TreeMap<>();
+        Map<ImageView, DownloadImageTask> images = new HashMap<>();
         DataSetObserver listener;
         String filter;
         Context context;
@@ -343,21 +342,27 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            LayoutInflater inflater = LayoutInflater.from(context);
-            View book = inflater.inflate(getLayout(), null, false);
-            ImageView image = (ImageView) book.findViewById(R.id.book_cover);
-            TextView aa = (TextView) book.findViewById(R.id.book_authors);
-            TextView tt = (TextView) book.findViewById(R.id.book_title);
-            ProgressBar progress = (ProgressBar) book.findViewById(R.id.book_progress);
+            if (convertView == null) {
+                LayoutInflater inflater = LayoutInflater.from(context);
+                convertView = inflater.inflate(getLayout(), null, false);
+            }
+            ImageView image = (ImageView) convertView.findViewById(R.id.book_cover);
+            TextView aa = (TextView) convertView.findViewById(R.id.book_authors);
+            TextView tt = (TextView) convertView.findViewById(R.id.book_title);
+            ProgressBar progress = (ProgressBar) convertView.findViewById(R.id.book_progress);
             progress.setVisibility(View.GONE);
 
             Uri cover = getCover(position);
 
             if (cover != null) {
-                BookViewHolder task = images.get(image);
+                DownloadImageTask task = images.get(image);
                 if (task != null) { // reuse image
                     task.views.remove(image);
                     task.progress.remove(progress);
+                    if (!task.start) {
+                        task.cancel(true);
+                        views.remove(task.cover);
+                    }
                 }
                 task = views.get(cover);
                 if (task != null) { // add new ImageView to populate on finish
@@ -365,12 +370,15 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                     task.progress.add(progress);
                 }
                 if (task == null) {
-                    task = new BookViewHolder(progress, image);
+                    task = new DownloadImageTask(progress, image, cover);
                     views.put(cover, task);
                     images.put(image, task);
-                    new LibraryFragment.DownloadImageTask(task).execute(cover);
-                } else if (task.bm != null) {
+                    task.execute();
+                }
+                if (task.bm != null) {
                     image.setImageBitmap(task.bm);
+                } else {
+                    image.setImageResource(R.mipmap.ic_launcher);
                 }
                 for (ProgressBar p : task.progress) {
                     p.setVisibility(task.done ? View.GONE : View.VISIBLE);
@@ -380,7 +388,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             setText(aa, getAuthors(position));
             setText(tt, getTitle(position));
 
-            return book;
+            return convertView;
         }
 
         void setText(TextView t, String s) {
@@ -407,6 +415,19 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         @Override
         public boolean isEmpty() {
             return getCount() == 0;
+        }
+
+        public void clearTasks() {
+            for (Uri item : views.keySet()) {
+                DownloadImageTask t = views.get(item);
+                t.cancel(true);
+            }
+            views.clear();
+            for (ImageView item : images.keySet()) {
+                DownloadImageTask t = images.get(item);
+                t.cancel(true);
+            }
+            images.clear();
         }
     }
 
@@ -550,6 +571,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     @Override
     public void onDestroy() {
         super.onDestroy();
+        books.clearTasks();
     }
 
     @Override

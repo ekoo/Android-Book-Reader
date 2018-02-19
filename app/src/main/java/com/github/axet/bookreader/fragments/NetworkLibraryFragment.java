@@ -755,6 +755,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     @Override
     public void onDestroy() {
         super.onDestroy();
+        books.clearTasks();
     }
 
     @Override
