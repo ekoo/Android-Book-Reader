@@ -239,7 +239,6 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         @Override
         public Uri getCover(int position) {
             FBTree b = list.get(position);
-
             ZLImage cover = b.getCover();
             if (cover != null && cover instanceof NetworkImage) {
                 Uri u = Uri.parse(((NetworkImage) cover).Url);

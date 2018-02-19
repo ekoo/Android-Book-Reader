@@ -263,6 +263,8 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
             if (cover != null) {
                 getView(cover, convertView);
+            } else {
+                updateView(null, cover, convertView);
             }
 
             setText(aa, getAuthors(position));
