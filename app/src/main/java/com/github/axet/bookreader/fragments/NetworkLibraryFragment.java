@@ -193,8 +193,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         public void refresh() {
             if (searchCatalog != null || filter == null || filter.isEmpty()) {
                 list = bookItems;
-                views.clear();
-                images.clear();
+                clearTasks();
             } else {
                 list = new ArrayList<>();
                 for (FBTree b : bookItems) {
@@ -240,7 +239,6 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         @Override
         public Uri getCover(int position) {
             FBTree b = list.get(position);
-
             ZLImage cover = b.getCover();
             if (cover != null && cover instanceof NetworkImage) {
                 Uri u = Uri.parse(((NetworkImage) cover).Url);
@@ -394,8 +392,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     }
 
     void loadBooks() {
-        books.views.clear();
-        books.images.clear();
+        books.clearTasks();
         books.refresh();
     }
 
@@ -755,6 +752,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     @Override
     public void onDestroy() {
         super.onDestroy();
+        books.clearTasks();
     }
 
     @Override

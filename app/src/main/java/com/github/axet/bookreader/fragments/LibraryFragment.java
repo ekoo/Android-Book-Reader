@@ -4,17 +4,13 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.database.DataSetObserver;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.PopupMenu;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -25,29 +21,22 @@ import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ListAdapter;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.services.FileProvider;
 import com.github.axet.androidlibrary.widgets.HeaderGridView;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
-import com.github.axet.androidlibrary.widgets.WebViewCustom;
+import com.github.axet.androidlibrary.widgets.UriImagesAdapter;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
 
-import java.io.InputStream;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Locale;
-import java.util.Map;
-import java.util.TreeMap;
 
 public class LibraryFragment extends Fragment implements MainActivity.SearchListener {
     public static final String TAG = LibraryFragment.class.getSimpleName();
@@ -147,57 +136,6 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
     }
 
-    public static class BookViewHolder {
-        public Bitmap bm;
-        public HashSet<ImageView> views = new HashSet<>(); // one task can set multiple ImageView's, except reused ones;
-        public HashSet<ProgressBar> progress = new HashSet<>();
-        public boolean done;
-
-        public BookViewHolder() {
-        }
-
-        public BookViewHolder(ProgressBar p, ImageView i) {
-            progress.add(p);
-            views.add(i);
-        }
-    }
-
-    public static class DownloadImageTask extends AsyncTask<Uri, Void, Bitmap> {
-        BookViewHolder book;
-
-        public DownloadImageTask(BookViewHolder b) {
-            book = b;
-        }
-
-        protected Bitmap doInBackground(Uri... urls) {
-            Uri u = urls[0];
-            Bitmap bm = null;
-            try {
-                String s = u.getScheme();
-                if (s.startsWith(WebViewCustom.SCHEME_HTTP)) {
-                    InputStream in = new URL(u.toString()).openStream();
-                    bm = BitmapFactory.decodeStream(in);
-                } else {
-                    bm = BitmapFactory.decodeFile(u.getPath());
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "broken download", e);
-            }
-            return bm;
-        }
-
-        protected void onPostExecute(Bitmap result) {
-            book.done = true;
-            for (ProgressBar p : book.progress)
-                p.setVisibility(View.GONE);
-            book.bm = result;
-            if (book.bm == null)
-                return;
-            for (ImageView v : book.views)
-                v.setImageBitmap(book.bm);
-        }
-    }
-
     public static class ByRecent implements Comparator<Storage.Book> {
 
         @Override
@@ -262,8 +200,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             ArrayList<Storage.Book> ll = storage.list();
             if (filter == null || filter.isEmpty()) {
                 list = ll;
-                views.clear();
-                images.clear();
+                clearTasks();
             } else {
                 for (Storage.Book b : ll) {
                     if (b.info.title.toLowerCase(Locale.US).contains(filter.toLowerCase(Locale.US))) {
@@ -276,15 +213,11 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
     }
 
-    public static abstract class BooksAdapter implements ListAdapter {
-        Map<Uri, BookViewHolder> views = new TreeMap<>();
-        Map<ImageView, BookViewHolder> images = new HashMap<>();
-        DataSetObserver listener;
+    public static abstract class BooksAdapter extends UriImagesAdapter {
         String filter;
-        Context context;
 
         public BooksAdapter(Context context) {
-            this.context = context;
+            super(context);
         }
 
         public Uri getCover(int position) {
@@ -306,81 +239,51 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         public void refresh() {
         }
 
-        public void notifyDataSetChanged() {
-            if (listener != null)
-                listener.onChanged();
+        @Override
+        public int getViewTypeCount() {
+            return 2;
         }
 
         @Override
-        public boolean areAllItemsEnabled() {
-            return true;
-        }
-
-        @Override
-        public boolean isEnabled(int position) {
-            return true;
-        }
-
-        @Override
-        public void registerDataSetObserver(DataSetObserver observer) {
-            listener = observer;
-        }
-
-        @Override
-        public void unregisterDataSetObserver(DataSetObserver observer) {
-            listener = null;
-        }
-
-        @Override
-        public long getItemId(int position) {
-            return position;
-        }
-
-        @Override
-        public boolean hasStableIds() {
-            return true;
+        public int getItemViewType(int position) {
+            return getLayout() == R.layout.book_list_item ? 1 : 0;
         }
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            LayoutInflater inflater = LayoutInflater.from(context);
-            View book = inflater.inflate(getLayout(), null, false);
-            ImageView image = (ImageView) book.findViewById(R.id.book_cover);
-            TextView aa = (TextView) book.findViewById(R.id.book_authors);
-            TextView tt = (TextView) book.findViewById(R.id.book_title);
-            ProgressBar progress = (ProgressBar) book.findViewById(R.id.book_progress);
-            progress.setVisibility(View.GONE);
+            if (convertView == null) {
+                LayoutInflater inflater = LayoutInflater.from(context);
+                convertView = inflater.inflate(getLayout(), null, false);
+            }
+
+            TextView aa = (TextView) convertView.findViewById(R.id.book_authors);
+            TextView tt = (TextView) convertView.findViewById(R.id.book_title);
 
             Uri cover = getCover(position);
 
             if (cover != null) {
-                BookViewHolder task = images.get(image);
-                if (task != null) { // reuse image
-                    task.views.remove(image);
-                    task.progress.remove(progress);
-                }
-                task = views.get(cover);
-                if (task != null) { // add new ImageView to populate on finish
-                    task.views.add(image);
-                    task.progress.add(progress);
-                }
-                if (task == null) {
-                    task = new BookViewHolder(progress, image);
-                    views.put(cover, task);
-                    images.put(image, task);
-                    new LibraryFragment.DownloadImageTask(task).execute(cover);
-                } else if (task.bm != null) {
-                    image.setImageBitmap(task.bm);
-                }
-                for (ProgressBar p : task.progress) {
-                    p.setVisibility(task.done ? View.GONE : View.VISIBLE);
-                }
+                getView(cover, convertView);
+            } else {
+                updateView(null, cover, convertView);
             }
 
             setText(aa, getAuthors(position));
             setText(tt, getTitle(position));
 
-            return book;
+            return convertView;
+        }
+
+        @Override
+        public Bitmap downloadImageTask(DownloadImageTask task) {
+            return downloadImage((Uri) task.item);
+        }
+
+        @Override
+        public void updateView(DownloadImageTask task, Object item, Object view) {
+            View convertView = (View) view;
+            ImageView image = (ImageView) convertView.findViewById(R.id.book_cover);
+            ProgressBar progress = (ProgressBar) convertView.findViewById(R.id.book_progress);
+            updateView(task, image, progress);
         }
 
         void setText(TextView t, String s) {
@@ -392,21 +295,6 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             }
             t.setVisibility(View.VISIBLE);
             t.setText(s);
-        }
-
-        @Override
-        public int getItemViewType(int position) {
-            return 0;
-        }
-
-        @Override
-        public int getViewTypeCount() {
-            return 1;
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return getCount() == 0;
         }
     }
 
@@ -550,6 +438,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     @Override
     public void onDestroy() {
         super.onDestroy();
+        books.clearTasks();
     }
 
     @Override
