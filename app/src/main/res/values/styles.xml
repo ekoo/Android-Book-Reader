@@ -1,6 +1,7 @@
 <resources>
     <style name="AppThemeLight" parent="AppThemeLightLib">
         <item name="side_nav_bar">@drawable/side_nav_bar_light</item>
+        <item name="fontsize_round">@drawable/fontsize_round_light</item>
     </style>
 
     <style name="AppThemeLight.NoActionBar">
@@ -14,6 +15,7 @@
 
     <style name="AppThemeDark" parent="AppThemeDarkLib">
         <item name="side_nav_bar">@drawable/side_nav_bar_dark</item>
+        <item name="fontsize_round">@drawable/fontsize_round_dark</item>
     </style>
 
     <style name="AppThemeDark.NoActionBar">
