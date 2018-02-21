@@ -164,29 +164,15 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         public View getView(int position, View convertView, ViewGroup parent) {
             View view = convertView;
 
-            // This function may be called in two cases: a new view needs to be created,
-            // or an existing view needs to be reused
             if (view == null) {
-                // Since we're using the system list for the layout, use the system inflater
                 final LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-
-                // And inflate the view android.R.layout.select_dialog_singlechoice
-                // Why? See com.android.internal.app.AlertController method createListView()
                 view = inflater.inflate(android.R.layout.select_dialog_singlechoice, parent, false);
             }
 
             if (view != null) {
-                // Find the text view from our interface
                 CheckedTextView tv = (CheckedTextView) view.findViewById(android.R.id.text1);
-
                 tv.setChecked(selected == position);
-
                 tv.setTypeface(ff.get(position).font);
-
-                // If you want to make the selected item having different foreground or background color,
-                // be aware of themes. In some of them your foreground color may be the background color.
-                // So we don't mess with anything here and just add the extra stars to have the selected
-                // font to stand out.
                 tv.setText(ff.get(position).name);
             }
 
@@ -494,7 +480,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         });
         fonts = new FontAdapter(getContext());
         fontsList = (ListView) v.findViewById(R.id.fonts_list);
-        fontsList.setAdapter(fonts);
         fontsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View v, int position, long id) {
@@ -515,23 +500,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         view.setColorProfile();
 
-        List<File> files = new ArrayList<>();
-        for (String f : enumerateFonts().keySet()) {
-            files.add(new File(f));
-        }
-        AndroidFontUtil.ourFileSet = new TreeSet<>();
-        AndroidFontUtil.ourFontFileMap = new ZLTTFInfoDetector().collectFonts(files);
-        fonts.addBasics();
-        for (String s : AndroidFontUtil.ourFontFileMap.keySet()) {
-            File[] ff = AndroidFontUtil.ourFontFileMap.get(s);
-            for (File f : ff) {
-                if (f != null) {
-                    fonts.ff.add(new FontView(s, f));
-                    break; // regular first
-                }
-            }
-        }
-
         Context context = getContext();
         onReceiveBattery(context.registerReceiver(battery, new IntentFilter(Intent.ACTION_BATTERY_CHANGED)));
 
@@ -548,6 +516,29 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         } catch (RuntimeException e) {
             main.Error(e);
             main.openLibrary();
+        }
+
+        if (view.pluginview == null) {
+            fontsList.setVisibility(View.VISIBLE);
+            fontsList.setAdapter(fonts);
+            List<File> files = new ArrayList<>();
+            for (String f : enumerateFonts().keySet()) {
+                files.add(new File(f));
+            }
+            AndroidFontUtil.ourFileSet = new TreeSet<>();
+            AndroidFontUtil.ourFontFileMap = new ZLTTFInfoDetector().collectFonts(files);
+            fonts.addBasics();
+            for (String s : AndroidFontUtil.ourFontFileMap.keySet()) {
+                File[] ff = AndroidFontUtil.ourFontFileMap.get(s);
+                for (File f : ff) {
+                    if (f != null) {
+                        fonts.ff.add(new FontView(s, f));
+                        break; // regular first
+                    }
+                }
+            }
+        } else {
+            fontsList.setVisibility(View.GONE);
         }
 
         if (BuildConfig.DEBUG && view.pluginview != null) {
