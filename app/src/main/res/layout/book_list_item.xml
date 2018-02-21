@@ -32,38 +32,32 @@
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="5dp"
+        android:layout_margin="2dp"
         android:orientation="vertical">
 
-        <LinearLayout
+        <com.github.axet.androidlibrary.widgets.TextMax
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:layout_height="wrap_content">
 
-            <com.github.axet.androidlibrary.widgets.TextMax
+            <TextView
+                android:id="@+id/book_authors"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="Authors" />
+        </com.github.axet.androidlibrary.widgets.TextMax>
 
-                <TextView
-                    android:id="@+id/book_authors"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:text="Authors" />
-            </com.github.axet.androidlibrary.widgets.TextMax>
+        <com.github.axet.androidlibrary.widgets.TextMax
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
 
-            <com.github.axet.androidlibrary.widgets.TextMax
+            <TextView
+                android:id="@+id/book_title"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
-
-                <TextView
-                    android:id="@+id/book_title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:text="Title Title"
-                    android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
-            </com.github.axet.androidlibrary.widgets.TextMax>
-        </LinearLayout>
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="Title Title"
+                android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
+        </com.github.axet.androidlibrary.widgets.TextMax>
     </LinearLayout>
 </LinearLayout>
