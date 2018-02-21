@@ -13,6 +13,7 @@ public class MainApplication extends MultiDexApplication {
     public static String PREFERENCE_CATALOGS = "catalogs";
     public static String PREFERENCE_CATALOGS_PREFIX = "catalogs_";
     public static String PREFERENCE_CATALOGS_COUNT = "count";
+    public static String PREFERENCE_FONTFAMILY_FBREADER = "fontfamily_fb";
     public static String PREFERENCE_FONTSIZE_FBREADER = "fontsize_fb";
     public static String PREFERENCE_FONTSIZE_REFLOW = "fontsize_reflow";
     public static float PREFERENCE_FONTSIZE_REFLOW_DEFAULT = 0.8f;

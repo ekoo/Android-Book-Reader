@@ -79,6 +79,7 @@ import org.geometerplus.zlibrary.core.filesystem.ZLFile;
 import org.geometerplus.zlibrary.core.options.ZLBooleanOption;
 import org.geometerplus.zlibrary.core.options.ZLIntegerRangeOption;
 import org.geometerplus.zlibrary.core.resources.ZLResource;
+import org.geometerplus.zlibrary.core.view.ZLPaintContext;
 import org.geometerplus.zlibrary.core.view.ZLView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.core.view.ZLViewWidget;
@@ -696,6 +697,11 @@ public class FBReaderView extends RelativeLayout {
             else
                 super.gotoPage(page);
         }
+
+        @Override
+        public synchronized void paint(ZLPaintContext context, PageIndex pageIndex) {
+            super.paint(context, pageIndex);
+        }
     }
 
     public class FBAndroidWidget extends ZLAndroidWidget {
@@ -979,8 +985,13 @@ public class FBReaderView extends RelativeLayout {
         app.setView(app.BookTextView);
 
         SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(getContext());
+
         int d = shared.getInt(MainApplication.PREFERENCE_FONTSIZE_FBREADER, app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.getValue());
         app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.setValue(d);
+
+        String f = shared.getString(MainApplication.PREFERENCE_FONTFAMILY_FBREADER, app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
+        app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.setValue(f);
+
         app.ViewOptions.ScrollbarType = new ZLIntegerRangeOption("", "", 0, 0, 0) {
             @Override
             public int getValue() {
