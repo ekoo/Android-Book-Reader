@@ -17,6 +17,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
 import android.widget.ImageView;
@@ -27,6 +28,7 @@ import android.widget.TextView;
 import com.github.axet.androidlibrary.services.FileProvider;
 import com.github.axet.androidlibrary.widgets.HeaderGridView;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
+import com.github.axet.androidlibrary.widgets.TextMax;
 import com.github.axet.androidlibrary.widgets.UriImagesAdapter;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
@@ -289,12 +291,20 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         void setText(TextView t, String s) {
             if (t == null)
                 return;
+            TextMax m = null;
+            if (t.getParent() instanceof TextMax)
+                m = (TextMax) t.getParent();
+            ViewParent p = t.getParent();
             if (s == null || s.isEmpty()) {
                 t.setVisibility(View.GONE);
+                if (m != null)
+                    m.setVisibility(View.GONE);
                 return;
             }
             t.setVisibility(View.VISIBLE);
             t.setText(s);
+            if (m != null)
+                m.setVisibility(View.VISIBLE);
         }
     }
 
