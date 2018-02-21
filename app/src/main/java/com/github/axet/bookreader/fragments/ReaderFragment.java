@@ -164,29 +164,15 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         public View getView(int position, View convertView, ViewGroup parent) {
             View view = convertView;
 
-            // This function may be called in two cases: a new view needs to be created,
-            // or an existing view needs to be reused
             if (view == null) {
-                // Since we're using the system list for the layout, use the system inflater
                 final LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-
-                // And inflate the view android.R.layout.select_dialog_singlechoice
-                // Why? See com.android.internal.app.AlertController method createListView()
                 view = inflater.inflate(android.R.layout.select_dialog_singlechoice, parent, false);
             }
 
             if (view != null) {
-                // Find the text view from our interface
                 CheckedTextView tv = (CheckedTextView) view.findViewById(android.R.id.text1);
-
                 tv.setChecked(selected == position);
-
                 tv.setTypeface(ff.get(position).font);
-
-                // If you want to make the selected item having different foreground or background color,
-                // be aware of themes. In some of them your foreground color may be the background color.
-                // So we don't mess with anything here and just add the extra stars to have the selected
-                // font to stand out.
                 tv.setText(ff.get(position).name);
             }
 
