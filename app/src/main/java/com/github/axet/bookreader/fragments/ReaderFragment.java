@@ -480,7 +480,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         });
         fonts = new FontAdapter(getContext());
         fontsList = (ListView) v.findViewById(R.id.fonts_list);
-        fontsList.setAdapter(fonts);
         fontsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View v, int position, long id) {
@@ -501,23 +500,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         view.setColorProfile();
 
-        List<File> files = new ArrayList<>();
-        for (String f : enumerateFonts().keySet()) {
-            files.add(new File(f));
-        }
-        AndroidFontUtil.ourFileSet = new TreeSet<>();
-        AndroidFontUtil.ourFontFileMap = new ZLTTFInfoDetector().collectFonts(files);
-        fonts.addBasics();
-        for (String s : AndroidFontUtil.ourFontFileMap.keySet()) {
-            File[] ff = AndroidFontUtil.ourFontFileMap.get(s);
-            for (File f : ff) {
-                if (f != null) {
-                    fonts.ff.add(new FontView(s, f));
-                    break; // regular first
-                }
-            }
-        }
-
         Context context = getContext();
         onReceiveBattery(context.registerReceiver(battery, new IntentFilter(Intent.ACTION_BATTERY_CHANGED)));
 
@@ -534,6 +516,29 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         } catch (RuntimeException e) {
             main.Error(e);
             main.openLibrary();
+        }
+
+        if (view.pluginview == null) {
+            fontsList.setVisibility(View.VISIBLE);
+            fontsList.setAdapter(fonts);
+            List<File> files = new ArrayList<>();
+            for (String f : enumerateFonts().keySet()) {
+                files.add(new File(f));
+            }
+            AndroidFontUtil.ourFileSet = new TreeSet<>();
+            AndroidFontUtil.ourFontFileMap = new ZLTTFInfoDetector().collectFonts(files);
+            fonts.addBasics();
+            for (String s : AndroidFontUtil.ourFontFileMap.keySet()) {
+                File[] ff = AndroidFontUtil.ourFontFileMap.get(s);
+                for (File f : ff) {
+                    if (f != null) {
+                        fonts.ff.add(new FontView(s, f));
+                        break; // regular first
+                    }
+                }
+            }
+        } else {
+            fontsList.setVisibility(View.GONE);
         }
 
         if (BuildConfig.DEBUG && view.pluginview != null) {
