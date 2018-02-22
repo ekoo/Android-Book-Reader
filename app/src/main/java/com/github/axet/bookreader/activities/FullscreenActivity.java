@@ -20,6 +20,8 @@ import com.github.axet.androidlibrary.widgets.AppCompatThemeActivity;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.MainApplication;
 
+import java.util.List;
+
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
@@ -156,9 +158,12 @@ public class FullscreenActivity extends AppCompatThemeActivity {
         }
 
         FragmentManager fm = getSupportFragmentManager();
-        for (Fragment f : fm.getFragments()) {
-            if (f != null && f instanceof FullscreenListener) {
-                ((FullscreenListener) f).onFullscreenChanged(b);
+        List<Fragment> ff = fm.getFragments();
+        if (ff != null) {
+            for (Fragment f : ff) {
+                if (f != null && f instanceof FullscreenListener) {
+                    ((FullscreenListener) f).onFullscreenChanged(b);
+                }
             }
         }
     }
