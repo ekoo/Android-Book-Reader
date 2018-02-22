@@ -363,7 +363,7 @@ public class FBReaderView extends RelativeLayout {
                 case previous:
                     return current > 0;
                 case next:
-                    return current < count();
+                    return current + 1 < count();
                 default:
                     return true; // current???
             }
@@ -519,6 +519,7 @@ public class FBReaderView extends RelativeLayout {
             if (reflower != null) {
                 if (reflower.canScroll(index))
                     return true;
+                return current.pageNumber + 1 < current.getPagesCount();
             }
             PluginPage r = new PluginPage(current, index) {
                 @Override
