@@ -535,7 +535,19 @@ public class FBReaderView extends RelativeLayout {
                         }
                         return false;
                     case next:
-                        return current.pageNumber + 1 < current.getPagesCount();
+                        if (current.pageNumber + 1 < current.getPagesCount())
+                            return true;
+                        if (current.pageNumber != reflower.page) { // only happens to last page of document, we need to know it reflow count
+                            int render = reflower.current - reflower.count() + 1;
+                            Bitmap bm = render(reflower.w, reflower.h, current.pageNumber); // last page
+                            reflower.load(bm, current.pageNumber, 0);
+                            bm.recycle();
+                            int count = reflower.count();
+                            count -= render;
+                            reflower.current = render - 1;
+                            return count > 0;
+                        }
+                        return false;
                     default:
                         return true; // current???
                 }
