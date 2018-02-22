@@ -361,7 +361,7 @@ public class FBReaderView extends RelativeLayout {
         public boolean canScroll(ZLViewEnums.PageIndex index) {
             switch (index) {
                 case previous:
-                    return current > 0 || current < 0;
+                    return current > 0;
                 case next:
                     return current + 1 < count();
                 default:
@@ -521,7 +521,19 @@ public class FBReaderView extends RelativeLayout {
                     return true;
                 switch (index) {
                     case previous:
-                        return current.pageNumber > 0;
+                        if (current.pageNumber > 0)
+                            return true;
+                        if (current.pageNumber != reflower.page) { // only happens to 0 page of document, we need to know it reflow count
+                            int render = reflower.current;
+                            Bitmap bm = render(reflower.w, reflower.h, current.pageNumber); // 0 page
+                            reflower.load(bm, current.pageNumber, 0);
+                            bm.recycle();
+                            int count = reflower.count();
+                            count += render;
+                            reflower.current = count;
+                            return count > 0;
+                        }
+                        return false;
                     case next:
                         return current.pageNumber + 1 < current.getPagesCount();
                     default:
