@@ -361,7 +361,7 @@ public class FBReaderView extends RelativeLayout {
         public boolean canScroll(ZLViewEnums.PageIndex index) {
             switch (index) {
                 case previous:
-                    return current > 0;
+                    return current > 0 || current < 0;
                 case next:
                     return current + 1 < count();
                 default:
