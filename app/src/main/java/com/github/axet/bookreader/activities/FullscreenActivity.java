@@ -17,6 +17,7 @@ import android.view.Window;
 import android.view.WindowManager;
 
 import com.github.axet.androidlibrary.widgets.AppCompatThemeActivity;
+import com.github.axet.androidlibrary.widgets.ScreenlockPreference;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.MainApplication;
 
@@ -92,6 +93,8 @@ public class FullscreenActivity extends AppCompatThemeActivity {
 
     public interface FullscreenListener {
         void onFullscreenChanged(boolean f);
+
+        void onUserInteraction();
     }
 
     @Override
@@ -208,5 +211,24 @@ public class FullscreenActivity extends AppCompatThemeActivity {
     protected void onResume() {
         super.onResume();
         setFullscreen(fullscreen); // refresh
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+    }
+
+    @Override
+    public void onUserInteraction() {
+        super.onUserInteraction();
+        FragmentManager fm = getSupportFragmentManager();
+        @SuppressLint("RestrictedApi") List<Fragment> ff = fm.getFragments();
+        if (ff != null) {
+            for (Fragment f : ff) {
+                if (f != null && f instanceof FullscreenListener) {
+                    ((FullscreenListener) f).onUserInteraction();
+                }
+            }
+        }
     }
 }

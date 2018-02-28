@@ -264,9 +264,9 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             Uri cover = getCover(position);
 
             if (cover != null) {
-                getView(cover, convertView);
+                downloadTask(cover, convertView);
             } else {
-                updateView(null, cover, convertView);
+                downloadTaskUpdate(null, cover, convertView);
             }
 
             setText(aa, getAuthors(position));
@@ -281,7 +281,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
 
         @Override
-        public void updateView(DownloadImageTask task, Object item, Object view) {
+        public void downloadTaskUpdate(DownloadImageTask task, Object item, Object view) {
             View convertView = (View) view;
             ImageView image = (ImageView) convertView.findViewById(R.id.book_cover);
             ProgressBar progress = (ProgressBar) convertView.findViewById(R.id.book_progress);

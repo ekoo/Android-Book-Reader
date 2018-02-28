@@ -29,6 +29,7 @@ import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.github.axet.androidlibrary.widgets.ScreenlockPreference;
 import com.github.axet.androidlibrary.widgets.TreeListView;
 import com.github.axet.bookreader.BuildConfig;
 import com.github.axet.bookreader.R;
@@ -731,11 +732,13 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     public void onPause() {
         super.onPause();
         savePosition();
+        ScreenlockPreference.onPause(getActivity(), MainApplication.PREFERENCE_SCREENLOCK);
     }
 
     @Override
     public void onResume() {
         super.onResume();
+        ScreenlockPreference.onResume(getActivity(), MainApplication.PREFERENCE_SCREENLOCK);
     }
 
     @Override
@@ -759,6 +762,12 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         shared.unregisterOnSharedPreferenceChangeListener(this);
         handler.removeCallbacks(time);
+        ScreenlockPreference.onUserInteractionRemove();
+    }
+
+    @Override
+    public void onUserInteraction() {
+        ScreenlockPreference.onUserInteraction(getActivity(), MainApplication.PREFERENCE_SCREENLOCK);
     }
 
     @Override
