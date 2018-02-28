@@ -141,6 +141,7 @@ public class SettingsActivity extends AppCompatSettingsThemeActivity {
             addPreferencesFromResource(R.xml.pref_general);
             setHasOptionsMenu(true);
 
+            bindPreferenceSummaryToValue(findPreference(MainApplication.PREFERENCE_SCREENLOCK));
             bindPreferenceSummaryToValue(findPreference(MainApplication.PREFERENCE_THEME));
         }
 
