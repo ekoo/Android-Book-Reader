@@ -99,18 +99,18 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public Bitmap render(int w, int h, int page) {
+        public Bitmap render(int w, int h, int page, Bitmap.Config c) {
             PluginPage r = new PluginPage((PluginPage) current, page);
             r.renderRect(w, h);
             r.scale(w * 2, h * 2);
-            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.RGB_565);
+            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.RGB_565); // djvu does not support for bitmap alpha, no need 8888
             doc.renderPage(bm, r.pageNumber, 0, 0, r.pageBox.w, r.pageBox.h, 0, 0, r.pageBox.w, r.pageBox.h);
             bm.setDensity(r.dpi);
             return bm;
         }
 
         @Override
-        public void draw(Canvas canvas, int w, int h, ZLView.PageIndex index) {
+        public void draw(Canvas canvas, int w, int h, ZLView.PageIndex index, Bitmap.Config c) {
             PluginPage r = new PluginPage((PluginPage) current, index);
             r.renderRect(w, h);
             current.updatePage(r);
@@ -118,7 +118,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             r.scale(w, h);
             FBReaderView.RenderRect render = r.renderRect(w, h);
 
-            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.RGB_565);
+            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.RGB_565); // djvu does not support for bitmap alpha, no need 8888
             bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
             doc.renderPage(bm, r.pageNumber, 0, 0, r.pageBox.w, r.pageBox.h, render.x, render.y, render.w, render.h);
             canvas.drawBitmap(bm, render.src, render.dst, paint);
@@ -275,7 +275,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         for (int i = pos; i < bb.length; ) {
             DjvuLibre.Bookmark b = bb[i];
             String tt = b.title;
-            if (tt.isEmpty())
+            if (tt == null || tt.isEmpty())
                 continue;
             if (b.level > level) {
                 int c = loadTOC(i, b.level, bb, last);

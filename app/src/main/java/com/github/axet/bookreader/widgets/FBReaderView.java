@@ -567,8 +567,16 @@ public class FBReaderView extends RelativeLayout {
             return new ZLTextView.PagePosition(current.pageNumber, current.getPagesCount());
         }
 
-        public Bitmap render(int w, int h, int page) {
+        public Bitmap render(int w, int h, int page, Bitmap.Config c) {
             return null;
+        }
+
+        public Bitmap render(int w, int h, int page) {
+            try {
+                return render(w, h, page, Bitmap.Config.ARGB_8888);
+            } catch (OutOfMemoryError e) {
+                return render(w, h, page, Bitmap.Config.RGB_565);
+            }
         }
 
         public void drawOnBitmap(Context context, Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
@@ -665,7 +673,15 @@ public class FBReaderView extends RelativeLayout {
             draw(canvas, w, h, index);
         }
 
+        public void draw(Canvas bitmap, int w, int h, ZLView.PageIndex index, Bitmap.Config c) {
+        }
+
         public void draw(Canvas bitmap, int w, int h, ZLView.PageIndex index) {
+            try {
+                draw(bitmap, w, h, index, Bitmap.Config.ARGB_8888);
+            } catch (OutOfMemoryError e) {
+                draw(bitmap, w, h, index, Bitmap.Config.RGB_565);
+            }
         }
 
         public void close() {

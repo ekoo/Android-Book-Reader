@@ -201,20 +201,20 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public Bitmap render(int w, int h, int page) {
+        public Bitmap render(int w, int h, int page, Bitmap.Config c) {
             PluginPdfiumPage r = new PluginPdfiumPage((PluginPdfiumPage) current, page);
             r.load(r.pageNumber);
             r.renderRect(w, h);
             r.scale(w * 2, h * 2);
             core.openPage(doc, r.pageNumber);
-            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.ARGB_8888);
+            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);
             core.renderPageBitmap(doc, bm, r.pageNumber, 0, 0, bm.getWidth(), bm.getHeight());
             bm.setDensity(r.dpi);
             return bm;
         }
 
         @Override
-        public void draw(Canvas canvas, int w, int h, ZLView.PageIndex index) {
+        public void draw(Canvas canvas, int w, int h, ZLView.PageIndex index, Bitmap.Config c) {
             PluginPdfiumPage r = new PluginPdfiumPage((PluginPdfiumPage) current, index);
             r.load(r.pageNumber);
 
@@ -225,7 +225,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             FBReaderView.RenderRect render = r.renderRect(w, h);
 
             core.openPage(doc, r.pageNumber);
-            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.ARGB_8888);
+            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);
             bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
             core.renderPageBitmap(doc, bm, r.pageNumber, 0, 0, bm.getWidth(), bm.getHeight());
             canvas.drawBitmap(bm, render.toRect(bm.getWidth(), bm.getHeight()), render.dst, paint);
@@ -353,7 +353,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     public ZLImage readCover(ZLFile f) {
         PDFiumView view = new PDFiumView(f);
         view.current.scale(Storage.COVER_SIZE, Storage.COVER_SIZE); // reduce render memory footprint
-        Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.ARGB_8888);
+        Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.RGB_565);
         Canvas canvas = new Canvas(bm);
         view.drawWallpaper(canvas);
         view.draw(canvas, bm.getWidth(), bm.getHeight(), ZLViewEnums.PageIndex.current);
