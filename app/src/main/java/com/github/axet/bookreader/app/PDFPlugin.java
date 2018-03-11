@@ -110,7 +110,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public void draw(Canvas canvas, int w, int h, ZLView.PageIndex index) {
+        public void draw(Canvas canvas, int w, int h, ZLView.PageIndex index, Bitmap.Config c) {
             PluginNativePage r = new PluginNativePage((PluginNativePage) current, index);
             PdfRenderer.Page page = doc.openPage(r.pageNumber);
             r.load(page);
@@ -121,7 +121,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             r.scale(w, h);
             FBReaderView.RenderRect render = r.renderRect(w, h);
 
-            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.ARGB_8888);
+            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);
             bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
             page.render(bm, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
             canvas.drawBitmap(bm, render.toRect(bm.getWidth(), bm.getHeight()), render.dst, paint);
@@ -353,7 +353,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     public ZLImage readCover(ZLFile f) {
         PDFiumView view = new PDFiumView(f);
         view.current.scale(Storage.COVER_SIZE, Storage.COVER_SIZE); // reduce render memory footprint
-        Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.RGB_565);
+        Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bm);
         view.drawWallpaper(canvas);
         view.draw(canvas, bm.getWidth(), bm.getHeight(), ZLViewEnums.PageIndex.current);
