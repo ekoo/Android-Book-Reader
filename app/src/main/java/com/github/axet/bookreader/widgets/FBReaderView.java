@@ -354,8 +354,7 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public Bitmap render(int page) {
-            Bitmap bm = k2.renderPage(page);
-            return bm;
+            return k2.renderPage(page);
         }
 
         public boolean canScroll(ZLViewEnums.PageIndex index) {
@@ -572,11 +571,7 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public Bitmap render(int w, int h, int page) {
-            try {
-                return render(w, h, page, Bitmap.Config.ARGB_8888);
-            } catch (OutOfMemoryError e) {
-                return render(w, h, page, Bitmap.Config.RGB_565);
-            }
+            return render(w, h, page, Bitmap.Config.RGB_565); // reflower active, always 565
         }
 
         public void drawOnBitmap(Context context, Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
