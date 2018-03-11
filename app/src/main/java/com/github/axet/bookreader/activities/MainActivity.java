@@ -66,8 +66,6 @@ public class MainActivity extends FullscreenActivity
     public static final int RESULT_FILE = 1;
     public static final int RESULT_ADD_CATALOG = 2;
 
-    public static final String[] PERMISSIONS = new String[]{Manifest.permission.READ_EXTERNAL_STORAGE};
-
     Storage storage;
     OpenChoicer choicer;
     SubMenu networkMenu;
@@ -277,7 +275,7 @@ public class MainActivity extends FullscreenActivity
                 }
             };
             choicer.setStorageAccessFramework(this, RESULT_FILE);
-            choicer.setPermissionsDialog(this, PERMISSIONS, RESULT_FILE);
+            choicer.setPermissionsDialog(this, Storage.PERMISSIONS_RO, RESULT_FILE);
             choicer.show(null);
         }
 
@@ -314,7 +312,7 @@ public class MainActivity extends FullscreenActivity
                             }
                         }
                     };
-                    choicer.setPermissionsDialog(this, PERMISSIONS, RESULT_ADD_CATALOG);
+                    choicer.setPermissionsDialog(this, Storage.PERMISSIONS_RO, RESULT_ADD_CATALOG);
                     choicer.setStorageAccessFramework(this, RESULT_ADD_CATALOG);
                     choicer.show(null);
                     break;
@@ -474,7 +472,8 @@ public class MainActivity extends FullscreenActivity
         switch (requestCode) {
             case RESULT_FILE:
             case RESULT_ADD_CATALOG:
-                choicer.onRequestPermissionsResult(permissions, grantResults);
+                if (choicer != null) // called twice or activity reacated
+                    choicer.onRequestPermissionsResult(permissions, grantResults);
                 break;
         }
     }
@@ -485,7 +484,8 @@ public class MainActivity extends FullscreenActivity
         switch (requestCode) {
             case RESULT_FILE:
             case RESULT_ADD_CATALOG:
-                choicer.onActivityResult(resultCode, data);
+                if (choicer != null) // called twice or activity reacated
+                    choicer.onActivityResult(resultCode, data);
                 break;
         }
     }

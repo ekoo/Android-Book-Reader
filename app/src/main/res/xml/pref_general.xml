@@ -4,7 +4,7 @@
         android:entries="@array/screen_lock_text"
         android:entryValues="@array/screen_lock_values"
         android:key="screen_lock"
-        android:summary="@string/pref_screenlock_summary"
+        android:summary=""
         android:title="@string/pref_screenlock_title" />
 
     <ListPreference
