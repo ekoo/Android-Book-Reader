@@ -103,7 +103,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             PluginPage r = new PluginPage((PluginPage) current, page);
             r.renderRect(w, h);
             r.scale(w * 2, h * 2);
-            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.ARGB_8888);
+            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.RGB_565);
             doc.renderPage(bm, r.pageNumber, 0, 0, r.pageBox.w, r.pageBox.h, 0, 0, r.pageBox.w, r.pageBox.h);
             bm.setDensity(r.dpi);
             return bm;
@@ -118,7 +118,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             r.scale(w, h);
             FBReaderView.RenderRect render = r.renderRect(w, h);
 
-            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.ARGB_8888);
+            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, Bitmap.Config.RGB_565);
             bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
             doc.renderPage(bm, r.pageNumber, 0, 0, r.pageBox.w, r.pageBox.h, render.x, render.y, render.w, render.h);
             canvas.drawBitmap(bm, render.src, render.dst, paint);
@@ -236,7 +236,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
     public ZLImage readCover(ZLFile file) {
         DjvuView view = new DjvuView(file);
         view.current.scale(Storage.COVER_SIZE, Storage.COVER_SIZE); // reduce render memory footprint
-        Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.ARGB_8888);
+        Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.RGB_565);
         Canvas canvas = new Canvas(bm);
         view.drawWallpaper(canvas);
         view.draw(canvas, bm.getWidth(), bm.getHeight(), ZLViewEnums.PageIndex.current);
