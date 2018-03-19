@@ -33,12 +33,15 @@ public class BooksCatalog {
         @Override
         public void write(byte[] buf, int off, int len) {
             super.write(buf, off, len);
+            if (done && !detected)
+                return;
             int end = off + len;
             for (int i = off; i < end; i++) {
                 int c = buf[i];
                 if (Character.isWhitespace(c))
                     continue;
-                detected = (c == '{' || c == '[');
+                done = true;
+                detected = (c == '{' || c == '['); // first symbol after spaces ends
                 return;
             }
         }

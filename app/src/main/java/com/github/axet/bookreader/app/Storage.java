@@ -703,6 +703,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I   /* 0xfX */
                 };
 
+        public int count = 0;
+
         public FileTxt() {
             super("txt");
         }
@@ -713,17 +715,20 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
         @Override
         public void write(byte[] buf, int off, int len) {
-            super.write(buf, off, len);
-            if (os.size() >= 1000) {
-                done = true;
-                byte[] bb = os.toByteArray();
-                for (int i = 0; i < bb.length; i++) {
-                    int b = bb[i] & 0xFF;
-                    for (int k = 0; k < text_chars.length; k++) {
-                        if (text_chars[b] == F)
-                            return;
+            int end = off + len;
+            for (int i = off; i < end; i++) {
+                int b = buf[i] & 0xFF;
+                for (int k = 0; k < text_chars.length; k++) {
+                    if (text_chars[b] == F) {
+                        done = true;
+                        detected = false;
+                        return;
                     }
+                    count++;
                 }
+            }
+            if (count >= 1000) {
+                done = true;
                 detected = true;
             }
         }
