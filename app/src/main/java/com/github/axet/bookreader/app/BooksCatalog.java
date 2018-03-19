@@ -3,11 +3,14 @@ package com.github.axet.bookreader.app;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.output.StringBuilderWriter;
+import org.apache.commons.io.output.WriterOutputStream;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.TreeMap;
@@ -20,6 +23,26 @@ public class BooksCatalog {
     public Map<String, String> home;
     public Map<String, Object> opds;
     public Map<String, String> tops;
+
+    public static class FileJSON extends Storage.FileTxt {
+
+        public FileJSON() {
+            super("json");
+        }
+
+        @Override
+        public void write(byte[] buf, int off, int len) {
+            super.write(buf, off, len);
+            int end = off + len;
+            for (int i = off; i < end; i++) {
+                int c = buf[i];
+                if (Character.isWhitespace(c))
+                    continue;
+                detected = (c == '{' || c == '[');
+                return;
+            }
+        }
+    }
 
     public BooksCatalog(String json) {
         load(json);
@@ -44,7 +67,22 @@ public class BooksCatalog {
     public void load(InputStream is) {
         String json = null;
         try {
-            json = IOUtils.toString(is, Charset.defaultCharset());
+            StringBuilderWriter sw = new StringBuilderWriter();
+            WriterOutputStream os = new WriterOutputStream(sw, Charset.defaultCharset());
+            FileJSON d = new FileJSON();
+            byte[] buf = new byte[Storage.BUF_SIZE];
+            int len;
+            while ((len = is.read(buf)) > 0) {
+                os.write(buf, 0, len);
+                if (!d.done) {
+                    d.write(buf, 0, len);
+                    if (d.done && !d.detected) {
+                        throw new RuntimeException("Unsuppoprted catalog format");
+                    }
+                }
+            }
+            os.close();
+            json = sw.toString();
             JSONObject o = new JSONObject(json);
             map = WebViewCustom.toMap(o);
         } catch (JSONException | IOException e) {

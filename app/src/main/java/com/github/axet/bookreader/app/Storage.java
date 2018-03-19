@@ -200,11 +200,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
             public Handler(String ext) {
                 super(ext);
+                clear();
             }
 
             public Handler(String ext, String str) {
                 super(ext);
                 first = str.getBytes(Charset.defaultCharset());
+                clear();
             }
 
             public Handler(String ext, int[] b) {
@@ -212,6 +214,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 first = new byte[b.length];
                 for (int i = 0; i < b.length; i++)
                     first[i] = (byte) b[i];
+                clear();
             }
 
             public void write(byte[] buf, int off, int len) {
@@ -702,6 +705,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
         public FileTxt() {
             super("txt");
+        }
+
+        public FileTxt(String ext) {
+            super(ext);
         }
 
         @Override

@@ -757,6 +757,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     @Override
     public void onDestroy() {
         super.onDestroy();
+        handler.removeCallbacksAndMessages(null);
         Context context = getContext();
         context.unregisterReceiver(battery);
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());

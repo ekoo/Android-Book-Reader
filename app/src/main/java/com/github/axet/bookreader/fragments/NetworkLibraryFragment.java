@@ -5,6 +5,7 @@ import android.net.Network;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.view.Gravity;
@@ -91,6 +92,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     NetworkItemsLoader def;
     ArrayList<Pattern> ignore;
     String useragent;
+    Handler handler = new Handler();
 
     ArrayList<NetworkItemsLoader> toolbarItems = new ArrayList<>();
 
@@ -340,6 +342,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     }
 
     void loadDefault() {
+        final MainActivity main = (MainActivity) getActivity();
         UIUtil.wait("loadingBookList", new Runnable() {
             @Override
             public void run() {
@@ -347,14 +350,13 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                     if (def.Tree.subtrees().isEmpty())
                         def.Tree.Item.loadChildren(def);
                     books.load(def.Tree.subtrees());
-                    getActivity().runOnUiThread(new Runnable() {
+                    handler.post(new Runnable() {
                         @Override
                         public void run() {
                             loadView();
                         }
                     });
                 } catch (Exception e) {
-                    MainActivity main = (MainActivity) getActivity();
                     main.Post(e);
                 }
             }
@@ -424,6 +426,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     }
 
     void selectToolbar(View v) {
+        final MainActivity main = (MainActivity) getActivity();
         final NetworkItemsLoader l = (NetworkItemsLoader) v.getTag();
         UIUtil.wait("loadingBookList", new Runnable() {
             @Override
@@ -432,7 +435,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                     if (l.Tree.subtrees().isEmpty()) {
                         new CatalogExpander(l.NetworkContext, l.Tree, false, false).run();
                     }
-                    getActivity().runOnUiThread(new Runnable() {
+                    handler.post(new Runnable() {
                         @Override
                         public void run() {
                             getArguments().putString("toolbar", l.Tree.getUniqueKey().Id);
@@ -442,7 +445,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                         }
                     });
                 } catch (Exception e) {
-                    ((MainActivity) getActivity()).Post(e);
+                    main.Post(e);
                 }
             }
         }, getContext());
@@ -476,6 +479,8 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_library, container, false);
 
+        final MainActivity main = (MainActivity) getActivity();
+
         holder.create(v);
         holder.footer.setVisibility(View.GONE);
         holder.footerNext.setOnClickListener(new View.OnClickListener() {
@@ -487,7 +492,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                         try {
                             final int old = searchCatalog.l.Tree.subtrees().size();
                             searchCatalog.resume();
-                            getActivity().runOnUiThread(new Runnable() {
+                            handler.post(new Runnable() {
                                 @Override
                                 public void run() {
                                     if (old == searchCatalog.l.Tree.subtrees().size())
@@ -498,14 +503,12 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                 }
                             });
                         } catch (Exception e) {
-                            ((MainActivity) getActivity()).Post(e);
+                            main.Post(e);
                         }
                     }
                 }, getContext());
             }
         });
-
-        final MainActivity main = (MainActivity) getActivity();
 
         main.toolbar.setTitle(R.string.app_name);
         holder.grid.setAdapter(books);
@@ -536,7 +539,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                     if (l.Tree.subtrees().isEmpty()) {
                                         new CatalogExpander(l.NetworkContext, l.Tree, false, false).run();
                                     }
-                                    getActivity().runOnUiThread(new Runnable() {
+                                    handler.post(new Runnable() {
                                         @Override
                                         public void run() {
                                             for (FBTree t : tree.subtrees()) {
@@ -549,7 +552,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                         }
                                     });
                                 } catch (Exception e) {
-                                    ((MainActivity) getActivity()).Post(e);
+                                    main.Post(e);
                                 }
                             }
                         }, getContext());
@@ -595,7 +598,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                     public void run() {
                         try {
                             n.Book.loadFullInformation(nc);
-                            getActivity().runOnUiThread(new Runnable() {
+                            handler.post(new Runnable() {
                                 @Override
                                 public void run() {
                                     BookDialog d = new BookDialog();
@@ -605,7 +608,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                 }
                             });
                         } catch (Exception e) {
-                            ((MainActivity) getActivity()).Post(e);
+                            main.Post(e);
                         }
                     }
                 }, getContext());
@@ -627,7 +630,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                             String wm = conn.getContentType();
                             if (wm != null && mimetype != null && !wm.equals(mimetype) && wm.startsWith("text")) {
                                 final String html = IOUtils.toString(is, Charset.defaultCharset());
-                                main.runOnUiThread(new Runnable() {
+                                handler.post(new Runnable() {
                                     @Override
                                     public void run() {
                                         BrowserDialogFragment b = BrowserDialogFragment.createHtml(uri.toString(), html);
@@ -656,7 +659,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                             }
                             String wm = w.getMimeType();
                             if (w.getResponse().getEntity().getContentType() != null && mimetype != null && !wm.equals(mimetype) && wm.startsWith("text")) {
-                                main.runOnUiThread(new Runnable() {
+                                handler.post(new Runnable() {
                                     @Override
                                     public void run() {
                                         BrowserDialogFragment b = BrowserDialogFragment.createHtml(uri.toString(), w.getHtml());
@@ -678,7 +681,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                         File r = Storage.recentFile(fbook);
                         if (!r.exists())
                             storage.save(fbook);
-                        main.runOnUiThread(new Runnable() {
+                        handler.post(new Runnable() {
                             @Override
                             public void run() {
                                 main.loadBook(fbook);
@@ -703,8 +706,9 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     @Override
     public void onStart() {
         super.onStart();
-        ((MainActivity) getActivity()).setFullscreen(false);
-        ((MainActivity) getActivity()).restoreNetworkSelection(this);
+        final MainActivity main = (MainActivity) getActivity();
+        main.setFullscreen(false);
+        main.restoreNetworkSelection(this);
     }
 
     @Override
@@ -715,6 +719,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     public void search(final String ss) {
         if (ss == null || ss.isEmpty())
             return;
+        final MainActivity main = (MainActivity) getActivity();
         if (searchCatalog == null) {
             books.filter = ss;
             books.refresh();
@@ -724,7 +729,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                 public void run() {
                     try {
                         searchCatalog.search(ss);
-                        getActivity().runOnUiThread(new Runnable() {
+                        handler.post(new Runnable() {
                             @Override
                             public void run() {
                                 books.load(searchCatalog.l.Tree.subtrees());
@@ -732,7 +737,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                             }
                         });
                     } catch (Exception e) {
-                        ((MainActivity) getActivity()).Post(e);
+                        main.Post(e);
                     }
                 }
             }, getContext());
@@ -753,6 +758,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     public void onDestroy() {
         super.onDestroy();
         books.clearTasks();
+        handler.removeCallbacksAndMessages(null);
     }
 
     @Override
