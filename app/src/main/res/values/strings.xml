@@ -29,4 +29,5 @@
     <string name="search_network">Network Search&#8230;</string>
     <string name="search_book">Book Search&#8230;</string>
     <string name="pref_theme_title">Theme</string>
+    <string name="more_books">Get more Books Catalogs from \'About\' menu</string>
 </resources>

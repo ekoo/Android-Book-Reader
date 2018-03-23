@@ -80,7 +80,7 @@ public class BooksCatalog {
                 if (!d.done) {
                     d.write(buf, 0, len);
                     if (d.done && !d.detected) {
-                        throw new RuntimeException("Unsuppoprted catalog format");
+                        throw new RuntimeException("Unsupported catalog format");
                     }
                 }
             }
