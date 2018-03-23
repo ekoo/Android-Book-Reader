@@ -1,8 +1,6 @@
 package com.github.axet.bookreader.activities;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -13,10 +11,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.design.internal.SnackbarContentLayout;
-import android.support.design.widget.BaseTransientBottomBar;
 import android.support.design.widget.NavigationView;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
@@ -27,12 +22,10 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.SearchView;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -50,7 +43,7 @@ import com.github.axet.bookreader.fragments.LibraryFragment;
 import com.github.axet.bookreader.fragments.NetworkLibraryFragment;
 import com.github.axet.bookreader.fragments.ReaderFragment;
 import com.github.axet.bookreader.widgets.FBReaderView;
-import com.github.axet.bookreader.widgets.NavigationDescriptionView;
+import com.github.axet.bookreader.widgets.FullWidthActionView;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -136,7 +129,7 @@ public class MainActivity extends FullscreenActivity
         add.setIntent(new Intent(ADD_CATALOG));
         add.setIcon(R.drawable.ic_add_black_24dp);
         MenuItem desc = settingsMenu.add("");
-        MenuItemCompat.setActionView(desc, new NavigationDescriptionView(this, getString(R.string.more_books)));
+        MenuItemCompat.setActionView(desc, new FullWidthActionView(this, R.layout.nav_footer_main));
 
         openLibrary();
 
