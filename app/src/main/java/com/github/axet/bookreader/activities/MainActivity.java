@@ -50,6 +50,7 @@ import com.github.axet.bookreader.fragments.LibraryFragment;
 import com.github.axet.bookreader.fragments.NetworkLibraryFragment;
 import com.github.axet.bookreader.fragments.ReaderFragment;
 import com.github.axet.bookreader.widgets.FBReaderView;
+import com.github.axet.bookreader.widgets.NavigationDescriptionView;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -134,6 +135,8 @@ public class MainActivity extends FullscreenActivity
         MenuItem add = settingsMenu.add(R.string.add_catalog);
         add.setIntent(new Intent(ADD_CATALOG));
         add.setIcon(R.drawable.ic_add_black_24dp);
+        MenuItem desc = settingsMenu.add("");
+        MenuItemCompat.setActionView(desc, new NavigationDescriptionView(this, getString(R.string.more_books)));
 
         openLibrary();
 

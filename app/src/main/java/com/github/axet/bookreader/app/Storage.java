@@ -200,11 +200,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
             public Handler(String ext) {
                 super(ext);
+                clear();
             }
 
             public Handler(String ext, String str) {
                 super(ext);
                 first = str.getBytes(Charset.defaultCharset());
+                clear();
             }
 
             public Handler(String ext, int[] b) {
@@ -212,6 +214,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 first = new byte[b.length];
                 for (int i = 0; i < b.length; i++)
                     first[i] = (byte) b[i];
+                clear();
             }
 
             public void write(byte[] buf, int off, int len) {
@@ -700,23 +703,32 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I   /* 0xfX */
                 };
 
+        public int count = 0;
+
         public FileTxt() {
             super("txt");
         }
 
+        public FileTxt(String ext) {
+            super(ext);
+        }
+
         @Override
         public void write(byte[] buf, int off, int len) {
-            super.write(buf, off, len);
-            if (os.size() >= 1000) {
-                done = true;
-                byte[] bb = os.toByteArray();
-                for (int i = 0; i < bb.length; i++) {
-                    int b = bb[i] & 0xFF;
-                    for (int k = 0; k < text_chars.length; k++) {
-                        if (text_chars[b] == F)
-                            return;
+            int end = off + len;
+            for (int i = off; i < end; i++) {
+                int b = buf[i] & 0xFF;
+                for (int k = 0; k < text_chars.length; k++) {
+                    if (text_chars[b] == F) {
+                        done = true;
+                        detected = false;
+                        return;
                     }
+                    count++;
                 }
+            }
+            if (count >= 1000) {
+                done = true;
                 detected = true;
             }
         }
