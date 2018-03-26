@@ -208,11 +208,10 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         }
 
         @Override
-        public int getCount() {
+        public int getItemCount() {
             return list.size();
         }
 
-        @Override
         public FBTree getItem(int position) {
             return list.get(position);
         }
@@ -247,6 +246,65 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                 return u;
             }
             return null;
+        }
+
+        @Override
+        public void onBindViewHolder(final BookHolder holder, int position) {
+            super.onBindViewHolder(holder, position);
+            final MainActivity main = (MainActivity) getActivity();
+            holder.itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    try {
+                        final FBTree b = books.getItem(holder.getAdapterPosition());
+                        if (b instanceof NetworkCatalogTree) {
+                            UIUtil.wait("loadingBook", new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        final NetworkCatalogTree tree = (NetworkCatalogTree) b;
+                                        final NetworkItemsLoader l = new NetworkItemsLoader(nc, tree) {
+                                            @Override
+                                            protected void onFinish(ZLNetworkException exception, boolean interrupted) {
+                                            }
+
+                                            @Override
+                                            protected void doBefore() throws ZLNetworkException {
+                                            }
+
+                                            @Override
+                                            protected void load() throws ZLNetworkException {
+                                            }
+                                        };
+                                        if (l.Tree.subtrees().isEmpty()) {
+                                            new CatalogExpander(l.NetworkContext, l.Tree, false, false).run();
+                                        }
+                                        handler.post(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                for (FBTree t : tree.subtrees()) {
+                                                    if (t instanceof NetworkBookTree) {
+                                                        loadBook((NetworkBookTree) t);
+                                                        return;
+                                                    }
+                                                }
+                                                main.Error("Empty Url");
+                                            }
+                                        });
+                                    } catch (Exception e) {
+                                        main.Post(e);
+                                    }
+                                }
+                            }, getContext());
+                        }
+                        if (b instanceof NetworkBookTree) {
+                            loadBook((NetworkBookTree) b);
+                        }
+                    } catch (RuntimeException e) {
+                        main.Error(e);
+                    }
+                }
+            });
         }
     }
 
@@ -512,59 +570,6 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
         main.toolbar.setTitle(R.string.app_name);
         holder.grid.setAdapter(books);
-        holder.grid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                try {
-                    final FBTree b = books.getItem(position);
-                    if (b instanceof NetworkCatalogTree) {
-                        UIUtil.wait("loadingBook", new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    final NetworkCatalogTree tree = (NetworkCatalogTree) b;
-                                    final NetworkItemsLoader l = new NetworkItemsLoader(nc, tree) {
-                                        @Override
-                                        protected void onFinish(ZLNetworkException exception, boolean interrupted) {
-                                        }
-
-                                        @Override
-                                        protected void doBefore() throws ZLNetworkException {
-                                        }
-
-                                        @Override
-                                        protected void load() throws ZLNetworkException {
-                                        }
-                                    };
-                                    if (l.Tree.subtrees().isEmpty()) {
-                                        new CatalogExpander(l.NetworkContext, l.Tree, false, false).run();
-                                    }
-                                    handler.post(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            for (FBTree t : tree.subtrees()) {
-                                                if (t instanceof NetworkBookTree) {
-                                                    loadBook((NetworkBookTree) t);
-                                                    return;
-                                                }
-                                            }
-                                            main.Error("Empty Url");
-                                        }
-                                    });
-                                } catch (Exception e) {
-                                    main.Post(e);
-                                }
-                            }
-                        }, getContext());
-                    }
-                    if (b instanceof NetworkBookTree) {
-                        loadBook((NetworkBookTree) b);
-                    }
-                } catch (RuntimeException e) {
-                    main.Error(e);
-                }
-            }
-        });
 
         return v;
     }
