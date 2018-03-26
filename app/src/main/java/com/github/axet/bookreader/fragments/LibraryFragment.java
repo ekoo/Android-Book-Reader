@@ -23,19 +23,16 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.webkit.MimeTypeMap;
-import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.services.FileProvider;
-import com.github.axet.androidlibrary.widgets.GridAutofitLayoutManager;
-import com.github.axet.androidlibrary.widgets.HeaderGridView;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.androidlibrary.widgets.RecyclerViewFooter;
 import com.github.axet.androidlibrary.widgets.TextMax;
-import com.github.axet.androidlibrary.widgets.UriImagesAdapter;
+import com.github.axet.androidlibrary.widgets.UriImagesRecyclerAdapter;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.MainApplication;
@@ -313,7 +310,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
     }
 
-    public static abstract class BooksAdapter extends UriImagesAdapter<BooksAdapter.BookHolder> {
+    public static abstract class BooksAdapter extends UriImagesRecyclerAdapter<BooksAdapter.BookHolder> {
         String filter;
 
         public static class BookHolder extends RecyclerView.ViewHolder {
