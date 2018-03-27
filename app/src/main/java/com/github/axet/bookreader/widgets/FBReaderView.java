@@ -15,7 +15,6 @@ import android.graphics.Rect;
 import android.os.Parcelable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.preference.PreferenceManager;
-import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
@@ -998,7 +997,7 @@ public class FBReaderView extends RelativeLayout {
     public void create() {
         app = new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow());
         widget = new FBAndroidWidget();
-        addView(widget, new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        addView(widget, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         app.setWindow(new FBApplicationWindow());
         app.initWindow();
