@@ -31,6 +31,7 @@ import android.widget.TextView;
 
 import com.github.axet.androidlibrary.widgets.ScreenlockPreference;
 import com.github.axet.androidlibrary.widgets.TreeListView;
+import com.github.axet.androidlibrary.widgets.TreeRecyclerView;
 import com.github.axet.bookreader.BuildConfig;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.FullscreenActivity;
@@ -181,17 +182,18 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         }
     }
 
-    public static class TOCHolder {
+    public static class TOCHolder extends TreeRecyclerView.TreeHolder {
         ImageView i;
         TextView textView;
 
         public TOCHolder(View itemView) {
+            super(itemView);
             i = (ImageView) itemView.findViewById(R.id.image);
             textView = (TextView) itemView.findViewById(R.id.text);
         }
     }
 
-    public class TOCAdapter extends TreeListView.TreeAdapter {
+    public class TOCAdapter extends TreeRecyclerView.TreeAdapter<TOCHolder> {
         TOCTree current;
 
         public TOCAdapter(List<TOCTree> ll, TOCTree current) {
@@ -219,7 +221,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         }
 
         public int getCurrent() {
-            for (int i = 0; i < getCount(); i++) {
+            for (int i = 0; i < getItemCount(); i++) {
                 TOCTree t = (TOCTree) getItem(i).tag;
                 if (equals(t, current))
                     return i;
@@ -228,20 +230,23 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         }
 
         @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
+        public TOCHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             LayoutInflater inflater = LayoutInflater.from(getContext());
-            if (convertView == null)
-                convertView = inflater.inflate(R.layout.toc_item, null);
-            TOCHolder h = new TOCHolder(convertView);
+            View convertView = inflater.inflate(R.layout.toc_item, null);
+            return new TOCHolder(convertView);
+        }
+
+        @Override
+        public void onBindViewHolder(TOCHolder h, int position) {
             TreeListView.TreeNode t = getItem(position);
             TOCTree tt = (TOCTree) t.tag;
-            ImageView ex = (ImageView) convertView.findViewById(R.id.expand);
+            ImageView ex = (ImageView) h.itemView.findViewById(R.id.expand);
             if (t.nodes.isEmpty())
                 ex.setVisibility(View.INVISIBLE);
             else
                 ex.setVisibility(View.VISIBLE);
             ex.setImageResource(t.expanded ? R.drawable.ic_expand_less_black_24dp : R.drawable.ic_expand_more_black_24dp);
-            convertView.setPadding(20 * t.level, 0, 0, 0);
+            h.itemView.setPadding(20 * t.level, 0, 0, 0);
             if (t.selected) {
                 h.textView.setTypeface(null, Typeface.BOLD);
                 h.i.setColorFilter(null);
@@ -250,7 +255,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 h.textView.setTypeface(null, Typeface.NORMAL);
             }
             h.textView.setText(tt.getText());
-            return convertView;
         }
 
         boolean equals(TOCTree t, TOCTree t2) {
@@ -810,8 +814,23 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     void showTOC() {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         final TOCTree current = view.app.getCurrentTOCElement();
-        final TOCAdapter a = new TOCAdapter(view.app.Model.TOCTree.subtrees(), current);
-        final TreeListView tree = new TreeListView(getContext());
+        final TOCAdapter a = new TOCAdapter(view.app.Model.TOCTree.subtrees(), current) {
+            @Override
+            public void onBindViewHolder(final TOCHolder h, int position) {
+                super.onBindViewHolder(h, position);
+                h.itemView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        TOCTree n = (TOCTree) getItem(h.getAdapterPosition()).tag;
+                        if (n.hasChildren())
+                            return;
+                        view.gotoPosition(n.getReference());
+                        tocdialog.dismiss();
+                    }
+                });
+            }
+        };
+        final TreeRecyclerView tree = new TreeRecyclerView(getContext());
         tree.setAdapter(a);
         builder.setView(tree);
         builder.setPositiveButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
@@ -819,22 +838,13 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             public void onClick(DialogInterface dialog, int which) {
             }
         });
-        tree.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View v, int position, long id) {
-                TOCTree n = (TOCTree) a.getItem(position).tag;
-                if (n.hasChildren())
-                    return;
-                view.gotoPosition(n.getReference());
-                tocdialog.dismiss();
-            }
-        });
         tocdialog = builder.create();
         tocdialog.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
             public void onShow(DialogInterface dialog) {
-                int i = a.getCurrent();
-                tree.setSelection(i - 1);
+                final int i = a.getCurrent() - 1;
+                if (i > 0)
+                    tree.setSelection(i);
             }
         });
         tocdialog.show();

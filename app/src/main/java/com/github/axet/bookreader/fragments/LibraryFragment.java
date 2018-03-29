@@ -27,11 +27,11 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.services.FileProvider;
+import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
+import com.github.axet.androidlibrary.widgets.CacheImagesListAdapter;
 import com.github.axet.androidlibrary.widgets.HeaderGridView;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.androidlibrary.widgets.TextMax;
-import com.github.axet.androidlibrary.widgets.UriImagesAdapter;
-import com.github.axet.androidlibrary.widgets.UriImagesListAdapter;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.MainApplication;
@@ -169,7 +169,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         ArrayList<Storage.Book> list = new ArrayList<>();
 
         public LibraryAdapter() {
-            super(getContext());
+            super(LibraryFragment.this.getContext());
         }
 
         @Override
@@ -223,9 +223,8 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
     }
 
-    public static abstract class BooksAdapter extends UriImagesListAdapter {
+    public static abstract class BooksAdapter extends CacheImagesListAdapter {
         String filter;
-        Context context;
 
         public static class BookHolder {
             TextView aa;
@@ -238,7 +237,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
 
         public BooksAdapter(Context context) {
-            this.context = context;
+            super(context);
         }
 
         public Uri getCover(int position) {
@@ -277,7 +276,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            LayoutInflater inflater = LayoutInflater.from(context);
+            LayoutInflater inflater = LayoutInflater.from(getContext());
             if (convertView == null)
                 convertView = inflater.inflate(getLayout(), null, false);
             BookHolder h = new BookHolder(convertView);
@@ -297,7 +296,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
 
         @Override
-        public void downloadTaskUpdate(UriImagesAdapter.DownloadImageTask task, Object item, Object view) {
+        public void downloadTaskUpdate(CacheImagesAdapter.DownloadImageTask task, Object item, Object view) {
             View convertView = (View) view;
             ImageView image = (ImageView) convertView.findViewById(R.id.book_cover);
             ProgressBar progress = (ProgressBar) convertView.findViewById(R.id.book_progress);
@@ -305,7 +304,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
 
         @Override
-        public Bitmap downloadImageTask(UriImagesAdapter.DownloadImageTask task) {
+        public Bitmap downloadImageTask(CacheImagesAdapter.DownloadImageTask task) {
             return downloadImage((Uri) task.item);
         }
 
