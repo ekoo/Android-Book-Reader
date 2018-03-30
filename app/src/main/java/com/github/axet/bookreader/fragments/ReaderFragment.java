@@ -237,8 +237,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         }
 
         @Override
-        public void onBindViewHolder(TOCHolder h, int position) {
-            TreeListView.TreeNode t = getItem(position);
+        public void onBindViewHolder(final TOCHolder h, int position) {
+            TreeListView.TreeNode t = getItem(h.getAdapterPosition(this));
             TOCTree tt = (TOCTree) t.tag;
             ImageView ex = (ImageView) h.itemView.findViewById(R.id.expand);
             if (t.nodes.isEmpty())
@@ -255,6 +255,16 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 h.textView.setTypeface(null, Typeface.NORMAL);
             }
             h.textView.setText(tt.getText());
+            h.itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    TOCTree n = (TOCTree) getItem(h.getAdapterPosition(TOCAdapter.this)).tag;
+                    if (n.hasChildren())
+                        return;
+                    view.gotoPosition(n.getReference());
+                    tocdialog.dismiss();
+                }
+            });
         }
 
         boolean equals(TOCTree t, TOCTree t2) {
@@ -814,22 +824,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     void showTOC() {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         final TOCTree current = view.app.getCurrentTOCElement();
-        final TOCAdapter a = new TOCAdapter(view.app.Model.TOCTree.subtrees(), current) {
-            @Override
-            public void onBindViewHolder(final TOCHolder h, int position) {
-                super.onBindViewHolder(h, position);
-                h.itemView.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        TOCTree n = (TOCTree) getItem(h.getAdapterPosition()).tag;
-                        if (n.hasChildren())
-                            return;
-                        view.gotoPosition(n.getReference());
-                        tocdialog.dismiss();
-                    }
-                });
-            }
-        };
+        final TOCAdapter a = new TOCAdapter(view.app.Model.TOCTree.subtrees(), current);
         final TreeRecyclerView tree = new TreeRecyclerView(getContext());
         tree.setAdapter(a);
         builder.setView(tree);
