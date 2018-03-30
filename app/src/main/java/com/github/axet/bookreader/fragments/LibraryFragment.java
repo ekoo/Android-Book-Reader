@@ -11,6 +11,7 @@ import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.PopupMenu;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -26,10 +27,11 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.services.FileProvider;
+import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
+import com.github.axet.androidlibrary.widgets.CacheImagesListAdapter;
 import com.github.axet.androidlibrary.widgets.HeaderGridView;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.androidlibrary.widgets.TextMax;
-import com.github.axet.androidlibrary.widgets.UriImagesAdapter;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.MainApplication;
@@ -87,6 +89,13 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             footerProgress = footer.findViewById(R.id.search_footer_progress);
             footerStop = footer.findViewById(R.id.search_footer_stop);
             toolbarBottom = v.findViewById(R.id.toolbar_bottom);
+
+            footerNext.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Log.d(TAG, "footer next");
+                }
+            });
 
             toolbar_list = (ImageView) toolbarBottom.findViewById(R.id.toolbar_view);
             toolbar_list.setVisibility(View.VISIBLE);
@@ -160,7 +169,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         ArrayList<Storage.Book> list = new ArrayList<>();
 
         public LibraryAdapter() {
-            super(getContext());
+            super(LibraryFragment.this.getContext());
         }
 
         @Override
@@ -192,7 +201,6 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             return list.size();
         }
 
-        @Override
         public Storage.Book getItem(int position) {
             return list.get(position);
         }
@@ -215,8 +223,18 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
     }
 
-    public static abstract class BooksAdapter extends UriImagesAdapter {
+    public static abstract class BooksAdapter extends CacheImagesListAdapter {
         String filter;
+
+        public static class BookHolder {
+            TextView aa;
+            TextView tt;
+
+            public BookHolder(View itemView) {
+                aa = (TextView) itemView.findViewById(R.id.book_authors);
+                tt = (TextView) itemView.findViewById(R.id.book_title);
+            }
+        }
 
         public BooksAdapter(Context context) {
             super(context);
@@ -242,6 +260,11 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
 
         @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
         public int getViewTypeCount() {
             return 2;
         }
@@ -253,13 +276,10 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            if (convertView == null) {
-                LayoutInflater inflater = LayoutInflater.from(context);
+            LayoutInflater inflater = LayoutInflater.from(getContext());
+            if (convertView == null)
                 convertView = inflater.inflate(getLayout(), null, false);
-            }
-
-            TextView aa = (TextView) convertView.findViewById(R.id.book_authors);
-            TextView tt = (TextView) convertView.findViewById(R.id.book_title);
+            BookHolder h = new BookHolder(convertView);
 
             Uri cover = getCover(position);
 
@@ -269,23 +289,23 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                 downloadTaskUpdate(null, cover, convertView);
             }
 
-            setText(aa, getAuthors(position));
-            setText(tt, getTitle(position));
+            setText(h.aa, getAuthors(position));
+            setText(h.tt, getTitle(position));
 
             return convertView;
         }
 
         @Override
-        public Bitmap downloadImageTask(DownloadImageTask task) {
-            return downloadImage((Uri) task.item);
-        }
-
-        @Override
-        public void downloadTaskUpdate(DownloadImageTask task, Object item, Object view) {
+        public void downloadTaskUpdate(CacheImagesAdapter.DownloadImageTask task, Object item, Object view) {
             View convertView = (View) view;
             ImageView image = (ImageView) convertView.findViewById(R.id.book_cover);
             ProgressBar progress = (ProgressBar) convertView.findViewById(R.id.book_progress);
             updateView(task, image, progress);
+        }
+
+        @Override
+        public Bitmap downloadImageTask(CacheImagesAdapter.DownloadImageTask task) {
+            return downloadImage((Uri) task.item);
         }
 
         void setText(TextView t, String s) {
@@ -343,11 +363,11 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         holder.grid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                final MainActivity main = (MainActivity) getActivity();
                 Storage.Book b = books.getItem(position);
                 main.loadBook(b);
             }
         });
-
         holder.grid.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
@@ -421,7 +441,6 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                 return true;
             }
         });
-
         return v;
     }
 

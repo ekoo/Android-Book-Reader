@@ -33,6 +33,7 @@ import com.github.axet.bookreader.widgets.BookDialog;
 import com.github.axet.bookreader.widgets.BrowserDialogFragment;
 
 import org.apache.commons.io.IOUtils;
+import org.geometerplus.android.fbreader.network.NetworkLibraryActivity;
 import org.geometerplus.android.util.UIUtil;
 import org.geometerplus.fbreader.network.INetworkLink;
 import org.geometerplus.fbreader.network.NetworkBookItem;
@@ -160,7 +161,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         List<FBTree> bookItems = new ArrayList<>();
 
         public NetworkLibraryAdapter() {
-            super(getContext());
+            super(NetworkLibraryFragment.this.getContext());
         }
 
         @Override
@@ -212,7 +213,6 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
             return list.size();
         }
 
-        @Override
         public FBTree getItem(int position) {
             return list.get(position);
         }
@@ -565,7 +565,6 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                 }
             }
         });
-
         return v;
     }
 

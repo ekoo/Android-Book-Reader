@@ -54,15 +54,22 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     @TargetApi(21)
     public static class PluginNativePage extends FBReaderView.PluginPage {
         public PdfRenderer doc;
+        public PdfRenderer.Page page;
 
         public PluginNativePage(PluginNativePage r) {
             super(r);
             doc = r.doc;
         }
 
-        public PluginNativePage(PluginNativePage r, ZLViewEnums.PageIndex index) {
+        public PluginNativePage(PluginNativePage r, ZLViewEnums.PageIndex index, int w, int h) {
             this(r);
+            this.w = w;
+            this.h = h;
             load(index);
+            if (index == ZLViewEnums.PageIndex.current) {
+                load();
+                renderPage();
+            }
         }
 
         public PluginNativePage(PdfRenderer d) {
@@ -75,12 +82,9 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         public void load() {
-            PdfRenderer.Page page = doc.openPage(pageNumber);
-            load(page);
-            page.close();
-        }
-
-        void load(PdfRenderer.Page page) {
+            if (page != null)
+                page.close();
+            page = doc.openPage(pageNumber);
             pageBox = new FBReaderView.PluginRect(0, 0, page.getWidth(), page.getHeight());
         }
     }
@@ -111,22 +115,20 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         @Override
         public void draw(Canvas canvas, int w, int h, ZLView.PageIndex index, Bitmap.Config c) {
-            PluginNativePage r = new PluginNativePage((PluginNativePage) current, index);
-            PdfRenderer.Page page = doc.openPage(r.pageNumber);
-            r.load(page);
+            PluginNativePage r = new PluginNativePage((PluginNativePage) current, index, w, h);
 
-            r.renderRect(w, h);
             current.updatePage(r);
 
             r.scale(w, h);
-            FBReaderView.RenderRect render = r.renderRect(w, h);
+            FBReaderView.RenderRect render = r.renderRect();
 
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);
             bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
-            page.render(bm, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
+            r.page.render(bm, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
             canvas.drawBitmap(bm, render.toRect(bm.getWidth(), bm.getHeight()), render.dst, paint);
             bm.recycle();
-            page.close();
+            r.page.close();
+            r.page = null;
         }
 
     }
@@ -141,16 +143,25 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             doc = r.doc;
         }
 
-        public PluginPdfiumPage(PluginPdfiumPage r, ZLViewEnums.PageIndex index) {
+        public PluginPdfiumPage(PluginPdfiumPage r, ZLViewEnums.PageIndex index, int w, int h) {
             this(r);
+            this.w = w;
+            this.h = h;
             load(index);
+            if (index == ZLViewEnums.PageIndex.current) {
+                load();
+                renderPage();
+            }
         }
 
-        public PluginPdfiumPage(PluginPdfiumPage r, int page) {
+        public PluginPdfiumPage(PluginPdfiumPage r, int page, int w, int h) {
             this(r);
+            this.w = w;
+            this.h = h;
             pageNumber = page;
             pageOffset = 0;
             load();
+            renderPage();
         }
 
         public PluginPdfiumPage(PdfiumCore c, PdfDocument d) {
@@ -171,7 +182,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         void load(int index) {
             Size s = core.getPageSize(doc, index);
             pageBox = new FBReaderView.PluginRect(0, 0, s.getWidth(), s.getHeight());
-            dpi = Resources.getSystem().getDisplayMetrics().densityDpi; // Pdfium page units in 72 dpi, converted by java library to system dpi
+            dpi = 72; // default Pdifium resolution
         }
     }
 
@@ -202,12 +213,10 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         @Override
         public Bitmap render(int w, int h, int page, Bitmap.Config c) {
-            PluginPdfiumPage r = new PluginPdfiumPage((PluginPdfiumPage) current, page);
-            r.load(r.pageNumber);
-            r.renderRect(w, h);
+            PluginPdfiumPage r = new PluginPdfiumPage((PluginPdfiumPage) current, page, w, h);
             r.scale(w * 2, h * 2);
-            core.openPage(doc, r.pageNumber);
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);
+            core.openPage(doc, r.pageNumber);
             core.renderPageBitmap(doc, bm, r.pageNumber, 0, 0, bm.getWidth(), bm.getHeight());
             bm.setDensity(r.dpi);
             return bm;
@@ -215,14 +224,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         @Override
         public void draw(Canvas canvas, int w, int h, ZLView.PageIndex index, Bitmap.Config c) {
-            PluginPdfiumPage r = new PluginPdfiumPage((PluginPdfiumPage) current, index);
-            r.load(r.pageNumber);
+            PluginPdfiumPage r = new PluginPdfiumPage((PluginPdfiumPage) current, index, w, h);
 
-            r.renderRect(w, h);
             current.updatePage(r);
 
             r.scale(w, h);
-            FBReaderView.RenderRect render = r.renderRect(w, h);
+            FBReaderView.RenderRect render = r.renderRect();
 
             core.openPage(doc, r.pageNumber);
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);

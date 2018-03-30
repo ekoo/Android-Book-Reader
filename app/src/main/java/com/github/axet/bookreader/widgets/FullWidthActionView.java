@@ -6,28 +6,30 @@ import android.support.annotation.Nullable;
 import android.support.v7.widget.AppCompatTextView;
 import android.util.AttributeSet;
 import android.util.TypedValue;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 
 import com.github.axet.bookreader.R;
 
-public class NavigationDescriptionView extends AppCompatTextView {
-    public NavigationDescriptionView(Context context) {
+public class FullWidthActionView extends FrameLayout {
+    public FullWidthActionView(Context context) {
         super(context);
     }
 
-    public NavigationDescriptionView(Context context, @Nullable AttributeSet attrs) {
+    public FullWidthActionView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
     }
 
-    public NavigationDescriptionView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+    public FullWidthActionView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
     }
 
-    public NavigationDescriptionView(Context context, String text) {
+    public FullWidthActionView(Context context, int id) {
         super(context);
-        setText(text);
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        LayoutInflater c = LayoutInflater.from(context);
+        c.inflate(id, this);
     }
 
     @Override

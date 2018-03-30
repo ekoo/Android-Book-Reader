@@ -54,16 +54,25 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             doc = r.doc;
         }
 
-        public PluginPage(PluginPage r, ZLViewEnums.PageIndex index) {
+        public PluginPage(PluginPage r, ZLViewEnums.PageIndex index, int w, int h) {
             this(r);
+            this.w = w;
+            this.h = h;
             load(index);
+            if (index == ZLViewEnums.PageIndex.current) {
+                load();
+                renderPage();
+            }
         }
 
-        public PluginPage(PluginPage r, int page) {
+        public PluginPage(PluginPage r, int page, int w, int h) {
             this(r);
+            this.w = w;
+            this.h = h;
             pageNumber = page;
             pageOffset = 0;
             load();
+            renderPage();
         }
 
         public PluginPage(DjvuLibre d) {
@@ -100,8 +109,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
         @Override
         public Bitmap render(int w, int h, int page, Bitmap.Config c) {
-            PluginPage r = new PluginPage((PluginPage) current, page);
-            r.renderRect(w, h);
+            PluginPage r = new PluginPage((PluginPage) current, page, w, h);
             r.scale(w * 2, h * 2);
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);
             doc.renderPage(bm, r.pageNumber, 0, 0, r.pageBox.w, r.pageBox.h, 0, 0, r.pageBox.w, r.pageBox.h);
@@ -111,12 +119,11 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
         @Override
         public void draw(Canvas canvas, int w, int h, ZLView.PageIndex index, Bitmap.Config c) {
-            PluginPage r = new PluginPage((PluginPage) current, index);
-            r.renderRect(w, h);
+            PluginPage r = new PluginPage((PluginPage) current, index, w, h);
             current.updatePage(r);
 
             r.scale(w, h);
-            FBReaderView.RenderRect render = r.renderRect(w, h);
+            FBReaderView.RenderRect render = r.renderRect();
 
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);
             bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
