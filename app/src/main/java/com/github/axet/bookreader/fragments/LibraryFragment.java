@@ -109,9 +109,9 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                 public void onClick(View v) {
                     SharedPreferences.Editor editor = shared.edit();
                     if (layout == R.layout.book_list_item) {
-                        editor.putString(MainApplication.PREFERENCE_LIBRARY_LAYOUT, "book_item");
+                        editor.putString(MainApplication.PREFERENCE_LIBRARY_LAYOUT + getLayout(), "book_item");
                     } else {
-                        editor.putString(MainApplication.PREFERENCE_LIBRARY_LAYOUT, "book_list_item");
+                        editor.putString(MainApplication.PREFERENCE_LIBRARY_LAYOUT+ getLayout(), "book_list_item");
                     }
                     editor.commit();
                     updateGrid();
@@ -120,11 +120,15 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             updateGrid();
         }
 
-        void updateGrid() {
+        public String getLayout() {
+            return "library";
+        }
+
+        public void updateGrid() {
             final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
 
             layout = R.layout.book_item;
-            if (shared.getString(MainApplication.PREFERENCE_LIBRARY_LAYOUT, "").equals("book_list_item")) {
+            if (shared.getString(MainApplication.PREFERENCE_LIBRARY_LAYOUT+ getLayout(), "").equals("book_list_item")) {
                 grid.setNumColumns(1);
                 layout = R.layout.book_list_item;
             } else {

@@ -1,6 +1,5 @@
 package com.github.axet.bookreader.app;
 
-import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
