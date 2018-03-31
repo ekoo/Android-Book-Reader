@@ -954,6 +954,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return fbook;
     }
 
+    public File getCache() {
+        File cache = context.getExternalCacheDir();
+        if (cache == null || !canWrite(cache))
+            cache = context.getCacheDir();
+        return cache;
+    }
+
     public Book load(InputStream is, File f) {
         boolean tmp = f == null;
         Book fbook = new Book();
@@ -962,7 +969,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
             fbook.file = f;
             if (fbook.file == null) {
-                fbook.file = File.createTempFile("book", ".tmp", context.getCacheDir());
+                fbook.file = File.createTempFile("book", ".tmp", getCache());
                 os = new FileOutputStream(fbook.file);
             }
 
@@ -999,11 +1006,11 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         FileTypeDetectorZipExtract.Handler e = (FileTypeDetectorZipExtract.Handler) d;
                         File z = fbook.file;
                         if (!tmp) {
-                            fbook.file = File.createTempFile("book", ".tmp", context.getCacheDir());
+                            fbook.file = File.createTempFile("book", ".tmp", getCache());
                             fbook.md5 = e.extract(z, fbook.file);
                             tmp = true; // force to delete 'fbook.file'
                         } else {
-                            File tt = File.createTempFile("book", ".tmp", context.getCacheDir());
+                            File tt = File.createTempFile("book", ".tmp", getCache());
                             fbook.md5 = e.extract(z, tt);
                             z.delete();
                             fbook.file = tt;

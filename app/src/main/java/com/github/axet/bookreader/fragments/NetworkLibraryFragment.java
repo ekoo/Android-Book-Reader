@@ -21,6 +21,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.github.axet.androidlibrary.crypto.MD5;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
@@ -266,8 +267,13 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         super.onCreate(savedInstanceState);
         storage = new Storage(getContext());
         catalogs = new BooksCatalogs(getContext());
-        holder = new LibraryFragment.FragmentHolder(getContext());
-        String u = getArguments().getString("url");
+        final String u = getArguments().getString("url");
+        holder = new LibraryFragment.FragmentHolder(getContext()) {
+            @Override
+            public String getLayout() {
+                return MD5.digest(u);
+            }
+        };
         lib = NetworkLibrary.Instance(new Storage.Info(getContext()));
         books = new NetworkLibraryAdapter();
         n = catalogs.find(u);
