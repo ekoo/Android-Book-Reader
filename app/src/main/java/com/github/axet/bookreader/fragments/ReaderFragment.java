@@ -70,6 +70,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     FontAdapter fonts;
     ListView fontsList;
     TextView fontsizetext;
+    View fontsize_popup;
     TextView fontsizepopup_text;
     SeekBar fontsizepopup_seek;
     View fontsizepopup_minus;
@@ -482,7 +483,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 updateToolbar();
             }
         });
-        final View fontsize_popup = v.findViewById(R.id.fontsize_popup);
+        fontsize_popup = v.findViewById(R.id.fontsize_popup);
         fontsizepopup_text = (TextView) fontsize_popup.findViewById(R.id.fontsize_text);
         fontsizepopup_plus = fontsize_popup.findViewById(R.id.fontsize_plus);
         fontsizepopup_minus = fontsize_popup.findViewById(R.id.fontsize_minus);
@@ -595,6 +596,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     void updateToolbar() {
         fontsize.setVisibility((view.pluginview == null || view.pluginview.reflow) ? View.VISIBLE : View.GONE);
+
+        fontsize_popup.setVisibility(View.GONE); // always hide font menu after toolbarupdate
 
         fontsizetext = (TextView) fontsize.findViewById(R.id.toolbar_icon_text);
         if (view.pluginview == null) {
