@@ -10,5 +10,4 @@
     </declare-styleable>
 
     <attr name="side_nav_bar" format="reference" />
-    <attr name="fontsize_round" format="reference" />
 </resources>
