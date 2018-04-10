@@ -6,10 +6,12 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
@@ -22,6 +24,7 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.SearchView;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SubMenu;
@@ -38,12 +41,15 @@ import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.BooksCatalog;
 import com.github.axet.bookreader.app.BooksCatalogs;
+import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.fragments.LibraryFragment;
 import com.github.axet.bookreader.fragments.NetworkLibraryFragment;
 import com.github.axet.bookreader.fragments.ReaderFragment;
 import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.bookreader.widgets.FullWidthActionView;
+
+import org.geometerplus.fbreader.fbreader.ActionCode;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -484,6 +490,22 @@ public class MainActivity extends FullscreenActivity
                     choicer.onActivityResult(resultCode, data);
                 break;
         }
+    }
+
+    @SuppressLint("RestrictedApi")
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
+        if (shared.getBoolean(MainApplication.PREFERENCE_VOLUME_KEYS, false)) {
+            FragmentManager fm = getSupportFragmentManager();
+            for (Fragment f : fm.getFragments()) {
+                if (f != null && f.isVisible() && f instanceof ReaderFragment) {
+                    if(((ReaderFragment) f).onKeyDown(keyCode, event))
+                        return true;
+                }
+            }
+        }
+        return super.onKeyDown(keyCode, event);
     }
 
     public static String toString(Throwable e) {

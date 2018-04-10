@@ -14,8 +14,10 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AlertDialog;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -884,5 +886,17 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         } else {
             toolbarBottom.setVisibility(View.VISIBLE);
         }
+    }
+
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if ((keyCode == KeyEvent.KEYCODE_VOLUME_DOWN)) {
+            view.app.runAction(ActionCode.VOLUME_KEY_SCROLL_FORWARD);
+            return true;
+        }
+        if ((keyCode == KeyEvent.KEYCODE_VOLUME_UP)) {
+            view.app.runAction(ActionCode.VOLUME_KEY_SCROLL_BACK);
+            return true;
+        }
+        return false;
     }
 }

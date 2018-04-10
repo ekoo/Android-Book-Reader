@@ -1,4 +1,10 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <SwitchPreferenceCompat
+        android:defaultValue="false"
+        android:key="volume_keys"
+        android:summary="Use volume keys to turn pages"
+        android:title="Volume Turning" />
+
     <com.github.axet.androidlibrary.widgets.ScreenlockPreference
         android:defaultValue="0"
         android:entries="@array/screen_lock_text"
