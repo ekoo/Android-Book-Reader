@@ -619,7 +619,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         if (view.pluginview == null) {
             int f = getFontsizeFB();
-            final int start = 20;
+            final int start = 15;
             final int end = 80;
             fontsizepopup_seek.setMax(end - start);
             fontsizepopup_seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
