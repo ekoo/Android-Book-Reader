@@ -68,6 +68,7 @@ import org.geometerplus.fbreader.fbreader.FBAction;
 import org.geometerplus.fbreader.fbreader.FBView;
 import org.geometerplus.fbreader.fbreader.options.ColorProfile;
 import org.geometerplus.fbreader.fbreader.options.FooterOptions;
+import org.geometerplus.fbreader.fbreader.options.PageTurningOptions;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
 import org.geometerplus.fbreader.util.AutoTextSnippet;
@@ -1459,6 +1460,31 @@ public class FBReaderView extends RelativeLayout {
                     }
                 }));
                 showToast(toast);
+            }
+        });
+
+        app.addAction(ActionCode.VOLUME_KEY_SCROLL_FORWARD, new FBAction(app) {
+            @Override
+            protected void run(Object... params) {
+                final PageTurningOptions preferences = Reader.PageTurningOptions;
+                Reader.getViewWidget().startAnimatedScrolling(
+                        FBView.PageIndex.next,
+                        preferences.Horizontal.getValue()
+                                ? FBView.Direction.rightToLeft : FBView.Direction.up,
+                        preferences.AnimationSpeed.getValue()
+                );
+            }
+        });
+        app.addAction(ActionCode.VOLUME_KEY_SCROLL_BACK, new FBAction(app) {
+            @Override
+            protected void run(Object... params) {
+                final PageTurningOptions preferences = Reader.PageTurningOptions;
+                Reader.getViewWidget().startAnimatedScrolling(
+                        FBView.PageIndex.previous,
+                        preferences.Horizontal.getValue()
+                                ? FBView.Direction.rightToLeft : FBView.Direction.up,
+                        preferences.AnimationSpeed.getValue()
+                );
             }
         });
 

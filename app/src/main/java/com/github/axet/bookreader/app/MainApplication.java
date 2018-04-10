@@ -19,6 +19,7 @@ public class MainApplication extends MultiDexApplication {
     public static float PREFERENCE_FONTSIZE_REFLOW_DEFAULT = 0.8f;
     public static String PREFERENCE_LIBRARY_LAYOUT = "layout_";
     public static String PREFERENCE_SCREENLOCK = "screen_lock";
+    public static String PREFERENCE_VOLUME_KEYS = "volume_keys";
 
     public static int getTheme(Context context, int light, int dark) {
         final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
