@@ -504,7 +504,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 PopupWindowCompat.showAsTooltip(w, fontsize, Gravity.TOP,
                         MainApplication.getTheme(getContext(),
                                 ThemeUtils.getColor(getContext(), R.color.button_material_light),
-                                ThemeUtils.getColor(getContext(), R.color.button_material_dark)));
+                                ThemeUtils.getColor(getContext(), R.color.button_material_dark)),
+                        ThemeUtils.dp2px(getContext(), 300));
             }
         });
         fonts = new FontAdapter(getContext());
