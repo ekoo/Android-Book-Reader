@@ -15,19 +15,6 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <FrameLayout
-        android:id="@+id/fontsize_popup"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_above="@id/toolbar_bottom"
-        app:layout_constraintBottom_toTopOf="@id/toolbar_bottom"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintWidth_max="300dp">
-
-        <include layout="@layout/font_popup" />
-    </FrameLayout>
-
-    <FrameLayout
         android:id="@+id/toolbar_bottom"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

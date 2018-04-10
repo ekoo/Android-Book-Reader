@@ -15,6 +15,7 @@ import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -24,12 +25,16 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.CheckedTextView;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.PopupWindow;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.github.axet.androidlibrary.widgets.PopupWindowCompat;
 import com.github.axet.androidlibrary.widgets.ScreenlockPreference;
+import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.androidlibrary.widgets.TreeListView;
 import com.github.axet.androidlibrary.widgets.TreeRecyclerView;
 import com.github.axet.bookreader.BuildConfig;
@@ -70,6 +75,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     FontAdapter fonts;
     ListView fontsList;
     TextView fontsizetext;
+    View fontsize_popup;
     TextView fontsizepopup_text;
     SeekBar fontsizepopup_seek;
     View fontsizepopup_minus;
@@ -467,9 +473,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(final LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View v = inflater.inflate(R.layout.fragment_reader, container, false);
+        final View v = inflater.inflate(R.layout.fragment_reader, container, false);
 
         toolbarBottom = v.findViewById(R.id.toolbar_bottom);
         rtl = toolbarBottom.findViewById(R.id.toolbar_rtl);
@@ -482,7 +488,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 updateToolbar();
             }
         });
-        final View fontsize_popup = v.findViewById(R.id.fontsize_popup);
+        fontsize_popup = inflater.inflate(R.layout.font_popup, new FrameLayout(getContext()), false);
         fontsizepopup_text = (TextView) fontsize_popup.findViewById(R.id.fontsize_text);
         fontsizepopup_plus = fontsize_popup.findViewById(R.id.fontsize_plus);
         fontsizepopup_minus = fontsize_popup.findViewById(R.id.fontsize_minus);
@@ -490,19 +496,19 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         fontsize = v.findViewById(R.id.toolbar_fontsize);
         fontsize.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) {
-                if (fontsize_popup.getVisibility() == View.VISIBLE) {
-                    fontsize_popup.setVisibility(View.GONE);
-                } else {
-                    fonts.select(view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
-                    fontsList.setSelection(fonts.selected);
-                    fontsize_popup.setVisibility(View.VISIBLE);
-                    updateFontsize();
-                }
+            public void onClick(View v1) {
+                PopupWindow w = new PopupWindow(fontsize_popup);
+                fonts.select(view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
+                fontsList.setSelection(fonts.selected);
+                updateFontsize();
+                PopupWindowCompat.showAsTooltip(w, fontsize, Gravity.TOP,
+                        MainApplication.getTheme(getContext(),
+                                ThemeUtils.getColor(getContext(), R.color.button_material_light),
+                                ThemeUtils.getColor(getContext(), R.color.button_material_dark)));
             }
         });
         fonts = new FontAdapter(getContext());
-        fontsList = (ListView) v.findViewById(R.id.fonts_list);
+        fontsList = (ListView) fontsize_popup.findViewById(R.id.fonts_list);
         fontsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View v, int position, long id) {
@@ -510,11 +516,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 setFontFB(fonts.ff.get(position).name);
             }
         });
-        fontsize_popup.setVisibility(View.GONE);
         final MainActivity main = (MainActivity) getActivity();
         view = (FBReaderView) v.findViewById(R.id.main_view);
 
-        view.listener = new FBReaderView.PageTurningListener() {
+        view.pageTurningListener = new FBReaderView.PageTurningListener() {
             @Override
             public void onScrollingFinished(ZLViewEnums.PageIndex index) {
                 updateToolbar();

@@ -114,7 +114,7 @@ public class FBReaderView extends RelativeLayout {
     public Window w;
     public Storage.Book book;
     public PluginView pluginview;
-    public PageTurningListener listener;
+    public PageTurningListener pageTurningListener;
 
     public static class PluginRect {
         public int x; // lower left x
@@ -736,8 +736,8 @@ public class FBReaderView extends RelativeLayout {
             } else {
                 super.onScrollingFinished(pageIndex);
             }
-            if (listener != null)
-                listener.onScrollingFinished(pageIndex);
+            if (pageTurningListener != null)
+                pageTurningListener.onScrollingFinished(pageIndex);
         }
 
         @Override
