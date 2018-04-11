@@ -899,4 +899,14 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         }
         return false;
     }
+
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if ((keyCode == KeyEvent.KEYCODE_VOLUME_DOWN)) {
+            return true;
+        }
+        if ((keyCode == KeyEvent.KEYCODE_VOLUME_UP)) {
+            return true;
+        }
+        return false;
+    }
 }
