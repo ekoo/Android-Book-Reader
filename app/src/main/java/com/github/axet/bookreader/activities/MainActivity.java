@@ -508,6 +508,22 @@ public class MainActivity extends FullscreenActivity
         return super.onKeyDown(keyCode, event);
     }
 
+    @SuppressLint("RestrictedApi")
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
+        if (shared.getBoolean(MainApplication.PREFERENCE_VOLUME_KEYS, false)) {
+            FragmentManager fm = getSupportFragmentManager();
+            for (Fragment f : fm.getFragments()) {
+                if (f != null && f.isVisible() && f instanceof ReaderFragment) {
+                    if(((ReaderFragment) f).onKeyUp(keyCode, event))
+                        return true;
+                }
+            }
+        }
+        return super.onKeyUp(keyCode, event);
+    }
+
     public static String toString(Throwable e) {
         while (e.getCause() != null)
             e = e.getCause();
