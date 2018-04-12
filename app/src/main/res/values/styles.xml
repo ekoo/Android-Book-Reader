@@ -22,4 +22,10 @@
     </style>
 
     <style name="AppThemeDark.PopupOverlay" parent="ThemeOverlay.AppCompat.Dark" />
+
+    <style name="toolbar_bottom_icon_text" parent="toolbar_icon_text">
+        <item name="android:layout_marginBottom">7dp</item>
+        <item name="android:maxWidth">60dp</item>
+        <item name="android:singleLine">true</item>
+    </style>
 </resources>

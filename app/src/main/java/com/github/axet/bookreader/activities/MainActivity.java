@@ -500,7 +500,7 @@ public class MainActivity extends FullscreenActivity
             FragmentManager fm = getSupportFragmentManager();
             for (Fragment f : fm.getFragments()) {
                 if (f != null && f.isVisible() && f instanceof ReaderFragment) {
-                    if(((ReaderFragment) f).onKeyDown(keyCode, event))
+                    if (((ReaderFragment) f).onKeyDown(keyCode, event))
                         return true;
                 }
             }
@@ -516,7 +516,7 @@ public class MainActivity extends FullscreenActivity
             FragmentManager fm = getSupportFragmentManager();
             for (Fragment f : fm.getFragments()) {
                 if (f != null && f.isVisible() && f instanceof ReaderFragment) {
-                    if(((ReaderFragment) f).onKeyUp(keyCode, event))
+                    if (((ReaderFragment) f).onKeyUp(keyCode, event))
                         return true;
                 }
             }

@@ -111,7 +111,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                     if (layout == R.layout.book_list_item) {
                         editor.putString(MainApplication.PREFERENCE_LIBRARY_LAYOUT + getLayout(), "book_item");
                     } else {
-                        editor.putString(MainApplication.PREFERENCE_LIBRARY_LAYOUT+ getLayout(), "book_list_item");
+                        editor.putString(MainApplication.PREFERENCE_LIBRARY_LAYOUT + getLayout(), "book_list_item");
                     }
                     editor.commit();
                     updateGrid();
@@ -128,7 +128,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
 
             layout = R.layout.book_item;
-            if (shared.getString(MainApplication.PREFERENCE_LIBRARY_LAYOUT+ getLayout(), "").equals("book_list_item")) {
+            if (shared.getString(MainApplication.PREFERENCE_LIBRARY_LAYOUT + getLayout(), "").equals("book_list_item")) {
                 grid.setNumColumns(1);
                 layout = R.layout.book_list_item;
             } else {
@@ -477,14 +477,22 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
+
         MenuItem homeMenu = menu.findItem(R.id.action_home);
         MenuItem tocMenu = menu.findItem(R.id.action_toc);
         MenuItem searchMenu = menu.findItem(R.id.action_search);
         MenuItem reflow = menu.findItem(R.id.action_reflow);
+        MenuItem fontsize = menu.findItem(R.id.action_fontsize);
+        MenuItem debug = menu.findItem(R.id.action_debug);
+        MenuItem rtl = menu.findItem(R.id.action_rtl);
+
         reflow.setVisible(false);
         searchMenu.setVisible(true);
         homeMenu.setVisible(false);
         tocMenu.setVisible(false);
+        fontsize.setVisible(false);
+        debug.setVisible(false);
+        rtl.setVisible(false);
     }
 
     public void search(String s) {
