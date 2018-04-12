@@ -5,11 +5,13 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v7.view.CollapsibleActionView;
 import android.support.v7.view.ContextThemeWrapper;
 import android.support.v7.widget.AppCompatImageButton;
 import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.MotionEvent;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.TextView;
@@ -52,20 +54,5 @@ public class ToolbarButtonView extends FrameLayout {
         LayoutParams lp = new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
         lp.bottomMargin = ThemeUtils.dp2px(getContext(), 7);
         addView(text, lp);
-    }
-
-    @Override
-    public boolean performClick() {
-        return super.performClick();
-    }
-
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        return super.onTouchEvent(event);
-    }
-
-    @Override
-    public boolean onInterceptTouchEvent(MotionEvent ev) {
-        return true;
     }
 }

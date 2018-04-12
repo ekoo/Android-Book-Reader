@@ -841,13 +841,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             }
         });
 
-        fontsize.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(MenuItem item) {
-                return onOptionsItemSelected(item);
-            }
-        });
-
         if (showRTL) {
             rtl.setVisible(true);
         } else {

@@ -25,14 +25,14 @@
     <item
         android:id="@+id/action_rtl"
         android:icon="@drawable/ic_gesture_black_24dp"
-        app:actionViewClass="com.github.axet.bookreader.widgets.ToolbarRTLView"
         android:title="LRT"
+        app:actionViewClass="com.github.axet.bookreader.widgets.ToolbarRTLView"
         app:showAsAction="ifRoom" />
     <item
         android:id="@+id/action_fontsize"
         android:icon="@drawable/ic_format_size_black_24dp"
-        app:actionViewClass="com.github.axet.bookreader.widgets.ToolbarFontSizeView"
         android:title="Font Size"
+        app:actionViewClass="com.github.axet.bookreader.widgets.ToolbarFontSizeView"
         app:showAsAction="always" />
     <item
         android:id="@+id/action_reflow"

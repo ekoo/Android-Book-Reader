@@ -29,6 +29,8 @@ public class ToolbarRTLView extends ToolbarButtonView {
 
     public void create() {
         super.create();
+        image.setClickable(false);
+        image.setFocusable(false);
         image.setImageResource(R.drawable.ic_gesture_black_24dp);
         image.setColorFilter(ThemeUtils.getColor(getContext(), R.color.white));
         image.setBackgroundDrawable(null);
