@@ -6,8 +6,10 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.PopupMenu;
@@ -49,6 +51,12 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     Storage storage;
     String lastSearch = "";
     FragmentHolder holder;
+    Runnable invalidateOptionsMenu = new Runnable() {
+        @Override
+        public void run() {
+            ActivityCompat.invalidateOptionsMenu(getActivity());
+        }
+    };
 
     public static class FragmentHolder {
         HeaderGridView grid;
@@ -63,8 +71,6 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         View footerNext;
         View footerProgress;
         View footerStop;
-        View toolbarBottom;
-        ImageView toolbar_list;
 
         Context context;
 
@@ -88,7 +94,6 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             footerNext = footer.findViewById(R.id.search_footer_next);
             footerProgress = footer.findViewById(R.id.search_footer_progress);
             footerStop = footer.findViewById(R.id.search_footer_stop);
-            toolbarBottom = v.findViewById(R.id.toolbar_bottom);
 
             footerNext.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -97,26 +102,8 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                 }
             });
 
-            toolbar_list = (ImageView) toolbarBottom.findViewById(R.id.toolbar_view);
-            toolbar_list.setVisibility(View.VISIBLE);
-
             grid.addFooterView(footer);
 
-            final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
-
-            toolbar_list.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    SharedPreferences.Editor editor = shared.edit();
-                    if (layout == R.layout.book_list_item) {
-                        editor.putString(MainApplication.PREFERENCE_LIBRARY_LAYOUT + getLayout(), "book_item");
-                    } else {
-                        editor.putString(MainApplication.PREFERENCE_LIBRARY_LAYOUT+ getLayout(), "book_list_item");
-                    }
-                    editor.commit();
-                    updateGrid();
-                }
-            });
             updateGrid();
         }
 
@@ -128,7 +115,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
 
             layout = R.layout.book_item;
-            if (shared.getString(MainApplication.PREFERENCE_LIBRARY_LAYOUT+ getLayout(), "").equals("book_list_item")) {
+            if (shared.getString(MainApplication.PREFERENCE_LIBRARY_LAYOUT + getLayout(), "").equals("book_list_item")) {
                 grid.setNumColumns(1);
                 layout = R.layout.book_list_item;
             } else {
@@ -139,15 +126,6 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             BooksAdapter a = (BooksAdapter) grid.getAdapter();
             if (a != null)
                 a.notifyDataSetChanged();
-            updateToolbar();
-        }
-
-        public void updateToolbar() {
-            if (layout == R.layout.book_item) {
-                toolbar_list.setImageResource(R.drawable.ic_view_module_black_24dp);
-            } else {
-                toolbar_list.setImageResource(R.drawable.ic_view_list_black_24dp);
-            }
         }
     }
 
@@ -475,16 +453,61 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     }
 
     @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+    public void onCreateOptionsMenu(final Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
+
+        if (Build.VERSION.SDK_INT < 11) {
+            invalidateOptionsMenu = new Runnable() {
+                @Override
+                public void run() {
+                    onCreateOptionsMenu(menu, null);
+                }
+            };
+        }
+
         MenuItem homeMenu = menu.findItem(R.id.action_home);
         MenuItem tocMenu = menu.findItem(R.id.action_toc);
         MenuItem searchMenu = menu.findItem(R.id.action_search);
         MenuItem reflow = menu.findItem(R.id.action_reflow);
+        MenuItem fontsize = menu.findItem(R.id.action_fontsize);
+        MenuItem debug = menu.findItem(R.id.action_debug);
+        MenuItem rtl = menu.findItem(R.id.action_rtl);
+        MenuItem grid = menu.findItem(R.id.action_grid);
+
         reflow.setVisible(false);
         searchMenu.setVisible(true);
         homeMenu.setVisible(false);
         tocMenu.setVisible(false);
+        fontsize.setVisible(false);
+        debug.setVisible(false);
+        rtl.setVisible(false);
+
+        holder.updateGrid();
+        if (holder.layout == R.layout.book_item) {
+            grid.setIcon(R.drawable.ic_view_module_black_24dp);
+        } else {
+            grid.setIcon(R.drawable.ic_view_list_black_24dp);
+        }
+
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+
+        if (item.getItemId() == R.id.action_grid) {
+            SharedPreferences.Editor editor = shared.edit();
+            if (holder.layout == R.layout.book_list_item) {
+                editor.putString(MainApplication.PREFERENCE_LIBRARY_LAYOUT + holder.getLayout(), "book_item");
+            } else {
+                editor.putString(MainApplication.PREFERENCE_LIBRARY_LAYOUT + holder.getLayout(), "book_list_item");
+            }
+            editor.commit();
+            holder.updateGrid();
+            invalidateOptionsMenu.run();
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     public void search(String s) {

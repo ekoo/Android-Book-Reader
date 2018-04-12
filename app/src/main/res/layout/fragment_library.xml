@@ -13,18 +13,8 @@
         android:id="@+id/grid"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@id/toolbar_bottom"
         android:layout_below="@+id/library_header"
         android:numColumns="4"
         android:stretchMode="columnWidth"
         android:verticalSpacing="2dp" />
-
-    <FrameLayout
-        android:id="@+id/toolbar_bottom"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true">
-
-        <include layout="@layout/toolbar_library_bottom" />
-    </FrameLayout>
 </RelativeLayout>

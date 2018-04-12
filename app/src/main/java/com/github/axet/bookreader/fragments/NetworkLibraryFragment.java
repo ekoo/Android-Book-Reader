@@ -802,7 +802,15 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         MenuItem tocMenu = menu.findItem(R.id.action_toc);
         MenuItem searchMenu = menu.findItem(R.id.action_search);
         MenuItem reflow = menu.findItem(R.id.action_reflow);
+        MenuItem fontsize = menu.findItem(R.id.action_fontsize);
+        MenuItem debug = menu.findItem(R.id.action_debug);
+        MenuItem rtl = menu.findItem(R.id.action_rtl);
+
         reflow.setVisible(false);
+        fontsize.setVisible(false);
+        debug.setVisible(false);
+        rtl.setVisible(false);
+        tocMenu.setVisible(false);
 
         host = n.home.get("get");
         if (host == null || host.isEmpty()) {
@@ -815,7 +823,6 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
             homeMenu.setVisible(false);
         else
             homeMenu.setVisible(true);
-        tocMenu.setVisible(false);
     }
 
     @Override

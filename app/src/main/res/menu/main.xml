@@ -8,20 +8,42 @@
         app:actionViewClass="com.github.axet.androidlibrary.widgets.SearchView"
         app:showAsAction="collapseActionView|ifRoom" />
     <item
+        android:id="@+id/action_grid"
+        android:icon="@drawable/ic_view_list_black_24dp"
+        android:title="Grid View"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/action_toc"
         android:icon="@drawable/ic_toc_white_24dp"
         android:title="@string/book_toc"
-        app:showAsAction="always" />
+        app:showAsAction="ifRoom" />
     <item
-        android:id="@+id/action_home"
-        android:icon="@drawable/ic_home_white_24dp"
-        android:title="@string/catalog_home"
+        android:id="@+id/action_debug"
+        android:icon="@drawable/ic_bug_report_black_24dp"
+        android:title="Debug"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_rtl"
+        android:icon="@drawable/ic_gesture_black_24dp"
+        app:actionViewClass="com.github.axet.bookreader.widgets.ToolbarRTLView"
+        android:title="LRT"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_fontsize"
+        android:icon="@drawable/ic_format_size_black_24dp"
+        app:actionViewClass="com.github.axet.bookreader.widgets.ToolbarFontSizeView"
+        android:title="Font Size"
         app:showAsAction="always" />
     <item
         android:id="@+id/action_reflow"
         android:icon="@drawable/ic_wrap_text_white_24dp"
         android:title="Reflow"
         app:showAsAction="always" />
+    <item
+        android:id="@+id/action_home"
+        android:icon="@drawable/ic_home_white_24dp"
+        android:title="@string/catalog_home"
+        app:showAsAction="ifRoom" />
     <item
         android:id="@+id/action_file"
         android:orderInCategory="100"

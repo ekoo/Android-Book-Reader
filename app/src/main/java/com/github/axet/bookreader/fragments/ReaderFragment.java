@@ -10,12 +10,15 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.BatteryManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -46,6 +49,8 @@ import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.FBReaderView;
+import com.github.axet.bookreader.widgets.ToolbarButtonView;
+import com.github.axet.bookreader.widgets.ToolbarFontSizeView;
 
 import org.geometerplus.fbreader.bookmodel.TOCTree;
 import org.geometerplus.fbreader.fbreader.ActionCode;
@@ -70,18 +75,14 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     Storage storage;
     FBReaderView view;
     AlertDialog tocdialog;
-    View toolbarBottom;
-    View rtl;
-    TextView rtlText;
-    View fontsize;
     FontAdapter fonts;
     ListView fontsList;
-    TextView fontsizetext;
     View fontsize_popup;
     TextView fontsizepopup_text;
     SeekBar fontsizepopup_seek;
     View fontsizepopup_minus;
     View fontsizepopup_plus;
+    boolean showRTL;
     Handler handler = new Handler();
     Runnable time = new Runnable() {
         @Override
@@ -93,6 +94,13 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     BroadcastReceiver battery = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             onReceiveBattery(intent);
+        }
+    };
+
+    Runnable invalidateOptionsMenu = new Runnable() {
+        @Override
+        public void run() {
+            ActivityCompat.invalidateOptionsMenu(getActivity());
         }
     };
 
@@ -479,37 +487,11 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                              Bundle savedInstanceState) {
         final View v = inflater.inflate(R.layout.fragment_reader, container, false);
 
-        toolbarBottom = v.findViewById(R.id.toolbar_bottom);
-        rtl = toolbarBottom.findViewById(R.id.toolbar_rtl);
-        rtlText = (TextView) toolbarBottom.findViewById(R.id.toolbar_rtl_text);
-        rtl.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                view.app.BookTextView.rtlMode = !view.app.BookTextView.rtlMode;
-                view.reset();
-                updateToolbar();
-            }
-        });
         fontsize_popup = inflater.inflate(R.layout.font_popup, new FrameLayout(getContext()), false);
         fontsizepopup_text = (TextView) fontsize_popup.findViewById(R.id.fontsize_text);
         fontsizepopup_plus = fontsize_popup.findViewById(R.id.fontsize_plus);
         fontsizepopup_minus = fontsize_popup.findViewById(R.id.fontsize_minus);
         fontsizepopup_seek = (SeekBar) fontsize_popup.findViewById(R.id.fontsize_seek);
-        fontsize = v.findViewById(R.id.toolbar_fontsize);
-        fontsize.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v1) {
-                PopupWindow w = new PopupWindow(fontsize_popup);
-                fonts.select(view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
-                fontsList.setSelection(fonts.selected);
-                updateFontsize();
-                PopupWindowCompat.showAsTooltip(w, fontsize, Gravity.TOP,
-                        MainApplication.getTheme(getContext(),
-                                ThemeUtils.getColor(getContext(), R.color.button_material_light),
-                                ThemeUtils.getColor(getContext(), R.color.button_material_dark)),
-                        ThemeUtils.dp2px(getContext(), 300));
-            }
-        });
         fonts = new FontAdapter(getContext());
         fontsList = (ListView) fontsize_popup.findViewById(R.id.fonts_list);
         fontsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -572,21 +554,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             fontsList.setVisibility(View.GONE);
         }
 
-        if (BuildConfig.DEBUG && view.pluginview != null) {
-            View debug = toolbarBottom.findViewById(R.id.toolbar_debug);
-            debug.setVisibility(View.VISIBLE);
-            debug.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    view.pluginview.reflowDebug = !view.pluginview.reflowDebug;
-                    if (view.pluginview.reflowDebug)
-                        view.pluginview.reflow = true;
-                    view.reset();
-                    updateToolbar();
-                }
-            });
-        }
-
         updateToolbar();
 
         updateTime();
@@ -594,6 +561,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         handler.post(new Runnable() {
             @Override
             public void run() {
+                showRTL = !view.app.BookTextView.rtlMode && view.app.BookTextView.rtlDetected;
                 updateToolbar(); // update toolbar after page been drawen to detect RTL
             }
         });
@@ -602,20 +570,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     }
 
     void updateToolbar() {
-        fontsize.setVisibility((view.pluginview == null || view.pluginview.reflow) ? View.VISIBLE : View.GONE);
-
-        fontsizetext = (TextView) fontsize.findViewById(R.id.toolbar_icon_text);
-        if (view.pluginview == null) {
-            fontsizetext.setText("" + getFontsizeFB());
-        } else {
-            float f = getFontsizeReflow();
-            fontsizetext.setText(String.format("%.1f", f));
-        }
-
-        if (!view.app.BookTextView.rtlMode && view.app.BookTextView.rtlDetected) {
-            rtl.setVisibility(View.VISIBLE);
-        }
-        rtlText.setText(view.app.BookTextView.rtlMode ? "RTL" : "LTR");
+        invalidateOptionsMenu.run();
     }
 
     void updateFontsize() {
@@ -813,20 +768,99 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             view.reset();
             updateToolbar();
         }
+        if (id == R.id.action_debug) {
+            view.pluginview.reflowDebug = !view.pluginview.reflowDebug;
+            if (view.pluginview.reflowDebug)
+                view.pluginview.reflow = true;
+            view.reset();
+            updateToolbar();
+        }
+        if (id == R.id.action_fontsize) {
+            PopupWindow w = new PopupWindow(fontsize_popup);
+            fonts.select(view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
+            fontsList.setSelection(fonts.selected);
+            updateFontsize();
+            PopupWindowCompat.showAsTooltip(w, MenuItemCompat.getActionView(item), Gravity.BOTTOM,
+                    MainApplication.getTheme(getContext(),
+                            ThemeUtils.getColor(getContext(), R.color.button_material_light),
+                            ThemeUtils.getColor(getContext(), R.color.button_material_dark)),
+                    ThemeUtils.dp2px(getContext(), 300));
+        }
+        if (id == R.id.action_rtl) {
+            view.app.BookTextView.rtlMode = !view.app.BookTextView.rtlMode;
+            view.reset();
+            updateToolbar();
+        }
         return super.onOptionsItemSelected(item);
     }
 
     @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+    public void onCreateOptionsMenu(final Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
+
+        if (Build.VERSION.SDK_INT < 11) {
+            invalidateOptionsMenu = new Runnable() {
+                @Override
+                public void run() {
+                    onCreateOptionsMenu(menu, null);
+                }
+            };
+        }
+
         MenuItem homeMenu = menu.findItem(R.id.action_home);
         MenuItem tocMenu = menu.findItem(R.id.action_toc);
         MenuItem searchMenu = menu.findItem(R.id.action_search);
+        MenuItem reflow = menu.findItem(R.id.action_reflow);
+        MenuItem debug = menu.findItem(R.id.action_debug);
+        final MenuItem fontsize = menu.findItem(R.id.action_fontsize);
+        final MenuItem rtl = menu.findItem(R.id.action_rtl);
+        MenuItem grid = menu.findItem(R.id.action_grid);
+
+        grid.setVisible(false);
         homeMenu.setVisible(false);
         tocMenu.setVisible(view.app.Model.TOCTree != null && view.app.Model.TOCTree.hasChildren());
         searchMenu.setVisible(view.pluginview == null); // pdf and djvu do not support search
-        MenuItem reflow = menu.findItem(R.id.action_reflow);
         reflow.setVisible(view.pluginview != null);
+
+        if (BuildConfig.DEBUG && view.pluginview != null) {
+            debug.setVisible(true);
+        } else {
+            debug.setVisible(false);
+        }
+
+        fontsize.setVisible((view.pluginview == null || view.pluginview.reflow) ? true : false);
+        if (view.pluginview == null) {
+            ((ToolbarButtonView) MenuItemCompat.getActionView(fontsize)).text.setText("" + getFontsizeFB());
+        } else {
+            ((ToolbarButtonView) MenuItemCompat.getActionView(fontsize)).text.setText(String.format("%.1f", getFontsizeReflow()));
+        }
+        MenuItemCompat.getActionView(fontsize).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onOptionsItemSelected(fontsize);
+            }
+        });
+
+        fontsize.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                return onOptionsItemSelected(item);
+            }
+        });
+
+        if (showRTL) {
+            rtl.setVisible(true);
+        } else {
+            rtl.setVisible(false);
+        }
+        MenuItemCompat.getActionView(rtl).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onOptionsItemSelected(rtl);
+            }
+        });
+        rtl.setTitle(view.app.BookTextView.rtlMode ? "RTL" : "LTR");
+        ((ToolbarButtonView) MenuItemCompat.getActionView(rtl)).text.setText(view.app.BookTextView.rtlMode ? "RTL" : "LTR");
     }
 
     void showTOC() {
@@ -881,11 +915,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public void onFullscreenChanged(boolean f) {
-        if (f) {
-            toolbarBottom.setVisibility(View.GONE);
-        } else {
-            toolbarBottom.setVisibility(View.VISIBLE);
-        }
     }
 
     public boolean onKeyDown(int keyCode, KeyEvent event) {
