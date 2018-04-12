@@ -814,7 +814,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         MenuItem debug = menu.findItem(R.id.action_debug);
         final MenuItem fontsize = menu.findItem(R.id.action_fontsize);
         final MenuItem rtl = menu.findItem(R.id.action_rtl);
+        MenuItem grid = menu.findItem(R.id.action_grid);
 
+        grid.setVisible(false);
         homeMenu.setVisible(false);
         tocMenu.setVisible(view.app.Model.TOCTree != null && view.app.Model.TOCTree.hasChildren());
         searchMenu.setVisible(view.pluginview == null); // pdf and djvu do not support search

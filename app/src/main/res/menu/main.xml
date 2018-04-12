@@ -8,6 +8,11 @@
         app:actionViewClass="com.github.axet.androidlibrary.widgets.SearchView"
         app:showAsAction="collapseActionView|ifRoom" />
     <item
+        android:id="@+id/action_grid"
+        android:icon="@drawable/ic_view_list_black_24dp"
+        android:title="Grid View"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/action_toc"
         android:icon="@drawable/ic_toc_white_24dp"
         android:title="@string/book_toc"
