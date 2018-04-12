@@ -18,6 +18,7 @@
 -keep class com.github.axet.k2pdfopt.K2PdfOpt {*;}
 
 -keep class com.github.axet.androidlibrary.widgets.SearchView {*;}
+-keep class com.github.axet.bookreader.widgets.Toolbar* {*;}
 
 -dontwarn org.geometerplus.**
 -dontwarn org.apache.**
