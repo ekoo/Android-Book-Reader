@@ -127,6 +127,22 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             if (a != null)
                 a.notifyDataSetChanged();
         }
+
+        public boolean onOptionsItemSelected(MenuItem item) {
+            final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
+            if (item.getItemId() == R.id.action_grid) {
+                SharedPreferences.Editor editor = shared.edit();
+                if (layout == R.layout.book_list_item) {
+                    editor.putString(MainApplication.PREFERENCE_LIBRARY_LAYOUT + getLayout(), "book_item");
+                } else {
+                    editor.putString(MainApplication.PREFERENCE_LIBRARY_LAYOUT + getLayout(), "book_list_item");
+                }
+                editor.commit();
+                updateGrid();
+                return true;
+            }
+            return false;
+        }
     }
 
     public static class ByRecent implements Comparator<Storage.Book> {
@@ -493,20 +509,10 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
-
-        if (item.getItemId() == R.id.action_grid) {
-            SharedPreferences.Editor editor = shared.edit();
-            if (holder.layout == R.layout.book_list_item) {
-                editor.putString(MainApplication.PREFERENCE_LIBRARY_LAYOUT + holder.getLayout(), "book_item");
-            } else {
-                editor.putString(MainApplication.PREFERENCE_LIBRARY_LAYOUT + holder.getLayout(), "book_list_item");
-            }
-            editor.commit();
-            holder.updateGrid();
+        if (holder.onOptionsItemSelected(item)) {
             invalidateOptionsMenu.run();
+            return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
 
