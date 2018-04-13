@@ -7,6 +7,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -95,6 +96,12 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     ArrayList<Pattern> ignore;
     String useragent;
     Handler handler = new Handler();
+    Runnable invalidateOptionsMenu = new Runnable() {
+        @Override
+        public void run() {
+            ActivityCompat.invalidateOptionsMenu(getActivity());
+        }
+    };
 
     ArrayList<NetworkItemsLoader> toolbarItems = new ArrayList<>();
 
@@ -791,12 +798,25 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
             openBrowser(host);
             return true;
         }
+        if (holder.onOptionsItemSelected(item)) {
+            invalidateOptionsMenu.run();
+            return true;
+        }
         return super.onOptionsItemSelected(item);
     }
 
     @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+    public void onCreateOptionsMenu(final Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
+
+        if (Build.VERSION.SDK_INT < 11) {
+            invalidateOptionsMenu = new Runnable() {
+                @Override
+                public void run() {
+                    onCreateOptionsMenu(menu, null);
+                }
+            };
+        }
 
         MenuItem homeMenu = menu.findItem(R.id.action_home);
         MenuItem tocMenu = menu.findItem(R.id.action_toc);

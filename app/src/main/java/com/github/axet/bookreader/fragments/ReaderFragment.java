@@ -561,7 +561,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         handler.post(new Runnable() {
             @Override
             public void run() {
-                showRTL = !view.app.BookTextView.rtlMode && view.app.BookTextView.rtlDetected;
                 updateToolbar(); // update toolbar after page been drawen to detect RTL
             }
         });
@@ -841,13 +840,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             }
         });
 
-        fontsize.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(MenuItem item) {
-                return onOptionsItemSelected(item);
-            }
-        });
-
+        showRTL |= !view.app.BookTextView.rtlMode && view.app.BookTextView.rtlDetected;
         if (showRTL) {
             rtl.setVisible(true);
         } else {
