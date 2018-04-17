@@ -83,6 +83,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     View fontsizepopup_minus;
     View fontsizepopup_plus;
     boolean showRTL;
+    PopupWindow popupWindow;
     Handler handler = new Handler();
     Runnable time = new Runnable() {
         @Override
@@ -507,6 +508,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         view.pageTurningListener = new FBReaderView.PageTurningListener() {
             @Override
             public void onScrollingFinished(ZLViewEnums.PageIndex index) {
+                if (popupWindow != null)
+                    popupWindow.dismiss();
                 updateToolbar();
             }
         };
@@ -748,6 +751,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         shared.unregisterOnSharedPreferenceChangeListener(this);
         handler.removeCallbacks(time);
         ScreenlockPreference.onUserInteractionRemove();
+        if (popupWindow != null)
+            popupWindow.dismiss();
     }
 
     @Override
@@ -757,6 +762,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        if (popupWindow != null)
+            popupWindow.dismiss();
         int id = item.getItemId();
         if (id == R.id.action_toc) {
             showTOC();
@@ -775,11 +782,11 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             updateToolbar();
         }
         if (id == R.id.action_fontsize) {
-            PopupWindow w = new PopupWindow(fontsize_popup);
+            popupWindow = new PopupWindow(fontsize_popup);
             fonts.select(view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
             fontsList.setSelection(fonts.selected);
             updateFontsize();
-            PopupWindowCompat.showAsTooltip(w, MenuItemCompat.getActionView(item), Gravity.BOTTOM,
+            PopupWindowCompat.showAsTooltip(popupWindow, MenuItemCompat.getActionView(item), Gravity.BOTTOM,
                     MainApplication.getTheme(getContext(),
                             ThemeUtils.getColor(getContext(), R.color.button_material_light),
                             ThemeUtils.getColor(getContext(), R.color.button_material_dark)),

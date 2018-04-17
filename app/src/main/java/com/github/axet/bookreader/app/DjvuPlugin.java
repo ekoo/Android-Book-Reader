@@ -133,8 +133,6 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
     }
 
     public static class DjvuTextModel extends DjvuView implements ZLTextModel {
-        public ArrayList<ZLTextParagraph> pars = new ArrayList<>();
-
         public DjvuTextModel(ZLFile f) {
             super(f);
         }
@@ -158,12 +156,22 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
         @Override
         public int getParagraphsNumber() {
-            return pars.size();
+            return doc.getPagesCount();
         }
 
         @Override
         public ZLTextParagraph getParagraph(int index) {
-            return pars.get(index);
+            return new ZLTextParagraph() {
+                @Override
+                public EntryIterator iterator() {
+                    return null;
+                }
+
+                @Override
+                public byte getKind() {
+                    return Kind.END_OF_TEXT_PARAGRAPH;
+                }
+            };
         }
 
         @Override
@@ -197,7 +205,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
         @Override
         public int getTextLength(int index) {
-            return 0;
+            return index;
         }
 
         @Override
