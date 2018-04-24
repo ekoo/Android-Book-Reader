@@ -51,6 +51,7 @@ import com.github.axet.bookreader.widgets.FullWidthActionView;
 
 import org.geometerplus.fbreader.fbreader.ActionCode;
 
+import java.io.File;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -269,16 +270,33 @@ public class MainActivity extends FullscreenActivity
             return true;
         }
 
+        final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
         if (id == R.id.action_file) {
+            String last = shared.getString(MainApplication.PREFERENCE_LAST_PATH, null);
+            Uri old = null;
+            if (last != null) {
+                old = Uri.parse(last);
+                File f = Storage.getFile(old);
+                while (f != null && !f.exists()) {
+                    f = f.getParentFile();
+                }
+                if (f != null)
+                    old = Uri.fromFile(f);
+            }
             choicer = new OpenChoicer(OpenFileDialog.DIALOG_TYPE.FILE_DIALOG, true) {
                 @Override
                 public void onResult(Uri uri) {
+                    File f = Storage.getFile(uri);
+                    f = f.getParentFile();
+                    SharedPreferences.Editor editor = shared.edit();
+                    editor.putString(MainApplication.PREFERENCE_LAST_PATH, f.toString());
+                    editor.commit();
                     loadBook(uri, null);
                 }
             };
             choicer.setStorageAccessFramework(this, RESULT_FILE);
             choicer.setPermissionsDialog(this, Storage.PERMISSIONS_RO, RESULT_FILE);
-            choicer.show(null);
+            choicer.show(old);
         }
 
         return super.onOptionsItemSelected(item);
