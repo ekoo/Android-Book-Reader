@@ -1213,8 +1213,7 @@ public class FBReaderView extends RelativeLayout {
                                     toast.setOnClickWrapper(new OnClickWrapper("ftnt", new SuperToast.OnClickListener() {
                                         @Override
                                         public void onClick(View view, Parcelable token) {
-                                            Reader.getTextView().hideOutline();
-                                            Reader.tryOpenFootnote(hyperlink.Id);
+                                            showPopup(hyperlink);
                                         }
                                     }));
                                 }
@@ -1231,57 +1230,7 @@ public class FBReaderView extends RelativeLayout {
                                 showToast(toast);
                             } else {
                                 book.info.position = getPosition();
-
-                                LinearLayout ll = new LinearLayout(getContext());
-                                ll.setOrientation(LinearLayout.VERTICAL);
-
-                                WallpaperLayout f = new WallpaperLayout(getContext());
-                                ImageButton c = new ImageButton(getContext());
-                                c.setImageResource(R.drawable.ic_close_black_24dp);
-                                c.setColorFilter(ThemeUtils.getThemeColor(getContext(), R.attr.colorAccent));
-                                f.addView(c, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.RIGHT | Gravity.TOP));
-
-                                final FBReaderView r = new FBReaderView(getContext());
-                                LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-
-                                ll.addView(f, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-                                ll.addView(r, rlp);
-
-                                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                                builder.setView(ll);
-                                builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
-                                    @Override
-                                    public void onDismiss(DialogInterface dialog) {
-                                    }
-                                });
-                                final AlertDialog dialog = builder.create();
-                                dialog.setOnShowListener(new DialogInterface.OnShowListener() {
-                                    @Override
-                                    public void onShow(DialogInterface dialog) {
-                                        r.loadBook(book);
-                                        final BookModel.Label label = r.app.Model.getLabel(hyperlink.Id);
-                                        if (label != null) {
-                                            if (label.ModelId == null) {
-                                                r.app.BookTextView.setModel(new ParagraphModel(label.ParagraphIndex, r.app.Model.getTextModel()));
-                                                r.app.BookTextView.gotoPosition(0, 0, 0);
-                                                r.app.setView(r.app.BookTextView);
-                                            } else {
-                                                final ZLTextModel model = r.app.Model.getFootnoteModel(label.ModelId);
-                                                r.app.BookTextView.setModel(model);
-                                                r.app.setView(r.app.BookTextView);
-                                                r.app.BookTextView.gotoPosition(label.ParagraphIndex, 0, 0);
-                                            }
-                                        }
-                                        r.app.tryOpenFootnote(hyperlink.Id);
-                                    }
-                                });
-                                c.setOnClickListener(new OnClickListener() {
-                                    @Override
-                                    public void onClick(View v) {
-                                        dialog.dismiss();
-                                    }
-                                });
-                                dialog.show();
+                                showPopup(hyperlink);
                             }
                             break;
                         }
@@ -1493,8 +1442,61 @@ public class FBReaderView extends RelativeLayout {
         ((PopupPanel) app.getPopupById(SelectionPopup.ID)).setPanelInfo(a, this);
     }
 
+    void showPopup(final ZLTextHyperlink hyperlink) {
+        LinearLayout ll = new LinearLayout(getContext());
+        ll.setOrientation(LinearLayout.VERTICAL);
+
+        WallpaperLayout f = new WallpaperLayout(getContext());
+        ImageButton c = new ImageButton(getContext());
+        c.setImageResource(R.drawable.ic_close_black_24dp);
+        c.setColorFilter(ThemeUtils.getThemeColor(getContext(), R.attr.colorAccent));
+        f.addView(c, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.RIGHT | Gravity.TOP));
+
+        final FBReaderView r = new FBReaderView(getContext());
+        LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+
+        ll.addView(f, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        ll.addView(r, rlp);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setView(ll);
+        builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialog) {
+            }
+        });
+        final AlertDialog dialog = builder.create();
+        dialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+                r.loadBook(book);
+                final BookModel.Label label = r.app.Model.getLabel(hyperlink.Id);
+                if (label != null) {
+                    if (label.ModelId == null) {
+                        r.app.BookTextView.setModel(new ParagraphModel(label.ParagraphIndex, r.app.Model.getTextModel()));
+                        r.app.BookTextView.gotoPosition(0, 0, 0);
+                        r.app.setView(r.app.BookTextView);
+                    } else {
+                        final ZLTextModel model = r.app.Model.getFootnoteModel(label.ModelId);
+                        r.app.BookTextView.setModel(model);
+                        r.app.setView(r.app.BookTextView);
+                        r.app.BookTextView.gotoPosition(label.ParagraphIndex, 0, 0);
+                    }
+                }
+                r.app.tryOpenFootnote(hyperlink.Id);
+            }
+        });
+        c.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+            }
+        });
+        dialog.show();
+    }
+
     void showToast(SuperActivityToast toast) {
-        Toast.makeText(getContext(), toast.getText(), toast.getDuration()).show();
+        toast.show();
     }
 
     public void gotoPosition(TOCTree.Reference p) {
