@@ -76,6 +76,7 @@ import org.geometerplus.fbreader.util.TextSnippet;
 import org.geometerplus.zlibrary.core.application.ZLApplication;
 import org.geometerplus.zlibrary.core.application.ZLApplicationWindow;
 import org.geometerplus.zlibrary.core.filesystem.ZLFile;
+import org.geometerplus.zlibrary.core.options.Config;
 import org.geometerplus.zlibrary.core.options.ZLBooleanOption;
 import org.geometerplus.zlibrary.core.options.ZLIntegerRangeOption;
 import org.geometerplus.zlibrary.core.resources.ZLResource;
@@ -100,6 +101,7 @@ import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class FBReaderView extends RelativeLayout {
 
@@ -109,6 +111,7 @@ public class FBReaderView extends RelativeLayout {
     public static final int PAGE_PAPER_COLOR = 0x80ffffff;
 
     public FBReaderApp app;
+    public ConfigShadow config;
     public ZLAndroidWidget widget;
     public int battery;
     public String title;
@@ -980,16 +983,85 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
+    public static class ConfigShadow extends Config {
+        @Override
+        protected void setValueInternal(String group, String name, String value) {
+        }
+
+        @Override
+        protected void unsetValueInternal(String group, String name) {
+        }
+
+        @Override
+        protected Map<String, String> requestAllValuesForGroupInternal(String group) throws NotAvailableException {
+            return null;
+        }
+
+        @Override
+        public boolean isInitialized() {
+            return true;
+        }
+
+        @Override
+        public void runOnConnect(Runnable runnable) {
+        }
+
+        @Override
+        public List<String> listGroups() {
+            return null;
+        }
+
+        @Override
+        public List<String> listNames(String group) {
+            return null;
+        }
+
+        @Override
+        public void removeGroup(String name) {
+        }
+
+        @Override
+        public boolean getSpecialBooleanValue(String name, boolean defaultValue) {
+            return false;
+        }
+
+        @Override
+        public void setSpecialBooleanValue(String name, boolean value) {
+        }
+
+        @Override
+        public String getSpecialStringValue(String name, String defaultValue) {
+            return null;
+        }
+
+        @Override
+        public void setSpecialStringValue(String name, String value) {
+        }
+
+        @Override
+        protected String getValueInternal(String group, String name) throws NotAvailableException {
+            throw new NotAvailableException("default");
+        }
+    }
+
     public FBReaderView(Context context) { // create child view
         super(context);
         create();
         app.ViewOptions.ScrollbarType = new ZLIntegerRangeOption("", "", 0, 0, 0) {
+            @Override
+            public void setValue(int value) {
+            }
+
             @Override
             public int getValue() {
                 return 0;
             }
         };
         app.MiscOptions.AllowScreenBrightnessAdjustment = new ZLBooleanOption("", "", false) {
+            @Override
+            public void setValue(boolean value) {
+            }
+
             @Override
             public boolean getValue() {
                 return false;
@@ -1014,6 +1086,7 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void create() {
+        config = new ConfigShadow();
         app = new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow());
         widget = new FBAndroidWidget();
         addView(widget, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));

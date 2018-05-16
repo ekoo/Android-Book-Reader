@@ -72,6 +72,11 @@ import java.util.TreeSet;
 public class ReaderFragment extends Fragment implements MainActivity.SearchListener, SharedPreferences.OnSharedPreferenceChangeListener, FullscreenActivity.FullscreenListener {
     public static final String TAG = ReaderFragment.class.getSimpleName();
 
+    public static final int FONT_START = 15;
+    public static final int FONT_END = 100;
+    public static final int REFLOW_START = 3;
+    public static final int REFLOW_END = 15;
+
     Storage storage;
     FBReaderView view;
     AlertDialog tocdialog;
@@ -576,11 +581,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     }
 
     void updateFontsize() {
-        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         if (view.pluginview == null) {
             int f = getFontsizeFB();
-            final int start = 15;
-            final int end = 80;
+            final int start = FONT_START;
+            final int end = FONT_END;
             fontsizepopup_seek.setMax(end - start);
             fontsizepopup_seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override
@@ -623,8 +627,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             });
         } else {
             int f = (int) (getFontsizeReflow() * 10);
-            final int start = 3;
-            final int end = 15;
+            final int start = REFLOW_START;
+            final int end = REFLOW_END;
             final int step = 1;
             fontsizepopup_seek.setMax(end - start);
             fontsizepopup_seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
