@@ -25,4 +25,6 @@
     <string name="search_book">Buchsuche&#8230;</string>
     <string name="pref_theme_title">Aussehen</string>
     <string name="more_books">Mehr Buchkataloge sind im \'Über\'-Menü verfügbar</string>
+    <string name="pref_rotate_title">Roate</string>
+    <string name="pref_rotate_summary">Allow screen rotate</string>
 </resources>

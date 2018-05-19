@@ -18,6 +18,7 @@ import android.view.MenuItem;
 import com.github.axet.androidlibrary.widgets.AppCompatSettingsThemeActivity;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.MainApplication;
+import com.github.axet.bookreader.widgets.RotatePreferenceCompat;
 
 /**
  * A {@link PreferenceActivity} that presents a set of application settings. On
@@ -129,6 +130,12 @@ public class SettingsActivity extends AppCompatSettingsThemeActivity {
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        RotatePreferenceCompat.onResume(this, MainApplication.PREFERENCE_ROTATE);
+    }
+
     /**
      * This fragment shows general preferences only. It is used when the
      * activity is showing a two-pane settings UI.
@@ -143,6 +150,9 @@ public class SettingsActivity extends AppCompatSettingsThemeActivity {
 
             bindPreferenceSummaryToValue(findPreference(MainApplication.PREFERENCE_SCREENLOCK));
             bindPreferenceSummaryToValue(findPreference(MainApplication.PREFERENCE_THEME));
+
+            RotatePreferenceCompat r = (RotatePreferenceCompat) findPreference(MainApplication.PREFERENCE_ROTATE);
+            r.onCreate();
         }
 
         @Override
