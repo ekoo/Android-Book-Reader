@@ -30,4 +30,6 @@
     <string name="search_book">書籍搜尋&#8230;</string>
     <string name="pref_theme_title">主題</string>
     <string name="more_books">從「關於」選單獲取更多書籍目錄</string>
+    <string name="pref_rotate_title">Roate</string>
+    <string name="pref_rotate_summary">Allow screen rotate</string>
 </resources>

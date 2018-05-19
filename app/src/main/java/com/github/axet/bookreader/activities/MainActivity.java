@@ -48,8 +48,7 @@ import com.github.axet.bookreader.fragments.NetworkLibraryFragment;
 import com.github.axet.bookreader.fragments.ReaderFragment;
 import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.bookreader.widgets.FullWidthActionView;
-
-import org.geometerplus.fbreader.fbreader.ActionCode;
+import com.github.axet.bookreader.widgets.RotatePreferenceCompat;
 
 import java.io.File;
 import java.util.Map;
@@ -540,6 +539,12 @@ public class MainActivity extends FullscreenActivity
             }
         }
         return super.onKeyUp(keyCode, event);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        RotatePreferenceCompat.onResume(this, MainApplication.PREFERENCE_ROTATE);
     }
 
     public static String toString(Throwable e) {
