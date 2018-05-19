@@ -115,6 +115,7 @@ public class SettingsActivity extends AppCompatSettingsThemeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        RotatePreferenceCompat.onCreate(this, MainApplication.PREFERENCE_ROTATE);
         setupActionBar();
         getSupportFragmentManager().beginTransaction().replace(android.R.id.content, new GeneralPreferenceFragment()).commit();
     }
@@ -133,7 +134,6 @@ public class SettingsActivity extends AppCompatSettingsThemeActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        RotatePreferenceCompat.onResume(this, MainApplication.PREFERENCE_ROTATE);
     }
 
     /**

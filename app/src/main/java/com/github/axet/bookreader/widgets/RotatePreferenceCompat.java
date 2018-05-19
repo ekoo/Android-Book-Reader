@@ -4,6 +4,7 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.support.v7.preference.SwitchPreferenceCompat;
@@ -18,6 +19,10 @@ public class RotatePreferenceCompat extends SwitchPreferenceCompat {
 
     public static boolean PHONES_ONLY = true; // hide option for tablets
 
+    public static void onCreate(Activity a, String key) {
+        onResume(a, key);
+    }
+
     public static void onResume(Activity a, String key) {
         final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(a);
         boolean user = shared.getBoolean(key, false);
@@ -28,15 +33,15 @@ public class RotatePreferenceCompat extends SwitchPreferenceCompat {
             Log.d(TAG, "Unable to read settings", e);
         }
         boolean rotate;
-        if (PHONES_ONLY && a.getResources().getBoolean(R.bool.isTablet)) { // tables has no user option to disable rotate
+        if (PHONES_ONLY && a.getResources().getBoolean(R.bool.is_tablet)) { // tables has no user option to disable rotate
             rotate = system;
         } else {
             rotate = user && system;
         }
         if (rotate)
-            a.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR);
+            a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
         else
-            a.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     @TargetApi(21)
@@ -65,7 +70,7 @@ public class RotatePreferenceCompat extends SwitchPreferenceCompat {
     }
 
     public void onCreate() {
-        if (PHONES_ONLY && getContext().getResources().getBoolean(R.bool.isTablet)) {
+        if (PHONES_ONLY && getContext().getResources().getBoolean(R.bool.is_tablet)) {
             setVisible(false);
         }
     }
