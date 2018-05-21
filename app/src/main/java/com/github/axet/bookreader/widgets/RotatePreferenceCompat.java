@@ -69,7 +69,7 @@ public class RotatePreferenceCompat extends SwitchPreferenceCompat {
     public void create() {
     }
 
-    public void onCreate() {
+    public void onResume() {
         if (PHONES_ONLY && getContext().getResources().getBoolean(R.bool.is_tablet)) {
             setVisible(false);
         }
