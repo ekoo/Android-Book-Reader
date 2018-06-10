@@ -12,6 +12,7 @@ import android.support.v7.preference.PreferenceManager;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
+import com.github.axet.bookreader.fragments.LocalLibraryFragment;
 
 import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
 import org.geometerplus.fbreader.network.INetworkLink;
@@ -172,7 +173,7 @@ public class BooksCatalogs {
     }
 
     public BooksCatalog load(Uri uri) {
-        BooksCatalog ct = new BooksCatalog();
+        NetworkBooksCatalog ct = new NetworkBooksCatalog();
         String s = uri.getScheme();
         try {
             if (s.equals(ContentResolver.SCHEME_CONTENT)) {
@@ -206,9 +207,22 @@ public class BooksCatalogs {
         }
         ct.url = uri.toString();
         ct.last = System.currentTimeMillis();
-        BooksCatalog ct2 = find(uri.toString());
-        if (ct2 != null)
-            list.set(list.indexOf(ct2), ct);
+        BooksCatalog old = find(uri.toString());
+        if (old != null)
+            list.set(list.indexOf(old), ct);
+        else
+            list.add(ct);
+        return ct;
+    }
+
+    public BooksCatalog loadFolder(Uri uri) {
+        LocalBooksCatalog ct = new LocalBooksCatalog(context);
+        ct.load(uri);
+        ct.url = uri.toString();
+        ct.last = System.currentTimeMillis();
+        BooksCatalog old = find(uri.toString());
+        if (old != null)
+            list.set(list.indexOf(old), ct);
         else
             list.add(ct);
         return ct;
@@ -220,10 +234,22 @@ public class BooksCatalogs {
         int count = shared.getInt(MainApplication.PREFERENCE_CATALOGS_PREFIX + MainApplication.PREFERENCE_CATALOGS_COUNT, -1);
         for (int i = 0; i < count; i++) {
             String json = shared.getString(MainApplication.PREFERENCE_CATALOGS_PREFIX + i, "");
-            BooksCatalog ct = new BooksCatalog(json);
-            if (ct.map.isEmpty())
-                continue;
-            list.add(ct);
+            try {
+                JSONObject o = new JSONObject(json);
+                String type = o.optString("type", "");
+                if (type.equals(NetworkBooksCatalog.class.getSimpleName())) {
+                    NetworkBooksCatalog ct = new NetworkBooksCatalog(o);
+                    if (ct.map.isEmpty())
+                        continue;
+                    list.add(ct);
+                }
+                if (type.equals(LocalBooksCatalog.class.getSimpleName())) {
+                    LocalBooksCatalog ct = new LocalBooksCatalog(context, o);
+                    list.add(ct);
+                }
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -249,7 +275,11 @@ public class BooksCatalogs {
 
     public void delete(String id) {
         for (int i = 0; i < list.size(); i++) {
-            if (list.get(i).getId().equals(id)) {
+            BooksCatalog b = list.get(i);
+            if (b.getId().equals(id)) {
+                if (b instanceof LocalBooksCatalog) {
+                    ((LocalBooksCatalog) b).delete();
+                }
                 list.remove(i);
             }
         }

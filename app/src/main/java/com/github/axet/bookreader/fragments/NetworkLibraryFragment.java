@@ -30,6 +30,7 @@ import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.BooksCatalog;
 import com.github.axet.bookreader.app.BooksCatalogs;
+import com.github.axet.bookreader.app.NetworkBooksCatalog;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.BookDialog;
 import com.github.axet.bookreader.widgets.BrowserDialogFragment;
@@ -85,7 +86,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     LibraryFragment.FragmentHolder holder;
     NetworkLibraryAdapter books;
     Storage storage;
-    BooksCatalog n;
+    NetworkBooksCatalog n;
     NetworkLibrary lib;
     BooksCatalogs.NetworkContext nc;
     SearchCatalog searchCatalog;
@@ -283,7 +284,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         };
         lib = NetworkLibrary.Instance(new Storage.Info(getContext()));
         books = new NetworkLibraryAdapter();
-        n = catalogs.find(u);
+        n = (NetworkBooksCatalog) catalogs.find(u);
         nc = new BooksCatalogs.NetworkContext(getContext());
 
         setHasOptionsMenu(true);

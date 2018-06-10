@@ -284,7 +284,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             if (cover != null) {
                 downloadTask(cover, convertView);
             } else {
-                downloadTaskUpdate(null, cover, convertView);
+                downloadTaskUpdate(null, null, convertView);
             }
 
             setText(h.aa, getAuthors(position));

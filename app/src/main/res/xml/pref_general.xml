@@ -3,7 +3,7 @@
         android:defaultValue="false"
         android:key="volume_keys"
         android:summary="Use volume keys to turn pages"
-        android:title="Volume Turning" />
+        android:title="Volume Keys Turning" />
 
     <com.github.axet.androidlibrary.widgets.ScreenlockPreference
         android:defaultValue="0"

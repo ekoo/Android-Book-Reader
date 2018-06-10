@@ -13,6 +13,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
+import android.support.design.internal.NavigationMenuItemView;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -22,6 +23,7 @@ import android.support.v4.view.MenuItemCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.SearchView;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -29,6 +31,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -41,9 +44,12 @@ import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.BooksCatalog;
 import com.github.axet.bookreader.app.BooksCatalogs;
+import com.github.axet.bookreader.app.LocalBooksCatalog;
 import com.github.axet.bookreader.app.MainApplication;
+import com.github.axet.bookreader.app.NetworkBooksCatalog;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.fragments.LibraryFragment;
+import com.github.axet.bookreader.fragments.LocalLibraryFragment;
 import com.github.axet.bookreader.fragments.NetworkLibraryFragment;
 import com.github.axet.bookreader.fragments.ReaderFragment;
 import com.github.axet.bookreader.widgets.FBReaderView;
@@ -91,6 +97,25 @@ public class MainActivity extends FullscreenActivity
         void searchClose();
     }
 
+    @SuppressLint("RestrictedApi")
+    public static View findView(ViewGroup p, MenuItem item) {
+        for (int i = 0; i < p.getChildCount(); i++) {
+            View v = p.getChildAt(i);
+            if (v instanceof ViewGroup) {
+                View m = findView((ViewGroup) v, item);
+                if (m != null)
+                    return m;
+            }
+            if (v instanceof NavigationMenuItemView) {
+                if (((NavigationMenuItemView) v).getItemData() == item)
+                    return v;
+            }
+            if (v.getId() == item.getItemId())
+                return v;
+        }
+        return null;
+    }
+
     @Override
     protected void attachBaseContext(Context newBase) {
         super.attachBaseContext(newBase);
@@ -124,7 +149,7 @@ public class MainActivity extends FullscreenActivity
         }
 
         Menu m = navigationView.getMenu();
-        networkMenu = m.addSubMenu(R.string.network_library);
+        networkMenu = m.addSubMenu(R.string.books_catalogs);
 
         catalogs = new BooksCatalogs(this);
         reloadMenu();
@@ -135,6 +160,7 @@ public class MainActivity extends FullscreenActivity
         add.setIntent(new Intent(ADD_CATALOG));
         add.setIcon(R.drawable.ic_add_black_24dp);
         MenuItem desc = settingsMenu.add("");
+        desc.setIntent(new Intent(ADD_CATALOG));
         MenuItemCompat.setActionView(desc, new FullWidthActionView(this, R.layout.nav_footer_main));
 
         openLibrary();
@@ -269,6 +295,48 @@ public class MainActivity extends FullscreenActivity
             return true;
         }
 
+        if (id == R.id.action_folder) {
+            drawer.closeDrawer(GravityCompat.START);
+            choicer = new OpenChoicer(OpenFileDialog.DIALOG_TYPE.FOLDER_DIALOG, true) {
+                @Override
+                public void onResult(Uri uri) {
+                    try {
+                        BooksCatalog ct = catalogs.loadFolder(uri);
+                        catalogs.save();
+                        reloadMenu();
+                        openLibrary(ct);
+                    } catch (Exception e) {
+                        Post(e);
+                    }
+                }
+            };
+            choicer.setPermissionsDialog(this, Storage.PERMISSIONS_RO, RESULT_ADD_CATALOG);
+            choicer.setStorageAccessFramework(this, RESULT_ADD_CATALOG);
+            choicer.show(null);
+            return true;
+        }
+
+        if (id == R.id.action_json) {
+            drawer.closeDrawer(GravityCompat.START);
+            choicer = new OpenChoicer(OpenFileDialog.DIALOG_TYPE.FILE_DIALOG, true) {
+                @Override
+                public void onResult(Uri uri) {
+                    try {
+                        BooksCatalog ct = catalogs.load(uri);
+                        catalogs.save();
+                        reloadMenu();
+                        openLibrary(ct);
+                    } catch (Exception e) {
+                        Post(e);
+                    }
+                }
+            };
+            choicer.setPermissionsDialog(this, Storage.PERMISSIONS_RO, RESULT_ADD_CATALOG);
+            choicer.setStorageAccessFramework(this, RESULT_ADD_CATALOG);
+            choicer.show(null);
+            return true;
+        }
+
         final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
         if (id == R.id.action_file) {
             String last = shared.getString(MainApplication.PREFERENCE_LAST_PATH, null);
@@ -315,30 +383,23 @@ public class MainActivity extends FullscreenActivity
         if (i != null) {
             switch (i.getAction()) {
                 case LIBRARY:
-                    openLibrary(i.getStringExtra("url"));
+                    String n = i.getStringExtra("url");
+                    openLibrary(catalogs.find(n));
                     break;
                 case ADD_CATALOG:
-                    choicer = new OpenChoicer(OpenFileDialog.DIALOG_TYPE.FILE_DIALOG, true) {
+                    PopupMenu menu = new PopupMenu(this, findView(navigationView, item));
+                    getMenuInflater().inflate(R.menu.add_catalog, menu.getMenu());
+                    menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                         @Override
-                        public void onResult(Uri uri) {
-                            try {
-                                BooksCatalog ct = catalogs.load(uri);
-                                catalogs.save();
-                                reloadMenu();
-                                openLibrary(ct.getId());
-                            } catch (Exception e) {
-                                Post(e);
-                            }
+                        public boolean onMenuItemClick(MenuItem item) {
+                            return onOptionsItemSelected(item);
                         }
-                    };
-                    choicer.setPermissionsDialog(this, Storage.PERMISSIONS_RO, RESULT_ADD_CATALOG);
-                    choicer.setStorageAccessFramework(this, RESULT_ADD_CATALOG);
-                    choicer.show(null);
-                    break;
+                    });
+                    menu.show();
+                    return true; // do not close drawer
             }
         }
 
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
@@ -394,7 +455,7 @@ public class MainActivity extends FullscreenActivity
                             @Override
                             public void run() {
                                 reloadMenu();
-                                openLibrary(ct.getId());
+                                openLibrary(ct);
                                 if (success != null)
                                     success.run();
                             }
@@ -436,18 +497,30 @@ public class MainActivity extends FullscreenActivity
         openFragment(new LibraryFragment(), LibraryFragment.TAG).commit();
     }
 
-    public void openLibrary(String n) {
-        MenuItem m = networkMenuMap.get(n);
+    public void openLibrary(BooksCatalog ct) {
+        String n = ct.url;
         FragmentManager fm = getSupportFragmentManager();
         fm.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
-        Fragment f = fm.findFragmentByTag(NetworkLibraryFragment.TAG);
-        if (f != null) {
-            if (f.getArguments().getString("url").equals(n)) {
-                openFragment(f, NetworkLibraryFragment.TAG).commit();
-                return;
+        if (ct instanceof LocalBooksCatalog) {
+            Fragment f = fm.findFragmentByTag(LocalLibraryFragment.TAG);
+            if (f != null) {
+                if (f.getArguments().getString("url").equals(n)) {
+                    openFragment(f, LocalLibraryFragment.TAG).commit();
+                    return;
+                }
             }
+            openFragment(LocalLibraryFragment.newInstance(n), LocalLibraryFragment.TAG).commit();
         }
-        openFragment(NetworkLibraryFragment.newInstance(n), NetworkLibraryFragment.TAG).commit();
+        if (ct instanceof NetworkBooksCatalog) {
+            Fragment f = fm.findFragmentByTag(NetworkLibraryFragment.TAG);
+            if (f != null) {
+                if (f.getArguments().getString("url").equals(n)) {
+                    openFragment(f, NetworkLibraryFragment.TAG).commit();
+                    return;
+                }
+            }
+            openFragment(NetworkLibraryFragment.newInstance(n), NetworkLibraryFragment.TAG).commit();
+        }
     }
 
     public void restoreNetworkSelection(Fragment f) {
