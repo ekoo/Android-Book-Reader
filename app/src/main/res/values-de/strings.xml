@@ -10,7 +10,7 @@
     <string name="navigation_drawer_close">Schließe Navigationsübersicht</string>
 
     <string name="add_catalog">Bücherkatalog hinzufügen</string>
-    <string name="network_library">Netzwerkbücherregal</string>
+    <string name="books_catalogs">Catalogs</string>
     <string name="loading_book">Lade Buch</string>
     <string name="open_file">Datei öffnen</string>
     <string name="catalog_home">Home</string>
@@ -19,7 +19,7 @@
     <string name="book_rename">Umbenennen</string>
     <string name="book_open">Öffnen</string>
     <string name="book_delete">Löschen</string>
-    <string name="my_library">Meine Bücherregal</string>
+    <string name="my_readings">My Readings</string>
     <string name="search_local">Lokale Suche&#8230;</string>
     <string name="search_network">Netzwerksuche&#8230;</string>
     <string name="search_book">Buchsuche&#8230;</string>
@@ -27,4 +27,6 @@
     <string name="more_books">Mehr Buchkataloge sind im \'Über\'-Menü verfügbar</string>
     <string name="pref_rotate_title">Roate</string>
     <string name="pref_rotate_summary">Allow screen rotate</string>
+    <string name="from_local_folder">... from local folder</string>
+    <string name="from_json_file">... from (.json) file</string>
 </resources>

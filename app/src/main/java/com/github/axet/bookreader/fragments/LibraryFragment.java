@@ -5,14 +5,21 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.annotation.DimenRes;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.widget.DividerItemDecoration;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.PopupMenu;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -31,9 +38,11 @@ import android.widget.TextView;
 import com.github.axet.androidlibrary.services.FileProvider;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.CacheImagesListAdapter;
+import com.github.axet.androidlibrary.widgets.CacheImagesRecyclerAdapter;
 import com.github.axet.androidlibrary.widgets.HeaderGridView;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.androidlibrary.widgets.TextMax;
+import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.MainApplication;
@@ -58,8 +67,9 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
     };
 
+
     public static class FragmentHolder {
-        HeaderGridView grid;
+        RecyclerView grid;
 
         public int layout;
 
@@ -73,13 +83,18 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         View footerStop;
 
         Context context;
+        AdapterView.OnItemClickListener clickListener;
+        AdapterView.OnItemLongClickListener longClickListener;
 
         public FragmentHolder(Context context) {
             this.context = context;
         }
 
         public void create(View v) {
-            grid = (HeaderGridView) v.findViewById(R.id.grid);
+            grid = (RecyclerView) v.findViewById(R.id.grid);
+
+            // DividerItemDecoration divider = new DividerItemDecoration(context, DividerItemDecoration.VERTICAL);
+            // grid.addItemDecoration(divider);
 
             LayoutInflater inflater = LayoutInflater.from(context);
 
@@ -102,7 +117,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                 }
             });
 
-            grid.addFooterView(footer);
+            addFooterView(footer);
 
             updateGrid();
         }
@@ -116,10 +131,10 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
             layout = R.layout.book_item;
             if (shared.getString(MainApplication.PREFERENCE_LIBRARY_LAYOUT + getLayout(), "").equals("book_list_item")) {
-                grid.setNumColumns(1);
+                setNumColumns(1);
                 layout = R.layout.book_list_item;
             } else {
-                grid.setNumColumns(4);
+                setNumColumns(4);
                 layout = R.layout.book_item;
             }
 
@@ -142,6 +157,37 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                 return true;
             }
             return false;
+        }
+
+        public void addFooterView(View v) {
+        }
+
+        public void setNumColumns(int i) {
+            if (i == 1) {
+                LinearLayoutManager lm = new LinearLayoutManager(context);
+                grid.setLayoutManager(lm);
+            } else {
+                GridLayoutManager lm = new GridLayoutManager(context, i);
+                lm.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+                    @Override
+                    public int getSpanSize(int position) {
+                        return FragmentHolder.this.getSpanSize(position);
+                    }
+                });
+                grid.setLayoutManager(lm);
+            }
+        }
+
+        public int getSpanSize(int position) {
+            return 1;
+        }
+
+        public void setOnItemClickListener(AdapterView.OnItemClickListener l) {
+            clickListener = l;
+        }
+
+        public void setOnItemLongClickListener(AdapterView.OnItemLongClickListener l) {
+            longClickListener = l;
         }
     }
 
@@ -166,12 +212,12 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     public class LibraryAdapter extends BooksAdapter {
         ArrayList<Storage.Book> list = new ArrayList<>();
 
-        public LibraryAdapter() {
-            super(LibraryFragment.this.getContext());
+        public LibraryAdapter(FragmentHolder holder) {
+            super(LibraryFragment.this.getContext(), holder);
         }
 
         @Override
-        public int getLayout() {
+        public int getItemViewType(int position) {
             return holder.layout;
         }
 
@@ -195,7 +241,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
 
         @Override
-        public int getCount() {
+        public int getItemCount() {
             return list.size();
         }
 
@@ -219,31 +265,35 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             Collections.sort(list, new ByCreated());
             notifyDataSetChanged();
         }
+
+        @Override
+        public void onBindViewHolder(final BookHolder h, int position) {
+            super.onBindViewHolder(h, position);
+        }
     }
 
-    public static abstract class BooksAdapter extends CacheImagesListAdapter {
+    public static abstract class BooksAdapter extends CacheImagesRecyclerAdapter<BooksAdapter.BookHolder> {
         String filter;
+        FragmentHolder holder;
 
-        public static class BookHolder {
+        public static class BookHolder extends RecyclerView.ViewHolder {
             TextView aa;
             TextView tt;
 
             public BookHolder(View itemView) {
+                super(itemView);
                 aa = (TextView) itemView.findViewById(R.id.book_authors);
                 tt = (TextView) itemView.findViewById(R.id.book_title);
             }
         }
 
-        public BooksAdapter(Context context) {
+        public BooksAdapter(Context context, FragmentHolder holder) {
             super(context);
+            this.holder = holder;
         }
 
         public Uri getCover(int position) {
             return null;
-        }
-
-        public int getLayout() {
-            return -1;
         }
 
         public String getAuthors(int position) {
@@ -263,34 +313,48 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
 
         @Override
-        public int getViewTypeCount() {
-            return 2;
-        }
-
-        @Override
         public int getItemViewType(int position) {
-            return getLayout() == R.layout.book_list_item ? 1 : 0;
+            return -1;
         }
 
         @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
+        public BookHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             LayoutInflater inflater = LayoutInflater.from(getContext());
-            if (convertView == null)
-                convertView = inflater.inflate(getLayout(), null, false);
+            View convertView = inflater.inflate(viewType, parent, false);
             BookHolder h = new BookHolder(convertView);
+            return h;
+        }
+
+        @Override
+        public void onBindViewHolder(final BookHolder h, int position) {
+            h.itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (holder.clickListener != null)
+                        holder.clickListener.onItemClick(null, v, h.getAdapterPosition(), -1);
+                }
+            });
+            h.itemView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    if (holder.longClickListener != null)
+                        holder.longClickListener.onItemLongClick(null, v, h.getAdapterPosition(), -1);
+                    return true;
+                }
+            });
 
             Uri cover = getCover(position);
+
+            View convertView = h.itemView;
 
             if (cover != null) {
                 downloadTask(cover, convertView);
             } else {
-                downloadTaskUpdate(null, cover, convertView);
+                downloadTaskUpdate(null, null, convertView);
             }
 
             setText(h.aa, getAuthors(position));
             setText(h.tt, getTitle(position));
-
-            return convertView;
         }
 
         @Override
@@ -341,7 +405,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         super.onCreate(savedInstanceState);
         storage = new Storage(getContext());
         holder = new FragmentHolder(getContext());
-        books = new LibraryAdapter();
+        books = new LibraryAdapter(holder);
         books.refresh();
         setHasOptionsMenu(true);
     }
@@ -358,7 +422,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         final MainActivity main = (MainActivity) getActivity();
         main.toolbar.setTitle(R.string.app_name);
         holder.grid.setAdapter(books);
-        holder.grid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        holder.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 final MainActivity main = (MainActivity) getActivity();
@@ -366,7 +430,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                 main.loadBook(b);
             }
         });
-        holder.grid.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+        holder.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
                 final Storage.Book b = books.getItem(position);

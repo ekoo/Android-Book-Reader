@@ -23,6 +23,7 @@ import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.widgets.FBReaderView;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.formats.BookReadingException;
@@ -1005,11 +1006,11 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     if (d instanceof FileTypeDetectorZipExtract.Handler) {
                         FileTypeDetectorZipExtract.Handler e = (FileTypeDetectorZipExtract.Handler) d;
                         File z = fbook.file;
-                        if (!tmp) {
+                        if (!tmp) { // !tmp
                             fbook.file = File.createTempFile("book", ".tmp", getCache());
                             fbook.md5 = e.extract(z, fbook.file);
                             tmp = true; // force to delete 'fbook.file'
-                        } else {
+                        } else { // tmp
                             File tt = File.createTempFile("book", ".tmp", getCache());
                             fbook.md5 = e.extract(z, tt);
                             z.delete();
@@ -1020,9 +1021,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
             }
 
-            if (fbook.ext == null) {
+            if (fbook.ext == null)
                 throw new RuntimeException("Unsupported format");
-            }
         } catch (RuntimeException e) {
             throw e;
         } catch (IOException | NoSuchAlgorithmException e) {
@@ -1047,8 +1047,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public void load(Book fbook) {
-        File r = recentFile(fbook);
         if (fbook.info == null) {
+            File r = recentFile(fbook);
             if (r.exists())
                 try {
                     fbook.info = new RecentInfo(r);
@@ -1077,51 +1077,55 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
         File cover = coverFile(fbook);
         if (!cover.exists() || cover.length() == 0) {
-            ZLImage image = loadCover(fbook);
-            if (image != null) {
-                fbook.cover = cover;
-                Bitmap bm = null;
-                if (image instanceof ZLFileImageProxy) {
-                    ZLFileImageProxy p = (ZLFileImageProxy) image;
-                    if (!p.isSynchronized())
-                        p.synchronize();
-                    image = p.getRealImage();
-                }
-                if (image instanceof ZLStreamImage) {
-                    bm = BitmapFactory.decodeStream(((ZLStreamImage) image).inputStream());
-                }
-                if (image instanceof ZLBitmapImage) {
-                    bm = ((ZLBitmapImage) image).getBitmap();
-                }
-                boolean a = fbook.book.authors() != null && !fbook.book.authors().isEmpty();
-                boolean t = fbook.book.getTitle() != null && !fbook.book.getTitle().isEmpty();
-                if (bm == null && (a || t)) {
-                    LayoutInflater inflater = LayoutInflater.from(getContext());
-                    View v = inflater.inflate(R.layout.cover_generate, null);
-                    TextView aa = (TextView) v.findViewById(R.id.author);
-                    aa.setText(fbook.book.authorsString(", "));
-                    TextView tt = (TextView) v.findViewById(R.id.title);
-                    tt.setText(fbook.book.getTitle());
-                    bm = renderView(v);
-                }
-                if (bm == null) {
-                    FBReaderView v = new FBReaderView(getContext());
-                    v.loadBook(fbook);
-                    bm = renderView(v);
-                }
-                if (bm == null)
-                    return;
-                try {
-                    float ratio = COVER_SIZE / (float) bm.getWidth();
-                    Bitmap sbm = Bitmap.createScaledBitmap(bm, (int) (bm.getWidth() * ratio), (int) (bm.getHeight() * ratio), true);
-                    bm.recycle();
-                    FileOutputStream os = new FileOutputStream(fbook.cover);
-                    sbm.compress(Bitmap.CompressFormat.PNG, 100, os);
-                    os.close();
-                    sbm.recycle();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+            createCover(fbook, cover);
+        }
+    }
+
+    public void createCover(Book fbook, File cover) {
+        ZLImage image = loadCover(fbook);
+        if (image != null) {
+            fbook.cover = cover;
+            Bitmap bm = null;
+            if (image instanceof ZLFileImageProxy) {
+                ZLFileImageProxy p = (ZLFileImageProxy) image;
+                if (!p.isSynchronized())
+                    p.synchronize();
+                image = p.getRealImage();
+            }
+            if (image instanceof ZLStreamImage) {
+                bm = BitmapFactory.decodeStream(((ZLStreamImage) image).inputStream());
+            }
+            if (image instanceof ZLBitmapImage) {
+                bm = ((ZLBitmapImage) image).getBitmap();
+            }
+            boolean a = fbook.book.authors() != null && !fbook.book.authors().isEmpty();
+            boolean t = fbook.book.getTitle() != null && !fbook.book.getTitle().isEmpty();
+            if (bm == null && (a || t)) {
+                LayoutInflater inflater = LayoutInflater.from(getContext());
+                View v = inflater.inflate(R.layout.cover_generate, null);
+                TextView aa = (TextView) v.findViewById(R.id.author);
+                aa.setText(fbook.book.authorsString(", "));
+                TextView tt = (TextView) v.findViewById(R.id.title);
+                tt.setText(fbook.book.getTitle());
+                bm = renderView(v);
+            }
+            if (bm == null) {
+                FBReaderView v = new FBReaderView(getContext());
+                v.loadBook(fbook);
+                bm = renderView(v);
+            }
+            if (bm == null)
+                return;
+            try {
+                float ratio = COVER_SIZE / (float) bm.getWidth();
+                Bitmap sbm = Bitmap.createScaledBitmap(bm, (int) (bm.getWidth() * ratio), (int) (bm.getHeight() * ratio), true);
+                bm.recycle();
+                FileOutputStream os = new FileOutputStream(fbook.cover);
+                sbm.compress(Bitmap.CompressFormat.PNG, 100, os);
+                os.close();
+                sbm.recycle();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
         }
     }
@@ -1196,4 +1200,12 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         r.delete();
     }
 
+    @Override
+    public String getDisplayName(Uri u) {
+        String s = u.getScheme();
+        if (s.equals(ContentResolver.SCHEME_CONTENT))
+            return super.getDisplayName(u);
+        else
+            return ".../" + u.getLastPathSegment();
+    }
 }
