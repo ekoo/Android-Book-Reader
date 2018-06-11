@@ -89,7 +89,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
 
     public static boolean filter(String filter, String text) {
         filter = Normalizer.normalize(filter, Normalizer.Form.NFC).toLowerCase(Locale.US); // й composed to two chars sometime.
-        text = Normalizer.normalize(filter, Normalizer.Form.NFC).toLowerCase(Locale.US);
+        text = Normalizer.normalize(text, Normalizer.Form.NFC).toLowerCase(Locale.US);
         return text.contains(filter);
     }
 
