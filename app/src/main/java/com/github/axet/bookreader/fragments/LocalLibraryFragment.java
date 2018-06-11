@@ -215,7 +215,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
         }
 
         @Override
-        public int getCount() {
+        public int getItemCount() {
             return list.size();
         }
 
@@ -242,11 +242,8 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
         }
 
         @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            LayoutInflater inflater = LayoutInflater.from(getContext());
-            if (convertView == null)
-                convertView = inflater.inflate(getLayout(), null, false);
-
+        public void onBindViewHolder(final BookHolder h, int position) {
+            View convertView = h.itemView;
             Book b = list.get(position);
             if (b.info == null || b.cover == null || !b.cover.exists()) {
                 downloadTask(b, convertView);
@@ -254,7 +251,21 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                 downloadTaskClean(convertView);
                 downloadTaskUpdate(null, b, convertView);
             }
-            return convertView;
+            convertView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (holder.clickListener != null)
+                        holder.clickListener.onItemClick(null, v, h.getAdapterPosition(), -1);
+                }
+            });
+            convertView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    if (holder.longClickListener != null)
+                        holder.longClickListener.onItemLongClick(null, v, h.getAdapterPosition(), -1);
+                    return true;
+                }
+            });
         }
 
         @Override
@@ -583,7 +594,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
 
         main.toolbar.setTitle(R.string.app_name);
         holder.grid.setAdapter(books);
-        holder.grid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        holder.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 try {

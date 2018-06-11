@@ -214,7 +214,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         }
 
         @Override
-        public int getCount() {
+        public int getItemCount() {
             return list.size();
         }
 
@@ -522,7 +522,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
         main.toolbar.setTitle(R.string.app_name);
         holder.grid.setAdapter(books);
-        holder.grid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        holder.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 try {
