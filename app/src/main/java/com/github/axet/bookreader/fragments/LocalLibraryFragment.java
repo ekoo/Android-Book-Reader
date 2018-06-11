@@ -83,13 +83,27 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
         public String md5; // url md5, NOT book content
         public Storage.RecentInfo info;
         public File cover;
+        public String folder;
 
-        public Book(File f) {
+        public Book(File root, File f) {
             url = Uri.fromFile(f);
+            String p = root.getPath();
+            String n = f.getPath();
+            if (n.startsWith(p))
+                n = n.substring(p.length());
+            File m = new File(n);
+            folder = m.getParent();
         }
 
-        public Book(Uri u) {
+        @TargetApi(21)
+        public Book(Uri root, Uri u) {
             url = u;
+            String p = DocumentsContract.getTreeDocumentId(root);
+            String f = DocumentsContract.getDocumentId(u);
+            if (f.startsWith(p))
+                f = f.substring(p.length());
+            File n = new File(f);
+            folder = n.getParent();
         }
     }
 
@@ -114,16 +128,20 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
         }
 
         void load(File f) {
+            load(f, f);
+        }
+
+        void load(File root, File f) {
             File[] ff = f.listFiles();
             if (ff != null) {
                 for (File k : ff) {
                     if (k.isDirectory()) {
-                        load(k);
+                        load(root, k);
                     } else {
                         Storage.Detector[] dd = Storage.supported();
                         for (Storage.Detector d : dd) {
                             if (k.toString().toLowerCase(Locale.US).endsWith(d.ext)) {
-                                books.all.add(new Book(k));
+                                books.all.add(new Book(root, k));
                                 break;
                             }
                         }
@@ -152,7 +170,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                             for (Storage.Detector d : dd) {
                                 if (n.endsWith(d.ext)) {
                                     Uri k = DocumentsContract.buildDocumentUriUsingTree(u, id);
-                                    books.all.add(new Book(k));
+                                    books.all.add(new Book(u, k));
                                     break;
                                 }
                             }

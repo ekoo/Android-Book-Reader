@@ -1,7 +1,6 @@
 package com.github.axet.bookreader.fragments;
 
 import android.content.Context;
-import android.net.Network;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -28,7 +27,6 @@ import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
-import com.github.axet.bookreader.app.BooksCatalog;
 import com.github.axet.bookreader.app.BooksCatalogs;
 import com.github.axet.bookreader.app.NetworkBooksCatalog;
 import com.github.axet.bookreader.app.Storage;
@@ -36,7 +34,6 @@ import com.github.axet.bookreader.widgets.BookDialog;
 import com.github.axet.bookreader.widgets.BrowserDialogFragment;
 
 import org.apache.commons.io.IOUtils;
-import org.geometerplus.android.fbreader.network.NetworkLibraryActivity;
 import org.geometerplus.android.util.UIUtil;
 import org.geometerplus.fbreader.network.INetworkLink;
 import org.geometerplus.fbreader.network.NetworkBookItem;
@@ -46,7 +43,6 @@ import org.geometerplus.fbreader.network.NetworkLibrary;
 import org.geometerplus.fbreader.network.NetworkOperationData;
 import org.geometerplus.fbreader.network.SearchItem;
 import org.geometerplus.fbreader.network.SingleCatalogSearchItem;
-import org.geometerplus.fbreader.network.opds.OPDSBookItem;
 import org.geometerplus.fbreader.network.opds.OPDSNetworkLink;
 import org.geometerplus.fbreader.network.opds.OPDSPredefinedNetworkLink;
 import org.geometerplus.fbreader.network.opds.OpenSearchDescription;
@@ -165,9 +161,9 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     }
 
     public class NetworkLibraryAdapter extends LibraryFragment.BooksAdapter {
+        List<FBTree> all = new ArrayList<>();
         List<FBTree> list = new ArrayList<>();
         String filter;
-        List<FBTree> bookItems = new ArrayList<>();
 
         public NetworkLibraryAdapter() {
             super(NetworkLibraryFragment.this.getContext());
@@ -180,14 +176,14 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
         public void load(List<FBTree> ll) {
             if (ignore != null) {
-                books.bookItems = new ArrayList<>();
+                books.all = new ArrayList<>();
                 for (FBTree l : ll) {
                     if (ignore(l))
                         continue;
-                    books.bookItems.add(l);
+                    books.all.add(l);
                 }
             } else {
-                books.bookItems = ll;
+                books.all = ll;
             }
             books.filter = null;
         }
@@ -204,11 +200,11 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
         public void refresh() {
             if (searchCatalog != null || filter == null || filter.isEmpty()) {
-                list = bookItems;
+                list = all;
                 clearTasks();
             } else {
                 list = new ArrayList<>();
-                for (FBTree b : bookItems) {
+                for (FBTree b : all) {
                     if (b.getName().toLowerCase(Locale.US).contains(filter.toLowerCase(Locale.US))) {
                         list.add(b);
                     }
@@ -511,7 +507,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                 public void run() {
                                     if (old == searchCatalog.l.Tree.subtrees().size())
                                         holder.footer.setVisibility(View.GONE);
-                                    books.bookItems = searchCatalog.l.Tree.subtrees();
+                                    books.all = searchCatalog.l.Tree.subtrees();
                                     books.filter = null;
                                     books.refresh();
                                 }
