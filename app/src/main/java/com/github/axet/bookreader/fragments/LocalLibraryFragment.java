@@ -375,7 +375,13 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                 setText(h.tt, t);
             } else {
                 setText(h.aa, "");
-                setText(h.tt, storage.getDisplayName(b.url));
+                String t;
+                String s = b.url.getScheme();
+                if (s.startsWith(ContentResolver.SCHEME_CONTENT))
+                    t = storage.getDisplayName(b.url);
+                else
+                    t = b.url.getLastPathSegment();
+                setText(h.tt, t);
             }
 
             if (b.cover != null && b.cover.exists()) {
