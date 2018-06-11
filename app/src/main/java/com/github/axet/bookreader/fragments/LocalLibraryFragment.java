@@ -832,7 +832,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
     @Override
     public void searchClose() {
         books.filter = null;
-        loadDefault();
+        books.refresh();
     }
 
     @Override
