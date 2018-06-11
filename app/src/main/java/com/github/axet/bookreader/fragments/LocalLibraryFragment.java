@@ -90,7 +90,10 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
     public static boolean filter(String filter, String text) {
         filter = Normalizer.normalize(filter, Normalizer.Form.NFC).toLowerCase(Locale.US); // й composed to two chars sometime.
         text = Normalizer.normalize(text, Normalizer.Form.NFC).toLowerCase(Locale.US);
-        return text.contains(filter);
+        boolean all = true;
+        for (String f : filter.split("\\s+"))
+            all &= text.contains(f);
+        return all;
     }
 
     public static class ByCreated implements Comparator<Item> {
