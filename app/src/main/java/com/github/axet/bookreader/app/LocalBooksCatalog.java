@@ -71,11 +71,7 @@ public class LocalBooksCatalog extends BooksCatalog {
 
     public String getTitle() {
         Uri u = Uri.parse(url);
-        String s = u.getScheme();
-        if (s.equals(ContentResolver.SCHEME_CONTENT))
-            return storage.getDisplayName(u);
-        else
-            return ".../" + u.getLastPathSegment();
+        return storage.getDisplayName(u);
     }
 
     public File getCache() {

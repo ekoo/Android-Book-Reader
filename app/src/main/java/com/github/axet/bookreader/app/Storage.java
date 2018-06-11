@@ -1200,4 +1200,12 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         r.delete();
     }
 
+    @Override
+    public String getDisplayName(Uri u) {
+        String s = u.getScheme();
+        if (s.equals(ContentResolver.SCHEME_CONTENT))
+            return super.getDisplayName(u);
+        else
+            return ".../" + u.getLastPathSegment();
+    }
 }

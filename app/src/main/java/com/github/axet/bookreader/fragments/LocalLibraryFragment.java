@@ -57,6 +57,7 @@ import java.io.OutputStream;
 import java.io.Writer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -85,6 +86,12 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             ActivityCompat.invalidateOptionsMenu(getActivity());
         }
     };
+
+    public static boolean filter(String filter, String text) {
+        filter = Normalizer.normalize(filter, Normalizer.Form.NFC).toLowerCase(Locale.US); // й composed to two chars sometime.
+        text = Normalizer.normalize(filter, Normalizer.Form.NFC).toLowerCase(Locale.US);
+        return text.contains(filter);
+    }
 
     public static class ByCreated implements Comparator<Item> {
 
@@ -290,7 +297,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                         if (t == null || t.isEmpty()) {
                             t = storage.getDisplayName(b.url);
                         }
-                        if (t.toLowerCase(Locale.US).contains(filter.toLowerCase(Locale.US))) {
+                        if (filter(filter, t)) {
                             if (!ff.contains(b.folder)) {
                                 ff.add(b.folder);
                                 list.add(b.folder);
@@ -366,22 +373,12 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                 setText(h.aa, b.info.authors);
                 String t = b.info.title;
                 if (t == null || t.isEmpty()) {
-                    String s = b.url.getScheme();
-                    if (s.startsWith(ContentResolver.SCHEME_CONTENT))
-                        t = storage.getDisplayName(b.url);
-                    else
-                        t = b.url.getLastPathSegment();
+                    t = storage.getDisplayName(b.url);
                 }
                 setText(h.tt, t);
             } else {
                 setText(h.aa, "");
-                String t;
-                String s = b.url.getScheme();
-                if (s.startsWith(ContentResolver.SCHEME_CONTENT))
-                    t = storage.getDisplayName(b.url);
-                else
-                    t = b.url.getLastPathSegment();
-                setText(h.tt, t);
+                setText(h.tt, storage.getDisplayName(b.url));
             }
 
             if (b.cover != null && b.cover.exists()) {
