@@ -15,6 +15,7 @@
         android:layout_height="match_parent"
         android:layout_below="@+id/library_header"
         android:numColumns="4"
+        android:scrollbars="vertical"
         android:stretchMode="columnWidth"
         android:verticalSpacing="2dp" />
 </RelativeLayout>

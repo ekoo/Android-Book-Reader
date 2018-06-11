@@ -3,7 +3,6 @@ package com.github.axet.bookreader.fragments;
 import android.annotation.TargetApi;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -15,6 +14,8 @@ import android.provider.DocumentsContract;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -26,13 +27,13 @@ import android.widget.AdapterView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import com.github.axet.androidlibrary.crypto.MD5;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
-import com.github.axet.bookreader.app.BooksCatalog;
 import com.github.axet.bookreader.app.BooksCatalogs;
 import com.github.axet.bookreader.app.LocalBooksCatalog;
 import com.github.axet.bookreader.app.Storage;
@@ -57,9 +58,16 @@ import java.io.Writer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Pattern;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 public class LocalLibraryFragment extends Fragment implements MainActivity.SearchListener {
     public static final String TAG = LocalLibraryFragment.class.getSimpleName();
@@ -78,46 +86,83 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
         }
     };
 
-    public static class Book {
+    public static class ByCreated implements Comparator<Item> {
+
+        @Override
+        public int compare(Item o1, Item o2) {
+            if (o1 instanceof Folder && o2 instanceof Folder) {
+                return Integer.valueOf(((Folder) o1).order).compareTo(((Folder) o2).order);
+            }
+            if (o1 instanceof Folder && o2 instanceof Book) {
+                return Integer.valueOf(((Folder) o1).order).compareTo(((Book) o2).folder.order);
+            }
+            if (o1 instanceof Book && o2 instanceof Folder) {
+                return Integer.valueOf(((Book) o1).folder.order).compareTo(((Folder) o2).order);
+            }
+            Book b1 = (Book) o1;
+            Book b2 = (Book) o2;
+            int r = Integer.valueOf(b1.folder.order).compareTo(b2.folder.order);
+            if (r != 0)
+                return r;
+            return b1.url.getLastPathSegment().compareTo(b2.url.getLastPathSegment());
+        }
+
+    }
+
+    public static class Item {
+    }
+
+    public static class Folder extends Item {
+        public int order;
+        public String name;
+
+        public Folder(String f) {
+            name = f;
+        }
+    }
+
+    public static class Book extends Item {
         public Uri url;
         public String md5; // url md5, NOT book content
         public Storage.RecentInfo info;
         public File cover;
-        public String folder;
+        public Folder folder;
 
-        public Book(File root, File f) {
+        public Book(Folder ff, File f) {
             url = Uri.fromFile(f);
-            String p = root.getPath();
-            String n = f.getPath();
-            if (n.startsWith(p))
-                n = n.substring(p.length());
-            File m = new File(n);
-            folder = m.getParent();
+            folder = ff;
         }
 
         @TargetApi(21)
-        public Book(Uri root, Uri u) {
+        public Book(Folder ff, Uri u) {
             url = u;
-            String p = DocumentsContract.getTreeDocumentId(root);
-            String f = DocumentsContract.getDocumentId(u);
-            if (f.startsWith(p))
-                f = f.substring(p.length());
-            File n = new File(f);
-            folder = n.getParent();
+            folder = ff;
         }
     }
 
     public class LocalLibraryAdapter extends LibraryFragment.BooksAdapter {
-        List<Book> all = new ArrayList<>(); // all items
-        List<Book> list = new ArrayList<>(); // filtered list
+        Map<String, Folder> folders = new TreeMap<>();
+        List<Item> all = new ArrayList<>(); // all items
+        List<Item> list = new ArrayList<>(); // filtered list
         String filter;
 
+        public class BookHolder extends LibraryFragment.BooksAdapter.BookHolder {
+            TextView folder;
+
+            public BookHolder(View itemView) {
+                super(itemView);
+                folder = (TextView) itemView.findViewById(R.id.book_folder);
+            }
+        }
+
         public LocalLibraryAdapter() {
-            super(LocalLibraryFragment.this.getContext());
+            super(LocalLibraryFragment.this.getContext(), LocalLibraryFragment.this.holder);
         }
 
         @Override
-        public int getLayout() {
+        public int getItemViewType(int position) {
+            if (list.get(position) instanceof Folder)
+                return R.layout.book_folder_item;
             return holder.layout;
         }
 
@@ -131,6 +176,36 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             load(f, f);
         }
 
+        Folder getFolder(File root, File f) {
+            String p = root.getPath();
+            String n = f.getPath();
+            if (n.startsWith(p))
+                n = n.substring(p.length());
+            File m = new File(n);
+            return getFolder(m.getParent());
+        }
+
+        @TargetApi(21)
+        Folder getFolder(Uri root, Uri u) {
+            String p = DocumentsContract.getTreeDocumentId(root);
+            String f = DocumentsContract.getDocumentId(u);
+            if (f.startsWith(p))
+                f = f.substring(p.length());
+            File n = new File(f);
+            return getFolder(n.getParent());
+        }
+
+        Folder getFolder(String s) {
+            Folder m = folders.get(s);
+            if (m != null)
+                return m;
+            m = new Folder(s);
+            m.order = folders.size();
+            folders.put(s, m);
+            all.add(m);
+            return m;
+        }
+
         void load(File root, File f) {
             File[] ff = f.listFiles();
             if (ff != null) {
@@ -141,7 +216,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                         Storage.Detector[] dd = Storage.supported();
                         for (Storage.Detector d : dd) {
                             if (k.toString().toLowerCase(Locale.US).endsWith(d.ext)) {
-                                books.all.add(new Book(root, k));
+                                books.all.add(new Book(getFolder(root, k), k));
                                 break;
                             }
                         }
@@ -170,7 +245,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                             for (Storage.Detector d : dd) {
                                 if (n.endsWith(d.ext)) {
                                     Uri k = DocumentsContract.buildDocumentUriUsingTree(u, id);
-                                    books.all.add(new Book(u, k));
+                                    books.all.add(new Book(getFolder(u, k), k));
                                     break;
                                 }
                             }
@@ -183,6 +258,10 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
         }
 
         void load(Uri u) {
+            folders.clear();
+            all.clear();
+            list.clear();
+            clearTasks();
             String s = u.getScheme();
             if (Build.VERSION.SDK_INT >= 21 && s.startsWith(ContentResolver.SCHEME_CONTENT)) {
                 Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(u, DocumentsContract.getTreeDocumentId(u));
@@ -192,6 +271,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             } else {
                 throw new RuntimeException("unknow uri");
             }
+            Collections.sort(all, new ByCreated());
         }
 
         public void refresh() {
@@ -200,17 +280,27 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                 clearTasks();
             } else {
                 list = new ArrayList<>();
-                for (Book b : all) {
-                    String t = null;
-                    if (b.info != null)
-                        t = b.info.title;
-                    if (t == null || t.isEmpty())
-                        t = storage.getDisplayName(b.url);
-                    if (t.toLowerCase(Locale.US).contains(filter.toLowerCase(Locale.US))) {
-                        list.add(b);
+                Set<Folder> ff = new HashSet<>();
+                for (Item a : all) {
+                    if (a instanceof Book) {
+                        Book b = (Book) a;
+                        String t = null;
+                        if (b.info != null)
+                            t = b.info.title;
+                        if (t == null || t.isEmpty()) {
+                            t = storage.getDisplayName(b.url);
+                        }
+                        if (t.toLowerCase(Locale.US).contains(filter.toLowerCase(Locale.US))) {
+                            if (!ff.contains(b.folder)) {
+                                ff.add(b.folder);
+                                list.add(b.folder);
+                            }
+                            list.add(b);
+                        }
                     }
                 }
             }
+            Collections.sort(list, new ByCreated());
             notifyDataSetChanged();
         }
 
@@ -219,53 +309,50 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             return list.size();
         }
 
-        public Book getItem(int position) {
+        public Item getItem(int position) {
             return list.get(position);
         }
 
         @Override
-        public String getAuthors(int position) {
-            Book b = list.get(position);
-            return b.info.authors;
+        public LibraryFragment.BooksAdapter.BookHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            LayoutInflater inflater = LayoutInflater.from(getContext());
+            View convertView = inflater.inflate(viewType, parent, false);
+            BookHolder h = new BookHolder(convertView);
+            return h;
         }
 
         @Override
-        public String getTitle(int position) {
-            Book b = list.get(position);
-            return b.info.title;
-        }
-
-        @Override
-        public Uri getCover(int position) {
-            Book b = list.get(position);
-            return Uri.fromFile(b.cover);
-        }
-
-        @Override
-        public void onBindViewHolder(final BookHolder h, int position) {
+        public void onBindViewHolder(final LibraryFragment.BooksAdapter.BookHolder h, int position) {
             View convertView = h.itemView;
-            Book b = list.get(position);
-            if (b.info == null || b.cover == null || !b.cover.exists()) {
-                downloadTask(b, convertView);
-            } else {
-                downloadTaskClean(convertView);
-                downloadTaskUpdate(null, b, convertView);
+            Item i = list.get(position);
+            if (i instanceof Book) {
+                Book b = (Book) i;
+                if (b.info == null || b.cover == null || !b.cover.exists()) {
+                    downloadTask(b, convertView);
+                } else {
+                    downloadTaskClean(convertView);
+                    downloadTaskUpdate(null, b, convertView);
+                }
+                convertView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if (holder.clickListener != null)
+                            holder.clickListener.onItemClick(null, v, h.getAdapterPosition(), -1);
+                    }
+                });
+                convertView.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        if (holder.longClickListener != null)
+                            holder.longClickListener.onItemLongClick(null, v, h.getAdapterPosition(), -1);
+                        return true;
+                    }
+                });
             }
-            convertView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (holder.clickListener != null)
-                        holder.clickListener.onItemClick(null, v, h.getAdapterPosition(), -1);
-                }
-            });
-            convertView.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View v) {
-                    if (holder.longClickListener != null)
-                        holder.longClickListener.onItemLongClick(null, v, h.getAdapterPosition(), -1);
-                    return true;
-                }
-            });
+            if (i instanceof Folder) {
+                Folder f = (Folder) i;
+                ((BookHolder) h).folder.setText(f.name);
+            }
         }
 
         @Override
@@ -278,8 +365,13 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             if (b.info != null) {
                 setText(h.aa, b.info.authors);
                 String t = b.info.title;
-                if (t == null || t.isEmpty())
-                    t = storage.getDisplayName(b.url);
+                if (t == null || t.isEmpty()) {
+                    String s = b.url.getScheme();
+                    if (s.startsWith(ContentResolver.SCHEME_CONTENT))
+                        t = storage.getDisplayName(b.url);
+                    else
+                        t = b.url.getLastPathSegment();
+                }
                 setText(h.tt, t);
             } else {
                 setText(h.aa, "");
@@ -502,6 +594,18 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             public String getLayout() {
                 return MD5.digest(u);
             }
+
+            @Override
+            public int getSpanSize(int position) {
+                Item i = books.list.get(position);
+                if (i instanceof Folder) {
+                    RecyclerView.LayoutManager lm = grid.getLayoutManager();
+                    if (lm instanceof GridLayoutManager) {
+                        return ((GridLayoutManager) lm).getSpanCount();
+                    }
+                }
+                return super.getSpanSize(position);
+            }
         };
         books = new LocalLibraryAdapter();
         n = (LocalBooksCatalog) catalogs.find(u);
@@ -598,7 +702,8 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 try {
-                    final Book b = books.getItem(position);
+                    final Item i = books.getItem(position);
+                    Book b = (Book) i;
                     loadBook(b);
                 } catch (RuntimeException e) {
                     main.Error(e);
@@ -616,7 +721,6 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        loadBooks();
         loadtoolBar();
         selectToolbar();
     }
@@ -729,7 +833,6 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
     public void searchClose() {
         books.filter = null;
         loadDefault();
-        books.refresh();
     }
 
     @Override

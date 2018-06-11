@@ -5,10 +5,13 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.annotation.DimenRes;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
@@ -39,6 +42,7 @@ import com.github.axet.androidlibrary.widgets.CacheImagesRecyclerAdapter;
 import com.github.axet.androidlibrary.widgets.HeaderGridView;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.androidlibrary.widgets.TextMax;
+import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.MainApplication;
@@ -62,6 +66,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             ActivityCompat.invalidateOptionsMenu(getActivity());
         }
     };
+
 
     public static class FragmentHolder {
         RecyclerView grid;
@@ -88,8 +93,8 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         public void create(View v) {
             grid = (RecyclerView) v.findViewById(R.id.grid);
 
-            DividerItemDecoration divider = new DividerItemDecoration(context, DividerItemDecoration.VERTICAL);
-            grid.addItemDecoration(divider);
+            // DividerItemDecoration divider = new DividerItemDecoration(context, DividerItemDecoration.VERTICAL);
+            // grid.addItemDecoration(divider);
 
             LayoutInflater inflater = LayoutInflater.from(context);
 
@@ -158,10 +163,23 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
 
         public void setNumColumns(int i) {
-            if (i == 1)
-                grid.setLayoutManager(new LinearLayoutManager(context));
-            else
-                grid.setLayoutManager(new GridLayoutManager(context, i));
+            if (i == 1) {
+                LinearLayoutManager lm = new LinearLayoutManager(context);
+                grid.setLayoutManager(lm);
+            } else {
+                GridLayoutManager lm = new GridLayoutManager(context, i);
+                lm.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+                    @Override
+                    public int getSpanSize(int position) {
+                        return FragmentHolder.this.getSpanSize(position);
+                    }
+                });
+                grid.setLayoutManager(lm);
+            }
+        }
+
+        public int getSpanSize(int position) {
+            return 1;
         }
 
         public void setOnItemClickListener(AdapterView.OnItemClickListener l) {
@@ -193,15 +211,13 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
     public class LibraryAdapter extends BooksAdapter {
         ArrayList<Storage.Book> list = new ArrayList<>();
-        FragmentHolder holder;
 
         public LibraryAdapter(FragmentHolder holder) {
-            super(LibraryFragment.this.getContext());
-            this.holder = holder;
+            super(LibraryFragment.this.getContext(), holder);
         }
 
         @Override
-        public int getLayout() {
+        public int getItemViewType(int position) {
             return holder.layout;
         }
 
@@ -253,26 +269,12 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         @Override
         public void onBindViewHolder(final BookHolder h, int position) {
             super.onBindViewHolder(h, position);
-            h.itemView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (holder.clickListener != null)
-                        holder.clickListener.onItemClick(null, v, h.getAdapterPosition(), -1);
-                }
-            });
-            h.itemView.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View v) {
-                    if (holder.longClickListener != null)
-                        holder.longClickListener.onItemLongClick(null, v, h.getAdapterPosition(), -1);
-                    return true;
-                }
-            });
         }
     }
 
     public static abstract class BooksAdapter extends CacheImagesRecyclerAdapter<BooksAdapter.BookHolder> {
         String filter;
+        FragmentHolder holder;
 
         public static class BookHolder extends RecyclerView.ViewHolder {
             TextView aa;
@@ -285,16 +287,13 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             }
         }
 
-        public BooksAdapter(Context context) {
+        public BooksAdapter(Context context, FragmentHolder holder) {
             super(context);
+            this.holder = holder;
         }
 
         public Uri getCover(int position) {
             return null;
-        }
-
-        public int getLayout() {
-            return -1;
         }
 
         public String getAuthors(int position) {
@@ -315,19 +314,35 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
         @Override
         public int getItemViewType(int position) {
-            return getLayout() == R.layout.book_list_item ? 1 : 0;
+            return -1;
         }
 
         @Override
         public BookHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             LayoutInflater inflater = LayoutInflater.from(getContext());
-            View convertView = inflater.inflate(getLayout(), null, false);
+            View convertView = inflater.inflate(viewType, parent, false);
             BookHolder h = new BookHolder(convertView);
             return h;
         }
 
         @Override
-        public void onBindViewHolder(BookHolder h, int position) {
+        public void onBindViewHolder(final BookHolder h, int position) {
+            h.itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (holder.clickListener != null)
+                        holder.clickListener.onItemClick(null, v, h.getAdapterPosition(), -1);
+                }
+            });
+            h.itemView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    if (holder.longClickListener != null)
+                        holder.longClickListener.onItemLongClick(null, v, h.getAdapterPosition(), -1);
+                    return true;
+                }
+            });
+
             Uri cover = getCover(position);
 
             View convertView = h.itemView;

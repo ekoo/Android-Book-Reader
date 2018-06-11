@@ -166,11 +166,11 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         String filter;
 
         public NetworkLibraryAdapter() {
-            super(NetworkLibraryFragment.this.getContext());
+            super(NetworkLibraryFragment.this.getContext(), NetworkLibraryFragment.this.holder);
         }
 
         @Override
-        public int getLayout() {
+        public int getItemViewType(int position) {
             return holder.layout;
         }
 
@@ -847,8 +847,9 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         books.filter = null;
         if (def != null) {
             loadDefault();
+        } else {
+            books.refresh();
         }
-        books.refresh();
     }
 
     @Override
