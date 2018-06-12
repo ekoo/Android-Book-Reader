@@ -107,6 +107,12 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
+        public double getPageHeight(int w, ZLView.PageIndex index) {
+            PluginPage r = new PluginPage((PluginPage) current, index, w, 0);
+            return r.pageBox.h / r.ratio;
+        }
+
+        @Override
         public Bitmap render(int w, int h, int page, Bitmap.Config c) {
             PluginPage r = new PluginPage((PluginPage) current, page, w, h);
             r.scale(w * 2, h * 2);

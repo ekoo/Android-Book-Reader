@@ -15,6 +15,9 @@ import android.graphics.Rect;
 import android.os.Parcelable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.preference.PreferenceManager;
+import android.support.v7.widget.DividerItemDecoration;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
@@ -28,7 +31,6 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
-import android.widget.Toast;
 
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
@@ -96,6 +98,7 @@ import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextRegion;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
 import org.geometerplus.zlibrary.text.view.ZLTextWordRegionSoul;
+import org.geometerplus.zlibrary.ui.android.view.ZLAndroidPaintContext;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 import java.io.IOException;
@@ -113,6 +116,7 @@ public class FBReaderView extends RelativeLayout {
     public FBReaderApp app;
     public ConfigShadow config;
     public ZLAndroidWidget widget;
+    public ScrollView scroll;
     public int battery;
     public String title;
     public Window w;
@@ -535,6 +539,20 @@ public class FBReaderView extends RelativeLayout {
             return new ZLTextFixedPosition(current.pageNumber, current.pageOffset, 0);
         }
 
+        public ZLTextFixedPosition getNextPosition() {
+            PluginPage old = new PluginPage(current, ZLViewEnums.PageIndex.next) {
+                @Override
+                public void load() {
+                }
+
+                @Override
+                public int getPagesCount() {
+                    return current.getPagesCount();
+                }
+            };
+            return new ZLTextFixedPosition(old.pageNumber, old.pageOffset, 0);
+        }
+
         public boolean canScroll(ZLView.PageIndex index) {
             if (reflower != null) {
                 if (reflower.canScroll(index))
@@ -597,6 +615,14 @@ public class FBReaderView extends RelativeLayout {
 
         public void drawOnBitmap(Context context, Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
             Canvas canvas = new Canvas(bitmap);
+            drawOnCanvas(context, canvas, w, h, index);
+        }
+
+        public double getPageHeight(int w, ZLView.PageIndex index) {
+            return -1;
+        }
+
+        public void drawOnCanvas(Context context, Canvas canvas, int w, int h, ZLView.PageIndex index) {
             drawWallpaper(canvas);
             if (reflow) {
                 if (reflower == null) {
@@ -895,11 +921,11 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
-    public static class ParagraphModel implements ZLTextModel {
+    public static class SingleParagraphModel implements ZLTextModel {
         int index;
         ZLTextModel model;
 
-        public ParagraphModel(int index, ZLTextModel m) {
+        public SingleParagraphModel(int index, ZLTextModel m) {
             this.index = index;
             this.model = m;
         }
@@ -983,7 +1009,7 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
-    public static class ConfigShadow extends Config {
+    public static class ConfigShadow extends Config { // disable config changes across this app view instancies and fbreader
         @Override
         protected void setValueInternal(String group, String name, String value) {
         }
@@ -1044,6 +1070,255 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
+    public class ScrollView extends RecyclerView {
+        public LinearLayoutManager lm;
+
+        public class ScrollAdapter extends RecyclerView.Adapter<ScrollAdapter.PageHolder> {
+            public ArrayList<PageCursor> pages = new ArrayList<>();
+
+            public class PageView extends View {
+                public PageHolder holder;
+
+                public PageView(Context context) {
+                    super(context);
+                }
+
+                @Override
+                protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+                    int w = getDefaultSize(getSuggestedMinimumWidth(), widthMeasureSpec);
+                    int h = FBReaderView.this.getMeasuredHeight();
+                    if (pluginview != null) {
+                        current();
+                        h = (int) Math.ceil(pluginview.getPageHeight(w, ZLViewEnums.PageIndex.current));
+                    }
+                    setMeasuredDimension(w, h);
+                }
+
+                void current() {
+                    int page = holder.getAdapterPosition();
+                    PageCursor c = pages.get(page);
+                    if (c.start == null) {
+                        if (pluginview != null) {
+                            pluginview.gotoPosition(c.end);
+                            pluginview.onScrollingFinished(ZLViewEnums.PageIndex.previous);
+                            c.update(getCurrent());
+                        } else {
+                            app.BookTextView.gotoPosition(c.end);
+                            app.BookTextView.onScrollingFinished(ZLViewEnums.PageIndex.previous);
+                            c.update(getCurrent());
+                        }
+                    } else {
+                        if (pluginview != null)
+                            pluginview.gotoPosition(c.start);
+                        else
+                            app.BookTextView.gotoPosition(c.start);
+                    }
+
+                }
+
+                void restore() {
+                    int page = lm.findFirstVisibleItemPosition();
+                    PageCursor c = pages.get(page);
+                    if (pluginview != null)
+                        pluginview.gotoPosition(c.start);
+                    else
+                        app.BookTextView.gotoPosition(c.start);
+                }
+
+                @Override
+                public void draw(Canvas canvas) {
+                    super.draw(canvas);
+                    final ZLAndroidPaintContext context = new ZLAndroidPaintContext(
+                            app.SystemInfo,
+                            canvas,
+                            new ZLAndroidPaintContext.Geometry(
+                                    getWidth(),
+                                    getHeight(),
+                                    getWidth(),
+                                    getHeight(),
+                                    0,
+                                    0
+                            ),
+                            getVerticalScrollbarWidth()
+                    );
+                    current();
+                    if (pluginview != null)
+                        pluginview.drawOnCanvas(getContext(), canvas, getWidth(), getHeight(), ZLViewEnums.PageIndex.current);
+                    else
+                        app.BookTextView.paint(context, ZLViewEnums.PageIndex.current);
+                    update();
+                    restore();
+                }
+            }
+
+            public class PageHolder extends RecyclerView.ViewHolder {
+                public PageView page;
+
+                public PageHolder(PageView p) {
+                    super(p);
+                    page = p;
+                }
+            }
+
+            public class PageCursor {
+                ZLTextPosition start;
+                ZLTextPosition end;
+
+                public PageCursor(ZLTextPosition s, ZLTextPosition e) {
+                    if (s != null) {
+                        start = new ZLTextFixedPosition(s);
+                    }
+                    if (e != null) {
+                        end = new ZLTextFixedPosition(e);
+                    }
+                }
+
+                public boolean equals(ZLTextPosition p1, ZLTextPosition p2) {
+                    return p1.getCharIndex() == p2.getCharIndex() && p1.getElementIndex() == p2.getElementIndex() && p1.getParagraphIndex() == p2.getParagraphIndex();
+                }
+
+                @Override
+                public boolean equals(Object obj) {
+                    PageCursor p = (PageCursor) obj;
+                    if (start != null && p.start != null) {
+                        if (equals(start, p.start))
+                            return true;
+                    }
+                    if (end != null && p.end != null) {
+                        if (equals(end, p.end))
+                            return true;
+                    }
+                    return false;
+                }
+
+                public void update(PageCursor c) {
+                    if (c.start != null)
+                        start = c.start;
+                    if (c.end != null)
+                        end = c.end;
+                }
+            }
+
+            public ScrollAdapter() {
+            }
+
+            @Override
+            public PageHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+                return new PageHolder(new PageView(getContext()));
+            }
+
+            @Override
+            public void onBindViewHolder(PageHolder holder, int position) {
+                holder.page.holder = holder;
+            }
+
+            @Override
+            public int getItemCount() {
+                return pages.size();
+            }
+
+            public void reset() {
+                pages.clear();
+                if (app.Model != null) {
+                    PageCursor c = getCurrent();
+                    pages.add(c);
+                }
+                notifyDataSetChanged();
+            }
+
+            PageCursor getCurrent() {
+                if (pluginview != null)
+                    return new PageCursor(pluginview.getPosition(), pluginview.getNextPosition());
+                return new PageCursor(app.BookTextView.getStartCursor(), app.BookTextView.getEndCursor());
+            }
+
+            void update() {
+                if (app.Model == null)
+                    return;
+                PageCursor c = getCurrent();
+                int page;
+                for (page = 0; page < pages.size(); page++) {
+                    PageCursor p = pages.get(page);
+                    if (p.equals(c)) {
+                        p.update(c);
+                        break;
+                    }
+                }
+                if (page == pages.size()) { // not found == 0
+                    pages.add(c);
+                    notifyItemInserted(page);
+                }
+                if (app.BookTextView.canScroll(ZLViewEnums.PageIndex.previous)) {
+                    if (page == 0) {
+                        pages.add(page, new PageCursor(null, c.start));
+                        notifyItemInserted(page);
+                        page++; // 'c' page moved to + 1
+                    }
+                }
+                if (app.BookTextView.canScroll(ZLViewEnums.PageIndex.next)) {
+                    if (page == pages.size() - 1) {
+                        page++;
+                        pages.add(page, new PageCursor(c.end, null));
+                        notifyItemInserted(page);
+                    }
+                }
+            }
+        }
+
+        public ScrollView(Context context) {
+            super(context);
+
+            lm = new LinearLayoutManager(context);
+
+            setLayoutManager(lm);
+
+            setAdapter(new ScrollAdapter());
+
+            DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(context, DividerItemDecoration.VERTICAL);
+            addItemDecoration(dividerItemDecoration);
+        }
+
+        public void reset() {
+            if (getAdapter() instanceof ScrollAdapter)
+                ((ScrollAdapter) getAdapter()).reset();
+        }
+
+        @Override
+        public void draw(Canvas c) {
+            super.draw(c);
+            if (app.Model != null) {
+                FBView.Footer footer = app.BookTextView.getFooterArea();
+                if (getPaddingBottom() == 0) {
+                    setPadding(0, 0, 0, footer.getHeight());
+                    setClipToPadding(false);
+                }
+                final ZLAndroidPaintContext context = new ZLAndroidPaintContext(
+                        app.SystemInfo,
+                        c,
+                        new ZLAndroidPaintContext.Geometry(
+                                getWidth(),
+                                getHeight(),
+                                getWidth(),
+                                footer.getHeight(),
+                                0,
+                                getMainAreaHeight()
+                        ),
+                        0
+                );
+                final int voffset = getHeight() - footer.getHeight();
+                c.save();
+                c.translate(0, voffset);
+                footer.paint(context);
+                c.restore();
+            }
+        }
+
+        public int getMainAreaHeight() {
+            final ZLView.FooterArea footer = ZLApplication.Instance().getCurrentView().getFooterArea();
+            return footer != null ? getHeight() - footer.getHeight() : getHeight();
+        }
+    }
+
     public FBReaderView(Context context) { // create child view
         super(context);
         create();
@@ -1089,7 +1364,8 @@ public class FBReaderView extends RelativeLayout {
         config = new ConfigShadow();
         app = new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow());
         widget = new FBAndroidWidget();
-        addView(widget, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        scroll = new ScrollView(getContext());
+        setViewMode(widget);
 
         app.setWindow(new FBApplicationWindow());
         app.initWindow();
@@ -1133,6 +1409,11 @@ public class FBReaderView extends RelativeLayout {
         app.ViewOptions.getFooterOptions().ShowProgress.setValue(FooterOptions.ProgressDisplayType.asPages);
     }
 
+    public void setViewMode(View v) {
+        removeAllViews();
+        addView(v, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
     public void loadBook(Storage.Book book) {
         try {
             this.book = book;
@@ -1160,6 +1441,7 @@ public class FBReaderView extends RelativeLayout {
                 if (book.info != null)
                     app.BookTextView.gotoPosition(book.info.position);
             }
+            scroll.reset();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -1546,7 +1828,7 @@ public class FBReaderView extends RelativeLayout {
                 final BookModel.Label label = r.app.Model.getLabel(hyperlink.Id);
                 if (label != null) {
                     if (label.ModelId == null) {
-                        r.app.BookTextView.setModel(new ParagraphModel(label.ParagraphIndex, r.app.Model.getTextModel()));
+                        // r.app.BookTextView.setModel(new ParagraphModel(label.ParagraphIndex, r.app.Model.getTextModel()));
                         r.app.BookTextView.gotoPosition(0, 0, 0);
                         r.app.setView(r.app.BookTextView);
                     } else {
@@ -1604,5 +1886,6 @@ public class FBReaderView extends RelativeLayout {
     public void reset() {
         widget.reset();
         widget.repaint();
+        scroll.reset();
     }
 }
