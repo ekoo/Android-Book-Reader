@@ -41,6 +41,7 @@ import com.github.axet.androidlibrary.widgets.CacheImagesListAdapter;
 import com.github.axet.androidlibrary.widgets.CacheImagesRecyclerAdapter;
 import com.github.axet.androidlibrary.widgets.HeaderGridView;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
+import com.github.axet.androidlibrary.widgets.SearchView;
 import com.github.axet.androidlibrary.widgets.TextMax;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
@@ -257,7 +258,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                 clearTasks();
             } else {
                 for (Storage.Book b : ll) {
-                    if (b.info.title.toLowerCase(Locale.US).contains(filter.toLowerCase(Locale.US))) {
+                    if (SearchView.filter(filter, b.info.title)) {
                         list.add(b);
                     }
                 }

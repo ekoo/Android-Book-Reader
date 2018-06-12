@@ -32,6 +32,7 @@ import android.widget.TextView;
 import com.github.axet.androidlibrary.crypto.MD5;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
+import com.github.axet.androidlibrary.widgets.SearchView;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.BooksCatalogs;
@@ -86,15 +87,6 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             ActivityCompat.invalidateOptionsMenu(getActivity());
         }
     };
-
-    public static boolean filter(String filter, String text) {
-        filter = Normalizer.normalize(filter, Normalizer.Form.NFC).toLowerCase(Locale.US); // й composed to two chars sometime.
-        text = Normalizer.normalize(text, Normalizer.Form.NFC).toLowerCase(Locale.US);
-        boolean all = true;
-        for (String f : filter.split("\\s+"))
-            all &= text.contains(f);
-        return all;
-    }
 
     public static class ByCreated implements Comparator<Item> {
 
@@ -298,9 +290,9 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                         if (b.info != null)
                             t = b.info.title;
                         if (t == null || t.isEmpty()) {
-                            t = storage.getDisplayName(b.url);
+                            t = getDisplayName(b.url);
                         }
-                        if (filter(filter, t)) {
+                        if (SearchView.filter(filter, t)) {
                             if (!ff.contains(b.folder)) {
                                 ff.add(b.folder);
                                 list.add(b.folder);
@@ -376,12 +368,12 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                 setText(h.aa, b.info.authors);
                 String t = b.info.title;
                 if (t == null || t.isEmpty()) {
-                    t = storage.getDisplayName(b.url);
+                    t = getDisplayName(b.url);
                 }
                 setText(h.tt, t);
             } else {
                 setText(h.aa, "");
-                setText(h.tt, storage.getDisplayName(b.url));
+                setText(h.tt, getDisplayName(b.url));
             }
 
             if (b.cover != null && b.cover.exists()) {
@@ -844,5 +836,9 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
     @Override
     public String getHint() {
         return getString(R.string.search_local);
+    }
+
+    public String getDisplayName(Uri u) {
+        return ".../" + u.getLastPathSegment();
     }
 }

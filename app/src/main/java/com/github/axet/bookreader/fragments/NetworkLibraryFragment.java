@@ -24,6 +24,7 @@ import android.widget.TextView;
 import com.github.axet.androidlibrary.crypto.MD5;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
+import com.github.axet.androidlibrary.widgets.SearchView;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
@@ -205,7 +206,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
             } else {
                 list = new ArrayList<>();
                 for (FBTree b : all) {
-                    if (b.getName().toLowerCase(Locale.US).contains(filter.toLowerCase(Locale.US))) {
+                    if (SearchView.filter(filter, b.getName())) {
                         list.add(b);
                     }
                 }
