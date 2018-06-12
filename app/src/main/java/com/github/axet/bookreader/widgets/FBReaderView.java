@@ -115,8 +115,7 @@ public class FBReaderView extends RelativeLayout {
 
     public FBReaderApp app;
     public ConfigShadow config;
-    public ZLAndroidWidget widget;
-    public ScrollView scroll;
+    public ZLViewWidget widget;
     public int battery;
     public String title;
     public Window w;
@@ -1070,8 +1069,9 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
-    public class ScrollView extends RecyclerView {
+    public class ScrollView extends RecyclerView implements ZLViewWidget {
         public LinearLayoutManager lm;
+        public ScrollAdapter adapter = new ScrollAdapter();
 
         public class ScrollAdapter extends RecyclerView.Adapter<ScrollAdapter.PageHolder> {
             public ArrayList<PageCursor> pages = new ArrayList<>();
@@ -1165,12 +1165,10 @@ public class FBReaderView extends RelativeLayout {
                 ZLTextPosition end;
 
                 public PageCursor(ZLTextPosition s, ZLTextPosition e) {
-                    if (s != null) {
+                    if (s != null)
                         start = new ZLTextFixedPosition(s);
-                    }
-                    if (e != null) {
+                    if (e != null)
                         end = new ZLTextFixedPosition(e);
-                    }
                 }
 
                 public boolean equals(ZLTextPosition p1, ZLTextPosition p2) {
@@ -1229,7 +1227,8 @@ public class FBReaderView extends RelativeLayout {
             PageCursor getCurrent() {
                 if (pluginview != null)
                     return new PageCursor(pluginview.getPosition(), pluginview.getNextPosition());
-                return new PageCursor(app.BookTextView.getStartCursor(), app.BookTextView.getEndCursor());
+                else
+                    return new PageCursor(app.BookTextView.getStartCursor(), app.BookTextView.getEndCursor());
             }
 
             void update() {
@@ -1271,16 +1270,52 @@ public class FBReaderView extends RelativeLayout {
             lm = new LinearLayoutManager(context);
 
             setLayoutManager(lm);
-
-            setAdapter(new ScrollAdapter());
+            setAdapter(adapter);
 
             DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(context, DividerItemDecoration.VERTICAL);
             addItemDecoration(dividerItemDecoration);
         }
 
         public void reset() {
-            if (getAdapter() instanceof ScrollAdapter)
-                ((ScrollAdapter) getAdapter()).reset();
+            if (pluginview != null) {
+                if (pluginview.reflower != null) {
+                    pluginview.reflower.reset();
+                }
+            }
+        }
+
+        @Override
+        public void repaint() {
+            adapter.reset();
+        }
+
+        @Override
+        public void startManualScrolling(int x, int y, ZLViewEnums.Direction direction) {
+        }
+
+        @Override
+        public void scrollManuallyTo(int x, int y) {
+        }
+
+        @Override
+        public void startAnimatedScrolling(ZLViewEnums.PageIndex pageIndex, int x, int y, ZLViewEnums.Direction direction, int speed) {
+        }
+
+        @Override
+        public void startAnimatedScrolling(ZLViewEnums.PageIndex pageIndex, ZLViewEnums.Direction direction, int speed) {
+        }
+
+        @Override
+        public void startAnimatedScrolling(int x, int y, int speed) {
+        }
+
+        @Override
+        public void setScreenBrightness(int percent) {
+        }
+
+        @Override
+        public int getScreenBrightness() {
+            return 0;
         }
 
         @Override
@@ -1363,9 +1398,8 @@ public class FBReaderView extends RelativeLayout {
     public void create() {
         config = new ConfigShadow();
         app = new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow());
-        widget = new FBAndroidWidget();
-        scroll = new ScrollView(getContext());
-        setViewMode(widget);
+        // widget = new FBAndroidWidget();
+        setWidget(new ScrollView(getContext()));
 
         app.setWindow(new FBApplicationWindow());
         app.initWindow();
@@ -1409,9 +1443,10 @@ public class FBReaderView extends RelativeLayout {
         app.ViewOptions.getFooterOptions().ShowProgress.setValue(FooterOptions.ProgressDisplayType.asPages);
     }
 
-    public void setViewMode(View v) {
+    public void setWidget(ZLViewWidget v) {
+        widget = v;
         removeAllViews();
-        addView(v, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        addView((View) v, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }
 
     public void loadBook(Storage.Book book) {
@@ -1441,7 +1476,6 @@ public class FBReaderView extends RelativeLayout {
                 if (book.info != null)
                     app.BookTextView.gotoPosition(book.info.position);
             }
-            scroll.reset();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -1886,6 +1920,5 @@ public class FBReaderView extends RelativeLayout {
     public void reset() {
         widget.reset();
         widget.repaint();
-        scroll.reset();
     }
 }
