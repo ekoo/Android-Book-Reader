@@ -2094,4 +2094,12 @@ public class FBReaderView extends RelativeLayout {
         widget.reset();
         widget.repaint();
     }
+
+    public void invalidateFooter() {
+        if (widget instanceof ScrollView) {
+            ((ScrollView) widget).invalidate();
+        } else {
+            widget.repaint();
+        }
+    }
 }

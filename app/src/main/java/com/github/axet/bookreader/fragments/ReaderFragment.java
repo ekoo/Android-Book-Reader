@@ -477,7 +477,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
         int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
         view.battery = level * 100 / scale;
-        view.widget.repaint();
+        view.invalidateFooter();
     }
 
     void updateTime() {
@@ -485,7 +485,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         long secs = System.currentTimeMillis() % s60;
         handler.removeCallbacks(time);
         handler.postDelayed(time, s60 - secs);
-        view.widget.repaint();
+        view.invalidateFooter();
     }
 
     @Override
