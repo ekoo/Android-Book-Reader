@@ -14,6 +14,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.Parcelable;
+import android.support.v4.view.GestureDetectorCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.preference.PreferenceManager;
 import android.support.v7.widget.DividerItemDecoration;
@@ -22,8 +23,10 @@ import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -1473,10 +1476,43 @@ public class FBReaderView extends RelativeLayout {
             }
         }
 
+        GestureDetectorCompat gestures;
+
         public ScrollView(Context context) {
             super(context);
 
             lm = new LinearLayoutManager(context);
+            gestures = new GestureDetectorCompat(context, new GestureDetector.OnGestureListener() {
+                @Override
+                public boolean onDown(MotionEvent e) {
+                    return false;
+                }
+
+                @Override
+                public void onShowPress(MotionEvent e) {
+                }
+
+                @Override
+                public boolean onSingleTapUp(MotionEvent e) {
+                    app.BookTextView.onFingerSingleTap((int) e.getX(), (int) e.getY());
+                    return true;
+                }
+
+                @Override
+                public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                    return false;
+                }
+
+                @Override
+                public void onLongPress(MotionEvent e) {
+                    app.BookTextView.onFingerLongPress((int) e.getX(), (int) e.getY());
+                }
+
+                @Override
+                public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                    return false;
+                }
+            });
 
             setLayoutManager(lm);
             setAdapter(adapter);
@@ -1485,7 +1521,17 @@ public class FBReaderView extends RelativeLayout {
             addItemDecoration(dividerItemDecoration);
 
             FBView.Footer footer = app.BookTextView.getFooterArea();
-            setPadding(0, 0, 0, footer.getHeight());
+            if (footer != null)
+                setPadding(0, 0, 0, footer.getHeight());
+
+            setOnTouchListener(new OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    if (gestures.onTouchEvent(event))
+                        return true;
+                    return false;
+                }
+            });
         }
 
         public void reset() {
@@ -1583,6 +1629,8 @@ public class FBReaderView extends RelativeLayout {
         void drawFooter(Canvas c) {
             if (app.Model != null) {
                 FBView.Footer footer = app.BookTextView.getFooterArea();
+                if (footer == null)
+                    return;
                 final ZLAndroidPaintContext context = new ZLAndroidPaintContext(
                         app.SystemInfo,
                         c,
@@ -1633,6 +1681,7 @@ public class FBReaderView extends RelativeLayout {
                 return false;
             }
         };
+        setWidget(Widgets.CONTINUOUS);
     }
 
     public FBReaderView(Context context, AttributeSet attrs) {
@@ -1654,7 +1703,6 @@ public class FBReaderView extends RelativeLayout {
     public void create() {
         config = new ConfigShadow();
         app = new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow());
-        setWidget(Widgets.CONTINUOUS);
 
         app.setWindow(new FBApplicationWindow());
         app.initWindow();
@@ -2187,7 +2235,6 @@ public class FBReaderView extends RelativeLayout {
 
     public void setColorProfile(String p) {
         app.ViewOptions.ColorProfileName.setValue(p);
-        reset();
     }
 
     public void reset() {
