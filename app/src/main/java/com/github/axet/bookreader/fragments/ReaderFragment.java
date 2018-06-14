@@ -904,11 +904,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         if (key.equals(MainApplication.PREFERENCE_THEME)) {
-            if (sharedPreferences.getString(key, "").equals(getString(R.string.Theme_Dark))) {
-                view.setColorProfile(ColorProfile.NIGHT);
-            } else {
-                view.setColorProfile(ColorProfile.DAY);
-            }
+            view.setColorProfile();
         }
     }
 

@@ -1590,6 +1590,8 @@ public class FBReaderView extends RelativeLayout {
 
         SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(getContext());
 
+        setColorProfile();
+
         int d = shared.getInt(MainApplication.PREFERENCE_FONTSIZE_FBREADER, app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.getValue());
         app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.setValue(d);
 
@@ -2005,22 +2007,24 @@ public class FBReaderView extends RelativeLayout {
     }
 
     void showPopup(final ZLTextHyperlink hyperlink) {
-        LinearLayout ll = new LinearLayout(getContext());
+        Context context = getContext();
+
+        LinearLayout ll = new LinearLayout(context);
         ll.setOrientation(LinearLayout.VERTICAL);
 
-        WallpaperLayout f = new WallpaperLayout(getContext());
-        ImageButton c = new ImageButton(getContext());
+        WallpaperLayout f = new WallpaperLayout(context);
+        ImageButton c = new ImageButton(context);
         c.setImageResource(R.drawable.ic_close_black_24dp);
-        c.setColorFilter(ThemeUtils.getThemeColor(getContext(), R.attr.colorAccent));
+        c.setColorFilter(ThemeUtils.getThemeColor(context, R.attr.colorAccent));
         f.addView(c, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.RIGHT | Gravity.TOP));
 
-        final FBReaderView r = new FBReaderView(getContext());
+        final FBReaderView r = new FBReaderView(context);
         LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 
         ll.addView(f, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         ll.addView(r, rlp);
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setView(ll);
         builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
             @Override
@@ -2035,7 +2039,7 @@ public class FBReaderView extends RelativeLayout {
                 final BookModel.Label label = r.app.Model.getLabel(hyperlink.Id);
                 if (label != null) {
                     if (label.ModelId == null) {
-                        // r.app.BookTextView.setModel(new ParagraphModel(label.ParagraphIndex, r.app.Model.getTextModel()));
+                        // r.app.BookTextView.setModel(new SingleParagraphModel(label.ParagraphIndex, r.app.Model.getTextModel()));
                         r.app.BookTextView.gotoPosition(0, 0, 0);
                         r.app.setView(r.app.BookTextView);
                     } else {
