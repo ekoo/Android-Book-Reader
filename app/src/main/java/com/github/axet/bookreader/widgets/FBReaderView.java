@@ -12,6 +12,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.Parcelable;
 import android.support.v4.view.GestureDetectorCompat;
@@ -23,6 +24,7 @@ import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.util.Size;
 import android.view.GestureDetector;
 import android.view.Gravity;
@@ -79,6 +81,7 @@ import org.geometerplus.fbreader.fbreader.FBAction;
 import org.geometerplus.fbreader.fbreader.FBView;
 import org.geometerplus.fbreader.fbreader.options.ColorProfile;
 import org.geometerplus.fbreader.fbreader.options.FooterOptions;
+import org.geometerplus.fbreader.fbreader.options.ImageOptions;
 import org.geometerplus.fbreader.fbreader.options.PageTurningOptions;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
@@ -93,6 +96,7 @@ import org.geometerplus.zlibrary.core.options.ZLBooleanOption;
 import org.geometerplus.zlibrary.core.options.ZLIntegerRangeOption;
 import org.geometerplus.zlibrary.core.options.ZLOption;
 import org.geometerplus.zlibrary.core.resources.ZLResource;
+import org.geometerplus.zlibrary.core.view.SelectionCursor;
 import org.geometerplus.zlibrary.core.view.ZLPaintContext;
 import org.geometerplus.zlibrary.core.view.ZLView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
@@ -139,6 +143,7 @@ public class FBReaderView extends RelativeLayout {
     public Storage.Book book;
     public PluginView pluginview;
     public PageTurningListener pageTurningListener;
+    GestureDetectorCompat gestures;
 
     public static class PluginRect {
         public int x; // lower left x
@@ -784,29 +789,10 @@ public class FBReaderView extends RelativeLayout {
         }
 
         @Override
-        public void onFingerSingleTap(int x, int y) {
+        public void hideOutline() {
+            super.hideOutline();
             if (widget instanceof ScrollView) {
-                final ZLTextRegion hyperlinkRegion = findRegion(x, y, maxSelectionDistance(), ZLTextRegion.HyperlinkFilter);
-                if (hyperlinkRegion != null) {
-                    outlineRegion(hyperlinkRegion);
-                    app.runAction(ActionCode.PROCESS_HYPERLINK);
-                    return;
-                }
-
-                final ZLTextRegion bookRegion = findRegion(x, y, 0, ZLTextRegion.ExtensionFilter);
-                if (bookRegion != null) {
-                    app.runAction(ActionCode.DISPLAY_BOOK_POPUP, bookRegion);
-                    return;
-                }
-
-                final ZLTextRegion videoRegion = findRegion(x, y, 0, ZLTextRegion.VideoFilter);
-                if (videoRegion != null) {
-                    outlineRegion(videoRegion);
-                    app.runAction(ActionCode.OPEN_VIDEO, (ZLTextVideoRegionSoul) videoRegion.getSoul());
-                    return;
-                }
-            } else {
-                super.onFingerSingleTap(x, y);
+                ((ScrollView) widget).adapter.processInvalidate();
             }
         }
 
@@ -948,7 +934,6 @@ public class FBReaderView extends RelativeLayout {
                     pluginview.reflower.reset();
                 }
             }
-            postInvalidate();
         }
     }
 
@@ -1182,12 +1167,14 @@ public class FBReaderView extends RelativeLayout {
     public class ScrollView extends RecyclerView implements ZLViewWidget {
         public LinearLayoutManager lm;
         public ScrollAdapter adapter = new ScrollAdapter();
+        Gestures gesturesListener = new Gestures();
 
         public class ScrollAdapter extends RecyclerView.Adapter<ScrollAdapter.PageHolder> {
             public ArrayList<PageCursor> pages = new ArrayList<>();
             final Object lock = new Object();
             Thread thread;
             PluginRect size = new PluginRect(); // ScrollView size, after reset
+            ArrayList<ScrollView.ScrollAdapter.PageHolder> invalidate = new ArrayList<>(); // pending invalidates
 
             public class PageView extends View {
                 public PageHolder holder;
@@ -1505,6 +1492,11 @@ public class FBReaderView extends RelativeLayout {
             }
 
             public void reset() {
+                if (pluginview != null) {
+                    if (pluginview.reflower != null) {
+                        pluginview.reflower.reset();
+                    }
+                }
                 size = new PluginRect();
                 getRecycledViewPool().clear();
                 pages.clear();
@@ -1512,6 +1504,7 @@ public class FBReaderView extends RelativeLayout {
                     PageCursor c = getCurrent();
                     pages.add(c);
                 }
+                postInvalidate();
                 notifyDataSetChanged();
             }
 
@@ -1568,57 +1561,125 @@ public class FBReaderView extends RelativeLayout {
                     }
                 }
             }
+
+            void processInvalidate() {
+                for (ScrollView.ScrollAdapter.PageHolder h : invalidate) {
+                    h.page.invalidate();
+                }
+                invalidate.clear();
+            }
         }
 
-        GestureDetectorCompat gestures;
+        public class Gestures implements GestureDetector.OnGestureListener {
+            int x;
+            int y;
+            ScrollAdapter.PageView v;
+
+            boolean open(MotionEvent e) {
+                v = findView(e);
+                if (v == null)
+                    return false;
+                int pos = v.holder.getAdapterPosition();
+                if (pos == -1)
+                    return false;
+                ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+                if (!app.BookTextView.getStartCursor().samePositionAs(c.start))
+                    app.BookTextView.gotoPosition(c.start);
+                app.BookTextView.myCurrentPage.TextElementMap = c.p;
+                x = (int) (e.getX() - v.getLeft());
+                y = (int) (e.getY() - v.getTop());
+                return true;
+            }
+
+            void close() {
+                app.BookTextView.myCurrentPage.TextElementMap = new ZLTextElementAreaVector();
+            }
+
+            @Override
+            public boolean onDown(MotionEvent e) {
+                if (app.BookTextView.mySelection.isEmpty())
+                    return false;
+                if (!open(e))
+                    return false;
+                app.BookTextView.onFingerPress(x, y);
+                v.invalidate();
+                close();
+                return true;
+            }
+
+            @Override
+            public void onShowPress(MotionEvent e) {
+            }
+
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                if (!open(e))
+                    return false;
+                app.BookTextView.onFingerSingleTap(x, y);
+                v.invalidate();
+                adapter.invalidate.add(v.holder);
+                close();
+                return true;
+            }
+
+            @Override
+            public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                if (app.BookTextView.mySelection.isEmpty())
+                    return false;
+                if (!open(e2))
+                    return false;
+                app.BookTextView.onFingerMove(x, y);
+                v.invalidate();
+                close();
+                return true;
+            }
+
+            @Override
+            public void onLongPress(MotionEvent e) {
+                if (!open(e))
+                    return;
+                app.BookTextView.onFingerLongPress(x, y);
+                app.BookTextView.onFingerReleaseAfterLongPress(x, y);
+                v.invalidate();
+                app.BookTextView.myCurrentPage.TextElementMap = new ZLTextElementAreaVector();
+                adapter.invalidate.add(v.holder);
+                close();
+            }
+
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                if (app.BookTextView.mySelection.isEmpty())
+                    return false;
+                return true;
+            }
+
+            public boolean onRelease(MotionEvent e) {
+                if (app.BookTextView.mySelection.isEmpty())
+                    return false;
+                if (e.getAction() == MotionEvent.ACTION_UP) {
+                    if (!open(e))
+                        return false;
+                    app.BookTextView.onFingerRelease(x, y);
+                    v.invalidate();
+                    adapter.invalidate.add(v.holder);
+                    close();
+                    return true;
+                }
+                return false;
+            }
+
+            public boolean onFilter(MotionEvent e) {
+                if (app.BookTextView.mySelection.isEmpty())
+                    return false;
+                return true;
+            }
+        }
 
         public ScrollView(Context context) {
             super(context);
 
             lm = new LinearLayoutManager(context);
-            gestures = new GestureDetectorCompat(context, new GestureDetector.OnGestureListener() {
-                @Override
-                public boolean onDown(MotionEvent e) {
-                    return false;
-                }
-
-                @Override
-                public void onShowPress(MotionEvent e) {
-                }
-
-                @Override
-                public boolean onSingleTapUp(MotionEvent e) {
-                    ScrollAdapter.PageView v = findView(e);
-                    if (v == null)
-                        return false;
-                    int pos = v.holder.getAdapterPosition();
-                    if (pos == -1)
-                        return false;
-                    ScrollAdapter.PageCursor c = adapter.pages.get(pos);
-                    if (!app.BookTextView.getStartCursor().samePositionAs(c.start))
-                        app.BookTextView.gotoPosition(c.start);
-                    app.BookTextView.myCurrentPage.TextElementMap = c.p;
-                    int x = (int) (e.getX() - v.getLeft());
-                    int y = (int) (e.getY() - v.getTop());
-                    app.BookTextView.onFingerSingleTap(x, y);
-                    app.BookTextView.myCurrentPage.TextElementMap = new ZLTextElementAreaVector();
-                    return true;
-                }
-
-                @Override
-                public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-                    return false;
-                }
-
-                @Override
-                public void onLongPress(MotionEvent e) {
-                }
-
-                @Override
-                public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                    return false;
-                }
-            });
+            gestures = new GestureDetectorCompat(context, gesturesListener);
 
             setLayoutManager(lm);
             setAdapter(adapter);
@@ -1629,15 +1690,17 @@ public class FBReaderView extends RelativeLayout {
             FBView.Footer footer = app.BookTextView.getFooterArea();
             if (footer != null)
                 setPadding(0, 0, 0, footer.getHeight());
+        }
 
-            setOnTouchListener(new OnTouchListener() {
-                @Override
-                public boolean onTouch(View v, MotionEvent event) {
-                    if (gestures.onTouchEvent(event))
-                        return true;
-                    return false;
-                }
-            });
+        @Override
+        public boolean onTouchEvent(MotionEvent e) {
+            if (gestures.onTouchEvent(e))
+                return true;
+            if (gesturesListener.onRelease(e))
+                return true;
+            if (gesturesListener.onFilter(e))
+                return true;
+            return super.onTouchEvent(e);
         }
 
         ScrollAdapter.PageView findView(MotionEvent e) {
@@ -1650,16 +1713,11 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public void reset() {
-            if (pluginview != null) {
-                if (pluginview.reflower != null) {
-                    pluginview.reflower.reset();
-                }
-            }
+            postInvalidate();
         }
 
         @Override
         public void repaint() {
-            adapter.reset();
         }
 
         public int findMiddleView() {
@@ -1870,9 +1928,10 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void setWidget(ZLViewWidget v) {
+        if (widget != null)
+            removeView((View) widget);
         widget = v;
-        removeAllViews();
-        addView((View) v, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        addView((View) v, 0, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }
 
     public void loadBook(Storage.Book book) {
@@ -2139,6 +2198,10 @@ public class FBReaderView extends RelativeLayout {
                         a,
                         ZLResource.resource("selection").getResource("textInBuffer").getValue().replace("%s", clipboard.getText())
                 );
+
+                if (widget instanceof ScrollView) {
+                    ((ScrollView) widget).adapter.processInvalidate();
+                }
             }
         });
         app.addAction(ActionCode.SELECTION_SHARE, new FBAction(app) {
@@ -2161,6 +2224,10 @@ public class FBReaderView extends RelativeLayout {
                 );
                 intent.putExtra(android.content.Intent.EXTRA_TEXT, text);
                 a.startActivity(Intent.createChooser(intent, null));
+
+                if (widget instanceof ScrollView) {
+                    ((ScrollView) widget).adapter.processInvalidate();
+                }
             }
         });
         app.addAction(ActionCode.SELECTION_TRANSLATE, new FBAction(app) {
@@ -2221,6 +2288,43 @@ public class FBReaderView extends RelativeLayout {
                     }
                 }));
                 showToast(toast);
+            }
+        });
+        app.addAction(ActionCode.SELECTION_CLEAR, new FBAction(app) {
+            @Override
+            protected void run(Object... params) {
+                app.BookTextView.clearSelection();
+                if (widget instanceof ScrollView) {
+                    ((ScrollView) widget).adapter.processInvalidate();
+                }
+            }
+        });
+
+        app.addAction(ActionCode.FIND_PREVIOUS, new FBAction(app) {
+            @Override
+            protected void run(Object... params) {
+                Reader.getTextView().findPrevious();
+                if (widget instanceof ScrollView) {
+                    ((ScrollView) widget).adapter.reset();
+                }
+            }
+        });
+        app.addAction(ActionCode.FIND_NEXT, new FBAction(app) {
+            @Override
+            protected void run(Object... params) {
+                Reader.getTextView().findNext();
+                if (widget instanceof ScrollView) {
+                    ((ScrollView) widget).adapter.reset();
+                }
+            }
+        });
+        app.addAction(ActionCode.CLEAR_FIND_RESULTS, new FBAction(app) {
+            @Override
+            protected void run(Object... params) {
+                Reader.getTextView().clearFindResults();
+                if (widget instanceof ScrollView) {
+                    ((ScrollView) widget).adapter.reset(); // we have only one page, can reset
+                }
             }
         });
 
@@ -2350,6 +2454,9 @@ public class FBReaderView extends RelativeLayout {
     public void reset() {
         widget.reset();
         widget.repaint();
+        if (widget instanceof ScrollView) {
+            ((ScrollView) widget).adapter.reset();
+        }
     }
 
     public void invalidateFooter() {
