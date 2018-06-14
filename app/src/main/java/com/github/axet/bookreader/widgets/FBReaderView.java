@@ -1115,7 +1115,12 @@ public class FBReaderView extends RelativeLayout {
                     super(context);
                     f = new FrameLayout(context);
 
-                    progressBar = new ProgressBar(context);
+                    progressBar = new ProgressBar(context) {
+                        @Override
+                        public int getWindowVisibility() {
+                            return VISIBLE;
+                        }
+                    };
                     progressBar.setIndeterminate(true);
                     f.addView(progressBar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
