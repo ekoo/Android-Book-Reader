@@ -10,16 +10,26 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.Parcelable;
+import android.support.v4.view.GestureDetectorCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.preference.PreferenceManager;
+import android.support.v7.widget.DividerItemDecoration;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
+import android.util.Size;
+import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -27,10 +37,12 @@ import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
-import android.widget.Toast;
+import android.widget.TextView;
 
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
+import com.github.axet.androidlibrary.widgets.PopupWindowCompat;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.DjvuPlugin;
@@ -63,11 +75,13 @@ import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.bookmodel.FBHyperlinkType;
 import org.geometerplus.fbreader.bookmodel.TOCTree;
 import org.geometerplus.fbreader.fbreader.ActionCode;
+import org.geometerplus.fbreader.fbreader.BookmarkHighlighting;
 import org.geometerplus.fbreader.fbreader.DictionaryHighlighting;
 import org.geometerplus.fbreader.fbreader.FBAction;
 import org.geometerplus.fbreader.fbreader.FBView;
 import org.geometerplus.fbreader.fbreader.options.ColorProfile;
 import org.geometerplus.fbreader.fbreader.options.FooterOptions;
+import org.geometerplus.fbreader.fbreader.options.ImageOptions;
 import org.geometerplus.fbreader.fbreader.options.PageTurningOptions;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
@@ -77,9 +91,12 @@ import org.geometerplus.zlibrary.core.application.ZLApplication;
 import org.geometerplus.zlibrary.core.application.ZLApplicationWindow;
 import org.geometerplus.zlibrary.core.filesystem.ZLFile;
 import org.geometerplus.zlibrary.core.options.Config;
+import org.geometerplus.zlibrary.core.options.StringPair;
 import org.geometerplus.zlibrary.core.options.ZLBooleanOption;
 import org.geometerplus.zlibrary.core.options.ZLIntegerRangeOption;
+import org.geometerplus.zlibrary.core.options.ZLOption;
 import org.geometerplus.zlibrary.core.resources.ZLResource;
+import org.geometerplus.zlibrary.core.view.SelectionCursor;
 import org.geometerplus.zlibrary.core.view.ZLPaintContext;
 import org.geometerplus.zlibrary.core.view.ZLView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
@@ -88,20 +105,25 @@ import org.geometerplus.zlibrary.text.hyphenation.ZLTextHyphenator;
 import org.geometerplus.zlibrary.text.model.ZLTextMark;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
+import org.geometerplus.zlibrary.text.view.ZLTextElementAreaVector;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
+import org.geometerplus.zlibrary.text.view.ZLTextHighlighting;
 import org.geometerplus.zlibrary.text.view.ZLTextHyperlink;
 import org.geometerplus.zlibrary.text.view.ZLTextHyperlinkRegionSoul;
 import org.geometerplus.zlibrary.text.view.ZLTextImageRegionSoul;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextRegion;
+import org.geometerplus.zlibrary.text.view.ZLTextVideoRegionSoul;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
 import org.geometerplus.zlibrary.text.view.ZLTextWordRegionSoul;
+import org.geometerplus.zlibrary.ui.android.view.ZLAndroidPaintContext;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class FBReaderView extends RelativeLayout {
 
@@ -110,15 +132,18 @@ public class FBReaderView extends RelativeLayout {
     public static final int PAGE_OVERLAP_PERCENTS = 5; // percents
     public static final int PAGE_PAPER_COLOR = 0x80ffffff;
 
+    public enum Widgets {PAGING, CONTINUOUS}
+
     public FBReaderApp app;
     public ConfigShadow config;
-    public ZLAndroidWidget widget;
+    public ZLViewWidget widget;
     public int battery;
     public String title;
     public Window w;
     public Storage.Book book;
     public PluginView pluginview;
     public PageTurningListener pageTurningListener;
+    GestureDetectorCompat gestures;
 
     public static class PluginRect {
         public int x; // lower left x
@@ -340,6 +365,10 @@ public class FBReaderView extends RelativeLayout {
         public void reset() {
             w = 0;
             h = 0;
+            if (k2 != null) {
+                k2.close();
+                k2 = null;
+            }
         }
 
         public void reset(int w, int h) {
@@ -371,6 +400,8 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public int count() {
+            if (k2 == null)
+                return 0;
             return k2.getCount();
         }
 
@@ -401,7 +432,10 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public void close() {
-            k2.close();
+            if (k2 != null) {
+                k2.close();
+                k2 = null;
+            }
         }
     }
 
@@ -445,11 +479,16 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public void gotoPosition(ZLTextPosition p) {
-            current.load(p);
+            if (p == null)
+                return;
+            if (current.pageNumber != p.getParagraphIndex())
+                current.load(p);
             if (reflower != null) {
-                reflower.reset();
-                reflower.page = current.pageNumber;
-                reflower.current = 0;
+                if (reflower.page != p.getParagraphIndex()) {
+                    reflower.reset();
+                    reflower.page = current.pageNumber;
+                }
+                reflower.current = p.getElementIndex();
             }
         }
 
@@ -535,6 +574,23 @@ public class FBReaderView extends RelativeLayout {
             return new ZLTextFixedPosition(current.pageNumber, current.pageOffset, 0);
         }
 
+        public ZLTextFixedPosition getNextPosition() {
+            PluginPage old = new PluginPage(current, ZLViewEnums.PageIndex.next) {
+                @Override
+                public void load() {
+                }
+
+                @Override
+                public int getPagesCount() {
+                    return current.getPagesCount();
+                }
+            };
+            ZLTextFixedPosition e = new ZLTextFixedPosition(old.pageNumber, old.pageOffset, 0);
+            if (e.ParagraphIndex >= old.getPagesCount())
+                return null;
+            return e;
+        }
+
         public boolean canScroll(ZLView.PageIndex index) {
             if (reflower != null) {
                 if (reflower.canScroll(index))
@@ -597,6 +653,14 @@ public class FBReaderView extends RelativeLayout {
 
         public void drawOnBitmap(Context context, Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
             Canvas canvas = new Canvas(bitmap);
+            drawOnCanvas(context, canvas, w, h, index);
+        }
+
+        public double getPageHeight(int w, ZLView.PageIndex index) {
+            return -1;
+        }
+
+        public void drawOnCanvas(Context context, Canvas canvas, int w, int h, ZLView.PageIndex index) {
             drawWallpaper(canvas);
             if (reflow) {
                 if (reflower == null) {
@@ -725,6 +789,26 @@ public class FBReaderView extends RelativeLayout {
         }
 
         @Override
+        public void hideOutline() {
+            super.hideOutline();
+            if (widget instanceof ScrollView) {
+                ((ScrollView) widget).adapter.processInvalidate();
+            }
+        }
+
+        @Override
+        protected ZLTextRegion findRegion(int x, int y, int maxDistance, ZLTextRegion.Filter filter) {
+            return super.findRegion(x, y, maxDistance, filter);
+        }
+
+        @Override
+        public boolean twoColumnView() {
+            if (widget instanceof ScrollView)
+                return false;
+            return super.twoColumnView();
+        }
+
+        @Override
         public boolean canScroll(PageIndex index) {
             if (pluginview != null)
                 return pluginview.canScroll(index);
@@ -745,7 +829,7 @@ public class FBReaderView extends RelativeLayout {
         }
 
         @Override
-        public synchronized PagePosition pagePosition() {
+        public synchronized PagePosition pagePosition() { // Footer draw
             if (pluginview != null)
                 return pluginview.pagePosition();
             else
@@ -895,11 +979,11 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
-    public static class ParagraphModel implements ZLTextModel {
+    public static class SingleParagraphModel implements ZLTextModel {
         int index;
         ZLTextModel model;
 
-        public ParagraphModel(int index, ZLTextModel m) {
+        public SingleParagraphModel(int index, ZLTextModel m) {
             this.index = index;
             this.model = m;
         }
@@ -983,7 +1067,43 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
-    public static class ConfigShadow extends Config {
+    public static class ConfigShadow extends Config { // disable config changes across this app view instancies and fbreader
+        public Map<String, String> map = new TreeMap<>();
+
+        public ConfigShadow() {
+        }
+
+        public void setValue(ZLOption opt, int i) {
+            apply(opt);
+            map.put(opt.myId.Name, "" + i);
+        }
+
+        public void setValue(ZLOption opt, boolean b) {
+            apply(opt);
+            map.put(opt.myId.Name, "" + b);
+        }
+
+        public void apply(ZLOption opt) {
+            opt.Config = new ZLOption.ConfigInstance() {
+                public Config Instance() {
+                    return ConfigShadow.this;
+                }
+            };
+        }
+
+        @Override
+        public String getValue(StringPair id, String defaultValue) {
+            String v = map.get(id.Name);
+            if (v != null)
+                return v;
+            return super.getValue(id, defaultValue);
+        }
+
+        @Override
+        public void setValue(StringPair id, String value) {
+            super.setValue(id, value);
+        }
+
         @Override
         protected void setValueInternal(String group, String name, String value) {
         }
@@ -1044,29 +1164,695 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
+    public class ScrollView extends RecyclerView implements ZLViewWidget {
+        public LinearLayoutManager lm;
+        public ScrollAdapter adapter = new ScrollAdapter();
+        Gestures gesturesListener = new Gestures();
+
+        public class ScrollAdapter extends RecyclerView.Adapter<ScrollAdapter.PageHolder> {
+            public ArrayList<PageCursor> pages = new ArrayList<>();
+            final Object lock = new Object();
+            Thread thread;
+            PluginRect size = new PluginRect(); // ScrollView size, after reset
+            ArrayList<ScrollView.ScrollAdapter.PageHolder> invalidate = new ArrayList<>(); // pending invalidates
+
+            public class PageView extends View {
+                public PageHolder holder;
+                TimeAnimatorCompat time;
+                FrameLayout f;
+                ProgressBar progressBar;
+                TextView text;
+                Bitmap bm;
+                PageCursor cache;
+                Paint paint = new Paint();
+
+                public PageView(Context context) {
+                    super(context);
+                    f = new FrameLayout(context);
+
+                    progressBar = new ProgressBar(context) {
+                        @Override
+                        public int getWindowVisibility() {
+                            return VISIBLE;
+                        }
+                    };
+                    progressBar.setIndeterminate(true);
+                    f.addView(progressBar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+                    text = new TextView(context);
+                    text.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                    f.addView(text, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
+                }
+
+                @Override
+                protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+                    int w = getDefaultSize(getSuggestedMinimumWidth(), widthMeasureSpec);
+                    int h = ScrollView.this.getHeight();
+                    if (pluginview != null) {
+                        if (!pluginview.reflow) {
+                            PageCursor c = current();
+                            open(c);
+                            h = (int) Math.ceil(pluginview.getPageHeight(w, ZLViewEnums.PageIndex.current));
+                        }
+                    }
+                    setMeasuredDimension(w, h);
+                }
+
+                PageCursor current() {
+                    int page = holder.getAdapterPosition();
+                    if (page == -1)
+                        return null;
+                    return pages.get(page);
+                }
+
+                @Override
+                protected void onDraw(Canvas draw) {
+                    final PageCursor c = current();
+                    if (c == null) {
+                        invalidate();
+                        return;
+                    }
+                    if (isCached(c)) {
+                        drawCache(draw);
+                        return;
+                    }
+                    if (pluginview != null) {
+                        if (pluginview.reflow) {
+                            final int page;
+                            final int index;
+                            if (c.start == null) {
+                                int p = c.end.getParagraphIndex();
+                                int i = c.end.getElementIndex();
+                                i = i - 1;
+                                if (i < 0)
+                                    p = p - 1;
+                                else
+                                    c.start = new ZLTextFixedPosition(p, i, 0);
+                                page = p;
+                                index = i;
+                            } else {
+                                page = c.start.getParagraphIndex();
+                                index = c.start.getElementIndex();
+                            }
+                            synchronized (lock) {
+                                if (thread == null) {
+                                    if (pluginview.reflower != null) {
+                                        if (pluginview.reflower.page != page || pluginview.reflower.count() == 0) {
+                                            pluginview.reflower.close();
+                                            pluginview.reflower = null;
+                                        }
+                                    }
+                                }
+                                if (pluginview.reflower == null) {
+                                    if (thread == null) {
+                                        thread = new Thread() {
+                                            @Override
+                                            public void run() {
+                                                int i = index;
+                                                Reflow reflower = new Reflow(getContext(), getWidth(), getHeight(), page);
+                                                Bitmap bm = pluginview.render(getWidth(), getHeight(), page);
+                                                reflower.load(bm);
+                                                bm.recycle();
+                                                if (i < 0) {
+                                                    i = reflower.count() + i;
+                                                    c.start = new ZLTextFixedPosition(page, i, 0);
+                                                }
+                                                reflower.current = i;
+                                                synchronized (lock) {
+                                                    pluginview.reflower = reflower;
+                                                    thread = null;
+                                                }
+                                            }
+                                        };
+                                        thread.setPriority(Thread.MIN_PRIORITY);
+                                        thread.start();
+                                    }
+                                }
+                                if (thread != null) {
+                                    if (time == null) {
+                                        time = new TimeAnimatorCompat();
+                                        time.start();
+                                        time.setTimeListener(new TimeAnimatorCompat.TimeListener() {
+                                            @Override
+                                            public void onTimeUpdate(TimeAnimatorCompat animation, long totalTime, long deltaTime) {
+                                                invalidate();
+                                            }
+                                        });
+                                    }
+                                    drawProgress(draw, page, index);
+                                    return;
+                                }
+                                if (time != null) {
+                                    time.cancel();
+                                    time = null;
+                                }
+                                if (page == pluginview.reflower.page) {
+                                    Canvas canvas = getCanvas(draw, c);
+                                    pluginview.current.pageNumber = page;
+                                    pluginview.reflower.current = c.start.getElementIndex();
+                                    Bitmap bm = pluginview.reflower.render(c.start.getElementIndex());
+                                    Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
+                                    Rect dst = new Rect(0, 0, canvas.getWidth(), canvas.getHeight());
+                                    canvas.drawBitmap(bm, src, dst, pluginview.paint);
+                                    update();
+                                    drawCache(draw);
+                                } else {
+                                    invalidate();
+                                }
+                            }
+                            return;
+                        }
+                        open(c);
+                        pluginview.drawOnCanvas(getContext(), draw, getWidth(), getHeight(), ZLViewEnums.PageIndex.current);
+                        update();
+                    } else {
+                        open(c);
+                        final ZLAndroidPaintContext context = new ZLAndroidPaintContext(
+                                app.SystemInfo,
+                                draw,
+                                new ZLAndroidPaintContext.Geometry(
+                                        getWidth(),
+                                        getHeight(),
+                                        getWidth(),
+                                        getHeight(),
+                                        0,
+                                        0
+                                ),
+                                getVerticalScrollbarWidth()
+                        );
+                        app.BookTextView.paint(context, ZLViewEnums.PageIndex.current);
+                        update();
+                    }
+                }
+
+                void drawProgress(Canvas canvas, int page, int index) {
+                    canvas.drawColor(Color.GRAY);
+                    canvas.save();
+                    canvas.translate(getWidth() / 2 - progressBar.getMeasuredWidth() / 2, getHeight() / 2 - progressBar.getMeasuredHeight() / 2);
+
+                    String t = page + "." + index;
+                    text.setText(t);
+
+                    int dp60 = ThemeUtils.dp2px(getContext(), 60);
+                    f.measure(MeasureSpec.makeMeasureSpec(dp60, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp60, MeasureSpec.EXACTLY));
+                    f.layout(0, 0, dp60, dp60);
+                    f.draw(canvas);
+
+                    canvas.restore();
+                }
+
+                void recycle() {
+                    if (bm != null) {
+                        bm.recycle();
+                        bm = null;
+                    }
+                }
+
+                boolean isCached(PageCursor c) {
+                    if (cache == null || cache != c) // should be same 'cache' memory ref
+                        return false;
+                    if (bm == null)
+                        return false;
+                    return true;
+                }
+
+                void drawCache(Canvas draw) {
+                    Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
+                    Rect dst = new Rect(0, 0, draw.getWidth(), draw.getHeight());
+                    draw.drawBitmap(bm, src, dst, paint);
+                }
+
+                Canvas getCanvas(Canvas draw, PageCursor c) {
+                    if (bm != null)
+                        recycle();
+                    bm = Bitmap.createBitmap(draw.getWidth(), draw.getHeight(), Bitmap.Config.RGB_565);
+                    cache = c;
+                    return new Canvas(bm);
+                }
+            }
+
+            public class PageHolder extends RecyclerView.ViewHolder {
+                public PageView page;
+
+                public PageHolder(PageView p) {
+                    super(p);
+                    page = p;
+                }
+            }
+
+            public class PageCursor {
+                ZLTextPosition start;
+                ZLTextPosition end;
+                ZLTextElementAreaVector p;
+
+                public PageCursor(ZLTextPosition s, ZLTextPosition e, ZLTextElementAreaVector p) {
+                    this(s, e);
+                    this.p = p;
+                }
+
+                public PageCursor(ZLTextPosition s, ZLTextPosition e) {
+                    if (s != null)
+                        start = new ZLTextFixedPosition(s);
+                    if (e != null)
+                        end = new ZLTextFixedPosition(e);
+                }
+
+                public boolean equals(ZLTextPosition p1, ZLTextPosition p2) {
+                    return p1.getCharIndex() == p2.getCharIndex() && p1.getElementIndex() == p2.getElementIndex() && p1.getParagraphIndex() == p2.getParagraphIndex();
+                }
+
+                @Override
+                public boolean equals(Object obj) {
+                    PageCursor p = (PageCursor) obj;
+                    if (start != null && p.start != null) {
+                        if (equals(start, p.start))
+                            return true;
+                    }
+                    if (end != null && p.end != null) {
+                        if (equals(end, p.end))
+                            return true;
+                    }
+                    return false;
+                }
+
+                public void update(PageCursor c) {
+                    if (c.start != null)
+                        start = c.start;
+                    if (c.end != null)
+                        end = c.end;
+                    if (c.p != null && c.p.size() > 0)
+                        p = c.p;
+                }
+            }
+
+            public ScrollAdapter() {
+            }
+
+            void open(PageCursor c) {
+                if (c.start == null) {
+                    if (pluginview != null) {
+                        pluginview.gotoPosition(c.end);
+                        pluginview.onScrollingFinished(ZLViewEnums.PageIndex.previous);
+                        c.update(getCurrent());
+                    } else {
+                        app.BookTextView.gotoPosition(c.end);
+                        app.BookTextView.onScrollingFinished(ZLViewEnums.PageIndex.previous);
+                        c.update(getCurrent());
+                    }
+                } else {
+                    if (pluginview != null)
+                        pluginview.gotoPosition(c.start);
+                    else {
+                        PageCursor cc = getCurrent();
+                        if (!cc.equals(c))
+                            app.BookTextView.gotoPosition(c.start);
+                    }
+                }
+            }
+
+            @Override
+            public PageHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+                return new PageHolder(new PageView(getContext()));
+            }
+
+            @Override
+            public void onBindViewHolder(PageHolder holder, int position) {
+                holder.page.holder = holder;
+            }
+
+            @Override
+            public void onViewRecycled(PageHolder holder) {
+                super.onViewRecycled(holder);
+                holder.page.recycle();
+            }
+
+            @Override
+            public int getItemCount() {
+                return pages.size();
+            }
+
+            public void reset() {
+                if (pluginview != null) {
+                    if (pluginview.reflower != null) {
+                        pluginview.reflower.reset();
+                    }
+                }
+                size = new PluginRect();
+                getRecycledViewPool().clear();
+                pages.clear();
+                if (app.Model != null) {
+                    PageCursor c = getCurrent();
+                    pages.add(c);
+                }
+                postInvalidate();
+                notifyDataSetChanged();
+            }
+
+            PageCursor getCurrent() {
+                if (pluginview != null) {
+                    if (pluginview.reflow && pluginview.reflower != null) {
+                        ZLTextFixedPosition s = new ZLTextFixedPosition(pluginview.reflower.page, pluginview.reflower.current, 0);
+                        int c = s.ParagraphIndex;
+                        int p = s.ElementIndex + 1;
+                        if (p >= pluginview.reflower.count()) { // current points to next page +1
+                            c = pluginview.reflower.page + 1;
+                            p = 0;
+                        }
+                        ZLTextFixedPosition e = new ZLTextFixedPosition(c, p, 0);
+                        return new PageCursor(s, e);
+                    } else {
+                        return new PageCursor(pluginview.getPosition(), pluginview.getNextPosition());
+                    }
+                } else {
+                    ZLTextElementAreaVector p = app.BookTextView.myCurrentPage.TextElementMap;
+                    app.BookTextView.myCurrentPage.TextElementMap = new ZLTextElementAreaVector();
+                    return new PageCursor(app.BookTextView.getStartCursor(), app.BookTextView.getEndCursor(), p);
+                }
+            }
+
+            void update() {
+                if (app.Model == null)
+                    return;
+                PageCursor c = getCurrent();
+                int page;
+                for (page = 0; page < pages.size(); page++) {
+                    PageCursor p = pages.get(page);
+                    if (p.equals(c)) {
+                        p.update(c);
+                        break;
+                    }
+                }
+                if (page == pages.size()) { // not found == 0
+                    pages.add(c);
+                    notifyItemInserted(page);
+                }
+                if (app.BookTextView.canScroll(ZLViewEnums.PageIndex.previous)) {
+                    if (page == 0) {
+                        pages.add(page, new PageCursor(null, c.start));
+                        notifyItemInserted(page);
+                        page++; // 'c' page moved to + 1
+                    }
+                }
+                if (app.BookTextView.canScroll(ZLViewEnums.PageIndex.next)) {
+                    if (page == pages.size() - 1) {
+                        page++;
+                        pages.add(page, new PageCursor(c.end, null));
+                        notifyItemInserted(page);
+                    }
+                }
+            }
+
+            void processInvalidate() {
+                for (ScrollView.ScrollAdapter.PageHolder h : invalidate) {
+                    h.page.invalidate();
+                }
+                invalidate.clear();
+            }
+        }
+
+        public class Gestures implements GestureDetector.OnGestureListener {
+            int x;
+            int y;
+            ScrollAdapter.PageView v;
+
+            boolean open(MotionEvent e) {
+                v = findView(e);
+                if (v == null)
+                    return false;
+                int pos = v.holder.getAdapterPosition();
+                if (pos == -1)
+                    return false;
+                ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+                if (!app.BookTextView.getStartCursor().samePositionAs(c.start))
+                    app.BookTextView.gotoPosition(c.start);
+                app.BookTextView.myCurrentPage.TextElementMap = c.p;
+                x = (int) (e.getX() - v.getLeft());
+                y = (int) (e.getY() - v.getTop());
+                return true;
+            }
+
+            void close() {
+                app.BookTextView.myCurrentPage.TextElementMap = new ZLTextElementAreaVector();
+            }
+
+            @Override
+            public boolean onDown(MotionEvent e) {
+                if (app.BookTextView.mySelection.isEmpty())
+                    return false;
+                if (!open(e))
+                    return false;
+                app.BookTextView.onFingerPress(x, y);
+                v.invalidate();
+                close();
+                return true;
+            }
+
+            @Override
+            public void onShowPress(MotionEvent e) {
+            }
+
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                if (!open(e))
+                    return false;
+                app.BookTextView.onFingerSingleTap(x, y);
+                v.invalidate();
+                adapter.invalidate.add(v.holder);
+                close();
+                return true;
+            }
+
+            @Override
+            public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                if (app.BookTextView.mySelection.isEmpty())
+                    return false;
+                if (!open(e2))
+                    return false;
+                app.BookTextView.onFingerMove(x, y);
+                v.invalidate();
+                close();
+                return true;
+            }
+
+            @Override
+            public void onLongPress(MotionEvent e) {
+                if (!open(e))
+                    return;
+                app.BookTextView.onFingerLongPress(x, y);
+                app.BookTextView.onFingerReleaseAfterLongPress(x, y);
+                v.invalidate();
+                app.BookTextView.myCurrentPage.TextElementMap = new ZLTextElementAreaVector();
+                adapter.invalidate.add(v.holder);
+                close();
+            }
+
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                if (app.BookTextView.mySelection.isEmpty())
+                    return false;
+                return true;
+            }
+
+            public boolean onRelease(MotionEvent e) {
+                if (app.BookTextView.mySelection.isEmpty())
+                    return false;
+                if (e.getAction() == MotionEvent.ACTION_UP) {
+                    if (!open(e))
+                        return false;
+                    app.BookTextView.onFingerRelease(x, y);
+                    v.invalidate();
+                    adapter.invalidate.add(v.holder);
+                    close();
+                    return true;
+                }
+                return false;
+            }
+
+            public boolean onFilter(MotionEvent e) {
+                if (app.BookTextView.mySelection.isEmpty())
+                    return false;
+                return true;
+            }
+        }
+
+        public ScrollView(Context context) {
+            super(context);
+
+            lm = new LinearLayoutManager(context);
+            gestures = new GestureDetectorCompat(context, gesturesListener);
+
+            setLayoutManager(lm);
+            setAdapter(adapter);
+
+            DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(context, DividerItemDecoration.VERTICAL);
+            addItemDecoration(dividerItemDecoration);
+
+            FBView.Footer footer = app.BookTextView.getFooterArea();
+            if (footer != null)
+                setPadding(0, 0, 0, footer.getHeight());
+        }
+
+        @Override
+        public boolean onTouchEvent(MotionEvent e) {
+            if (gestures.onTouchEvent(e))
+                return true;
+            if (gesturesListener.onRelease(e))
+                return true;
+            if (gesturesListener.onFilter(e))
+                return true;
+            return super.onTouchEvent(e);
+        }
+
+        ScrollAdapter.PageView findView(MotionEvent e) {
+            for (int i = 0; i < lm.getChildCount(); i++) {
+                ScrollAdapter.PageView view = (ScrollAdapter.PageView) lm.getChildAt(i);
+                if (view.getLeft() < e.getX() && view.getTop() < e.getY() && view.getRight() > e.getX() && view.getBottom() > e.getY())
+                    return view;
+            }
+            return null;
+        }
+
+        public void reset() {
+            postInvalidate();
+        }
+
+        @Override
+        public void repaint() {
+        }
+
+        public int findMiddleView() {
+            Map<Integer, View> map = new TreeMap<>();
+            for (int i = 0; i < lm.getChildCount(); i++) {
+                View view = lm.getChildAt(i);
+                int h = view.getBottom(); // visible height
+                if (view.getHeight() * 0.15 < h) // add only views atleast 15% visible
+                    map.put(view.getTop(), view);
+            }
+            for (Integer key : map.keySet())
+                return ((ScrollAdapter.PageView) map.get(key)).holder.getAdapterPosition();
+            return -1;
+        }
+
+        @Override
+        public void startManualScrolling(int x, int y, ZLViewEnums.Direction direction) {
+        }
+
+        @Override
+        public void scrollManuallyTo(int x, int y) {
+        }
+
+        @Override
+        public void startAnimatedScrolling(ZLViewEnums.PageIndex pageIndex, int x, int y, ZLViewEnums.Direction direction, int speed) {
+        }
+
+        @Override
+        public void startAnimatedScrolling(ZLViewEnums.PageIndex pageIndex, ZLViewEnums.Direction direction, int speed) {
+            int pos = findMiddleView();
+            if (pos == -1)
+                return;
+            switch (pageIndex) {
+                case next:
+                    pos++;
+                    break;
+                case previous:
+                    pos--;
+                    break;
+            }
+            if (pos < 0 || pos >= adapter.pages.size())
+                return;
+            smoothScrollToPosition(pos);
+        }
+
+        @Override
+        public void startAnimatedScrolling(int x, int y, int speed) {
+        }
+
+        @Override
+        public void setScreenBrightness(int percent) {
+        }
+
+        @Override
+        public int getScreenBrightness() {
+            return 0;
+        }
+
+        @Override
+        public void onDraw(Canvas c) {
+            super.onDraw(c);
+        }
+
+        @Override
+        public void draw(Canvas c) {
+            if (adapter.size.w != getWidth() || adapter.size.h != getHeight()) { // reset for textbook and reflow mode only
+                adapter.reset();
+                adapter.size.w = getWidth();
+                adapter.size.h = getHeight();
+            }
+            super.draw(c);
+            updatePosition();
+            drawFooter(c);
+        }
+
+        void updatePosition() { // position can vary depend on which page drawn, restore it after every draw
+            if (widget instanceof ScrollView) {
+                int first = ((ScrollView) widget).findMiddleView();
+                if (first == -1)
+                    return;
+                if (pluginview != null && pluginview.reflow) {
+                    ScrollView.ScrollAdapter.PageCursor cc = ((ScrollView) widget).adapter.pages.get(first);
+                    if (cc.start == null) {
+                        int p = cc.end.getParagraphIndex();
+                        int i = cc.end.getElementIndex() - 1;
+                        if (i < 0)
+                            p = p - 1;
+                        pluginview.current.pageNumber = p;
+                    } else {
+                        pluginview.current.pageNumber = cc.start.getParagraphIndex();
+                    }
+                    clearReflowPage(); // reset reflow page, since we treat pageOffset differently for reflower/full page view
+                } else {
+                    ScrollView.ScrollAdapter.PageCursor c = ((ScrollView) widget).adapter.pages.get(first);
+                    ((ScrollView) widget).adapter.open(c);
+                }
+            }
+        }
+
+        void drawFooter(Canvas c) {
+            if (app.Model != null) {
+                FBView.Footer footer = app.BookTextView.getFooterArea();
+                if (footer == null)
+                    return;
+                final ZLAndroidPaintContext context = new ZLAndroidPaintContext(
+                        app.SystemInfo,
+                        c,
+                        new ZLAndroidPaintContext.Geometry(
+                                getWidth(),
+                                getHeight(),
+                                getWidth(),
+                                footer.getHeight(),
+                                0,
+                                getMainAreaHeight()
+                        ),
+                        0
+                );
+                final int voffset = getHeight() - footer.getHeight();
+                c.save();
+                c.translate(0, voffset);
+                footer.paint(context);
+                c.restore();
+            }
+        }
+
+        public int getMainAreaHeight() {
+            final ZLView.FooterArea footer = ZLApplication.Instance().getCurrentView().getFooterArea();
+            return footer != null ? getHeight() - footer.getHeight() : getHeight();
+        }
+    }
+
     public FBReaderView(Context context) { // create child view
         super(context);
         create();
-        app.ViewOptions.ScrollbarType = new ZLIntegerRangeOption("", "", 0, 0, 0) {
-            @Override
-            public void setValue(int value) {
-            }
-
-            @Override
-            public int getValue() {
-                return 0;
-            }
-        };
-        app.MiscOptions.AllowScreenBrightnessAdjustment = new ZLBooleanOption("", "", false) {
-            @Override
-            public void setValue(boolean value) {
-            }
-
-            @Override
-            public boolean getValue() {
-                return false;
-            }
-        };
+        setWidget(Widgets.CONTINUOUS);
     }
 
     public FBReaderView(Context context, AttributeSet attrs) {
@@ -1088,8 +1874,6 @@ public class FBReaderView extends RelativeLayout {
     public void create() {
         config = new ConfigShadow();
         app = new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow());
-        widget = new FBAndroidWidget();
-        addView(widget, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         app.setWindow(new FBApplicationWindow());
         app.initWindow();
@@ -1118,19 +1902,36 @@ public class FBReaderView extends RelativeLayout {
 
         SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(getContext());
 
+        setColorProfile();
+
         int d = shared.getInt(MainApplication.PREFERENCE_FONTSIZE_FBREADER, app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.getValue());
         app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.setValue(d);
 
         String f = shared.getString(MainApplication.PREFERENCE_FONTFAMILY_FBREADER, app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
         app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.setValue(f);
 
-        app.ViewOptions.ScrollbarType = new ZLIntegerRangeOption("", "", 0, 0, 0) {
-            @Override
-            public int getValue() {
-                return FBView.SCROLLBAR_SHOW_AS_FOOTER;
-            }
-        };
+        config.setValue(app.MiscOptions.AllowScreenBrightnessAdjustment, false);
+
+        config.setValue(app.ViewOptions.ScrollbarType, FBView.SCROLLBAR_SHOW_AS_FOOTER);
         app.ViewOptions.getFooterOptions().ShowProgress.setValue(FooterOptions.ProgressDisplayType.asPages);
+    }
+
+    public void setWidget(Widgets w) {
+        switch (w) {
+            case CONTINUOUS:
+                setWidget(new ScrollView(getContext()));
+                break;
+            case PAGING:
+                setWidget(new FBAndroidWidget());
+                break;
+        }
+    }
+
+    public void setWidget(ZLViewWidget v) {
+        if (widget != null)
+            removeView((View) widget);
+        widget = v;
+        addView((View) v, 0, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }
 
     public void loadBook(Storage.Book book) {
@@ -1160,6 +1961,9 @@ public class FBReaderView extends RelativeLayout {
                 if (book.info != null)
                     app.BookTextView.gotoPosition(book.info.position);
             }
+            widget.repaint();
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -1184,12 +1988,8 @@ public class FBReaderView extends RelativeLayout {
 
     public void setWindow(Window w) {
         this.w = w;
-        app.MiscOptions.AllowScreenBrightnessAdjustment = new ZLBooleanOption("", "", true) {
-            @Override
-            public boolean getValue() {
-                return true;
-            }
-        };
+        if (widget instanceof FBAndroidWidget)
+            config.setValue(app.MiscOptions.AllowScreenBrightnessAdjustment, true);
     }
 
     public void setActivity(final Activity a) {
@@ -1240,8 +2040,7 @@ public class FBReaderView extends RelativeLayout {
 
                 final ZLTextRegion.Soul soul = region.getSoul();
                 if (soul instanceof ZLTextHyperlinkRegionSoul) {
-                    Reader.getTextView().hideOutline();
-                    Reader.getViewWidget().repaint();
+                    app.BookTextView.hideOutline();
                     final ZLTextHyperlink hyperlink = ((ZLTextHyperlinkRegionSoul) soul).Hyperlink;
                     switch (hyperlink.Type) {
                         case FBHyperlinkType.EXTERNAL:
@@ -1296,7 +2095,6 @@ public class FBReaderView extends RelativeLayout {
                                     @Override
                                     public void onDismiss(View view) {
                                         Reader.getTextView().hideOutline();
-                                        Reader.getViewWidget().repaint();
                                     }
                                 }));
                                 Reader.getTextView().outlineRegion(region);
@@ -1400,6 +2198,10 @@ public class FBReaderView extends RelativeLayout {
                         a,
                         ZLResource.resource("selection").getResource("textInBuffer").getValue().replace("%s", clipboard.getText())
                 );
+
+                if (widget instanceof ScrollView) {
+                    ((ScrollView) widget).adapter.processInvalidate();
+                }
             }
         });
         app.addAction(ActionCode.SELECTION_SHARE, new FBAction(app) {
@@ -1422,6 +2224,10 @@ public class FBReaderView extends RelativeLayout {
                 );
                 intent.putExtra(android.content.Intent.EXTRA_TEXT, text);
                 a.startActivity(Intent.createChooser(intent, null));
+
+                if (widget instanceof ScrollView) {
+                    ((ScrollView) widget).adapter.processInvalidate();
+                }
             }
         });
         app.addAction(ActionCode.SELECTION_TRANSLATE, new FBAction(app) {
@@ -1484,6 +2290,43 @@ public class FBReaderView extends RelativeLayout {
                 showToast(toast);
             }
         });
+        app.addAction(ActionCode.SELECTION_CLEAR, new FBAction(app) {
+            @Override
+            protected void run(Object... params) {
+                app.BookTextView.clearSelection();
+                if (widget instanceof ScrollView) {
+                    ((ScrollView) widget).adapter.processInvalidate();
+                }
+            }
+        });
+
+        app.addAction(ActionCode.FIND_PREVIOUS, new FBAction(app) {
+            @Override
+            protected void run(Object... params) {
+                Reader.getTextView().findPrevious();
+                if (widget instanceof ScrollView) {
+                    ((ScrollView) widget).adapter.reset();
+                }
+            }
+        });
+        app.addAction(ActionCode.FIND_NEXT, new FBAction(app) {
+            @Override
+            protected void run(Object... params) {
+                Reader.getTextView().findNext();
+                if (widget instanceof ScrollView) {
+                    ((ScrollView) widget).adapter.reset();
+                }
+            }
+        });
+        app.addAction(ActionCode.CLEAR_FIND_RESULTS, new FBAction(app) {
+            @Override
+            protected void run(Object... params) {
+                Reader.getTextView().clearFindResults();
+                if (widget instanceof ScrollView) {
+                    ((ScrollView) widget).adapter.reset(); // we have only one page, can reset
+                }
+            }
+        });
 
         app.addAction(ActionCode.VOLUME_KEY_SCROLL_FORWARD, new FBAction(app) {
             @Override
@@ -1516,22 +2359,30 @@ public class FBReaderView extends RelativeLayout {
     }
 
     void showPopup(final ZLTextHyperlink hyperlink) {
-        LinearLayout ll = new LinearLayout(getContext());
+        Context context = getContext();
+
+        LinearLayout ll = new LinearLayout(context);
         ll.setOrientation(LinearLayout.VERTICAL);
 
-        WallpaperLayout f = new WallpaperLayout(getContext());
-        ImageButton c = new ImageButton(getContext());
+        WallpaperLayout f = new WallpaperLayout(context);
+        ImageButton c = new ImageButton(context);
         c.setImageResource(R.drawable.ic_close_black_24dp);
-        c.setColorFilter(ThemeUtils.getThemeColor(getContext(), R.attr.colorAccent));
+        c.setColorFilter(ThemeUtils.getThemeColor(context, R.attr.colorAccent));
         f.addView(c, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.RIGHT | Gravity.TOP));
 
-        final FBReaderView r = new FBReaderView(getContext());
+        final FBReaderView r = new FBReaderView(context) {
+            @Override
+            public void create() {
+                super.create();
+                config.setValue(app.ViewOptions.ScrollbarType, 0);
+            }
+        };
         LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 
         ll.addView(f, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         ll.addView(r, rlp);
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setView(ll);
         builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
             @Override
@@ -1546,7 +2397,7 @@ public class FBReaderView extends RelativeLayout {
                 final BookModel.Label label = r.app.Model.getLabel(hyperlink.Id);
                 if (label != null) {
                     if (label.ModelId == null) {
-                        r.app.BookTextView.setModel(new ParagraphModel(label.ParagraphIndex, r.app.Model.getTextModel()));
+                        // r.app.BookTextView.setModel(new SingleParagraphModel(label.ParagraphIndex, r.app.Model.getTextModel()));
                         r.app.BookTextView.gotoPosition(0, 0, 0);
                         r.app.setView(r.app.BookTextView);
                     } else {
@@ -1598,11 +2449,27 @@ public class FBReaderView extends RelativeLayout {
 
     public void setColorProfile(String p) {
         app.ViewOptions.ColorProfileName.setValue(p);
-        reset();
     }
 
     public void reset() {
         widget.reset();
         widget.repaint();
+        if (widget instanceof ScrollView) {
+            ((ScrollView) widget).adapter.reset();
+        }
+    }
+
+    public void invalidateFooter() {
+        if (widget instanceof ScrollView) {
+            ((ScrollView) widget).invalidate();
+        } else {
+            widget.repaint();
+        }
+    }
+
+    public void clearReflowPage() {
+        pluginview.current.pageOffset = 0;
+        if (pluginview.reflower != null)
+            pluginview.reflower.current = 0;
     }
 }

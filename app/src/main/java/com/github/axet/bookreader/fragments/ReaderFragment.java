@@ -6,6 +6,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
@@ -477,7 +478,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
         int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
         view.battery = level * 100 / scale;
-        view.widget.repaint();
+        view.invalidateFooter();
     }
 
     void updateTime() {
@@ -485,7 +486,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         long secs = System.currentTimeMillis() % s60;
         handler.removeCallbacks(time);
         handler.postDelayed(time, s60 - secs);
-        view.widget.repaint();
+        view.invalidateFooter();
     }
 
     @Override
@@ -520,6 +521,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         };
 
         view.setColorProfile();
+
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+        String mode = shared.getString(MainApplication.PREFERENCE_VIEW_MODE, "");
+        view.setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
 
         Context context = getContext();
         onReceiveBattery(context.registerReceiver(battery, new IntentFilter(Intent.ACTION_BATTERY_CHANGED)));
@@ -709,7 +714,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         SharedPreferences.Editor editor = shared.edit();
         editor.putFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, p);
         editor.apply();
-        view.pluginview.reflower.k2.setFontSize(p);
+        if (view.pluginview.reflower != null && view.pluginview.reflower.k2 != null)
+            view.pluginview.reflower.k2.setFontSize(p);
+        view.clearReflowPage(); // font can be reduced and last page may not exits. reset to 0
         view.reset();
         updateToolbar();
     }
@@ -801,6 +808,16 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             view.reset();
             updateToolbar();
         }
+        if (id == R.id.action_mode) {
+            FBReaderView.Widgets m = view.widget instanceof FBReaderView.ScrollView ? FBReaderView.Widgets.PAGING : FBReaderView.Widgets.CONTINUOUS;
+            SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+            SharedPreferences.Editor edit = shared.edit();
+            edit.putString(MainApplication.PREFERENCE_VIEW_MODE, m.toString());
+            edit.apply();
+            view.setWidget(m);
+            view.reset();
+            updateToolbar();
+        }
         return super.onOptionsItemSelected(item);
     }
 
@@ -825,6 +842,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         final MenuItem fontsize = menu.findItem(R.id.action_fontsize);
         final MenuItem rtl = menu.findItem(R.id.action_rtl);
         MenuItem grid = menu.findItem(R.id.action_grid);
+        MenuItem mode = menu.findItem(R.id.action_mode);
 
         grid.setVisible(false);
         homeMenu.setVisible(false);
@@ -850,6 +868,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 onOptionsItemSelected(fontsize);
             }
         });
+
+        mode.setIcon(view.widget instanceof FBReaderView.ScrollView ? R.drawable.ic_view_day_black_24dp : R.drawable.ic_view_carousel_black_24dp); // icon current
+        mode.setTitle(view.widget instanceof FBReaderView.ScrollView ? R.string.view_mode_paging : R.string.view_mode_continuous); // text next
 
         showRTL |= !view.app.BookTextView.rtlMode && view.app.BookTextView.rtlDetected;
         if (showRTL) {
@@ -904,11 +925,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         if (key.equals(MainApplication.PREFERENCE_THEME)) {
-            if (sharedPreferences.getString(key, "").equals(getString(R.string.Theme_Dark))) {
-                view.setColorProfile(ColorProfile.NIGHT);
-            } else {
-                view.setColorProfile(ColorProfile.DAY);
-            }
+            view.setColorProfile();
+            view.reset();
         }
     }
 
@@ -919,6 +937,13 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public void onFullscreenChanged(boolean f) {
+        view.reset();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        view.reset();
     }
 
     public boolean onKeyDown(int keyCode, KeyEvent event) {

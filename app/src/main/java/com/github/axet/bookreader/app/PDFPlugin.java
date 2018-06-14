@@ -1,16 +1,13 @@
 package com.github.axet.bookreader.app;
 
 import android.annotation.TargetApi;
-import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.pdf.PdfRenderer;
 import android.os.ParcelFileDescriptor;
-import android.util.DisplayMetrics;
 
 import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.bookreader.widgets.FBReaderView;
-import com.github.axet.k2pdfopt.K2PdfOpt;
 import com.shockwave.pdfium.Config;
 import com.shockwave.pdfium.PdfDocument;
 import com.shockwave.pdfium.PdfiumCore;
@@ -209,6 +206,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
+        }
+
+        @Override
+        public double getPageHeight(int w, ZLView.PageIndex index) {
+            PluginPdfiumPage r = new PluginPdfiumPage((PluginPdfiumPage) current, index, w, 0);
+            return r.pageBox.h / r.ratio;
         }
 
         @Override

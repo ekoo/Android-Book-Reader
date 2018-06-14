@@ -71,7 +71,7 @@ public class LocalBooksCatalog extends BooksCatalog {
 
     public String getTitle() {
         Uri u = Uri.parse(url);
-        return storage.getDisplayName(u);
+        return getDisplayName(u);
     }
 
     public File getCache() {
@@ -83,5 +83,13 @@ public class LocalBooksCatalog extends BooksCatalog {
 
     public void delete() {
         FileUtils.deleteQuietly(getCache());
+    }
+
+    public String getDisplayName(Uri u) {
+        String s = u.getScheme();
+        if (s.equals(ContentResolver.SCHEME_CONTENT))
+            return storage.getDisplayName(u);
+        else
+            return ".../" + u.getLastPathSegment();
     }
 }

@@ -139,6 +139,8 @@ public class FullscreenActivity extends AppCompatThemeActivity {
 
     @SuppressLint({"InlinedApi", "RestrictedApi"})
     public void setFullscreen(boolean b) {
+        if (fullscreen == b)
+            return;
         fullscreen = b;
         if (b) {
             w.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
