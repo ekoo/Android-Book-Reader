@@ -1564,7 +1564,7 @@ public class FBReaderView extends RelativeLayout {
                     } else {
                         pluginview.current.pageNumber = cc.start.getParagraphIndex();
                     }
-                    pluginview.current.pageOffset = 0;
+                    clearReflowPage();
                 } else {
                     ScrollView.ScrollAdapter.PageCursor c = ((ScrollView) widget).adapter.pages.get(first);
                     ((ScrollView) widget).adapter.open(c);
@@ -1646,7 +1646,7 @@ public class FBReaderView extends RelativeLayout {
     public void create() {
         config = new ConfigShadow();
         app = new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow());
-        setWidget(Widgets.PAGING);
+        setWidget(Widgets.CONTINUOUS);
 
         app.setWindow(new FBApplicationWindow());
         app.initWindow();
@@ -2193,5 +2193,11 @@ public class FBReaderView extends RelativeLayout {
         } else {
             widget.repaint();
         }
+    }
+
+    public void clearReflowPage() {
+        pluginview.current.pageOffset = 0;
+        if (pluginview.reflower != null)
+            pluginview.reflower.current = 0;
     }
 }

@@ -521,6 +521,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         view.setColorProfile();
 
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+        String mode = shared.getString(MainApplication.PREFERENCE_VIEW_MODE, "");
+        view.setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
+
         Context context = getContext();
         onReceiveBattery(context.registerReceiver(battery, new IntentFilter(Intent.ACTION_BATTERY_CHANGED)));
 
@@ -709,7 +713,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         SharedPreferences.Editor editor = shared.edit();
         editor.putFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, p);
         editor.apply();
-        view.pluginview.reflower.k2.setFontSize(p);
+        if (view.pluginview.reflower != null && view.pluginview.reflower.k2 != null)
+            view.pluginview.reflower.k2.setFontSize(p);
+        view.clearReflowPage(); // font can be reduced and last page may not exits. reset to 0
         view.reset();
         updateToolbar();
     }
@@ -802,7 +808,12 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             updateToolbar();
         }
         if (id == R.id.action_mode) {
-            view.setWidget(view.widget instanceof FBReaderView.ScrollView ? FBReaderView.Widgets.PAGING : FBReaderView.Widgets.CONTINUOUS);
+            FBReaderView.Widgets m = view.widget instanceof FBReaderView.ScrollView ? FBReaderView.Widgets.PAGING : FBReaderView.Widgets.CONTINUOUS;
+            SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+            SharedPreferences.Editor edit = shared.edit();
+            edit.putString(MainApplication.PREFERENCE_VIEW_MODE, m.toString());
+            edit.apply();
+            view.setWidget(m);
             view.reset();
             updateToolbar();
         }
