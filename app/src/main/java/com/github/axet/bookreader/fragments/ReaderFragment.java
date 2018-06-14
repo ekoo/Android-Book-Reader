@@ -868,8 +868,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             }
         });
 
-        mode.setIcon(view.widget instanceof FBReaderView.ScrollView ? R.drawable.ic_view_carousel_black_24dp : R.drawable.ic_view_day_black_24dp);
-        mode.setTitle(view.widget instanceof FBReaderView.ScrollView ? R.string.view_mode_paging : R.string.view_mode_continuous);
+        mode.setIcon(view.widget instanceof FBReaderView.ScrollView ? R.drawable.ic_view_day_black_24dp : R.drawable.ic_view_carousel_black_24dp);
+        mode.setTitle(view.widget instanceof FBReaderView.ScrollView ? R.string.view_mode_continuous : R.string.view_mode_paging);
 
         showRTL |= !view.app.BookTextView.rtlMode && view.app.BookTextView.rtlDetected;
         if (showRTL) {

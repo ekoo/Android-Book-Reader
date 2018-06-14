@@ -1564,7 +1564,7 @@ public class FBReaderView extends RelativeLayout {
                     } else {
                         pluginview.current.pageNumber = cc.start.getParagraphIndex();
                     }
-                    clearReflowPage();
+                    clearReflowPage(); // reset reflow page, since we treat pageOffset differently for reflower/full page view
                 } else {
                     ScrollView.ScrollAdapter.PageCursor c = ((ScrollView) widget).adapter.pages.get(first);
                     ((ScrollView) widget).adapter.open(c);
