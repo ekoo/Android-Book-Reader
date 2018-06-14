@@ -23,6 +23,7 @@ import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Size;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -39,6 +40,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
+import com.github.axet.androidlibrary.widgets.PopupWindowCompat;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.DjvuPlugin;
@@ -776,6 +778,13 @@ public class FBReaderView extends RelativeLayout {
         }
 
         @Override
+        public boolean twoColumnView() {
+            if (widget instanceof ScrollView)
+                return false;
+            return super.twoColumnView();
+        }
+
+        @Override
         public boolean canScroll(PageIndex index) {
             if (pluginview != null)
                 return pluginview.canScroll(index);
@@ -1103,6 +1112,7 @@ public class FBReaderView extends RelativeLayout {
             public ArrayList<PageCursor> pages = new ArrayList<>();
             final Object lock = new Object();
             Thread thread;
+            PluginRect size = new PluginRect(); // ScrollView size, after reset
 
             public class PageView extends View {
                 public PageHolder holder;
@@ -1303,7 +1313,9 @@ public class FBReaderView extends RelativeLayout {
                 boolean isCached(PageCursor c) {
                     if (cache == null || cache != c) // should be same 'cache' memory ref
                         return false;
-                    return bm != null;
+                    if (bm == null)
+                        return false;
+                    return true;
                 }
 
                 void drawCache(Canvas draw) {
@@ -1414,6 +1426,7 @@ public class FBReaderView extends RelativeLayout {
             }
 
             public void reset() {
+                size = new PluginRect();
                 getRecycledViewPool().clear();
                 pages.clear();
                 if (app.Model != null) {
@@ -1494,7 +1507,14 @@ public class FBReaderView extends RelativeLayout {
 
                 @Override
                 public boolean onSingleTapUp(MotionEvent e) {
-                    app.BookTextView.onFingerSingleTap((int) e.getX(), (int) e.getY());
+                    ScrollAdapter.PageView v = findView(e);
+                    int pos = v.holder.getAdapterPosition();
+                    ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+                    if (!app.BookTextView.getStartCursor().samePositionAs(c.start))
+                        app.BookTextView.gotoPosition(c.start);
+                    int x = (int) (e.getX() - v.getLeft());
+                    int y = (int) (e.getY() - v.getTop());
+                    app.BookTextView.onFingerSingleTap(x, y);
                     return true;
                 }
 
@@ -1505,7 +1525,14 @@ public class FBReaderView extends RelativeLayout {
 
                 @Override
                 public void onLongPress(MotionEvent e) {
-                    app.BookTextView.onFingerLongPress((int) e.getX(), (int) e.getY());
+                    ScrollAdapter.PageView v = findView(e);
+                    int pos = v.holder.getAdapterPosition();
+                    ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+                    if (!app.BookTextView.getStartCursor().samePositionAs(c.start))
+                        app.BookTextView.gotoPosition(c.start);
+                    int x = (int) (e.getX() - v.getLeft());
+                    int y = (int) (e.getY() - v.getTop());
+                    app.BookTextView.onFingerLongPress(x, y);
                 }
 
                 @Override
@@ -1534,6 +1561,15 @@ public class FBReaderView extends RelativeLayout {
             });
         }
 
+        ScrollAdapter.PageView findView(MotionEvent e) {
+            for (int i = 0; i < lm.getChildCount(); i++) {
+                ScrollAdapter.PageView view = (ScrollAdapter.PageView) lm.getChildAt(i);
+                if (view.getLeft() < e.getX() && view.getTop() < e.getY() && view.getRight() > e.getX() && view.getBottom() > e.getY())
+                    return view;
+            }
+            return null;
+        }
+
         public void reset() {
             if (pluginview != null) {
                 if (pluginview.reflower != null) {
@@ -1551,9 +1587,8 @@ public class FBReaderView extends RelativeLayout {
             Map<Integer, View> map = new TreeMap<>();
             for (int i = 0; i < lm.getChildCount(); i++) {
                 View view = lm.getChildAt(i);
-                Rect r = new Rect();
-                view.getGlobalVisibleRect(r);
-                if (view.getHeight() * 0.15 < r.height()) // add only views atleast 15% visible
+                int h = view.getBottom(); // visible height
+                if (view.getHeight() * 0.15 < h) // add only views atleast 15% visible
                     map.put(view.getTop(), view);
             }
             for (Integer key : map.keySet())
@@ -1575,6 +1610,20 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public void startAnimatedScrolling(ZLViewEnums.PageIndex pageIndex, ZLViewEnums.Direction direction, int speed) {
+            int pos = findMiddleView();
+            if (pos == -1)
+                return;
+            switch (pageIndex) {
+                case next:
+                    pos++;
+                    break;
+                case previous:
+                    pos--;
+                    break;
+            }
+            if (pos < 0 || pos >= adapter.pages.size())
+                return;
+            smoothScrollToPosition(pos);
         }
 
         @Override
@@ -1597,6 +1646,11 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public void draw(Canvas c) {
+            if (adapter.size.w != getWidth() || adapter.size.h != getHeight()) { // reset for textbook and reflow mode only
+                adapter.reset();
+                adapter.size.w = getWidth();
+                adapter.size.h = getHeight();
+            }
             super.draw(c);
             updatePosition();
             drawFooter(c);

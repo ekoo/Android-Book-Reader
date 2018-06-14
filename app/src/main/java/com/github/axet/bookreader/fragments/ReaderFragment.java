@@ -6,6 +6,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
@@ -936,6 +937,13 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public void onFullscreenChanged(boolean f) {
+        view.reset();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        view.reset();
     }
 
     public boolean onKeyDown(int keyCode, KeyEvent event) {
