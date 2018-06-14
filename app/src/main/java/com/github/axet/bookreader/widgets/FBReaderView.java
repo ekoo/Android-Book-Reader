@@ -117,6 +117,8 @@ public class FBReaderView extends RelativeLayout {
     public static final int PAGE_OVERLAP_PERCENTS = 5; // percents
     public static final int PAGE_PAPER_COLOR = 0x80ffffff;
 
+    public enum Widgets {PAGING, CONTINUOUS}
+
     public FBReaderApp app;
     public ConfigShadow config;
     public ZLViewWidget widget;
@@ -1392,6 +1394,7 @@ public class FBReaderView extends RelativeLayout {
             @Override
             public void onViewRecycled(PageHolder holder) {
                 super.onViewRecycled(holder);
+                holder.page.recycle();
             }
 
             @Override
@@ -1643,8 +1646,7 @@ public class FBReaderView extends RelativeLayout {
     public void create() {
         config = new ConfigShadow();
         app = new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow());
-        setWidget(new FBAndroidWidget());
-        // setWidget(new ScrollView(getContext()));
+        setWidget(Widgets.PAGING);
 
         app.setWindow(new FBApplicationWindow());
         app.initWindow();
@@ -1688,6 +1690,17 @@ public class FBReaderView extends RelativeLayout {
             }
         };
         app.ViewOptions.getFooterOptions().ShowProgress.setValue(FooterOptions.ProgressDisplayType.asPages);
+    }
+
+    public void setWidget(Widgets w) {
+        switch (w) {
+            case CONTINUOUS:
+                setWidget(new ScrollView(getContext()));
+                break;
+            case PAGING:
+                setWidget(new FBAndroidWidget());
+                break;
+        }
     }
 
     public void setWidget(ZLViewWidget v) {

@@ -23,6 +23,11 @@
         android:title="Debug"
         app:showAsAction="ifRoom" />
     <item
+        android:id="@+id/action_mode"
+        android:icon="@drawable/ic_view_day_black_24dp"
+        android:title="@string/view_mode_continuous"
+        app:showAsAction="ifRoom" />
+    <item
         android:id="@+id/action_rtl"
         android:icon="@drawable/ic_gesture_black_24dp"
         android:title="LRT"

@@ -812,12 +812,14 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
         MenuItem fontsize = menu.findItem(R.id.action_fontsize);
         MenuItem debug = menu.findItem(R.id.action_debug);
         MenuItem rtl = menu.findItem(R.id.action_rtl);
+        MenuItem mode = menu.findItem(R.id.action_mode);
 
         reflow.setVisible(false);
         fontsize.setVisible(false);
         debug.setVisible(false);
         rtl.setVisible(false);
         tocMenu.setVisible(false);
+        mode.setVisible(false);
 
         searchMenu.setVisible(true);
 

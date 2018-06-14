@@ -801,6 +801,11 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             view.reset();
             updateToolbar();
         }
+        if (id == R.id.action_mode) {
+            view.setWidget(view.widget instanceof FBReaderView.ScrollView ? FBReaderView.Widgets.PAGING : FBReaderView.Widgets.CONTINUOUS);
+            view.reset();
+            updateToolbar();
+        }
         return super.onOptionsItemSelected(item);
     }
 
@@ -825,6 +830,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         final MenuItem fontsize = menu.findItem(R.id.action_fontsize);
         final MenuItem rtl = menu.findItem(R.id.action_rtl);
         MenuItem grid = menu.findItem(R.id.action_grid);
+        MenuItem mode = menu.findItem(R.id.action_mode);
 
         grid.setVisible(false);
         homeMenu.setVisible(false);
@@ -850,6 +856,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 onOptionsItemSelected(fontsize);
             }
         });
+
+        mode.setIcon(view.widget instanceof FBReaderView.ScrollView ? R.drawable.ic_view_carousel_black_24dp : R.drawable.ic_view_day_black_24dp);
+        mode.setTitle(view.widget instanceof FBReaderView.ScrollView ? R.string.view_mode_paging : R.string.view_mode_continuous);
 
         showRTL |= !view.app.BookTextView.rtlMode && view.app.BookTextView.rtlDetected;
         if (showRTL) {
