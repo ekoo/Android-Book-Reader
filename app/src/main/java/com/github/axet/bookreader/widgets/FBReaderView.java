@@ -73,6 +73,7 @@ import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.bookmodel.FBHyperlinkType;
 import org.geometerplus.fbreader.bookmodel.TOCTree;
 import org.geometerplus.fbreader.fbreader.ActionCode;
+import org.geometerplus.fbreader.fbreader.BookmarkHighlighting;
 import org.geometerplus.fbreader.fbreader.DictionaryHighlighting;
 import org.geometerplus.fbreader.fbreader.FBAction;
 import org.geometerplus.fbreader.fbreader.FBView;
@@ -87,8 +88,10 @@ import org.geometerplus.zlibrary.core.application.ZLApplication;
 import org.geometerplus.zlibrary.core.application.ZLApplicationWindow;
 import org.geometerplus.zlibrary.core.filesystem.ZLFile;
 import org.geometerplus.zlibrary.core.options.Config;
+import org.geometerplus.zlibrary.core.options.StringPair;
 import org.geometerplus.zlibrary.core.options.ZLBooleanOption;
 import org.geometerplus.zlibrary.core.options.ZLIntegerRangeOption;
+import org.geometerplus.zlibrary.core.options.ZLOption;
 import org.geometerplus.zlibrary.core.resources.ZLResource;
 import org.geometerplus.zlibrary.core.view.ZLPaintContext;
 import org.geometerplus.zlibrary.core.view.ZLView;
@@ -98,12 +101,15 @@ import org.geometerplus.zlibrary.text.hyphenation.ZLTextHyphenator;
 import org.geometerplus.zlibrary.text.model.ZLTextMark;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
+import org.geometerplus.zlibrary.text.view.ZLTextElementAreaVector;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
+import org.geometerplus.zlibrary.text.view.ZLTextHighlighting;
 import org.geometerplus.zlibrary.text.view.ZLTextHyperlink;
 import org.geometerplus.zlibrary.text.view.ZLTextHyperlinkRegionSoul;
 import org.geometerplus.zlibrary.text.view.ZLTextImageRegionSoul;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextRegion;
+import org.geometerplus.zlibrary.text.view.ZLTextVideoRegionSoul;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
 import org.geometerplus.zlibrary.text.view.ZLTextWordRegionSoul;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidPaintContext;
@@ -778,6 +784,38 @@ public class FBReaderView extends RelativeLayout {
         }
 
         @Override
+        public void onFingerSingleTap(int x, int y) {
+            if (widget instanceof ScrollView) {
+                final ZLTextRegion hyperlinkRegion = findRegion(x, y, maxSelectionDistance(), ZLTextRegion.HyperlinkFilter);
+                if (hyperlinkRegion != null) {
+                    outlineRegion(hyperlinkRegion);
+                    app.runAction(ActionCode.PROCESS_HYPERLINK);
+                    return;
+                }
+
+                final ZLTextRegion bookRegion = findRegion(x, y, 0, ZLTextRegion.ExtensionFilter);
+                if (bookRegion != null) {
+                    app.runAction(ActionCode.DISPLAY_BOOK_POPUP, bookRegion);
+                    return;
+                }
+
+                final ZLTextRegion videoRegion = findRegion(x, y, 0, ZLTextRegion.VideoFilter);
+                if (videoRegion != null) {
+                    outlineRegion(videoRegion);
+                    app.runAction(ActionCode.OPEN_VIDEO, (ZLTextVideoRegionSoul) videoRegion.getSoul());
+                    return;
+                }
+            } else {
+                super.onFingerSingleTap(x, y);
+            }
+        }
+
+        @Override
+        protected ZLTextRegion findRegion(int x, int y, int maxDistance, ZLTextRegion.Filter filter) {
+            return super.findRegion(x, y, maxDistance, filter);
+        }
+
+        @Override
         public boolean twoColumnView() {
             if (widget instanceof ScrollView)
                 return false;
@@ -910,6 +948,7 @@ public class FBReaderView extends RelativeLayout {
                     pluginview.reflower.reset();
                 }
             }
+            postInvalidate();
         }
     }
 
@@ -1044,6 +1083,42 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public static class ConfigShadow extends Config { // disable config changes across this app view instancies and fbreader
+        public Map<String, String> map = new TreeMap<>();
+
+        public ConfigShadow() {
+        }
+
+        public void setValue(ZLOption opt, int i) {
+            apply(opt);
+            map.put(opt.myId.Name, "" + i);
+        }
+
+        public void setValue(ZLOption opt, boolean b) {
+            apply(opt);
+            map.put(opt.myId.Name, "" + b);
+        }
+
+        public void apply(ZLOption opt) {
+            opt.Config = new ZLOption.ConfigInstance() {
+                public Config Instance() {
+                    return ConfigShadow.this;
+                }
+            };
+        }
+
+        @Override
+        public String getValue(StringPair id, String defaultValue) {
+            String v = map.get(id.Name);
+            if (v != null)
+                return v;
+            return super.getValue(id, defaultValue);
+        }
+
+        @Override
+        public void setValue(StringPair id, String value) {
+            super.setValue(id, value);
+        }
+
         @Override
         protected void setValueInternal(String group, String name, String value) {
         }
@@ -1260,17 +1335,14 @@ public class FBReaderView extends RelativeLayout {
                             }
                             return;
                         }
-                        Canvas canvas = getCanvas(draw, c);
                         open(c);
-                        pluginview.drawOnCanvas(getContext(), canvas, getWidth(), getHeight(), ZLViewEnums.PageIndex.current);
+                        pluginview.drawOnCanvas(getContext(), draw, getWidth(), getHeight(), ZLViewEnums.PageIndex.current);
                         update();
-                        drawCache(draw);
                     } else {
-                        Canvas canvas = getCanvas(draw, c);
                         open(c);
                         final ZLAndroidPaintContext context = new ZLAndroidPaintContext(
                                 app.SystemInfo,
-                                canvas,
+                                draw,
                                 new ZLAndroidPaintContext.Geometry(
                                         getWidth(),
                                         getHeight(),
@@ -1283,7 +1355,6 @@ public class FBReaderView extends RelativeLayout {
                         );
                         app.BookTextView.paint(context, ZLViewEnums.PageIndex.current);
                         update();
-                        drawCache(draw);
                     }
                 }
 
@@ -1345,6 +1416,12 @@ public class FBReaderView extends RelativeLayout {
             public class PageCursor {
                 ZLTextPosition start;
                 ZLTextPosition end;
+                ZLTextElementAreaVector p;
+
+                public PageCursor(ZLTextPosition s, ZLTextPosition e, ZLTextElementAreaVector p) {
+                    this(s, e);
+                    this.p = p;
+                }
 
                 public PageCursor(ZLTextPosition s, ZLTextPosition e) {
                     if (s != null)
@@ -1376,6 +1453,8 @@ public class FBReaderView extends RelativeLayout {
                         start = c.start;
                     if (c.end != null)
                         end = c.end;
+                    if (c.p != null && c.p.size() > 0)
+                        p = c.p;
                 }
             }
 
@@ -1452,7 +1531,9 @@ public class FBReaderView extends RelativeLayout {
                         return new PageCursor(pluginview.getPosition(), pluginview.getNextPosition());
                     }
                 } else {
-                    return new PageCursor(app.BookTextView.getStartCursor(), app.BookTextView.getEndCursor());
+                    ZLTextElementAreaVector p = app.BookTextView.myCurrentPage.TextElementMap;
+                    app.BookTextView.myCurrentPage.TextElementMap = new ZLTextElementAreaVector();
+                    return new PageCursor(app.BookTextView.getStartCursor(), app.BookTextView.getEndCursor(), p);
                 }
             }
 
@@ -1508,13 +1589,19 @@ public class FBReaderView extends RelativeLayout {
                 @Override
                 public boolean onSingleTapUp(MotionEvent e) {
                     ScrollAdapter.PageView v = findView(e);
+                    if (v == null)
+                        return false;
                     int pos = v.holder.getAdapterPosition();
+                    if (pos == -1)
+                        return false;
                     ScrollAdapter.PageCursor c = adapter.pages.get(pos);
                     if (!app.BookTextView.getStartCursor().samePositionAs(c.start))
                         app.BookTextView.gotoPosition(c.start);
+                    app.BookTextView.myCurrentPage.TextElementMap = c.p;
                     int x = (int) (e.getX() - v.getLeft());
                     int y = (int) (e.getY() - v.getTop());
                     app.BookTextView.onFingerSingleTap(x, y);
+                    app.BookTextView.myCurrentPage.TextElementMap = new ZLTextElementAreaVector();
                     return true;
                 }
 
@@ -1525,14 +1612,6 @@ public class FBReaderView extends RelativeLayout {
 
                 @Override
                 public void onLongPress(MotionEvent e) {
-                    ScrollAdapter.PageView v = findView(e);
-                    int pos = v.holder.getAdapterPosition();
-                    ScrollAdapter.PageCursor c = adapter.pages.get(pos);
-                    if (!app.BookTextView.getStartCursor().samePositionAs(c.start))
-                        app.BookTextView.gotoPosition(c.start);
-                    int x = (int) (e.getX() - v.getLeft());
-                    int y = (int) (e.getY() - v.getTop());
-                    app.BookTextView.onFingerLongPress(x, y);
                 }
 
                 @Override
@@ -1715,26 +1794,6 @@ public class FBReaderView extends RelativeLayout {
     public FBReaderView(Context context) { // create child view
         super(context);
         create();
-        app.ViewOptions.ScrollbarType = new ZLIntegerRangeOption("", "", 0, 0, 0) {
-            @Override
-            public void setValue(int value) {
-            }
-
-            @Override
-            public int getValue() {
-                return 0;
-            }
-        };
-        app.MiscOptions.AllowScreenBrightnessAdjustment = new ZLBooleanOption("", "", false) {
-            @Override
-            public void setValue(boolean value) {
-            }
-
-            @Override
-            public boolean getValue() {
-                return false;
-            }
-        };
         setWidget(Widgets.CONTINUOUS);
     }
 
@@ -1793,12 +1852,9 @@ public class FBReaderView extends RelativeLayout {
         String f = shared.getString(MainApplication.PREFERENCE_FONTFAMILY_FBREADER, app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
         app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.setValue(f);
 
-        app.ViewOptions.ScrollbarType = new ZLIntegerRangeOption("", "", 0, 0, 0) {
-            @Override
-            public int getValue() {
-                return FBView.SCROLLBAR_SHOW_AS_FOOTER;
-            }
-        };
+        config.setValue(app.MiscOptions.AllowScreenBrightnessAdjustment, false);
+
+        config.setValue(app.ViewOptions.ScrollbarType, FBView.SCROLLBAR_SHOW_AS_FOOTER);
         app.ViewOptions.getFooterOptions().ShowProgress.setValue(FooterOptions.ProgressDisplayType.asPages);
     }
 
@@ -1873,12 +1929,8 @@ public class FBReaderView extends RelativeLayout {
 
     public void setWindow(Window w) {
         this.w = w;
-        app.MiscOptions.AllowScreenBrightnessAdjustment = new ZLBooleanOption("", "", true) {
-            @Override
-            public boolean getValue() {
-                return true;
-            }
-        };
+        if (widget instanceof FBAndroidWidget)
+            config.setValue(app.MiscOptions.AllowScreenBrightnessAdjustment, true);
     }
 
     public void setActivity(final Activity a) {
@@ -1929,8 +1981,7 @@ public class FBReaderView extends RelativeLayout {
 
                 final ZLTextRegion.Soul soul = region.getSoul();
                 if (soul instanceof ZLTextHyperlinkRegionSoul) {
-                    Reader.getTextView().hideOutline();
-                    Reader.getViewWidget().repaint();
+                    app.BookTextView.hideOutline();
                     final ZLTextHyperlink hyperlink = ((ZLTextHyperlinkRegionSoul) soul).Hyperlink;
                     switch (hyperlink.Type) {
                         case FBHyperlinkType.EXTERNAL:
@@ -1985,7 +2036,6 @@ public class FBReaderView extends RelativeLayout {
                                     @Override
                                     public void onDismiss(View view) {
                                         Reader.getTextView().hideOutline();
-                                        Reader.getViewWidget().repaint();
                                     }
                                 }));
                                 Reader.getTextView().outlineRegion(region);
@@ -2216,7 +2266,13 @@ public class FBReaderView extends RelativeLayout {
         c.setColorFilter(ThemeUtils.getThemeColor(context, R.attr.colorAccent));
         f.addView(c, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.RIGHT | Gravity.TOP));
 
-        final FBReaderView r = new FBReaderView(context);
+        final FBReaderView r = new FBReaderView(context) {
+            @Override
+            public void create() {
+                super.create();
+                config.setValue(app.ViewOptions.ScrollbarType, 0);
+            }
+        };
         LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 
         ll.addView(f, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
