@@ -1376,8 +1376,11 @@ public class FBReaderView extends RelativeLayout {
                 } else {
                     if (pluginview != null)
                         pluginview.gotoPosition(c.start);
-                    else
-                        app.BookTextView.gotoPosition(c.start);
+                    else {
+                        PageCursor cc = getCurrent();
+                        if (!cc.equals(c))
+                            app.BookTextView.gotoPosition(c.start);
+                    }
                 }
             }
 
