@@ -1,6 +1,5 @@
 package com.github.axet.bookreader.widgets;
 
-import android.animation.TimeAnimator;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
@@ -23,7 +22,6 @@ import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -793,20 +791,10 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public synchronized PagePosition pagePosition() { // Footer page position
-            PagePosition p;
             if (pluginview != null)
-                p = pluginview.pagePosition();
+                return pluginview.pagePosition();
             else
-                p = super.pagePosition();
-            if (widget instanceof ScrollView) {
-                int page = ((ScrollView) widget).lm.findFirstVisibleItemPosition();
-                if (page != -1) {
-                    ScrollView.ScrollAdapter.PageCursor c = ((ScrollView) widget).adapter.pages.get(page);
-                    if (c.start != null)
-                        p = new PagePosition(c.start.getParagraphIndex(), p.Total);
-                }
-            }
-            return p;
+                return super.pagePosition();
         }
 
         @Override
@@ -1107,24 +1095,27 @@ public class FBReaderView extends RelativeLayout {
 
         public class ScrollAdapter extends RecyclerView.Adapter<ScrollAdapter.PageHolder> {
             public ArrayList<PageCursor> pages = new ArrayList<>();
+            final Object lock = new Object();
             Thread thread;
 
             public class PageView extends View {
                 public PageHolder holder;
                 TimeAnimatorCompat time;
+                FrameLayout f;
                 ProgressBar progressBar;
                 TextView text;
-                final Object lock = new Object();
 
                 public PageView(Context context) {
                     super(context);
+                    f = new FrameLayout(context);
+
                     progressBar = new ProgressBar(context);
                     progressBar.setIndeterminate(true);
-                    int dp60 = ThemeUtils.dp2px(context, 60);
-                    progressBar.measure(MeasureSpec.makeMeasureSpec(dp60, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp60, MeasureSpec.EXACTLY));
-                    progressBar.layout(0, 0, dp60, dp60);
+                    f.addView(progressBar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
                     text = new TextView(context);
                     text.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                    f.addView(text, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
                 }
 
                 @Override
@@ -1136,6 +1127,7 @@ public class FBReaderView extends RelativeLayout {
                             PageCursor c = current();
                             open(c);
                             h = (int) Math.ceil(pluginview.getPageHeight(w, ZLViewEnums.PageIndex.current));
+                            restore();
                         }
                     }
                     setMeasuredDimension(w, h);
@@ -1171,6 +1163,10 @@ public class FBReaderView extends RelativeLayout {
                 public void draw(final Canvas canvas) {
                     super.draw(canvas);
                     final PageCursor c = current();
+                    if (c == null) {
+                        invalidate();
+                        return;
+                    }
                     if (pluginview != null) {
                         if (pluginview.reflow) {
                             final int page;
@@ -1251,6 +1247,18 @@ public class FBReaderView extends RelativeLayout {
                                     invalidate();
                                 }
                             }
+                            int first = ((ScrollView) widget).lm.findFirstVisibleItemPosition();
+                            ScrollAdapter.PageCursor cc = ((ScrollView) widget).adapter.pages.get(first);
+                            if (cc.start == null) {
+                                int p = cc.end.getParagraphIndex();
+                                int i = cc.end.getElementIndex() - 1;
+                                if (i < 0)
+                                    p = p - 1;
+                                pluginview.current.pageNumber = p;
+                            } else {
+                                pluginview.current.pageNumber = cc.start.getParagraphIndex();
+                            }
+                            pluginview.current.pageOffset = 0;
                             return;
                         }
                         open(c);
@@ -1288,15 +1296,15 @@ public class FBReaderView extends RelativeLayout {
                     canvas.drawColor(Color.GRAY);
                     canvas.save();
                     canvas.translate(getWidth() / 2 - progressBar.getMeasuredWidth() / 2, getHeight() / 2 - progressBar.getMeasuredHeight() / 2);
-                    progressBar.draw(canvas);
+
                     String t = page + "." + index;
                     text.setText(t);
-                    text.measure(MeasureSpec.makeMeasureSpec(progressBar.getMeasuredWidth(), MeasureSpec.AT_MOST),
-                            MeasureSpec.makeMeasureSpec(progressBar.getMeasuredHeight(), MeasureSpec.AT_MOST));
-                    text.layout(0, 0, text.getMeasuredWidth(), text.getMeasuredHeight());
-                    canvas.translate(progressBar.getMeasuredWidth() / 2 - text.getMeasuredWidth() / 2,
-                            progressBar.getMeasuredHeight() / 2 - text.getMeasuredHeight() / 2);
-                    text.draw(canvas);
+
+                    int dp60 = ThemeUtils.dp2px(getContext(), 60);
+                    f.measure(MeasureSpec.makeMeasureSpec(dp60, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp60, MeasureSpec.EXACTLY));
+                    f.layout(0, 0, dp60, dp60);
+                    f.draw(canvas);
+
                     canvas.restore();
                 }
             }
@@ -1376,7 +1384,7 @@ public class FBReaderView extends RelativeLayout {
 
             PageCursor getCurrent() {
                 if (pluginview != null) {
-                    if (pluginview.reflower != null) {
+                    if (pluginview.reflow && pluginview.reflower != null) {
                         ZLTextFixedPosition s = new ZLTextFixedPosition(pluginview.reflower.page, pluginview.reflower.current, 0);
                         int c = s.ParagraphIndex;
                         int p = s.ElementIndex + 1;
@@ -1389,8 +1397,9 @@ public class FBReaderView extends RelativeLayout {
                     } else {
                         return new PageCursor(pluginview.getPosition(), pluginview.getNextPosition());
                     }
-                } else
+                } else {
                     return new PageCursor(app.BookTextView.getStartCursor(), app.BookTextView.getEndCursor());
+                }
             }
 
             void update() {
@@ -1436,6 +1445,9 @@ public class FBReaderView extends RelativeLayout {
 
             DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(context, DividerItemDecoration.VERTICAL);
             addItemDecoration(dividerItemDecoration);
+
+            FBView.Footer footer = app.BookTextView.getFooterArea();
+            setPadding(0, 0, 0, footer.getHeight());
         }
 
         public void reset() {
@@ -1485,10 +1497,6 @@ public class FBReaderView extends RelativeLayout {
             super.draw(c);
             if (app.Model != null) {
                 FBView.Footer footer = app.BookTextView.getFooterArea();
-                if (getPaddingBottom() == 0) {
-                    setPadding(0, 0, 0, footer.getHeight());
-                    // setClipToPadding(false);
-                }
                 final ZLAndroidPaintContext context = new ZLAndroidPaintContext(
                         app.SystemInfo,
                         c,
@@ -1659,14 +1667,6 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public ZLTextFixedPosition getPosition() {
-        if (widget instanceof ScrollView) {
-            int page = ((ScrollView) widget).lm.findFirstVisibleItemPosition();
-            if (page != -1) {
-                ScrollView.ScrollAdapter.PageCursor c = ((ScrollView) widget).adapter.pages.get(page);
-                if (c.start != null)
-                    return new ZLTextFixedPosition(c.start);
-            }
-        }
         if (pluginview != null)
             return pluginview.getPosition();
         else

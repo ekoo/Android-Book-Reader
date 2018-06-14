@@ -9,12 +9,12 @@ public class TimeAnimatorCompat {
 
     TimeListener listener;
 
+    TimeAnimator t;
+    ValueAnimator v;
+
     interface TimeListener {
         void onTimeUpdate(TimeAnimatorCompat animation, long totalTime, long deltaTime);
     }
-
-    TimeAnimator t;
-    ValueAnimator v;
 
     public TimeAnimatorCompat() {
         if (Build.VERSION.SDK_INT >= 16) {
