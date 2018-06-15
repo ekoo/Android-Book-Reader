@@ -1196,6 +1196,7 @@ public class FBReaderView extends RelativeLayout {
                 Bitmap bm;
                 PageCursor cache;
                 Paint paint = new Paint();
+                ZLTextElementAreaVector p;
 
                 public PageView(Context context) {
                     super(context);
@@ -1354,6 +1355,8 @@ public class FBReaderView extends RelativeLayout {
                                 getVerticalScrollbarWidth()
                         );
                         app.BookTextView.paint(context, ZLViewEnums.PageIndex.current);
+                        p = app.BookTextView.myCurrentPage.TextElementMap;
+                        app.BookTextView.myCurrentPage.TextElementMap = new ZLTextElementAreaVector();
                         update();
                     }
                 }
@@ -1379,6 +1382,7 @@ public class FBReaderView extends RelativeLayout {
                         bm.recycle();
                         bm = null;
                     }
+                    p = null;
                 }
 
                 boolean isCached(PageCursor c) {
@@ -1416,12 +1420,6 @@ public class FBReaderView extends RelativeLayout {
             public class PageCursor {
                 ZLTextPosition start;
                 ZLTextPosition end;
-                ZLTextElementAreaVector p;
-
-                public PageCursor(ZLTextPosition s, ZLTextPosition e, ZLTextElementAreaVector p) {
-                    this(s, e);
-                    this.p = p;
-                }
 
                 public PageCursor(ZLTextPosition s, ZLTextPosition e) {
                     if (s != null)
@@ -1453,8 +1451,6 @@ public class FBReaderView extends RelativeLayout {
                         start = c.start;
                     if (c.end != null)
                         end = c.end;
-                    if (c.p != null && c.p.size() > 0)
-                        p = c.p;
                 }
             }
 
@@ -1538,9 +1534,7 @@ public class FBReaderView extends RelativeLayout {
                         return new PageCursor(pluginview.getPosition(), pluginview.getNextPosition());
                     }
                 } else {
-                    ZLTextElementAreaVector p = app.BookTextView.myCurrentPage.TextElementMap;
-                    app.BookTextView.myCurrentPage.TextElementMap = new ZLTextElementAreaVector();
-                    return new PageCursor(app.BookTextView.getStartCursor(), app.BookTextView.getEndCursor(), p);
+                    return new PageCursor(app.BookTextView.getStartCursor(), app.BookTextView.getEndCursor());
                 }
             }
 
@@ -1600,11 +1594,11 @@ public class FBReaderView extends RelativeLayout {
                 if (pos == -1)
                     return false;
                 ScrollAdapter.PageCursor c = adapter.pages.get(pos);
-                if (c.p == null)
+                if (v.p == null)
                     return false;
                 if (!app.BookTextView.getStartCursor().samePositionAs(c.start))
                     app.BookTextView.gotoPosition(c.start);
-                app.BookTextView.myCurrentPage.TextElementMap = c.p;
+                app.BookTextView.myCurrentPage.TextElementMap = v.p;
                 x = (int) (e.getX() - v.getLeft());
                 y = (int) (e.getY() - v.getTop());
                 return true;
