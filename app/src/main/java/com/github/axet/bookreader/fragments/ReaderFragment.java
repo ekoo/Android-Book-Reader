@@ -785,8 +785,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         }
         if (id == R.id.action_debug) {
             view.pluginview.reflowDebug = !view.pluginview.reflowDebug;
-            if (view.pluginview.reflowDebug)
+            if (view.pluginview.reflowDebug) {
                 view.pluginview.reflow = true;
+                view.setWidget(FBReaderView.Widgets.PAGING);
+            }
             view.reset();
             updateToolbar();
         }
