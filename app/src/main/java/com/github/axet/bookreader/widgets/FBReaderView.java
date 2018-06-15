@@ -575,7 +575,9 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public ZLTextFixedPosition getNextPosition() {
-            PluginPage old = new PluginPage(current, ZLViewEnums.PageIndex.next) {
+            if (current.w == 0 || current.h == 0)
+                return null; // after reset() we do not know display size
+            PluginPage next = new PluginPage(current, ZLViewEnums.PageIndex.next) {
                 @Override
                 public void load() {
                 }
@@ -585,8 +587,10 @@ public class FBReaderView extends RelativeLayout {
                     return current.getPagesCount();
                 }
             };
-            ZLTextFixedPosition e = new ZLTextFixedPosition(old.pageNumber, old.pageOffset, 0);
-            if (e.ParagraphIndex >= old.getPagesCount())
+            if (current.equals(next.pageNumber, next.pageOffset))
+                return null; // !canScroll()
+            ZLTextFixedPosition e = new ZLTextFixedPosition(next.pageNumber, next.pageOffset, 0);
+            if (e.ParagraphIndex >= next.getPagesCount())
                 return null;
             return e;
         }
