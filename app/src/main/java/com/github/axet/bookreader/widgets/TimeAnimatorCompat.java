@@ -4,6 +4,7 @@ import android.animation.TimeAnimator;
 import android.animation.ValueAnimator;
 import android.annotation.TargetApi;
 import android.os.Build;
+import android.os.Handler;
 
 public class TimeAnimatorCompat {
 
@@ -11,6 +12,15 @@ public class TimeAnimatorCompat {
 
     TimeAnimator t;
     ValueAnimator v;
+    Runnable run = new Runnable() {
+        @Override
+        public void run() {
+            if (listener != null)
+                listener.onTimeUpdate(TimeAnimatorCompat.this, 0, 0);
+            handler.postDelayed(run, 10);
+        }
+    };
+    Handler handler = new Handler();
 
     interface TimeListener {
         void onTimeUpdate(TimeAnimatorCompat animation, long totalTime, long deltaTime);
@@ -24,11 +34,19 @@ public class TimeAnimatorCompat {
         }
     }
 
+    @Override
+    protected void finalize() throws Throwable {
+        super.finalize();
+        cancel();
+    }
+
     public void start() {
         if (Build.VERSION.SDK_INT >= 16) {
             t.start();
         } else if (Build.VERSION.SDK_INT >= 11) {
             v.start();
+        } else {
+            run.run();
         }
     }
 
@@ -37,6 +55,8 @@ public class TimeAnimatorCompat {
             t.cancel();
         } else if (Build.VERSION.SDK_INT >= 11) {
             v.cancel();
+        } else {
+            handler.removeCallbacks(run);
         }
     }
 

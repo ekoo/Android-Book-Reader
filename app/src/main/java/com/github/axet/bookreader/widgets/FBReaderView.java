@@ -1271,11 +1271,9 @@ public class FBReaderView extends RelativeLayout {
                                 index = c.start.getElementIndex();
                             }
                             synchronized (lock) {
-                                final int w = draw.getWidth();
-                                final int h = draw.getHeight();
                                 if (thread == null) {
                                     if (pluginview.reflower != null) {
-                                        if (pluginview.reflower.page != page || pluginview.reflower.count() == 0 || pluginview.reflower.w != w || pluginview.reflower.h != h) {
+                                        if (pluginview.reflower.page != page || pluginview.reflower.count() == 0 || pluginview.reflower.w != getWidth() || pluginview.reflower.h != getHeight()) {
                                             pluginview.reflower.close();
                                             pluginview.reflower = null;
                                         }
@@ -1287,8 +1285,8 @@ public class FBReaderView extends RelativeLayout {
                                             @Override
                                             public void run() {
                                                 int i = index;
-                                                Reflow reflower = new Reflow(getContext(), w, h, page);
-                                                Bitmap bm = pluginview.render(w, h, page);
+                                                Reflow reflower = new Reflow(getContext(), getWidth(), getHeight(), page);
+                                                Bitmap bm = pluginview.render(getWidth(), getHeight(), page);
                                                 reflower.load(bm);
                                                 bm.recycle();
                                                 if (i < 0) {
@@ -1341,7 +1339,7 @@ public class FBReaderView extends RelativeLayout {
                             return;
                         }
                         open(c);
-                        pluginview.drawOnCanvas(getContext(), draw, draw.getWidth(), draw.getHeight(), ZLViewEnums.PageIndex.current);
+                        pluginview.drawOnCanvas(getContext(), draw, getWidth(), getHeight(), ZLViewEnums.PageIndex.current);
                         update();
                     } else {
                         open(c);
@@ -1349,10 +1347,10 @@ public class FBReaderView extends RelativeLayout {
                                 app.SystemInfo,
                                 draw,
                                 new ZLAndroidPaintContext.Geometry(
-                                        draw.getWidth(),
-                                        draw.getHeight(),
-                                        draw.getWidth(),
-                                        draw.getHeight(),
+                                        getWidth(),
+                                        getHeight(),
+                                        getWidth(),
+                                        getHeight(),
                                         0,
                                         0
                                 ),
@@ -1368,7 +1366,7 @@ public class FBReaderView extends RelativeLayout {
                 void drawProgress(Canvas canvas, int page, int index) {
                     canvas.drawColor(Color.GRAY);
                     canvas.save();
-                    canvas.translate(getWidth() / 2 - progressBar.getMeasuredWidth() / 2, canvas.getHeight() / 2 - progressBar.getMeasuredHeight() / 2);
+                    canvas.translate(getWidth() / 2 - progressBar.getMeasuredWidth() / 2, getHeight() / 2 - progressBar.getMeasuredHeight() / 2);
 
                     String t = page + "." + index;
                     text.setText(t);
@@ -1399,7 +1397,7 @@ public class FBReaderView extends RelativeLayout {
 
                 void drawCache(Canvas draw) {
                     Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
-                    Rect dst = new Rect(0, 0, draw.getWidth(), draw.getHeight());
+                    Rect dst = new Rect(0, 0, getWidth(), getHeight());
                     draw.drawBitmap(bm, src, dst, paint);
                 }
 
