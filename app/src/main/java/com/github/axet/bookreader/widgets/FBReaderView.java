@@ -14,7 +14,10 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
+import android.os.Handler;
 import android.os.Parcelable;
+import android.support.annotation.NonNull;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.preference.PreferenceManager;
@@ -1207,9 +1210,22 @@ public class FBReaderView extends RelativeLayout {
                     f = new FrameLayout(context);
 
                     progressBar = new ProgressBar(context) {
+                        Handler handler = new Handler();
+
+                        @Override
+                        public int getVisibility() {
+                            return VISIBLE;
+                        }
+
                         @Override
                         public int getWindowVisibility() {
                             return VISIBLE;
+                        }
+
+                        @Override
+                        public void scheduleDrawable(@NonNull Drawable who, @NonNull Runnable what, long when) {
+                            super.scheduleDrawable(who, what, when);
+                            handler.postAtTime(what, when);
                         }
                     };
                     progressBar.setIndeterminate(true);
