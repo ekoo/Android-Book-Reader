@@ -1076,12 +1076,22 @@ public class FBReaderView extends RelativeLayout {
 
         public void setValue(ZLOption opt, int i) {
             apply(opt);
-            map.put(opt.myId.Name, "" + i);
+            setValue(opt.myId, String.valueOf(i));
         }
 
         public void setValue(ZLOption opt, boolean b) {
             apply(opt);
-            map.put(opt.myId.Name, "" + b);
+            setValue(opt.myId, String.valueOf(b));
+        }
+
+        public void setValue(ZLOption opt, Enum v) {
+            apply(opt);
+            setValue(opt.myId, String.valueOf(v));
+        }
+
+        public void setValue(ZLOption opt, String v) {
+            apply(opt);
+            setValue(opt.myId, v);
         }
 
         public void apply(ZLOption opt) {
@@ -1094,7 +1104,7 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public String getValue(StringPair id, String defaultValue) {
-            String v = map.get(id.Name);
+            String v = map.get(id.Group + ":" + id.Name);
             if (v != null)
                 return v;
             return super.getValue(id, defaultValue);
@@ -1102,7 +1112,7 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public void setValue(StringPair id, String value) {
-            super.setValue(id, value);
+            map.put(id.Group + ":" + id.Name, value);
         }
 
         @Override
@@ -1864,7 +1874,6 @@ public class FBReaderView extends RelativeLayout {
     public FBReaderView(Context context) { // create child view
         super(context);
         create();
-        setWidget(Widgets.CONTINUOUS);
     }
 
     public FBReaderView(Context context, AttributeSet attrs) {
@@ -1909,23 +1918,31 @@ public class FBReaderView extends RelativeLayout {
             };
         }
 
+        config();
+
         app.BookTextView = new CustomView(app);
         app.setView(app.BookTextView);
 
-        SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(getContext());
+        setWidget(Widgets.PAGING);
+    }
 
-        setColorProfile();
+    public void config() {
+        SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(getContext());
+        if (shared.getString(MainApplication.PREFERENCE_THEME, "").equals(getContext().getString(R.string.Theme_Dark))) {
+            config.setValue(app.ViewOptions.ColorProfileName, ColorProfile.NIGHT);
+        } else {
+            config.setValue(app.ViewOptions.ColorProfileName, ColorProfile.DAY);
+        }
 
         int d = shared.getInt(MainApplication.PREFERENCE_FONTSIZE_FBREADER, app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.getValue());
-        app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.setValue(d);
+        config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption, d);
 
         String f = shared.getString(MainApplication.PREFERENCE_FONTFAMILY_FBREADER, app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
-        app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.setValue(f);
+        config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption, f);
 
         config.setValue(app.MiscOptions.AllowScreenBrightnessAdjustment, false);
-
         config.setValue(app.ViewOptions.ScrollbarType, FBView.SCROLLBAR_SHOW_AS_FOOTER);
-        app.ViewOptions.getFooterOptions().ShowProgress.setValue(FooterOptions.ProgressDisplayType.asPages);
+        config.setValue(app.ViewOptions.getFooterOptions().ShowProgress, FooterOptions.ProgressDisplayType.asPages);
     }
 
     public void setWidget(Widgets w) {
@@ -2016,7 +2033,7 @@ public class FBReaderView extends RelativeLayout {
                     public void run() {
                         final TextSearchPopup popup = (TextSearchPopup) app.getPopupById(TextSearchPopup.ID);
                         popup.initPosition();
-                        app.MiscOptions.TextSearchPattern.setValue(pattern);
+                        config.setValue(app.MiscOptions.TextSearchPattern, pattern);
                         if (app.getTextView().search(pattern, true, false, false, false) != 0) {
                             a.runOnUiThread(new Runnable() {
                                 public void run() {
@@ -2387,11 +2404,16 @@ public class FBReaderView extends RelativeLayout {
 
         final FBReaderView r = new FBReaderView(context) {
             @Override
-            public void create() {
-                super.create();
+            public void config() {
+                super.config();
                 config.setValue(app.ViewOptions.ScrollbarType, 0);
             }
         };
+
+        SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(getContext());
+        String mode = shared.getString(MainApplication.PREFERENCE_VIEW_MODE, "");
+        r.setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
+
         LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 
         ll.addView(f, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -2450,20 +2472,6 @@ public class FBReaderView extends RelativeLayout {
         else
             app.BookTextView.gotoPosition(p);
         reset();
-    }
-
-
-    public void setColorProfile() {
-        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
-        if (shared.getString(MainApplication.PREFERENCE_THEME, "").equals(getContext().getString(R.string.Theme_Dark))) {
-            setColorProfile(ColorProfile.NIGHT);
-        } else {
-            setColorProfile(ColorProfile.DAY);
-        }
-    }
-
-    public void setColorProfile(String p) {
-        app.ViewOptions.ColorProfileName.setValue(p);
     }
 
     public void reset() {

@@ -520,8 +520,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             }
         };
 
-        view.setColorProfile();
-
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         String mode = shared.getString(MainApplication.PREFERENCE_VIEW_MODE, "");
         view.setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
@@ -924,10 +922,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        if (key.equals(MainApplication.PREFERENCE_THEME)) {
-            view.setColorProfile();
-            view.reset();
-        }
     }
 
     @Override
