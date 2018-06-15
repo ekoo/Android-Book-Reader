@@ -1213,6 +1213,17 @@ public class FBReaderView extends RelativeLayout {
                         Handler handler = new Handler();
 
                         @Override
+                        public void draw(Canvas canvas) {
+                            super.draw(canvas);
+                            onAttachedToWindow(); // startAnimation
+                        }
+
+                        @Override
+                        public int getVisibility() {
+                            return VISIBLE;
+                        }
+
+                        @Override
                         public int getWindowVisibility() {
                             return VISIBLE;
                         }
@@ -1221,6 +1232,8 @@ public class FBReaderView extends RelativeLayout {
                         public void scheduleDrawable(@NonNull Drawable who, @NonNull Runnable what, long when) {
                             if (time != null)
                                 handler.postAtTime(what, when);
+                            else
+                                onDetachedFromWindow(); // stopAnimation
                         }
                     };
                     progressBar.setIndeterminate(true);
@@ -1296,6 +1309,11 @@ public class FBReaderView extends RelativeLayout {
                                             @Override
                                             public void run() {
                                                 int i = index;
+                                                try {
+                                                    Thread.sleep(5000);
+                                                }catch(InterruptedException e) {
+
+                                                }
                                                 Reflow reflower = new Reflow(getContext(), getWidth(), getHeight(), page);
                                                 Bitmap bm = pluginview.render(getWidth(), getHeight(), page);
                                                 reflower.load(bm);
