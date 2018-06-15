@@ -1213,19 +1213,14 @@ public class FBReaderView extends RelativeLayout {
                         Handler handler = new Handler();
 
                         @Override
-                        public int getVisibility() {
-                            return VISIBLE;
-                        }
-
-                        @Override
                         public int getWindowVisibility() {
                             return VISIBLE;
                         }
 
                         @Override
                         public void scheduleDrawable(@NonNull Drawable who, @NonNull Runnable what, long when) {
-                            super.scheduleDrawable(who, what, when);
-                            handler.postAtTime(what, when);
+                            if (time != null)
+                                handler.postAtTime(what, when);
                         }
                     };
                     progressBar.setIndeterminate(true);
