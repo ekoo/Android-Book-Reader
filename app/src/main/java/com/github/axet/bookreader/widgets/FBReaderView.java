@@ -1218,7 +1218,7 @@ public class FBReaderView extends RelativeLayout {
                 @Override
                 protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
                     int w = getDefaultSize(getSuggestedMinimumWidth(), widthMeasureSpec);
-                    int h = ScrollView.this.getHeight();
+                    int h = ScrollView.this.getMainAreaHeight();
                     if (pluginview != null) {
                         if (!pluginview.reflow) {
                             PageCursor c = current();
@@ -1266,8 +1266,8 @@ public class FBReaderView extends RelativeLayout {
                                 index = c.start.getElementIndex();
                             }
                             synchronized (lock) {
-                                final int w = getWidth();
-                                final int h = getHeight();
+                                final int w = draw.getWidth();
+                                final int h = draw.getHeight();
                                 if (thread == null) {
                                     if (pluginview.reflower != null) {
                                         if (pluginview.reflower.page != page || pluginview.reflower.count() == 0 || pluginview.reflower.w != w || pluginview.reflower.h != h) {
@@ -1336,7 +1336,7 @@ public class FBReaderView extends RelativeLayout {
                             return;
                         }
                         open(c);
-                        pluginview.drawOnCanvas(getContext(), draw, getWidth(), getHeight(), ZLViewEnums.PageIndex.current);
+                        pluginview.drawOnCanvas(getContext(), draw, draw.getWidth(), draw.getHeight(), ZLViewEnums.PageIndex.current);
                         update();
                     } else {
                         open(c);
@@ -1344,10 +1344,10 @@ public class FBReaderView extends RelativeLayout {
                                 app.SystemInfo,
                                 draw,
                                 new ZLAndroidPaintContext.Geometry(
-                                        getWidth(),
-                                        getHeight(),
-                                        getWidth(),
-                                        getHeight(),
+                                        draw.getWidth(),
+                                        draw.getHeight(),
+                                        draw.getWidth(),
+                                        draw.getHeight(),
                                         0,
                                         0
                                 ),
@@ -1361,7 +1361,7 @@ public class FBReaderView extends RelativeLayout {
                 void drawProgress(Canvas canvas, int page, int index) {
                     canvas.drawColor(Color.GRAY);
                     canvas.save();
-                    canvas.translate(getWidth() / 2 - progressBar.getMeasuredWidth() / 2, getHeight() / 2 - progressBar.getMeasuredHeight() / 2);
+                    canvas.translate(getWidth() / 2 - progressBar.getMeasuredWidth() / 2, canvas.getHeight() / 2 - progressBar.getMeasuredHeight() / 2);
 
                     String t = page + "." + index;
                     text.setText(t);
@@ -1600,6 +1600,8 @@ public class FBReaderView extends RelativeLayout {
                 if (pos == -1)
                     return false;
                 ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+                if (c.p == null)
+                    return false;
                 if (!app.BookTextView.getStartCursor().samePositionAs(c.start))
                     app.BookTextView.gotoPosition(c.start);
                 app.BookTextView.myCurrentPage.TextElementMap = c.p;
