@@ -19,6 +19,7 @@ import android.widget.TextView;
 
 import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.androidlibrary.net.HttpClient;
+import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.widgets.FBReaderView;
@@ -78,7 +79,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public static final int MD5_SIZE = 32;
     public static final int COVER_SIZE = 128;
     public static final int BUF_SIZE = 1024;
-    public static final String COVER_EXT = "png";
     public static final String JSON_EXT = "json";
 
     public static ZLAndroidApplication zlib;
@@ -167,9 +167,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return t;
     }
 
-    public static File coverFile(Book book) {
-        File p = book.file.getParentFile();
-        return new File(p, book.md5 + "." + COVER_EXT);
+    public static File coverFile(Context context, Book book) {
+        Uri u = Uri.fromFile(book.file);
+        return CacheImagesAdapter.cacheUri(context, u);
     }
 
     public static File recentFile(Book book) {
@@ -1041,6 +1041,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             FormatPlugin plugin = getPlugin(pluginCollection, book);
             ZLFile file = BookUtil.fileByBook(book.book);
             return plugin.readCover(file);
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -1061,21 +1063,14 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             fbook.info.created = System.currentTimeMillis();
         }
         fbook.info.md5 = fbook.md5;
-        final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
-        fbook.book = new org.geometerplus.fbreader.book.Book(-1, fbook.file.getPath(), null, null, null);
-        FormatPlugin plugin = getPlugin(pluginCollection, fbook);
-        try {
-            plugin.readMetainfo(fbook.book);
-        } catch (BookReadingException e) {
-            throw new RuntimeException(e);
-        }
+        read(fbook);
         if (fbook.info.authors == null || fbook.info.authors.isEmpty()) {
             fbook.info.authors = fbook.book.authorsString(", ");
         }
         if (fbook.info.title == null || fbook.info.title.isEmpty() || fbook.info.title.equals(fbook.md5)) {
             fbook.info.title = getTitle(fbook);
         }
-        File cover = coverFile(fbook);
+        File cover = coverFile(context, fbook);
         if (!cover.exists() || cover.length() == 0) {
             createCover(fbook, cover);
         }
@@ -1160,11 +1155,14 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 String n = Storage.getNameNoExt(name);
                 String e = getExt(name);
                 e = e.toLowerCase();
-                if (e.equals(COVER_EXT))
+                if (n.length() != MD5_SIZE)
                     return false;
-                if (e.equals(JSON_EXT))
-                    return false;
-                return n.length() == MD5_SIZE;
+                Detector[] dd = supported();
+                for (Detector d : dd) {
+                    if (e.equals(d.ext))
+                        return true;
+                }
+                return false;
             }
         });
         if (ff == null)
@@ -1173,7 +1171,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             Book b = new Book();
             b.md5 = getNameNoExt(f);
             b.file = f;
-            File cover = coverFile(b);
+            File cover = coverFile(context, b);
             if (cover.exists())
                 b.cover = cover;
             File r = recentFile(b);
@@ -1199,4 +1197,18 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         File r = recentFile(book);
         r.delete();
     }
+
+    public void read(Book fbook) {
+        if (fbook.book != null)
+            return;
+        final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
+        fbook.book = new org.geometerplus.fbreader.book.Book(-1, fbook.file.getPath(), null, null, null);
+        FormatPlugin plugin = Storage.getPlugin(pluginCollection, fbook);
+        try {
+            plugin.readMetainfo(fbook.book);
+        } catch (BookReadingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }
