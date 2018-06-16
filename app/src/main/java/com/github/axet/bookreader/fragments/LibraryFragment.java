@@ -5,6 +5,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
@@ -49,6 +50,9 @@ import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -222,13 +226,6 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             return holder.layout;
         }
 
-        public Uri getCover(int position) {
-            Storage.Book b = list.get(position);
-            if (b.cover != null)
-                return Uri.fromFile(b.cover);
-            return null;
-        }
-
         @Override
         public String getAuthors(int position) {
             Storage.Book b = list.get(position);
@@ -270,7 +267,55 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         @Override
         public void onBindViewHolder(final BookHolder h, int position) {
             super.onBindViewHolder(h, position);
+
+            Storage.Book b = list.get(position);
+
+            View convertView = h.itemView;
+
+            if (b.cover == null || !b.cover.exists()) {
+                downloadTask(b, convertView);
+            } else {
+                downloadTaskClean(convertView);
+                downloadTaskUpdate(null, b, convertView);
+            }
         }
+
+        @Override
+        public Bitmap downloadImageTask(CacheImagesAdapter.DownloadImageTask task) {
+            Storage.Book book = (Storage.Book) task.item;
+            storage.read(book);
+            File cover = Storage.coverFile(getContext(), book);
+            if (!cover.exists() || cover.length() == 0) {
+                storage.createCover(book, cover);
+            }
+            book.cover = cover;
+            try {
+                Bitmap bm = BitmapFactory.decodeStream(new FileInputStream(cover));
+                return bm;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+
+        @Override
+        public void downloadTaskUpdate(CacheImagesAdapter.DownloadImageTask task, Object item, Object view) {
+            super.downloadTaskUpdate(task, item, view);
+            BookHolder h = new BookHolder((View) view);
+
+            Storage.Book b = (Storage.Book) item;
+
+            if (b.cover != null && b.cover.exists()) {
+                ImageView image = (ImageView) ((View) view).findViewById(R.id.book_cover);
+                try {
+                    Bitmap bm = BitmapFactory.decodeStream(new FileInputStream(b.cover));
+                    image.setImageBitmap(bm);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
     }
 
     public static abstract class BooksAdapter extends CacheImagesRecyclerAdapter<BooksAdapter.BookHolder> {
@@ -343,16 +388,6 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                     return true;
                 }
             });
-
-            Uri cover = getCover(position);
-
-            View convertView = h.itemView;
-
-            if (cover != null) {
-                downloadTask(cover, convertView);
-            } else {
-                downloadTaskUpdate(null, null, convertView);
-            }
 
             setText(h.aa, getAuthors(position));
             setText(h.tt, getTitle(position));

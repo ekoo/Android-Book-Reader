@@ -254,6 +254,21 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
             }
             return null;
         }
+
+        @Override
+        public void onBindViewHolder(BookHolder h, int position) {
+            super.onBindViewHolder(h, position);
+
+            Uri cover = getCover(position);
+
+            View convertView = h.itemView;
+
+            if (cover != null) {
+                downloadTask(cover, convertView);
+            } else {
+                downloadTaskUpdate(null, null, convertView);
+            }
+        }
     }
 
     public NetworkLibraryFragment() {

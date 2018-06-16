@@ -501,7 +501,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
     }
 
     public File coverFile(Book book) {
-        return new File(n.getCache(), book.md5 + "." + Storage.COVER_EXT);
+        return CacheImagesAdapter.cacheUri(getContext(), book.url);
     }
 
     public File recentFile(Book book) {
@@ -523,33 +523,18 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             book.info.created = System.currentTimeMillis();
         }
         book.info.md5 = book.md5;
-        final PluginCollection pluginCollection = PluginCollection.Instance(new Storage.Info(storage.getContext()));
-        Runnable read = new Runnable() {
-            @Override
-            public void run() {
-                if (fbook.book != null)
-                    return;
-                fbook.book = new org.geometerplus.fbreader.book.Book(-1, fbook.file.getPath(), null, null, null);
-                FormatPlugin plugin = Storage.getPlugin(pluginCollection, fbook);
-                try {
-                    plugin.readMetainfo(fbook.book);
-                } catch (BookReadingException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        };
         if (book.info.authors == null || book.info.authors.isEmpty()) {
-            read.run();
+            storage.read(fbook);
             book.info.authors = fbook.book.authorsString(", ");
         }
         if (book.info.title == null || book.info.title.isEmpty() || book.info.title.equals(book.md5)) {
-            read.run();
+            storage.read(fbook);
             book.info.title = Storage.getTitle(fbook);
         }
         if (book.cover == null) {
             File cover = coverFile(book);
             if (!cover.exists() || cover.length() == 0) {
-                read.run();
+                storage.read(fbook);
                 storage.createCover(fbook, cover);
             }
             book.cover = cover;
