@@ -396,9 +396,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
         public Bitmap downloadImageTask(CacheImagesAdapter.DownloadImageTask task) {
             Book fbook = (Book) task.item;
             try {
-                boolean tmp = false;
                 InputStream is;
-                OutputStream os = null;
 
                 String md5 = MD5.digest(fbook.url.toString());
                 fbook.md5 = md5;
@@ -412,6 +410,8 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                 }
                 File cover = coverFile(fbook);
                 if (fbook.info == null || !cover.exists() || cover.length() == 0) {
+                    boolean tmp = false;
+                    OutputStream os = null;
                     Storage.Book b = new Storage.Book();
                     String s = fbook.url.getScheme();
                     if (s.equals(ContentResolver.SCHEME_CONTENT)) {
@@ -609,28 +609,17 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
         n = (LocalBooksCatalog) catalogs.find(u);
 
         setHasOptionsMenu(true);
-
-        loadDefault();
     }
 
     void loadDefault() {
         final MainActivity main = (MainActivity) getActivity();
-        UIUtil.wait("loadingBookList", new Runnable() {
+        books.load();
+        handler.post(new Runnable() {
             @Override
             public void run() {
-                try {
-                    books.load();
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            loadView();
-                        }
-                    });
-                } catch (Exception e) {
-                    main.Post(e);
-                }
+                loadView();
             }
-        }, getContext());
+        });
     }
 
     void loadView() {
@@ -763,6 +752,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
     @Override
     public void onResume() {
         super.onResume();
+        loadDefault();
     }
 
     @Override
@@ -841,6 +831,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
     }
 
     public String getDisplayName(Uri u) {
-        return ".../" + u.getLastPathSegment();
+        String p = Storage.getDocumentPath(u);
+        return ".../" + new File(p).getName();
     }
 }
