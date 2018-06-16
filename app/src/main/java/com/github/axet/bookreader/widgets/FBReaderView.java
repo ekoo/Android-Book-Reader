@@ -810,6 +810,18 @@ public class FBReaderView extends RelativeLayout {
         }
 
         @Override
+        public void onFingerSingleTapLastResort(int x, int y) {
+            if (widget instanceof ScrollView)
+                ;
+            else
+                super.onFingerSingleTapLastResort(x, y);
+        }
+
+        public void onFingerSingleTapLastResort(MotionEvent e) {
+            super.onFingerSingleTapLastResort((int) e.getX(), (int) e.getY());
+        }
+
+        @Override
         public boolean twoColumnView() {
             if (widget instanceof ScrollView)
                 return false;
@@ -850,6 +862,9 @@ public class FBReaderView extends RelativeLayout {
                 pluginview.gotoPosition(new ZLTextFixedPosition(page, 0, 0));
             else
                 super.gotoPage(page);
+            if (widget instanceof ScrollView) {
+                ((ScrollView) widget).adapter.reset();
+            }
         }
 
         @Override
@@ -1309,11 +1324,6 @@ public class FBReaderView extends RelativeLayout {
                                             @Override
                                             public void run() {
                                                 int i = index;
-                                                try {
-                                                    Thread.sleep(5000);
-                                                }catch(InterruptedException e) {
-
-                                                }
                                                 Reflow reflower = new Reflow(getContext(), getWidth(), getHeight(), page);
                                                 Bitmap bm = pluginview.render(getWidth(), getHeight(), page);
                                                 reflower.load(bm);
@@ -1531,7 +1541,7 @@ public class FBReaderView extends RelativeLayout {
                 return pages.size();
             }
 
-            public void reset() {
+            public void reset() { // read current position
                 size.w = getWidth();
                 size.h = getHeight();
                 if (pluginview != null) {
@@ -1660,6 +1670,7 @@ public class FBReaderView extends RelativeLayout {
                 if (!open(e))
                     return false;
                 app.BookTextView.onFingerSingleTap(x, y);
+                ((CustomView) app.BookTextView).onFingerSingleTapLastResort(e);
                 v.invalidate();
                 adapter.invalidate.add(v.holder);
                 close();
@@ -1772,7 +1783,7 @@ public class FBReaderView extends RelativeLayout {
         public void repaint() {
         }
 
-        public int findMiddleView() {
+        public int findFirstPage() {
             Map<Integer, View> map = new TreeMap<>();
             for (int i = 0; i < lm.getChildCount(); i++) {
                 View view = lm.getChildAt(i);
@@ -1799,7 +1810,7 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public void startAnimatedScrolling(ZLViewEnums.PageIndex pageIndex, ZLViewEnums.Direction direction, int speed) {
-            int pos = findMiddleView();
+            int pos = findFirstPage();
             if (pos == -1)
                 return;
             switch (pageIndex) {
@@ -1843,26 +1854,24 @@ public class FBReaderView extends RelativeLayout {
         }
 
         void updatePosition() { // position can vary depend on which page drawn, restore it after every draw
-            if (widget instanceof ScrollView) {
-                int first = ((ScrollView) widget).findMiddleView();
-                if (first == -1)
-                    return;
-                if (pluginview != null && pluginview.reflow) {
-                    ScrollView.ScrollAdapter.PageCursor cc = ((ScrollView) widget).adapter.pages.get(first);
-                    if (cc.start == null) {
-                        int p = cc.end.getParagraphIndex();
-                        int i = cc.end.getElementIndex() - 1;
-                        if (i < 0)
-                            p = p - 1;
-                        pluginview.current.pageNumber = p;
-                    } else {
-                        pluginview.current.pageNumber = cc.start.getParagraphIndex();
-                    }
-                    clearReflowPage(); // reset reflow page, since we treat pageOffset differently for reflower/full page view
+            int first = findFirstPage();
+            if (first == -1)
+                return;
+            if (pluginview != null && pluginview.reflow) {
+                ScrollView.ScrollAdapter.PageCursor cc = ((ScrollView) widget).adapter.pages.get(first);
+                if (cc.start == null) {
+                    int p = cc.end.getParagraphIndex();
+                    int i = cc.end.getElementIndex() - 1;
+                    if (i < 0)
+                        p = p - 1;
+                    pluginview.current.pageNumber = p;
                 } else {
-                    ScrollView.ScrollAdapter.PageCursor c = ((ScrollView) widget).adapter.pages.get(first);
-                    ((ScrollView) widget).adapter.open(c);
+                    pluginview.current.pageNumber = cc.start.getParagraphIndex();
                 }
+                clearReflowPage(); // reset reflow page, since we treat pageOffset differently for reflower/full page view
+            } else {
+                ScrollView.ScrollAdapter.PageCursor c = ((ScrollView) widget).adapter.pages.get(first);
+                ((ScrollView) widget).adapter.open(c);
             }
         }
 
@@ -2505,6 +2514,7 @@ public class FBReaderView extends RelativeLayout {
         widget.reset();
         widget.repaint();
         if (widget instanceof ScrollView) {
+            ((ScrollView) widget).updatePosition(); // keep current position
             ((ScrollView) widget).adapter.reset();
         }
     }
