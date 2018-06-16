@@ -795,6 +795,23 @@ public class FBReaderView extends RelativeLayout {
             super(reader);
         }
 
+        public void setContext() {
+            final ZLAndroidPaintContext context = new ZLAndroidPaintContext(
+                    app.SystemInfo,
+                    new Canvas(),
+                    new ZLAndroidPaintContext.Geometry(
+                            getWidth(),
+                            getHeight(),
+                            getWidth(),
+                            getHeight(),
+                            0,
+                            0
+                    ),
+                    getVerticalScrollbarWidth()
+            );
+            setContext(context);
+        }
+
         @Override
         public void hideOutline() {
             super.hideOutline();
@@ -812,12 +829,13 @@ public class FBReaderView extends RelativeLayout {
         @Override
         public void onFingerSingleTapLastResort(int x, int y) {
             if (widget instanceof ScrollView)
-                ;
+                onFingerSingleTapLastResort(((ScrollView) widget).gesturesListener.e);
             else
                 super.onFingerSingleTapLastResort(x, y);
         }
 
         public void onFingerSingleTapLastResort(MotionEvent e) {
+            setContext();
             super.onFingerSingleTapLastResort((int) e.getX(), (int) e.getY());
         }
 
@@ -876,12 +894,15 @@ public class FBReaderView extends RelativeLayout {
     public class FBAndroidWidget extends ZLAndroidWidget {
         public FBAndroidWidget() {
             super(FBReaderView.this.getContext());
+
             ZLApplication = new ZLAndroidWidget.ZLApplicationInstance() {
                 public ZLApplication Instance() {
                     return app;
                 }
             };
             setFocusable(true);
+
+            config.setValue(app.PageTurningOptions.FingerScrolling, PageTurningOptions.FingerScrollingType.byTapAndFlick);
         }
 
         @Override
@@ -1424,6 +1445,10 @@ public class FBReaderView extends RelativeLayout {
                         bm = null;
                     }
                     p = null;
+                    if (time != null) {
+                        time.cancel();
+                        time = null;
+                    }
                 }
 
                 boolean isCached(PageCursor c) {
@@ -1623,11 +1648,13 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public class Gestures implements GestureDetector.OnGestureListener {
+            MotionEvent e;
             int x;
             int y;
             ScrollAdapter.PageView v;
 
             boolean open(MotionEvent e) {
+                this.e = e;
                 v = findView(e);
                 if (v == null)
                     return false;
@@ -1667,10 +1694,11 @@ public class FBReaderView extends RelativeLayout {
 
             @Override
             public boolean onSingleTapUp(MotionEvent e) {
-                if (!open(e))
-                    return false;
+                if (!open(e)) { // pluginview or reflow
+                    ((CustomView) app.BookTextView).onFingerSingleTapLastResort(e);
+                    return true;
+                }
                 app.BookTextView.onFingerSingleTap(x, y);
-                ((CustomView) app.BookTextView).onFingerSingleTapLastResort(e);
                 v.invalidate();
                 adapter.invalidate.add(v.holder);
                 close();
@@ -1757,6 +1785,8 @@ public class FBReaderView extends RelativeLayout {
                 setPadding(0, 0, 0, footer.getHeight());
 
             setItemAnimator(null);
+
+            config.setValue(app.PageTurningOptions.FingerScrolling, PageTurningOptions.FingerScrollingType.byFlick);
         }
 
         @Override
@@ -1806,6 +1836,7 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public void startAnimatedScrolling(ZLViewEnums.PageIndex pageIndex, int x, int y, ZLViewEnums.Direction direction, int speed) {
+            startAnimatedScrolling(pageIndex, direction, speed);
         }
 
         @Override
