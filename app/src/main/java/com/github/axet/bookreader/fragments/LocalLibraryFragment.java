@@ -405,7 +405,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                 File cover = coverFile(book);
                 if (book.info == null || !cover.exists() || cover.length() == 0) {
                     try {
-                        LocalLibraryFragment.this.load(book);
+                        LocalLibraryFragment.this.load(book); // load cover && authors
                     } catch (RuntimeException e) {
                         Log.d(TAG, "unable to load file", e);
                         all.remove(book);

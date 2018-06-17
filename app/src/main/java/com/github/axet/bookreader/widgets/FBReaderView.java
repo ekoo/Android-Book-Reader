@@ -869,9 +869,7 @@ public class FBReaderView extends RelativeLayout {
                 pluginview.gotoPosition(new ZLTextFixedPosition(page, 0, 0));
             else
                 super.gotoPage(page);
-            if (widget instanceof ScrollView) {
-                ((ScrollView) widget).adapter.reset();
-            }
+            resetPosition();
         }
 
         @Override
@@ -2395,27 +2393,21 @@ public class FBReaderView extends RelativeLayout {
             @Override
             protected void run(Object... params) {
                 Reader.getTextView().findPrevious();
-                if (widget instanceof ScrollView) {
-                    ((ScrollView) widget).adapter.reset();
-                }
+                resetPosition();
             }
         });
         app.addAction(ActionCode.FIND_NEXT, new FBAction(app) {
             @Override
             protected void run(Object... params) {
                 Reader.getTextView().findNext();
-                if (widget instanceof ScrollView) {
-                    ((ScrollView) widget).adapter.reset();
-                }
+                resetPosition();
             }
         });
         app.addAction(ActionCode.CLEAR_FIND_RESULTS, new FBAction(app) {
             @Override
             protected void run(Object... params) {
                 Reader.getTextView().clearFindResults();
-                if (widget instanceof ScrollView) {
-                    ((ScrollView) widget).adapter.reset(); // we have only one page, can reset
-                }
+                resetPosition();
             }
         });
 
@@ -2530,6 +2522,10 @@ public class FBReaderView extends RelativeLayout {
             pluginview.gotoPosition(p);
         else
             app.BookTextView.gotoPosition(p);
+        resetPosition();
+    }
+
+    public void resetPosition() { // read current position from new loaded page
         if (widget instanceof ScrollView) {
             ((ScrollView) widget).adapter.reset();
         } else {
@@ -2539,11 +2535,12 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void reset() {
-        widget.reset();
-        widget.repaint();
         if (widget instanceof ScrollView) {
             ((ScrollView) widget).updatePosition(); // keep current position
             ((ScrollView) widget).adapter.reset();
+        } else {
+            widget.reset();
+            widget.repaint();
         }
     }
 
