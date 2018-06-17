@@ -1,7 +1,9 @@
 package com.github.axet.bookreader.app;
 
+import android.annotation.TargetApi;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -9,17 +11,24 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
 import android.os.ParcelFileDescriptor;
+import android.preference.PreferenceManager;
+import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+import android.support.v7.app.AlertDialog;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
+import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.widgets.FBReaderView;
@@ -51,18 +60,24 @@ import org.xml.sax.helpers.DefaultHandler;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -110,7 +125,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 new FileMobi(), new FileTxt(), new FileTxtZip()};
     }
 
-    public static FormatPlugin getPlugin(PluginCollection c, Storage.Book b) {
+    public static FormatPlugin getPlugin(PluginCollection c, Storage.FBook b) {
         ZLFile f = BookUtil.fileByBook(b.book);
         switch (f.getExtension()) {
             case PDFPlugin.EXT:
@@ -143,38 +158,34 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
     }
 
-    public static String getName(Book book) {
-        String a = book.book.authorsString(", ");
-        String t = book.book.getTitle();
-        if (t.equals(book.md5))
-            t = null;
-        String m;
-        if (a == null && t == null) {
-            return null;
-        } else if (a == null)
-            m = t;
-        else if (t == null)
-            m = a;
-        else
-            m = a + " - " + t;
-        return m;
-    }
-
-    public static String getTitle(Book book) {
-        String t = book.book.getTitle();
+    public static String getTitle(Book book, FBook fbook) {
+        String t = fbook.book.getTitle();
         if (t.equals(book.md5))
             t = null;
         return t;
     }
 
     public static File coverFile(Context context, Book book) {
-        Uri u = Uri.fromFile(book.file);
-        return CacheImagesAdapter.cacheUri(context, u);
+        return CacheImagesAdapter.cacheUri(context, book.url);
     }
 
     public static File recentFile(Book book) {
-        File p = book.file.getParentFile();
+        File f = getFile(book.url);
+        File p = f.getParentFile();
         return new File(p, book.md5 + "." + JSON_EXT);
+    }
+
+    public Uri recentUri(Book book) {
+        String s = book.url.getScheme();
+        if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
+            String id = book.md5 + "." + JSON_EXT;
+            Uri doc = DocumentsContract.buildDocumentUriUsingTree(Storage.getDocumentTreeUri(book.url), DocumentsContract.getTreeDocumentId(book.url));
+            return child(doc, id);
+        } else if (s.equals(ContentResolver.SCHEME_FILE)) {
+            return Uri.fromFile(recentFile(book));
+        } else {
+            throw new RuntimeException("unknown uri");
+        }
     }
 
     public static class Detector {
@@ -735,68 +746,26 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
     }
 
-    public static class Book {
-        public File file;
-        public String md5;
+    public static class FBook {
+        public File tmp; // tmp file
         public org.geometerplus.fbreader.book.Book book;
+        public RecentInfo info;
+
+        public void close() {
+            if (tmp != null) {
+                tmp.delete();
+                tmp = null;
+            }
+            book = null;
+        }
+    }
+
+    public static class Book {
+        public Uri url;
         public String ext;
+        public String md5;
         public RecentInfo info;
         public File cover;
-
-        public boolean isLoaded() {
-            return book != null;
-        }
-
-        public File[] exists(File s) {
-            File[] ff = s.listFiles(new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    return name.startsWith(md5);
-                }
-            });
-            if (ff == null)
-                return null;
-            if (ff.length == 0)
-                return null;
-            return ff;
-        }
-
-        public void store(File s, boolean tmp) {
-            File f = new File(s, md5 + "." + ext);
-            if (f.equals(file))
-                return;
-            File[] ee = exists(s);
-            if (ee == null) {
-                if (tmp)
-                    file = Storage.move(file, f);
-                else
-                    file = Storage.copy(file, f);
-            } else {
-                boolean same = false;
-                for (File e : ee) {
-                    if (e.equals(file)) {
-                        same = true;
-                        break;
-                    }
-                    if (getExt(e).toLowerCase().equals(ext)) {
-                        same = true;
-                        break;
-                    }
-                }
-                if (same) { // delete temp file
-                    if (tmp) {
-                        file.delete();
-                    }
-                    file = f;
-                } else {
-                    for (File e : ee) {
-                        e.delete();
-                    }
-                    file = Storage.move(file, f);
-                }
-            }
-        }
-
     }
 
     public static class RecentInfo {
@@ -810,13 +779,30 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         public RecentInfo() {
         }
 
+        public RecentInfo(RecentInfo info) {
+            md5 = info.md5;
+            created = info.created;
+            last = info.last;
+            if (info.position != null)
+                position = new ZLTextFixedPosition(info.position);
+            authors = info.authors;
+            title = info.title;
+        }
+
         public RecentInfo(File f) {
             try {
                 FileInputStream is = new FileInputStream(f);
-                String json = IOUtils.toString(is, Charset.defaultCharset());
-                JSONObject j = new JSONObject(json);
-                load(j);
-                is.close();
+                load(is);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public RecentInfo(Context context, Uri u) {
+            try {
+                ContentResolver resolver = context.getContentResolver();
+                InputStream is = resolver.openInputStream(u);
+                load(is);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -824,6 +810,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
         public RecentInfo(JSONObject o) throws JSONException {
             load(o);
+        }
+
+        void load(InputStream is) throws Exception {
+            String json = IOUtils.toString(is, Charset.defaultCharset());
+            JSONObject j = new JSONObject(json);
+            load(j);
+            is.close();
         }
 
         public void load(JSONObject o) throws JSONException {
@@ -861,19 +854,44 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public void save(Book book) {
         book.info.last = System.currentTimeMillis();
-        File f = recentFile(book);
-        try {
-            String json = book.info.save().toString();
-            Writer w = new FileWriter(f);
-            IOUtils.write(json, w);
-            w.close();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        Uri u = recentUri(book);
+        String s = u.getScheme();
+        if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
+            Uri root = Storage.getDocumentTreeUri(u);
+            Uri o = createFile(root, Storage.getDocumentChildPath(u));
+            ContentResolver resolver = context.getContentResolver();
+            ParcelFileDescriptor fd;
+            try {
+                fd = resolver.openFileDescriptor(o, "rw");
+            } catch (FileNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+            FileDescriptor out = fd.getFileDescriptor();
+            try {
+                String json = book.info.save().toString();
+                Writer w = new FileWriter(out);
+                IOUtils.write(json, w);
+                w.close();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        } else if (s.equals(ContentResolver.SCHEME_FILE)) {
+            try {
+                File f = Storage.getFile(u);
+                String json = book.info.save().toString();
+                Writer w = new FileWriter(f);
+                IOUtils.write(json, w);
+                w.close();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            throw new RuntimeException("unknown uri");
         }
     }
 
     public Book load(Uri uri) {
-        Book fbook;
+        Book book;
         String contentDisposition = null;
         String s = uri.getScheme();
         if (s.equals(ContentResolver.SCHEME_CONTENT)) {
@@ -892,7 +910,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
                 AssetFileDescriptor fd = resolver.openAssetFileDescriptor(uri, "r");
                 AssetFileDescriptor.AutoCloseInputStream is = new AssetFileDescriptor.AutoCloseInputStream(fd);
-                fbook = load(is, null);
+                book = load(is, uri);
                 is.close();
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -918,41 +936,41 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     }
                     is = new BufferedInputStream(w.getInputStream());
                 }
-                fbook = load(is, null);
+                book = load(is, null);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         } else { // file:// or /path/file
-            File f = new File(uri.getPath());
+            File f = getFile(uri);
             try {
                 FileInputStream is = new FileInputStream(f);
-                fbook = load(is, f);
+                book = load(is, Uri.fromFile(f));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
-        File r = recentFile(fbook);
-        if (r.exists()) {
+        Uri r = recentUri(book);
+        if (exists(r)) {
             try {
-                fbook.info = new RecentInfo(r);
+                book.info = new RecentInfo(context, r);
             } catch (RuntimeException e) {
                 Log.d(TAG, "Unable to load info", e);
             }
         }
-        if (fbook.info == null) {
-            fbook.info = new RecentInfo();
-            fbook.info.created = System.currentTimeMillis();
+        if (book.info == null) {
+            book.info = new RecentInfo();
+            book.info.created = System.currentTimeMillis();
         }
-        load(fbook);
-        if (fbook.info.title == null || fbook.info.title.isEmpty() || fbook.info.title.equals(fbook.md5)) {
+        load(book);
+        if (book.info.title == null || book.info.title.isEmpty() || book.info.title.equals(book.md5)) {
             if (contentDisposition != null && !contentDisposition.isEmpty())
-                fbook.info.title = contentDisposition;
+                book.info.title = contentDisposition;
             else
-                fbook.info.title = Storage.getNameNoExt(uri.getLastPathSegment());
+                book.info.title = Storage.getNameNoExt(uri.getLastPathSegment());
         }
-        if (!r.exists())
-            save(fbook);
-        return fbook;
+        if (!exists(r))
+            save(book);
+        return book;
     }
 
     public File getCache() {
@@ -962,16 +980,36 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return cache;
     }
 
-    public Book load(InputStream is, File f) {
-        boolean tmp = f == null;
-        Book fbook = new Book();
+    public Book load(InputStream is, Uri u) {
+        Uri storage = getStoragePath();
+
+        if (u.toString().startsWith(storage.toString())) {
+            String name = Storage.getDocumentName(u);
+            String nn = Storage.getNameNoExt(name);
+            String ext = Storage.getExt(name);
+            if (nn.length() == MD5_SIZE) {
+                Book book = new Book();
+                book.url = u;
+                book.md5 = nn;
+                book.ext = ext;
+                return book;
+            }
+        }
+
+        boolean tmp = false;
+        File file = null;
+
+        final Book book = new Book();
         try {
             FileOutputStream os = null;
 
-            fbook.file = f;
-            if (fbook.file == null) {
-                fbook.file = File.createTempFile("book", ".tmp", getCache());
-                os = new FileOutputStream(fbook.file);
+            String s = u.getScheme();
+            if (s.equals(ContentResolver.SCHEME_FILE)) {
+                file = Storage.getFile(u);
+            } else {
+                file = File.createTempFile("book", ".tmp", getCache());
+                os = new FileOutputStream(file);
+                tmp = true;
             }
 
             Detector[] dd = supported();
@@ -998,44 +1036,102 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             zip.close();
             xml.close();
 
-            fbook.md5 = toHex(digest.digest());
+            book.md5 = toHex(digest.digest());
 
             for (Detector d : dd) {
                 if (d.detected) {
-                    fbook.ext = d.ext;
+                    book.ext = d.ext;
                     if (d instanceof FileTypeDetectorZipExtract.Handler) {
                         FileTypeDetectorZipExtract.Handler e = (FileTypeDetectorZipExtract.Handler) d;
-                        File z = fbook.file;
                         if (!tmp) { // !tmp
-                            fbook.file = File.createTempFile("book", ".tmp", getCache());
-                            fbook.md5 = e.extract(z, fbook.file);
+                            File z = file;
+                            file = File.createTempFile("book", ".tmp", getCache());
+                            book.md5 = e.extract(z, file);
                             tmp = true; // force to delete 'fbook.file'
                         } else { // tmp
                             File tt = File.createTempFile("book", ".tmp", getCache());
-                            fbook.md5 = e.extract(z, tt);
-                            z.delete();
-                            fbook.file = tt;
+                            book.md5 = e.extract(file, tt);
+                            file.delete(); // delete old
+                            file = tt; // tmp = true
                         }
                     }
                     break; // priority first - more imporant
                 }
             }
 
-            if (fbook.ext == null)
+            if (book.ext == null)
                 throw new RuntimeException("Unsupported format");
+
+            if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
+                ContentResolver contentResolver = context.getContentResolver();
+                Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(storage, DocumentsContract.getTreeDocumentId(storage));
+                Cursor childCursor = contentResolver.query(childrenUri, null, null, null, null);
+                if (childCursor != null) {
+                    while (childCursor.moveToNext()) {
+                        String id = childCursor.getString(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID));
+                        String t = childCursor.getString(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME));
+                        String n = Storage.getNameNoExt(t);
+                        String e = Storage.getExt(t);
+                        if (n.equals(book.md5) && !e.equals(JSON_EXT)) { // delete all but json
+                            Uri k = DocumentsContract.buildDocumentUriUsingTree(u, id);
+                            delete(k);
+                        }
+                    }
+                }
+                Uri k = DocumentsContract.buildDocumentUriUsingTree(storage, book.md5 + "." + book.ext);
+                Uri root = Storage.getDocumentTreeUri(k);
+                Uri o = createFile(root, Storage.getDocumentChildPath(k));
+                ContentResolver resolver = context.getContentResolver();
+
+                ParcelFileDescriptor fd = resolver.openFileDescriptor(o, "rw");
+
+                FileDescriptor out = fd.getFileDescriptor();
+                FileInputStream fis = new FileInputStream(file);
+                FileOutputStream fos = new FileOutputStream(out);
+                IOUtils.copy(fis, fos);
+                fis.close();
+                fos.close();
+
+                book.url = k;
+
+                if (tmp)
+                    file.delete();
+            } else if (s.equals(ContentResolver.SCHEME_FILE)) {
+                File f = getFile(storage);
+                File[] ff = f.listFiles(new FilenameFilter() {
+                    @Override
+                    public boolean accept(File dir, String name) {
+                        return name.startsWith(book.md5);
+                    }
+                });
+                if (ff != null) {
+                    for (File k : ff) {
+                        if (!getExt(k).toLowerCase().equals(JSON_EXT))
+                            k.delete();
+                    }
+                }
+                File to = new File(f, book.md5 + "." + book.ext);
+                if (tmp)
+                    Storage.move(file, to);
+                else
+                    Storage.copy(file, to);
+                book.url = Uri.fromFile(to);
+            } else {
+                throw new RuntimeException("unknown uri");
+            }
         } catch (RuntimeException e) {
+            if (tmp && file != null)
+                file.delete();
             throw e;
         } catch (IOException | NoSuchAlgorithmException e) {
-            if (tmp && fbook.file != null)
-                fbook.file.delete();
+            if (tmp && file != null)
+                file.delete();
             throw new RuntimeException(e);
         }
-        File storage = getLocalStorage();
-        fbook.store(storage, tmp);
-        return fbook;
+        return book;
     }
 
-    public ZLImage loadCover(Book book) {
+    public ZLImage loadCover(FBook book) {
         try {
             final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
             FormatPlugin plugin = getPlugin(pluginCollection, book);
@@ -1048,38 +1144,43 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
     }
 
-    public void load(Book fbook) {
-        if (fbook.info == null) {
-            File r = recentFile(fbook);
-            if (r.exists())
+    public void load(Book book) {
+        if (book.info == null) {
+            Uri r = recentUri(book);
+            if (exists(r))
                 try {
-                    fbook.info = new RecentInfo(r);
+                    book.info = new RecentInfo(context, r);
                 } catch (RuntimeException e) {
                     Log.d(TAG, "Unable to load info", e);
                 }
         }
-        if (fbook.info == null) {
-            fbook.info = new RecentInfo();
-            fbook.info.created = System.currentTimeMillis();
+        if (book.info == null) {
+            book.info = new RecentInfo();
+            book.info.created = System.currentTimeMillis();
         }
-        fbook.info.md5 = fbook.md5;
-        read(fbook);
-        if (fbook.info.authors == null || fbook.info.authors.isEmpty()) {
-            fbook.info.authors = fbook.book.authorsString(", ");
+        book.info.md5 = book.md5;
+        FBook fbook = null;
+        if (book.info.authors == null || book.info.authors.isEmpty()) {
+            if (fbook == null)
+                fbook = read(book);
+            book.info.authors = fbook.book.authorsString(", ");
         }
-        if (fbook.info.title == null || fbook.info.title.isEmpty() || fbook.info.title.equals(fbook.md5)) {
-            fbook.info.title = getTitle(fbook);
+        if (book.info.title == null || book.info.title.isEmpty() || book.info.title.equals(book.md5)) {
+            if (fbook == null)
+                fbook = read(book);
+            book.info.title = getTitle(book, fbook);
         }
-        File cover = coverFile(context, fbook);
+        File cover = coverFile(context, book);
         if (!cover.exists() || cover.length() == 0) {
             createCover(fbook, cover);
         }
+        if (fbook != null)
+            fbook.close();
     }
 
-    public void createCover(Book fbook, File cover) {
+    public void createCover(FBook fbook, File cover) {
         ZLImage image = loadCover(fbook);
         if (image != null) {
-            fbook.cover = cover;
             Bitmap bm = null;
             if (image instanceof ZLFileImageProxy) {
                 ZLFileImageProxy p = (ZLFileImageProxy) image;
@@ -1115,7 +1216,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 float ratio = COVER_SIZE / (float) bm.getWidth();
                 Bitmap sbm = Bitmap.createScaledBitmap(bm, (int) (bm.getWidth() * ratio), (int) (bm.getHeight() * ratio), true);
                 bm.recycle();
-                FileOutputStream os = new FileOutputStream(fbook.cover);
+                FileOutputStream os = new FileOutputStream(cover);
                 sbm.compress(Bitmap.CompressFormat.PNG, 100, os);
                 os.close();
                 sbm.recycle();
@@ -1141,8 +1242,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public ArrayList<Book> list() {
         ArrayList<Book> list = new ArrayList<>();
-        list(list, getLocalInternal());
-        list(list, getLocalExternal());
+        list(list, getStoragePath());
         return list;
     }
 
@@ -1170,7 +1270,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         for (File f : ff) {
             Book b = new Book();
             b.md5 = getNameNoExt(f);
-            b.file = f;
+            b.url = Uri.fromFile(f);
             File cover = coverFile(context, b);
             if (cover.exists())
                 b.cover = cover;
@@ -1190,24 +1290,221 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
     }
 
-    public void delete(Book book) {
-        book.file.delete();
-        if (book.cover != null)
-            book.cover.delete();
-        File r = recentFile(book);
-        r.delete();
+    public void list(ArrayList<Book> list, Uri uri) {
+        String s = uri.getScheme();
+        if (Build.VERSION.SDK_INT >= 21 && s.startsWith(ContentResolver.SCHEME_CONTENT)) {
+            ContentResolver contentResolver = context.getContentResolver();
+            Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri));
+            Cursor childCursor = contentResolver.query(childrenUri, null, null, null, null);
+            if (childCursor != null) {
+                try {
+                    while (childCursor.moveToNext()) {
+                        String id = childCursor.getString(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID));
+                        String t = childCursor.getString(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME));
+                        long size = childCursor.getLong(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE));
+                        if (size > 0) {
+                            String n = t.toLowerCase();
+                            Detector[] dd = supported();
+                            for (Detector d : dd) {
+                                if (n.endsWith("." + d.ext)) {
+                                    Uri k = DocumentsContract.buildDocumentUriUsingTree(uri, id);
+                                    Book b = new Book();
+                                    b.md5 = getNameNoExt(k);
+                                    b.url = k;
+                                    File cover = coverFile(context, b);
+                                    if (cover.exists())
+                                        b.cover = cover;
+                                    Uri r = recentUri(b);
+                                    if (exists(r)) {
+                                        try {
+                                            b.info = new RecentInfo(context, r);
+                                        } catch (RuntimeException e) {
+                                            Log.d(TAG, "Unable to load info", e);
+                                        }
+                                    }
+                                    if (b.info == null) {
+                                        b.info = new RecentInfo();
+                                        b.info.created = System.currentTimeMillis();
+                                    }
+                                    list.add(b);
+                                    break; // break dd
+                                }
+                            }
+                        }
+                    }
+                } finally {
+                    childCursor.close();
+                }
+            }
+        } else if (s.startsWith(ContentResolver.SCHEME_FILE)) {
+            File dir = getFile(uri);
+            list(list, dir);
+        } else {
+            throw new RuntimeException("unknow uri");
+        }
     }
 
-    public void read(Book fbook) {
-        if (fbook.book != null)
-            return;
-        final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
-        fbook.book = new org.geometerplus.fbreader.book.Book(-1, fbook.file.getPath(), null, null, null);
-        FormatPlugin plugin = Storage.getPlugin(pluginCollection, fbook);
+    public void delete(Book book) {
+        delete(book.url);
+        if (book.cover != null)
+            book.cover.delete();
+
+        delete(recentUri(book));
+
+        // delete old cover stored next to book file
+        String COVER_EXT = "png";
+        String s = book.url.getScheme();
+        if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
+            Uri doc = DocumentsContract.buildDocumentUriUsingTree(Storage.getDocumentTreeUri(book.url), DocumentsContract.getTreeDocumentId(book.url));
+            String id = book.md5 + "." + COVER_EXT;
+            Uri k = child(doc, id);
+            delete(k);
+        } else if (s.equals(ContentResolver.SCHEME_FILE)) {
+            File f = getFile(book.url);
+            File p = f.getParentFile();
+            delete(new File(p, book.md5 + "." + COVER_EXT));
+        } else {
+            throw new RuntimeException("unknown uri");
+        }
+    }
+
+    public FBook read(Book b) {
+        FBook fbook = read(b.url);
+        fbook.info = new RecentInfo(b.info);
+        return fbook;
+    }
+
+    public FBook read(Uri url) {
         try {
-            plugin.readMetainfo(fbook.book);
-        } catch (BookReadingException e) {
+            File file;
+
+            FBook fbook = new FBook();
+
+            String s = url.getScheme();
+            if (s.equals(ContentResolver.SCHEME_CONTENT)) {
+                String ext = getExt(url);
+                fbook.tmp = File.createTempFile("book", "." + ext, getCache());
+                OutputStream os = new FileOutputStream(fbook.tmp);
+                ContentResolver resolver = getContext().getContentResolver();
+                InputStream is = resolver.openInputStream(url);
+                IOUtils.copy(is, os);
+                file = fbook.tmp;
+                is.close();
+                os.close();
+            } else if (s.equals(ContentResolver.SCHEME_FILE)) {
+                file = getFile(url);
+            } else {
+                throw new RuntimeException("unknown uri");
+            }
+
+            final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
+            fbook.book = new org.geometerplus.fbreader.book.Book(-1, file.getPath(), null, null, null);
+            FormatPlugin plugin = Storage.getPlugin(pluginCollection, fbook);
+            try {
+                plugin.readMetainfo(fbook.book);
+            } catch (BookReadingException e) {
+                throw new RuntimeException(e);
+            }
+
+            return fbook;
+        } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public Uri getStoragePath() {
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
+        String path = shared.getString(MainApplication.PREFERENCE_STORAGE, null);
+        if (path == null)
+            return Uri.fromFile(getLocalStorage());
+        else
+            return getStoragePath(path);
+    }
+
+    public static void migrateLocalStorageDialog(final Context context, final Handler handler, final Storage storage) {
+        int dp10 = ThemeUtils.dp2px(context, 10);
+        ProgressBar progress = new ProgressBar(context);
+        progress.setIndeterminate(true);
+        progress.setPadding(dp10, dp10, dp10, dp10);
+        AlertDialog.Builder b = new AlertDialog.Builder(context);
+        b.setTitle("Migrating data");
+        b.setView(progress);
+        b.setCancelable(false);
+        final AlertDialog dialog = b.create();
+        final Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    storage.migrateLocalStorage();
+                } catch (final RuntimeException e) {
+                    Log.d(TAG, "migrate error", e);
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(context, e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+                }
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        dialog.cancel();
+                    }
+                });
+            }
+        });
+        dialog.show();
+        thread.start();
+    }
+
+    public void migrateLocalStorage() {
+        migrateLocalStorage(getLocalInternal());
+        migrateLocalStorage(getLocalExternal());
+    }
+
+    public void migrateLocalStorage(File l) {
+        if (l == null)
+            return;
+
+        if (!canWrite(l))
+            return;
+
+        Uri path = getStoragePath();
+
+        String s = path.getScheme();
+        if (s.equals(ContentResolver.SCHEME_FILE)) {
+            File p = getFile(path);
+            if (!canWrite(p))
+                return;
+            if (l.equals(p)) // same storage path
+                return;
+        }
+
+        Uri u = Uri.fromFile(l);
+        if (u.equals(path)) // same storage path
+            return;
+
+        File[] ff = l.listFiles();
+
+        if (ff == null)
+            return;
+
+        for (File f : ff) {
+            if (!f.isFile())
+                continue;
+            boolean m = false;
+            String e = Storage.getExt(f).toLowerCase();
+            if (e.equals(JSON_EXT))
+                m = true;
+            else {
+                Detector[] dd = supported();
+                for (Detector d : dd) {
+                    if (e.equals(d.ext))
+                        m = true;
+                }
+            }
+            if (m)
+                migrate(f, path);
         }
     }
 

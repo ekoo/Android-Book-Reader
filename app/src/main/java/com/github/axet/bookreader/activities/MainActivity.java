@@ -37,6 +37,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
+import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.OpenChoicer;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
@@ -462,11 +463,11 @@ public class MainActivity extends FullscreenActivity
                         });
                         return;
                     }
-                    final Storage.Book fbook = storage.load(u);
+                    final Storage.Book book = storage.load(u);
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            loadBook(fbook);
+                            loadBook(book);
                             if (success != null)
                                 success.run();
                         }
@@ -487,8 +488,7 @@ public class MainActivity extends FullscreenActivity
     }
 
     public void loadBook(Storage.Book book) {
-        Uri uri = Uri.fromFile(book.file);
-        openFragment(ReaderFragment.newInstance(uri), ReaderFragment.TAG).addToBackStack(null).commit();
+        openFragment(ReaderFragment.newInstance(book.url), ReaderFragment.TAG).addToBackStack(null).commit();
     }
 
     public void openLibrary() {
@@ -618,6 +618,7 @@ public class MainActivity extends FullscreenActivity
     protected void onResume() {
         super.onResume();
         RotatePreferenceCompat.onResume(this, MainApplication.PREFERENCE_ROTATE);
+        CacheImagesAdapter.cacheClear(this);
     }
 
     public static String toString(Throwable e) {

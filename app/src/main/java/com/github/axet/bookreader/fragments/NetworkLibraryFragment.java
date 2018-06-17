@@ -695,21 +695,21 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                             }
                             is = new BufferedInputStream(w.getInputStream());
                         }
-                        final Storage.Book fbook = storage.load(is, null); // we have to download content first, then determine it type. not using load(uri)
-                        storage.load(fbook);
-                        if (fbook.info.title == null || fbook.info.title.isEmpty() || fbook.info.title.equals(fbook.md5)) {
+                        final Storage.Book book = storage.load(is, null); // we have to download content first, then determine it type. not using load(uri)
+                        storage.load(book);
+                        if (book.info.title == null || book.info.title.isEmpty() || book.info.title.equals(book.md5)) {
                             if (contentDisposition != null && !contentDisposition.isEmpty())
-                                fbook.info.title = contentDisposition;
+                                book.info.title = contentDisposition;
                             else
-                                fbook.info.title = Storage.getNameNoExt(uri.getLastPathSegment());
+                                book.info.title = Storage.getNameNoExt(uri.getLastPathSegment());
                         }
-                        File r = Storage.recentFile(fbook);
-                        if (!r.exists())
-                            storage.save(fbook);
+                        Uri r = storage.recentUri(book);
+                        if (!storage.exists(r))
+                            storage.save(book);
                         handler.post(new Runnable() {
                             @Override
                             public void run() {
-                                main.loadBook(fbook);
+                                main.loadBook(book);
                             }
                         });
                     } catch (Exception e) {

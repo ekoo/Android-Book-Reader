@@ -37,7 +37,6 @@ public class TimeAnimatorCompat {
     @Override
     protected void finalize() throws Throwable {
         super.finalize();
-        cancel();
     }
 
     public void start() {

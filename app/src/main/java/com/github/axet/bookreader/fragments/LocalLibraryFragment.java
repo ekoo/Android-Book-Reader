@@ -111,10 +111,10 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
 
     }
 
-    public static class Item {
+    public interface Item {
     }
 
-    public static class Folder extends Item {
+    public static class Folder implements Item {
         public int order;
         public String name;
 
@@ -123,11 +123,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
         }
     }
 
-    public static class Book extends Item {
-        public Uri url;
-        public String md5; // url md5, NOT book content
-        public Storage.RecentInfo info;
-        public File cover;
+    public static class Book extends Storage.Book implements Item {
         public Folder folder;
 
         public Book(Folder ff, File f) {
@@ -394,107 +390,35 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
 
         @Override
         public Bitmap downloadImageTask(CacheImagesAdapter.DownloadImageTask task) {
-            Book fbook = (Book) task.item;
+            Book book = (Book) task.item;
             try {
-                InputStream is;
-
-                String md5 = MD5.digest(fbook.url.toString());
-                fbook.md5 = md5;
-                File r = recentFile(fbook);
+                String md5 = MD5.digest(book.url.toString());
+                book.md5 = md5;
+                File r = recentFile(book);
                 if (r.exists()) {
                     try {
-                        fbook.info = new Storage.RecentInfo(r);
+                        book.info = new Storage.RecentInfo(r);
                     } catch (RuntimeException e) {
                         Log.d(TAG, "Unable to load info", e);
                     }
                 }
-                File cover = coverFile(fbook);
-                if (fbook.info == null || !cover.exists() || cover.length() == 0) {
-                    boolean tmp = false;
-                    OutputStream os = null;
-                    Storage.Book b = new Storage.Book();
-                    String s = fbook.url.getScheme();
-                    if (s.equals(ContentResolver.SCHEME_CONTENT)) {
-                        tmp = true;
-                        b.file = File.createTempFile("book", ".tmp", storage.getCache());
-                        os = new FileOutputStream(b.file);
-                        ContentResolver resolver = getContext().getContentResolver();
-                        is = resolver.openInputStream(fbook.url);
-                    } else if (s.equals(ContentResolver.SCHEME_FILE)) {
-                        b.file = new File(fbook.url.getPath());
-                        is = FileUtils.openInputStream(b.file);
-                    } else {
-                        throw new RuntimeException("unknown uri");
-                    }
-
-                    Storage.Detector[] dd = Storage.supported();
-
-                    MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
-                    Storage.FileTypeDetectorXml xml = new Storage.FileTypeDetectorXml(dd);
-                    Storage.FileTypeDetectorZip zip = new Storage.FileTypeDetectorZip(dd);
-                    Storage.FileTypeDetector bin = new Storage.FileTypeDetector(dd);
-
-                    byte[] buf = new byte[Storage.BUF_SIZE];
-                    int len;
-                    while ((len = is.read(buf)) > 0) {
-                        digest.update(buf, 0, len);
-                        if (os != null)
-                            os.write(buf, 0, len);
-                        xml.write(buf, 0, len);
-                        zip.write(buf, 0, len);
-                        bin.write(buf, 0, len);
-                    }
-
-                    if (os != null)
-                        os.close();
-                    bin.close();
-                    zip.close();
-                    xml.close();
-
-                    for (Storage.Detector d : dd) {
-                        if (d.detected) {
-                            b.ext = d.ext;
-                            if (d instanceof Storage.FileTypeDetectorZipExtract.Handler) {
-                                Storage.FileTypeDetectorZipExtract.Handler e = (Storage.FileTypeDetectorZipExtract.Handler) d;
-                                File z = b.file;
-                                File tt = File.createTempFile("book", ".tmp", storage.getCache());
-                                e.extract(z, tt);
-                                File nn = new File(n.getCache(), md5 + "." + b.ext);
-                                Storage.move(tt, nn);
-                                b.file = nn;
-                                tmp = true;
-                            } else if (tmp) {
-                                File tt = new File(n.getCache(), md5 + "." + b.ext);
-                                Storage.move(b.file, tt);
-                                b.file = tt;
-                            }
-                            break; // priority first - more imporant
-                        }
-                    }
-
-                    if (b.ext == null) {
-                        all.remove(fbook);
-                    } else {
-                        try {
-                            LocalLibraryFragment.this.load(fbook, b);
-                        } catch (RuntimeException e) {
-                            Log.d(TAG, "unable to load file", e);
-                        }
-                    }
-
-                    if (tmp) {
-                        b.file.delete();
-                        b.file = null;
+                File cover = coverFile(book);
+                if (book.info == null || !cover.exists() || cover.length() == 0) {
+                    try {
+                        LocalLibraryFragment.this.load(book);
+                    } catch (RuntimeException e) {
+                        Log.d(TAG, "unable to load file", e);
+                        all.remove(book);
                     }
                 } else {
-                    fbook.cover = cover;
+                    book.cover = cover;
                 }
 
-                if (fbook.cover == null)
+                if (book.cover == null)
                     return null;
 
-                return BitmapFactory.decodeStream(new FileInputStream(fbook.cover));
-            } catch (IOException | NoSuchAlgorithmException e) {
+                return BitmapFactory.decodeStream(new FileInputStream(book.cover));
+            } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
@@ -508,7 +432,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
         return new File(n.getCache(), book.md5 + "." + Storage.JSON_EXT);
     }
 
-    public void load(final Book book, final Storage.Book fbook) {
+    public void load(final Book book) {
         if (book.info == null) {
             File r = recentFile(book);
             if (r.exists())
@@ -523,23 +447,33 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             book.info.created = System.currentTimeMillis();
         }
         book.info.md5 = book.md5;
+
+        Storage.FBook fbook = null;
+
         if (book.info.authors == null || book.info.authors.isEmpty()) {
-            storage.read(fbook);
+            if (fbook == null)
+                fbook = storage.read(book.url);
             book.info.authors = fbook.book.authorsString(", ");
         }
         if (book.info.title == null || book.info.title.isEmpty() || book.info.title.equals(book.md5)) {
-            storage.read(fbook);
-            book.info.title = Storage.getTitle(fbook);
+            if (fbook == null)
+                fbook = storage.read(book.url);
+            book.info.title = Storage.getTitle(book, fbook);
         }
         if (book.cover == null) {
             File cover = coverFile(book);
             if (!cover.exists() || cover.length() == 0) {
-                storage.read(fbook);
+                if (fbook == null)
+                    fbook = storage.read(book.url);
                 storage.createCover(fbook, cover);
             }
             book.cover = cover;
         }
         save(book);
+
+        if (fbook != null) {
+            fbook.close();
+        }
     }
 
     public void save(Book book) {

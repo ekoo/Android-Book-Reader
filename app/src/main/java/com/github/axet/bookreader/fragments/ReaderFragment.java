@@ -79,6 +79,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     public static final int REFLOW_END = 15;
 
     Storage storage;
+    Storage.Book book;
+    Storage.FBook fbook;
     FBReaderView view;
     AlertDialog tocdialog;
     FontAdapter fonts;
@@ -533,10 +535,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         Uri uri = getArguments().getParcelable("uri");
 
         try {
-            Storage.Book b = storage.load(uri);
-            if (!b.isLoaded())
-                storage.load(b);
-            view.loadBook(b);
+            book = storage.load(uri);
+            fbook = storage.read(book);
+            view.loadBook(fbook);
         } catch (RuntimeException e) {
             main.Error(e);
             main.openLibrary();
@@ -744,10 +745,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     }
 
     void savePosition() {
-        if (view.book == null)
+        if (book == null)
             return;
-        view.book.info.position = view.getPosition();
-        storage.save(view.book);
+        book.info.position = view.getPosition();
+        storage.save(book);
     }
 
     @Override
@@ -762,6 +763,11 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         ScreenlockPreference.onUserInteractionRemove();
         if (popupWindow != null)
             popupWindow.dismiss();
+        if (fbook != null) {
+            fbook.close();
+            fbook = null;
+        }
+        book = null;
     }
 
     @Override
