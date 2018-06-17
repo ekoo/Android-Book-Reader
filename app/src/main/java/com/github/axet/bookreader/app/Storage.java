@@ -936,7 +936,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     }
                     is = new BufferedInputStream(w.getInputStream());
                 }
-                book = load(is, null);
+                book = load(is, uri);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -983,7 +983,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public Book load(InputStream is, Uri u) {
         Uri storage = getStoragePath();
 
-        if (u != null && u.toString().startsWith(storage.toString())) {
+        if (u.toString().startsWith(storage.toString())) {
             String name = Storage.getDocumentName(u);
             String nn = Storage.getNameNoExt(name);
             String ext = Storage.getExt(name);
@@ -1003,7 +1003,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         try {
             FileOutputStream os = null;
 
-            if (u != null && u.getScheme().equals(ContentResolver.SCHEME_FILE)) {
+            if (u.getScheme().equals(ContentResolver.SCHEME_FILE)) {
                 file = Storage.getFile(u);
             } else {
                 file = File.createTempFile("book", ".tmp", getCache());
