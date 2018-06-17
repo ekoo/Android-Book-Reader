@@ -37,6 +37,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.services.FileProvider;
+import com.github.axet.androidlibrary.services.StorageProvider;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.CacheImagesListAdapter;
 import com.github.axet.androidlibrary.widgets.CacheImagesRecyclerAdapter;
@@ -283,11 +284,15 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         @Override
         public Bitmap downloadImageTask(CacheImagesAdapter.DownloadImageTask task) {
             Storage.Book book = (Storage.Book) task.item;
-            storage.read(book);
+            Storage.FBook fbook = storage.read(book);
             File cover = Storage.coverFile(getContext(), book);
             if (!cover.exists() || cover.length() == 0) {
-                storage.createCover(book, cover);
+                File p = cover.getParentFile();
+                if (!p.exists() && !p.mkdirs() && !p.exists())
+                    throw new RuntimeException("unable to create tmp dir");
+                storage.createCover(fbook, cover);
             }
+            fbook.close();
             book.cover = cover;
             try {
                 Bitmap bm = BitmapFactory.decodeStream(new FileInputStream(cover));
@@ -492,19 +497,20 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                             d.show();
                         }
                         if (item.getItemId() == R.id.action_open) {
-                            String ext = Storage.getExt(b.file);
+                            String ext = storage.getExt(b.url);
                             String type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
-                            String name = Storage.getNameNoExt(b.file);
-                            Uri uri = FileProvider.getUriForFile(getContext(), type, name, b.file);
+                            String name = storage.getNameNoExt(b.url);
+                            Uri uri = StorageProvider.share(getContext(), b.url);
                             Intent intent = new Intent(Intent.ACTION_VIEW);
                             intent.setDataAndType(uri, type);
                             FileProvider.grantPermissions(getContext(), intent, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                             startActivity(intent);
                         }
                         if (item.getItemId() == R.id.action_share) {
-                            String ext = Storage.getExt(b.file);
-                            String type = Storage.getTypeByName(b.file.getName());
-                            Uri uri = FileProvider.getUriForFile(getContext(), type, b.info.title + "." + ext, b.file);
+                            String ext = storage.getExt(b.url);
+                            String name = storage.getName(b.url);
+                            String type = Storage.getTypeByName(name);
+                            Uri uri = StorageProvider.share(getContext(), b.url);
                             Intent intent = new Intent(Intent.ACTION_SEND);
                             intent.setType(type);
                             intent.putExtra(Intent.EXTRA_EMAIL, "");

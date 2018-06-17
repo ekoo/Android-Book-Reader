@@ -218,6 +218,11 @@
             android:authorities="com.github.axet.android-library"
             android:exported="false"
             android:grantUriPermissions="true" />
+        <provider
+            android:name="com.github.axet.androidlibrary.services.StorageProvider"
+            android:authorities="com.github.axet.androidlibrary"
+            android:exported="false"
+            android:grantUriPermissions="true" />
 
         <activity
             android:name=".activities.SettingsActivity"

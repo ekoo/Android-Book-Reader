@@ -1,4 +1,10 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <com.github.axet.bookreader.widgets.StoragePathPreferenceCompat
+        android:defaultValue="My Readings"
+        android:key="storage_path"
+        android:summary="Not selected"
+        android:title="Sync Folder" />
+
     <SwitchPreferenceCompat
         android:defaultValue="false"
         android:key="volume_keys"
