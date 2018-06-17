@@ -1062,6 +1062,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (book.ext == null)
                 throw new RuntimeException("Unsupported format");
 
+            s = storage.getScheme();
+
             if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
                 ContentResolver contentResolver = context.getContentResolver();
                 Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(storage, DocumentsContract.getTreeDocumentId(storage));
@@ -1078,9 +1080,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         }
                     }
                 }
-                Uri k = DocumentsContract.buildDocumentUriUsingTree(storage, book.md5 + "." + book.ext);
-                Uri root = Storage.getDocumentTreeUri(k);
-                Uri o = createFile(root, Storage.getDocumentChildPath(k));
+                String id = book.md5 + "." + book.ext;
+                Uri o = createFile(storage, id);
                 ContentResolver resolver = context.getContentResolver();
 
                 ParcelFileDescriptor fd = resolver.openFileDescriptor(o, "rw");
@@ -1092,7 +1093,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 fis.close();
                 fos.close();
 
-                book.url = k;
+                book.url = o;
 
                 if (tmp)
                     file.delete();
