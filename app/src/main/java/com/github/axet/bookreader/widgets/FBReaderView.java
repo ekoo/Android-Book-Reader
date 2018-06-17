@@ -2526,7 +2526,12 @@ public class FBReaderView extends RelativeLayout {
             pluginview.gotoPosition(p);
         else
             app.BookTextView.gotoPosition(p);
-        reset();
+        if (widget instanceof ScrollView) {
+            ((ScrollView) widget).adapter.reset();
+        } else {
+            widget.reset();
+            widget.repaint();
+        }
     }
 
     public void reset() {
