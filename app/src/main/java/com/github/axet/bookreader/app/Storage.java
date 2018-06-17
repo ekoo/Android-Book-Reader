@@ -1062,6 +1062,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (book.ext == null)
                 throw new RuntimeException("Unsupported format");
 
+            s = storage.getScheme();
+
             if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
                 ContentResolver contentResolver = context.getContentResolver();
                 Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(storage, DocumentsContract.getTreeDocumentId(storage));
