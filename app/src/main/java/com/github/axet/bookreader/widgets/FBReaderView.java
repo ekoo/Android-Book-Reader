@@ -78,6 +78,7 @@ import org.geometerplus.fbreader.fbreader.FBAction;
 import org.geometerplus.fbreader.fbreader.FBView;
 import org.geometerplus.fbreader.fbreader.options.ColorProfile;
 import org.geometerplus.fbreader.fbreader.options.FooterOptions;
+import org.geometerplus.fbreader.fbreader.options.ImageOptions;
 import org.geometerplus.fbreader.fbreader.options.PageTurningOptions;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
@@ -1998,6 +1999,9 @@ public class FBReaderView extends RelativeLayout {
         config.setValue(app.MiscOptions.AllowScreenBrightnessAdjustment, false);
         config.setValue(app.ViewOptions.ScrollbarType, FBView.SCROLLBAR_SHOW_AS_FOOTER);
         config.setValue(app.ViewOptions.getFooterOptions().ShowProgress, FooterOptions.ProgressDisplayType.asPages);
+
+        config.setValue(app.ImageOptions.TapAction, ImageOptions.TapActionEnum.openImageView);
+        config.setValue(app.ImageOptions.FitToScreen, FBView.ImageFitting.all);
     }
 
     public void setWidget(Widgets w) {
@@ -2526,7 +2530,12 @@ public class FBReaderView extends RelativeLayout {
             pluginview.gotoPosition(p);
         else
             app.BookTextView.gotoPosition(p);
-        reset();
+        if (widget instanceof ScrollView) {
+            ((ScrollView) widget).adapter.reset();
+        } else {
+            widget.reset();
+            widget.repaint();
+        }
     }
 
     public void reset() {
