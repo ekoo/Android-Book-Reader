@@ -394,6 +394,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             try {
                 String md5 = MD5.digest(book.url.toString());
                 book.md5 = md5;
+                book.ext = storage.getExt(book.url).toLowerCase();
                 File r = recentFile(book);
                 if (r.exists()) {
                     try {
@@ -405,7 +406,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                 File cover = coverFile(book);
                 if (book.info == null || !cover.exists() || cover.length() == 0) {
                     try {
-                        LocalLibraryFragment.this.load(book);
+                        LocalLibraryFragment.this.load(book); // load cover && authors
                     } catch (RuntimeException e) {
                         Log.d(TAG, "unable to load file", e);
                         all.remove(book);
@@ -452,19 +453,19 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
 
         if (book.info.authors == null || book.info.authors.isEmpty()) {
             if (fbook == null)
-                fbook = storage.read(book.url);
+                fbook = storage.read(book);
             book.info.authors = fbook.book.authorsString(", ");
         }
         if (book.info.title == null || book.info.title.isEmpty() || book.info.title.equals(book.md5)) {
             if (fbook == null)
-                fbook = storage.read(book.url);
+                fbook = storage.read(book);
             book.info.title = Storage.getTitle(book, fbook);
         }
         if (book.cover == null) {
             File cover = coverFile(book);
             if (!cover.exists() || cover.length() == 0) {
                 if (fbook == null)
-                    fbook = storage.read(book.url);
+                    fbook = storage.read(book);
                 storage.createCover(fbook, cover);
             }
             book.cover = cover;

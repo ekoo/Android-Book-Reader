@@ -79,6 +79,7 @@ import org.geometerplus.fbreader.fbreader.FBView;
 import org.geometerplus.fbreader.fbreader.options.ColorProfile;
 import org.geometerplus.fbreader.fbreader.options.FooterOptions;
 import org.geometerplus.fbreader.fbreader.options.ImageOptions;
+import org.geometerplus.fbreader.fbreader.options.MiscOptions;
 import org.geometerplus.fbreader.fbreader.options.PageTurningOptions;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
@@ -113,8 +114,10 @@ import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 public class FBReaderView extends RelativeLayout {
@@ -869,9 +872,7 @@ public class FBReaderView extends RelativeLayout {
                 pluginview.gotoPosition(new ZLTextFixedPosition(page, 0, 0));
             else
                 super.gotoPage(page);
-            if (widget instanceof ScrollView) {
-                ((ScrollView) widget).adapter.reset();
-            }
+            resetPosition();
         }
 
         @Override
@@ -1217,7 +1218,7 @@ public class FBReaderView extends RelativeLayout {
             final Object lock = new Object();
             Thread thread;
             PluginRect size = new PluginRect(); // ScrollView size, after reset
-            ArrayList<ScrollView.ScrollAdapter.PageHolder> invalidate = new ArrayList<>(); // pending invalidates
+            Set<PageHolder> invalidates = new HashSet<>(); // pending invalidates
 
             public class PageView extends View {
                 public PageHolder holder;
@@ -1626,13 +1627,14 @@ public class FBReaderView extends RelativeLayout {
             }
 
             void processInvalidate() {
-                for (ScrollView.ScrollAdapter.PageHolder h : invalidate) {
+                for (ScrollView.ScrollAdapter.PageHolder h : invalidates) {
+                    h.page.recycle();
                     h.page.invalidate();
                 }
             }
 
             void processClear() {
-                invalidate.clear();
+                invalidates.clear();
             }
         }
 
@@ -1689,7 +1691,7 @@ public class FBReaderView extends RelativeLayout {
                 }
                 app.BookTextView.onFingerSingleTap(x, y);
                 v.invalidate();
-                adapter.invalidate.add(v.holder);
+                adapter.invalidates.add(v.holder);
                 close();
                 return true;
             }
@@ -1698,10 +1700,11 @@ public class FBReaderView extends RelativeLayout {
             public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
                 if (app.BookTextView.mySelection.isEmpty())
                     return false;
-                if (!open(e2))
+                if (!open(e))
                     return false;
                 app.BookTextView.onFingerMove(x, y);
                 v.invalidate();
+                adapter.invalidates.add(v.holder);
                 close();
                 return true;
             }
@@ -1714,15 +1717,13 @@ public class FBReaderView extends RelativeLayout {
                 app.BookTextView.onFingerReleaseAfterLongPress(x, y);
                 v.invalidate();
                 app.BookTextView.myCurrentPage.TextElementMap = new ZLTextElementAreaVector();
-                adapter.invalidate.add(v.holder);
+                adapter.invalidates.add(v.holder);
                 close();
             }
 
             @Override
             public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                if (app.BookTextView.mySelection.isEmpty())
-                    return false;
-                return true;
+                return false;
             }
 
             public boolean onRelease(MotionEvent e) {
@@ -1733,8 +1734,18 @@ public class FBReaderView extends RelativeLayout {
                         return false;
                     app.BookTextView.onFingerRelease(x, y);
                     v.invalidate();
-                    adapter.invalidate.add(v.holder);
                     close();
+                    return true;
+                }
+                return false;
+            }
+
+            public boolean onCancel(MotionEvent e) {
+                if (app.BookTextView.mySelection.isEmpty())
+                    return false;
+                if (e.getAction() == MotionEvent.ACTION_CANCEL) {
+                    app.BookTextView.onFingerEventCancelled();
+                    v.invalidate();
                     return true;
                 }
                 return false;
@@ -1747,9 +1758,9 @@ public class FBReaderView extends RelativeLayout {
             }
 
             public boolean onTouchEvent(MotionEvent e) {
+                onRelease(e);
+                onCancel(e);
                 if (gestures.onTouchEvent(e))
-                    return true;
-                if (onRelease(e))
                     return true;
                 if (onFilter(e))
                     return true;
@@ -2002,6 +2013,8 @@ public class FBReaderView extends RelativeLayout {
 
         config.setValue(app.ImageOptions.TapAction, ImageOptions.TapActionEnum.openImageView);
         config.setValue(app.ImageOptions.FitToScreen, FBView.ImageFitting.all);
+
+        config.setValue(app.MiscOptions.WordTappingAction, MiscOptions.WordTappingActionEnum.startSelecting);
     }
 
     public void setWidget(Widgets w) {
@@ -2395,27 +2408,21 @@ public class FBReaderView extends RelativeLayout {
             @Override
             protected void run(Object... params) {
                 Reader.getTextView().findPrevious();
-                if (widget instanceof ScrollView) {
-                    ((ScrollView) widget).adapter.reset();
-                }
+                resetPosition();
             }
         });
         app.addAction(ActionCode.FIND_NEXT, new FBAction(app) {
             @Override
             protected void run(Object... params) {
                 Reader.getTextView().findNext();
-                if (widget instanceof ScrollView) {
-                    ((ScrollView) widget).adapter.reset();
-                }
+                resetPosition();
             }
         });
         app.addAction(ActionCode.CLEAR_FIND_RESULTS, new FBAction(app) {
             @Override
             protected void run(Object... params) {
                 Reader.getTextView().clearFindResults();
-                if (widget instanceof ScrollView) {
-                    ((ScrollView) widget).adapter.reset(); // we have only one page, can reset
-                }
+                resetPosition();
             }
         });
 
@@ -2466,6 +2473,8 @@ public class FBReaderView extends RelativeLayout {
             public void config() {
                 super.config();
                 config.setValue(app.ViewOptions.ScrollbarType, 0);
+                config.setValue(app.MiscOptions.WordTappingAction, MiscOptions.WordTappingActionEnum.doNothing);
+                config.setValue(app.ImageOptions.TapAction, ImageOptions.TapActionEnum.doNothing);
             }
         };
 
@@ -2530,6 +2539,10 @@ public class FBReaderView extends RelativeLayout {
             pluginview.gotoPosition(p);
         else
             app.BookTextView.gotoPosition(p);
+        resetPosition();
+    }
+
+    public void resetPosition() { // read current position from new loaded page
         if (widget instanceof ScrollView) {
             ((ScrollView) widget).adapter.reset();
         } else {
@@ -2539,11 +2552,12 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void reset() {
-        widget.reset();
-        widget.repaint();
         if (widget instanceof ScrollView) {
             ((ScrollView) widget).updatePosition(); // keep current position
             ((ScrollView) widget).adapter.reset();
+        } else {
+            widget.reset();
+            widget.repaint();
         }
     }
 
