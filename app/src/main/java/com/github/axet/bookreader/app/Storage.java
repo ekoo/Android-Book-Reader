@@ -983,7 +983,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public Book load(InputStream is, Uri u) {
         Uri storage = getStoragePath();
 
-        if (u.toString().startsWith(storage.toString())) {
+        if (u != null && u.toString().startsWith(storage.toString())) {
             String name = Storage.getDocumentName(u);
             String nn = Storage.getNameNoExt(name);
             String ext = Storage.getExt(name);
@@ -1003,8 +1003,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         try {
             FileOutputStream os = null;
 
-            String s = u.getScheme();
-            if (s.equals(ContentResolver.SCHEME_FILE)) {
+            if (u != null && u.getScheme().equals(ContentResolver.SCHEME_FILE)) {
                 file = Storage.getFile(u);
             } else {
                 file = File.createTempFile("book", ".tmp", getCache());
@@ -1062,7 +1061,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (book.ext == null)
                 throw new RuntimeException("Unsupported format");
 
-            s = storage.getScheme();
+            String s = storage.getScheme();
 
             if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
                 ContentResolver contentResolver = context.getContentResolver();
