@@ -452,6 +452,12 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        books.refresh();
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment

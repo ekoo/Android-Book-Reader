@@ -31,4 +31,6 @@
     <string name="from_json_file">... from (.json) file</string>
     <string name="view_mode_continuous">Continuous View</string>
     <string name="view_mode_paging">Paging View</string>
+    <string name="pref_storagepath_title">Sync Folder</string>
+    <string name="pref_storagepath_summary">No \'Sync Folder\' selected</string>
 </resources>
