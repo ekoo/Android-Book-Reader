@@ -79,6 +79,7 @@ import org.geometerplus.fbreader.fbreader.FBView;
 import org.geometerplus.fbreader.fbreader.options.ColorProfile;
 import org.geometerplus.fbreader.fbreader.options.FooterOptions;
 import org.geometerplus.fbreader.fbreader.options.ImageOptions;
+import org.geometerplus.fbreader.fbreader.options.MiscOptions;
 import org.geometerplus.fbreader.fbreader.options.PageTurningOptions;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
@@ -2000,6 +2001,8 @@ public class FBReaderView extends RelativeLayout {
 
         config.setValue(app.ImageOptions.TapAction, ImageOptions.TapActionEnum.openImageView);
         config.setValue(app.ImageOptions.FitToScreen, FBView.ImageFitting.all);
+
+        config.setValue(app.MiscOptions.WordTappingAction, MiscOptions.WordTappingActionEnum.startSelecting);
     }
 
     public void setWidget(Widgets w) {
@@ -2458,6 +2461,8 @@ public class FBReaderView extends RelativeLayout {
             public void config() {
                 super.config();
                 config.setValue(app.ViewOptions.ScrollbarType, 0);
+                config.setValue(app.MiscOptions.WordTappingAction, MiscOptions.WordTappingActionEnum.doNothing);
+                config.setValue(app.ImageOptions.TapAction, ImageOptions.TapActionEnum.doNothing);
             }
         };
 
