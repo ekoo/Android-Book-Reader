@@ -394,6 +394,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             try {
                 String md5 = MD5.digest(book.url.toString());
                 book.md5 = md5;
+                book.ext = storage.getExt(book.url).toLowerCase();
                 File r = recentFile(book);
                 if (r.exists()) {
                     try {
