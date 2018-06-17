@@ -167,8 +167,6 @@ public class MainActivity extends FullscreenActivity
         openLibrary();
 
         loadIntent(getIntent());
-
-        CacheImagesAdapter.cacheClear(this);
     }
 
     void reloadMenu() {
@@ -620,6 +618,7 @@ public class MainActivity extends FullscreenActivity
     protected void onResume() {
         super.onResume();
         RotatePreferenceCompat.onResume(this, MainApplication.PREFERENCE_ROTATE);
+        CacheImagesAdapter.cacheClear(this);
     }
 
     public static String toString(Throwable e) {
