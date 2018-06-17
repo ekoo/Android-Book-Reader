@@ -1388,30 +1388,25 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public FBook read(Book b) {
-        FBook fbook = read(b.url);
-        fbook.info = new RecentInfo(b.info);
-        return fbook;
-    }
-
-    public FBook read(Uri url) {
         try {
+            FBook fbook = new FBook();
+            if (b.info != null)
+                fbook.info = new RecentInfo(b.info);
+
             File file;
 
-            FBook fbook = new FBook();
-
-            String s = url.getScheme();
+            String s = b.url.getScheme();
             if (s.equals(ContentResolver.SCHEME_CONTENT)) {
-                String ext = getExt(url);
-                fbook.tmp = File.createTempFile("book", "." + ext, getCache());
+                fbook.tmp = File.createTempFile("book", "." + b.ext, getCache());
                 OutputStream os = new FileOutputStream(fbook.tmp);
                 ContentResolver resolver = getContext().getContentResolver();
-                InputStream is = resolver.openInputStream(url);
+                InputStream is = resolver.openInputStream(b.url);
                 IOUtils.copy(is, os);
                 file = fbook.tmp;
                 is.close();
                 os.close();
             } else if (s.equals(ContentResolver.SCHEME_FILE)) {
-                file = getFile(url);
+                file = getFile(b.url);
             } else {
                 throw new RuntimeException("unknown uri");
             }
