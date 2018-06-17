@@ -981,23 +981,18 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public Book load(InputStream is, Uri u) {
-        Set<Uri> know = new TreeSet<>();
-        know.add(Uri.fromFile(getLocalInternal()));
-        know.add(Uri.fromFile(getLocalExternal()));
-        know.add(getStoragePath());
+        Uri storage = getStoragePath();
 
-        for (Uri i : know) {
-            if (u.toString().startsWith(i.toString())) {
-                String name = Storage.getDocumentName(u);
-                String nn = Storage.getNameNoExt(name);
-                String ext = Storage.getExt(name);
-                if (nn.length() == MD5_SIZE) {
-                    Book book = new Book();
-                    book.url = u;
-                    book.md5 = nn;
-                    book.ext = ext;
-                    return book;
-                }
+        if (u.toString().startsWith(storage.toString())) {
+            String name = Storage.getDocumentName(u);
+            String nn = Storage.getNameNoExt(name);
+            String ext = Storage.getExt(name);
+            if (nn.length() == MD5_SIZE) {
+                Book book = new Book();
+                book.url = u;
+                book.md5 = nn;
+                book.ext = ext;
+                return book;
             }
         }
 
@@ -1067,7 +1062,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (book.ext == null)
                 throw new RuntimeException("Unsupported format");
 
-            Uri storage = getStoragePath();
             if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
                 ContentResolver contentResolver = context.getContentResolver();
                 Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(storage, DocumentsContract.getTreeDocumentId(storage));
@@ -1247,15 +1241,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public ArrayList<Book> list() {
-        Set<Uri> know = new TreeSet<>();
-        know.add(Uri.fromFile(getLocalInternal()));
-        know.add(Uri.fromFile(getLocalExternal()));
-        know.add(getStoragePath());
-
         ArrayList<Book> list = new ArrayList<>();
-        for(Uri k : know) {
-            list(list, k);
-        }
+        list(list, getStoragePath());
         return list;
     }
 

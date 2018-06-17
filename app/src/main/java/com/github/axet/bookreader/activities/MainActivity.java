@@ -37,6 +37,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
+import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.OpenChoicer;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
@@ -166,6 +167,8 @@ public class MainActivity extends FullscreenActivity
         openLibrary();
 
         loadIntent(getIntent());
+
+        CacheImagesAdapter.cacheClear(this);
     }
 
     void reloadMenu() {
