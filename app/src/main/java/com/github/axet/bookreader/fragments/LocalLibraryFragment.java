@@ -393,7 +393,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             Book book = (Book) task.item;
             try {
                 String md5 = MD5.digest(book.url.toString());
-                book.md5 = md5;
+                book.md5 = md5; // url md5, not file content!
                 book.ext = storage.getExt(book.url).toLowerCase();
                 File r = recentFile(book);
                 if (r.exists()) {
@@ -447,7 +447,6 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             book.info = new Storage.RecentInfo();
             book.info.created = System.currentTimeMillis();
         }
-        book.info.md5 = book.md5;
 
         Storage.FBook fbook = null;
 

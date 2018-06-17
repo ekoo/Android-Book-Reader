@@ -27,10 +27,10 @@
     <string name="more_books">Дополнительные каталоги книг доступны из диалога \'О программе\'</string>
     <string name="pref_rotate_title">Поворот</string>
     <string name="pref_rotate_summary">Разрешить поворот экрана</string>
-    <string name="from_local_folder">... from local folder</string>
-    <string name="from_json_file">... from (.json) file</string>
-    <string name="view_mode_continuous">Continuous View</string>
-    <string name="view_mode_paging">Paging View</string>
-    <string name="pref_storagepath_title">Sync Folder</string>
-    <string name="pref_storagepath_summary">No \'Sync Folder\' selected</string>
+    <string name="from_local_folder">... из локальной папки</string>
+    <string name="from_json_file">... из (.json) файла</string>
+    <string name="view_mode_continuous">Прокрутка страниц</string>
+    <string name="view_mode_paging">Постраничный режим</string>
+    <string name="pref_storagepath_title">Папка синхронизации</string>
+    <string name="pref_storagepath_summary">Папка синхронизации не выбрана</string>
 </resources>
