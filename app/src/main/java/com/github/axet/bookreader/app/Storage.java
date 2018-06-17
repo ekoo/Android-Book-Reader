@@ -769,9 +769,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public static class RecentInfo {
-        public String md5;
-        public long created;
-        public long last;
+        public long created; // date added to the my readings
+        public long last; // last access time
         public ZLTextPosition position;
         public String authors;
         public String title;
@@ -780,7 +779,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
 
         public RecentInfo(RecentInfo info) {
-            md5 = info.md5;
             created = info.created;
             last = info.last;
             if (info.position != null)
@@ -820,7 +818,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
 
         public void load(JSONObject o) throws JSONException {
-            md5 = o.getString("md5");
             created = o.optLong("created", 0);
             last = o.getLong("last");
             authors = o.optString("authors", null);
@@ -832,7 +829,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
         public JSONObject save() throws JSONException {
             JSONObject o = new JSONObject();
-            o.put("md5", md5);
             o.put("created", created);
             o.put("last", last);
             o.put("authors", authors);
@@ -1158,7 +1154,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             book.info = new RecentInfo();
             book.info.created = System.currentTimeMillis();
         }
-        book.info.md5 = book.md5;
         FBook fbook = null;
         if (book.info.authors == null || book.info.authors.isEmpty()) {
             if (fbook == null)

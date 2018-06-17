@@ -504,9 +504,9 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                         }
                         if (item.getItemId() == R.id.action_open) {
                             String ext = storage.getExt(b.url);
+                            String t = b.info.title + "." + ext;
                             String type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
-                            String name = storage.getNameNoExt(b.url);
-                            Uri uri = StorageProvider.share(getContext(), b.url);
+                            Uri uri = StorageProvider.share(getContext(), b.url, t);
                             Intent intent = new Intent(Intent.ACTION_VIEW);
                             intent.setDataAndType(uri, type);
                             FileProvider.grantPermissions(getContext(), intent, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
@@ -514,13 +514,14 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                         }
                         if (item.getItemId() == R.id.action_share) {
                             String ext = storage.getExt(b.url);
+                            String t = b.info.title + "." + ext;
                             String name = storage.getName(b.url);
                             String type = Storage.getTypeByName(name);
-                            Uri uri = StorageProvider.share(getContext(), b.url);
+                            Uri uri = StorageProvider.share(getContext(), b.url, t);
                             Intent intent = new Intent(Intent.ACTION_SEND);
                             intent.setType(type);
                             intent.putExtra(Intent.EXTRA_EMAIL, "");
-                            intent.putExtra(Intent.EXTRA_SUBJECT, b.info.title + "." + ext);
+                            intent.putExtra(Intent.EXTRA_SUBJECT, t);
                             intent.putExtra(Intent.EXTRA_TEXT, getString(R.string.shared_via, getString(R.string.app_name)));
                             intent.putExtra(Intent.EXTRA_STREAM, uri);
                             FileProvider.grantPermissions(getContext(), intent, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
