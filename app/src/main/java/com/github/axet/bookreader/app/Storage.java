@@ -1360,8 +1360,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     while (childCursor.moveToNext()) {
                         String id = childCursor.getString(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID));
                         String t = childCursor.getString(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME));
-                        String n = Storage.getNameNoExt(t);
-                        if (n.startsWith(book.md5)) { // delete all but json
+                        if (t.startsWith(book.md5)) { // delete all but json
                             Uri k = DocumentsContract.buildDocumentUriUsingTree(storage, id);
                             delete(k);
                         }
