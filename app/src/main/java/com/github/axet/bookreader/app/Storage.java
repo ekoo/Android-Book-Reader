@@ -1247,11 +1247,15 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public ArrayList<Book> list() {
+        Set<Uri> know = new TreeSet<>();
+        know.add(Uri.fromFile(getLocalInternal()));
+        know.add(Uri.fromFile(getLocalExternal()));
+        know.add(getStoragePath());
+
         ArrayList<Book> list = new ArrayList<>();
-        list(list, getLocalInternal());
-        list(list, getLocalExternal());
-        Uri u = getStoragePath();
-        list(list, u);
+        for(Uri k : know) {
+            list(list, k);
+        }
         return list;
     }
 
