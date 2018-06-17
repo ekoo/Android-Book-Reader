@@ -1240,12 +1240,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return bm;
     }
 
-    public ArrayList<Book> list() {
-        ArrayList<Book> list = new ArrayList<>();
-        list(list, getStoragePath());
-        return list;
-    }
-
     public void list(ArrayList<Book> list, File storage) {
         if (storage == null)
             return;
@@ -1290,7 +1284,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
     }
 
-    public void list(ArrayList<Book> list, Uri uri) {
+    public ArrayList<Book> list() {
+        Uri uri = getStoragePath();
+        ArrayList<Book> list = new ArrayList<>();
         String s = uri.getScheme();
         if (Build.VERSION.SDK_INT >= 21 && s.startsWith(ContentResolver.SCHEME_CONTENT)) {
             ContentResolver contentResolver = context.getContentResolver();
@@ -1342,27 +1338,51 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         } else {
             throw new RuntimeException("unknow uri");
         }
+        return list;
     }
 
-    public void delete(Book book) {
+    public void delete(final Book book) {
         delete(book.url);
         if (book.cover != null)
             book.cover.delete();
 
         delete(recentUri(book));
 
-        // delete old cover stored next to book file
-        String COVER_EXT = "png";
-        String s = book.url.getScheme();
+        // delete all md5.* files (old, cover images, and sync conflicts files)
+        Uri storage = getStoragePath();
+        String s = storage.getScheme();
         if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
-            Uri doc = DocumentsContract.buildDocumentUriUsingTree(Storage.getDocumentTreeUri(book.url), DocumentsContract.getTreeDocumentId(book.url));
-            String id = book.md5 + "." + COVER_EXT;
-            Uri k = child(doc, id);
-            delete(k);
+            ContentResolver contentResolver = context.getContentResolver();
+            Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(storage, DocumentsContract.getTreeDocumentId(storage));
+            Cursor childCursor = contentResolver.query(childrenUri, null, null, null, null);
+            if (childCursor != null) {
+                try {
+                    while (childCursor.moveToNext()) {
+                        String id = childCursor.getString(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID));
+                        String t = childCursor.getString(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME));
+                        String n = Storage.getNameNoExt(t);
+                        if (n.startsWith(book.md5)) { // delete all but json
+                            Uri k = DocumentsContract.buildDocumentUriUsingTree(storage, id);
+                            delete(k);
+                        }
+                    }
+                } finally {
+                    childCursor.close();
+                }
+            }
         } else if (s.equals(ContentResolver.SCHEME_FILE)) {
-            File f = getFile(book.url);
-            File p = f.getParentFile();
-            delete(new File(p, book.md5 + "." + COVER_EXT));
+            File dir = getFile(storage);
+            File[] ff = dir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.startsWith(book.md5);
+                }
+            });
+            if (ff != null) {
+                for (File f : ff) {
+                    f.delete();
+                }
+            }
         } else {
             throw new RuntimeException("unknown uri");
         }
