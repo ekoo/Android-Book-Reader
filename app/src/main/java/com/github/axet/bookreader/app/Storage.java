@@ -335,6 +335,27 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 return null;
             }
 
+            public String extract(ZipInputStream zip, File t) {
+                try {
+                    MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
+                    FileOutputStream os = new FileOutputStream(t);
+
+                    byte[] buf = new byte[BUF_SIZE];
+                    int len;
+                    while ((len = zip.read(buf)) > 0) {
+                        digest.update(buf, 0, len);
+                        os.write(buf, 0, len);
+                    }
+
+                    os.close();
+                    return Storage.toHex(digest.digest());
+                } catch (RuntimeException r) {
+                    throw r;
+                } catch (Exception r) {
+                    throw new RuntimeException(r);
+                }
+            }
+
             public String extract(ZipEntry e, File f, File t) {
                 try {
                     MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
@@ -431,7 +452,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         public void write(byte[] buf, int off, int len) {
             try {
                 os.write(buf, off, len);
-            } catch (IOException e) {
+            } catch (IOException e) { // ignore expcetions, stream can be closed by reading thread
             }
         }
 
