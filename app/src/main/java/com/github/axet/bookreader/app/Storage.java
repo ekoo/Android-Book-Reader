@@ -1398,7 +1398,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
             String s = b.url.getScheme();
             if (s.equals(ContentResolver.SCHEME_CONTENT)) {
-                fbook.tmp = File.createTempFile("book", "." + b.ext, getCache());
+                String ext = getExt(b.url);
+                fbook.tmp = File.createTempFile("book", "." + ext, getCache());
                 OutputStream os = new FileOutputStream(fbook.tmp);
                 ContentResolver resolver = getContext().getContentResolver();
                 InputStream is = resolver.openInputStream(b.url);
