@@ -31,6 +31,7 @@ import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
+import com.github.axet.bookreader.fragments.LocalLibraryFragment;
 import com.github.axet.bookreader.widgets.FBReaderView;
 
 import org.apache.commons.io.FileUtils;
@@ -95,6 +96,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public static final int COVER_SIZE = 128;
     public static final int BUF_SIZE = 1024;
     public static final String JSON_EXT = "json";
+    public static final String ZIP_EXT = "zip";
 
     public static ZLAndroidApplication zlib;
     public static Storage.Info systeminfo;
@@ -123,6 +125,32 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return new Detector[]{new FileFB2(), new FileFB2Zip(), new FileEPUB(), new FileHTML(), new FileHTMLZip(),
                 new FilePDF(), new FileDjvu(), new FileRTF(), new FileRTFZip(), new FileDoc(),
                 new FileMobi(), new FileTxt(), new FileTxtZip()};
+    }
+
+    public static String detector(Detector[] dd, InputStream is, OutputStream os) throws IOException, NoSuchAlgorithmException {
+        MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
+        FileTypeDetectorXml xml = new FileTypeDetectorXml(dd);
+        FileTypeDetectorZip zip = new FileTypeDetectorZip(dd);
+        FileTypeDetector bin = new FileTypeDetector(dd);
+
+        byte[] buf = new byte[BUF_SIZE];
+        int len;
+        while ((len = is.read(buf)) > 0) {
+            digest.update(buf, 0, len);
+            if (os != null)
+                os.write(buf, 0, len);
+            xml.write(buf, 0, len);
+            zip.write(buf, 0, len);
+            bin.write(buf, 0, len);
+        }
+
+        if (os != null)
+            os.close();
+        bin.close();
+        zip.close();
+        xml.close();
+
+        return toHex(digest.digest());
     }
 
     public static FormatPlugin getPlugin(PluginCollection c, Storage.FBook b) {
@@ -1009,29 +1037,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
             Detector[] dd = supported();
 
-            MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
-            FileTypeDetectorXml xml = new FileTypeDetectorXml(dd);
-            FileTypeDetectorZip zip = new FileTypeDetectorZip(dd);
-            FileTypeDetector bin = new FileTypeDetector(dd);
-
-            byte[] buf = new byte[BUF_SIZE];
-            int len;
-            while ((len = is.read(buf)) > 0) {
-                digest.update(buf, 0, len);
-                if (os != null)
-                    os.write(buf, 0, len);
-                xml.write(buf, 0, len);
-                zip.write(buf, 0, len);
-                bin.write(buf, 0, len);
-            }
-
-            if (os != null)
-                os.close();
-            bin.close();
-            zip.close();
-            xml.close();
-
-            book.md5 = toHex(digest.digest());
+            book.md5 = detector(dd, is, os);
 
             for (Detector d : dd) {
                 if (d.detected) {
@@ -1404,6 +1410,37 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 file = getFile(b.url);
             } else {
                 throw new RuntimeException("unknown uri");
+            }
+
+            String ext = getExt(file).toLowerCase();
+            if (ext.equals(Storage.ZIP_EXT)) { // handle zip files manually, better perfomance
+                Detector[] dd = supported();
+                try {
+                    InputStream is = new FileInputStream(file);
+                    Storage.detector(dd, is, null);
+                } catch (IOException | NoSuchAlgorithmException e) {
+                    throw new RuntimeException(e);
+                }
+                for (Storage.Detector d : dd) {
+                    if (d.detected) {
+                        if (d instanceof FileTypeDetectorZipExtract.Handler) {
+                            FileTypeDetectorZipExtract.Handler e = (FileTypeDetectorZipExtract.Handler) d;
+                            if (fbook.tmp == null) { // !tmp
+                                File z = file;
+                                file = File.createTempFile("book", "." + d.ext, getCache());
+                                e.extract(z, file);
+                                fbook.tmp = file;
+                            } else { // tmp
+                                File tt = File.createTempFile("book", "." + d.ext, getCache());
+                                e.extract(file, tt);
+                                file.delete(); // delete old
+                                fbook.tmp = tt;
+                                file = tt;
+                            }
+                        }
+                        break; // priority first - more imporant
+                    }
+                }
             }
 
             final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
