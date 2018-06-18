@@ -892,7 +892,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             }
             FileDescriptor out = fd.getFileDescriptor();
             try {
-                String json = book.info.save().toString();
+                String json = book.info.save().toString(2);
                 Writer w = new FileWriter(out);
                 IOUtils.write(json, w);
                 w.close();
@@ -902,7 +902,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         } else if (s.equals(ContentResolver.SCHEME_FILE)) {
             try {
                 File f = Storage.getFile(u);
-                String json = book.info.save().toString();
+                String json = book.info.save().toString(2);
                 Writer w = new FileWriter(f);
                 IOUtils.write(json, w);
                 w.close();
