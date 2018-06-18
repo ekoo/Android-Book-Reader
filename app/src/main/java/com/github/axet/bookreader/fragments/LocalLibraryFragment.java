@@ -255,13 +255,29 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                             Uri k = DocumentsContract.buildChildDocumentsUriUsingTree(u, id);
                             load(u, k);
                         } else if (size > 0) {
-                            String n = t.toLowerCase(Locale.US);
+                            Uri k = DocumentsContract.buildDocumentUriUsingTree(u, id);
+                            String ext = Storage.getExt(t).toLowerCase();
                             Storage.Detector[] dd = Storage.supported();
                             for (Storage.Detector d : dd) {
-                                if (n.endsWith(d.ext)) {
-                                    Uri k = DocumentsContract.buildDocumentUriUsingTree(u, id);
+                                if (ext.equals(d.ext)) {
                                     books.all.add(new Book(getFolder(u, k), k));
                                     break;
+                                }
+                            }
+                            if (ext.equals(Storage.ZIP_EXT)) {
+                                try {
+                                    InputStream is = contentResolver.openInputStream(k);
+                                    Storage.detector(dd, is, null);
+                                } catch (IOException | NoSuchAlgorithmException e) {
+                                    throw new RuntimeException(e);
+                                }
+                                for (Storage.Detector d : dd) {
+                                    if (d.detected) {
+                                        Book book = new Book(getFolder(u, k), k);
+                                        book.ext = d.ext;
+                                        books.all.add(book);
+                                        break; // priority first - more imporant
+                                    }
                                 }
                             }
                         }
