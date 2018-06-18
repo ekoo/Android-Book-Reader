@@ -211,11 +211,28 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                     if (k.isDirectory()) {
                         load(root, k);
                     } else {
+                        String ext = Storage.getExt(k).toLowerCase(Locale.US);
                         Storage.Detector[] dd = Storage.supported();
                         for (Storage.Detector d : dd) {
-                            if (k.toString().toLowerCase(Locale.US).endsWith(d.ext)) {
+                            if (ext.equals(d.ext)) {
                                 books.all.add(new Book(getFolder(root, k), k));
                                 break;
+                            }
+                        }
+                        if (ext.equals(Storage.ZIP_EXT)) {
+                            try {
+                                InputStream is = new FileInputStream(k);
+                                Storage.detector(dd, is, null);
+                            } catch (IOException | NoSuchAlgorithmException e) {
+                                throw new RuntimeException(e);
+                            }
+                            for (Storage.Detector d : dd) {
+                                if (d.detected) {
+                                    Book book = new Book(getFolder(root, k), k);
+                                    book.ext = d.ext;
+                                    books.all.add(book);
+                                    break; // priority first - more imporant
+                                }
                             }
                         }
                     }
@@ -471,9 +488,8 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
         }
         save(book);
 
-        if (fbook != null) {
+        if (fbook != null)
             fbook.close();
-        }
     }
 
     public void save(Book book) {
