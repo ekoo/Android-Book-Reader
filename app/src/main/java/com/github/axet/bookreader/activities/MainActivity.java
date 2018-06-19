@@ -81,6 +81,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -116,12 +118,67 @@ public class MainActivity extends FullscreenActivity
         }
     };
 
+    public static String toString(Throwable e) {
+        while (e.getCause() != null)
+            e = e.getCause();
+        String msg = e.getMessage();
+        if (msg == null || msg.isEmpty())
+            msg = e.getClass().getSimpleName();
+        return msg;
+    }
+
+    public void Post(final Throwable e) {
+        Log.d(TAG, "Error", e);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Error(MainActivity.toString(e));
+            }
+        });
+    }
+
+    public void Post(final String e) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Error(e);
+            }
+        });
+    }
+
+    public void Error(Throwable e) {
+        Log.d(TAG, "Error", e);
+        Error(toString(e));
+    }
+
+    public void Error(String msg) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Error");
+        builder.setMessage(msg);
+        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+            }
+        });
+        builder.show();
+    }
+
     public interface SearchListener {
         String getHint();
 
         void search(String s);
 
         void searchClose();
+    }
+
+    public static class SortByPage implements Comparator<Storage.RecentInfo> {
+        @Override
+        public int compare(Storage.RecentInfo o1, Storage.RecentInfo o2) {
+            int r = Integer.valueOf(o1.position.getParagraphIndex()).compareTo(o2.position.getParagraphIndex());
+            if (r != 0)
+                return r;
+            return Integer.valueOf(o1.position.getElementIndex()).compareTo(o2.position.getElementIndex());
+        }
     }
 
     @SuppressLint("RestrictedApi")
@@ -524,9 +581,13 @@ public class MainActivity extends FullscreenActivity
 
             final ArrayList<Storage.RecentInfo> selected = new ArrayList<>();
 
+            final Storage.FBook fbook = storage.read(book);
+
             final Runnable done = new Runnable() {
                 @Override
                 public void run() {
+                    fbook.close();
+
                     for (Uri u : uu) {
                         storage.delete(u);
                     }
@@ -547,12 +608,11 @@ public class MainActivity extends FullscreenActivity
             r.config.setValue(r.app.MiscOptions.WordTappingAction, MiscOptions.WordTappingActionEnum.doNothing);
             r.config.setValue(r.app.ImageOptions.TapAction, ImageOptions.TapActionEnum.doNothing);
 
-            final Storage.FBook fbook = storage.read(book);
-            r.loadBook(fbook);
-
             SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(this);
             String mode = shared.getString(MainApplication.PREFERENCE_VIEW_MODE, "");
             r.setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
+
+            r.loadBook(fbook);
 
             LinearLayout pages = (LinearLayout) v.findViewById(R.id.recent_pages);
 
@@ -579,8 +639,6 @@ public class MainActivity extends FullscreenActivity
                                 found = true;
                         }
                         if (!found) {
-                            selected.clear();
-                            selected.add(info);
                             rr.add(info);
                         }
                     }
@@ -589,10 +647,15 @@ public class MainActivity extends FullscreenActivity
                 }
             }
 
+            Collections.sort(rr, new SortByPage());
+
             if (rr.size() == 1) {
                 done.run();
                 return;
             }
+
+            selected.clear();
+            selected.add(book.info);
 
             for (int i = 0; i < rr.size(); i++) {
                 final Storage.RecentInfo info = rr.get(i);
@@ -766,50 +829,5 @@ public class MainActivity extends FullscreenActivity
         super.onResume();
         RotatePreferenceCompat.onResume(this, MainApplication.PREFERENCE_ROTATE);
         CacheImagesAdapter.cacheClear(this);
-    }
-
-    public static String toString(Throwable e) {
-        while (e.getCause() != null)
-            e = e.getCause();
-        String msg = e.getMessage();
-        if (msg == null || msg.isEmpty())
-            msg = e.getClass().getSimpleName();
-        return msg;
-    }
-
-    public void Post(final Throwable e) {
-        Log.d(TAG, "Error", e);
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Error(MainActivity.toString(e));
-            }
-        });
-    }
-
-    public void Post(final String e) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Error(e);
-            }
-        });
-    }
-
-    public void Error(Throwable e) {
-        Log.d(TAG, "Error", e);
-        Error(toString(e));
-    }
-
-    public void Error(String msg) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Error");
-        builder.setMessage(msg);
-        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-            }
-        });
-        builder.show();
     }
 }

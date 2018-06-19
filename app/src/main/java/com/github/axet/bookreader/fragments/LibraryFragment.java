@@ -53,6 +53,7 @@ import com.github.axet.bookreader.app.Storage;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -408,7 +409,28 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
         @Override
         public Bitmap downloadImageTask(CacheImagesAdapter.DownloadImageTask task) {
-            return downloadImage((Uri) task.item);
+            Uri u = (Uri) task.item;
+            Bitmap bm = downloadImage(u);
+            if (bm == null)
+                return null;
+            if (bm.getWidth() > Storage.COVER_SIZE || bm.getHeight() > Storage.COVER_SIZE) {
+                try {
+                    File cover = CacheImagesAdapter.cacheUri(getContext(), u);
+                    int m = Math.max(bm.getWidth(), bm.getHeight());
+                    float ratio = Storage.COVER_SIZE / (float) m;
+                    Bitmap sbm = Bitmap.createScaledBitmap(bm, (int) (bm.getWidth() * ratio), (int) (bm.getHeight() * ratio), true);
+                    if (sbm == bm)
+                        return bm;
+                    bm.recycle();
+                    FileOutputStream os = new FileOutputStream(cover);
+                    sbm.compress(Bitmap.CompressFormat.PNG, 100, os);
+                    os.close();
+                    return sbm;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return bm;
         }
 
         void setText(TextView t, String s) {
