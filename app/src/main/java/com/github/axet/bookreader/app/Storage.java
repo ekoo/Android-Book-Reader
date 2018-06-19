@@ -1280,7 +1280,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             try {
                 float ratio = COVER_SIZE / (float) bm.getWidth();
                 Bitmap sbm = Bitmap.createScaledBitmap(bm, (int) (bm.getWidth() * ratio), (int) (bm.getHeight() * ratio), true);
-                bm.recycle();
+                if (sbm != bm)
+                    bm.recycle();
                 FileOutputStream os = new FileOutputStream(cover);
                 sbm.compress(Bitmap.CompressFormat.PNG, 100, os);
                 os.close();
