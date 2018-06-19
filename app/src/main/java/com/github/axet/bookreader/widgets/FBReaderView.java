@@ -1149,6 +1149,11 @@ public class FBReaderView extends RelativeLayout {
         }
 
         @Override
+        public void unsetValue(StringPair id) {
+            map.remove(id.Group + ":" + id.Name);
+        }
+
+        @Override
         protected void setValueInternal(String group, String name, String value) {
         }
 
