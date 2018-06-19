@@ -2575,12 +2575,4 @@ public class FBReaderView extends RelativeLayout {
             pluginview.reflower.current = 0;
     }
 
-    public int getPageNumber(ZLTextPosition p) {
-        if (pluginview != null) {
-            return p.getParagraphIndex();
-        } else {
-            app.BookTextView.gotoPosition(p);
-            return app.BookTextView.pagePosition().Current;
-        }
-    }
 }

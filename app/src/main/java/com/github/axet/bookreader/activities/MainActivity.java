@@ -83,7 +83,9 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 public class MainActivity extends FullscreenActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -554,7 +556,7 @@ public class MainActivity extends FullscreenActivity
 
             LinearLayout pages = (LinearLayout) v.findViewById(R.id.recent_pages);
 
-            Map<Integer, Storage.RecentInfo> rr = new TreeMap<>();
+            List<Storage.RecentInfo> rr = new ArrayList<>();
 
             for (Uri u : uu) {
                 try {
@@ -570,9 +572,17 @@ public class MainActivity extends FullscreenActivity
                     String j = IOUtils.toString(is, Charset.defaultCharset());
                     Storage.RecentInfo info = new Storage.RecentInfo(new JSONObject(j));
                     if (info.position != null) {
-                        selected.clear();
-                        selected.add(info);
-                        rr.put(r.getPageNumber(info.position), info);
+                        boolean found = false;
+                        for (int i = 0; i < rr.size(); i++) {
+                            Storage.RecentInfo ii = rr.get(i);
+                            if (ii.position.getParagraphIndex() == info.position.getParagraphIndex() && ii.position.getElementIndex() == info.position.getElementIndex())
+                                found = true;
+                        }
+                        if (!found) {
+                            selected.clear();
+                            selected.add(info);
+                            rr.add(info);
+                        }
                     }
                 } catch (IOException | JSONException e) {
                     Log.d(TAG, "Unable to read json", e);
@@ -584,11 +594,11 @@ public class MainActivity extends FullscreenActivity
                 return;
             }
 
-            for (Integer i : rr.keySet()) {
+            for (int i = 0; i < rr.size(); i++) {
                 final Storage.RecentInfo info = rr.get(i);
                 TextView p = (TextView) inflater.inflate(R.layout.recent_item, pages, false);
                 if (info.position != null)
-                    p.setText("" + i);
+                    p.setText(info.position.getParagraphIndex() + "." + info.position.getElementIndex());
                 p.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
