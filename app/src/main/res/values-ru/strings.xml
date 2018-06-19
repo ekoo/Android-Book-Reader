@@ -33,4 +33,6 @@
     <string name="view_mode_paging">Постраничный режим</string>
     <string name="pref_storagepath_title">Папка синхронизации</string>
     <string name="pref_storagepath_summary">Папка синхронизации не выбрана</string>
+    <string name="continue_reading">Продолжить чтение с:</string>
+    <string name="sync_conflict">Ошибка синхронизации</string>
 </resources>

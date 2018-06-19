@@ -2,6 +2,7 @@ package com.github.axet.bookreader.activities;
 
 import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -9,7 +10,9 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
@@ -25,15 +28,23 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.SearchView;
+import android.text.Html;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
+import android.text.style.BackgroundColorSpan;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
@@ -49,6 +60,7 @@ import com.github.axet.bookreader.app.LocalBooksCatalog;
 import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.NetworkBooksCatalog;
 import com.github.axet.bookreader.app.Storage;
+import com.github.axet.bookreader.app.TextFormatter;
 import com.github.axet.bookreader.fragments.LibraryFragment;
 import com.github.axet.bookreader.fragments.LocalLibraryFragment;
 import com.github.axet.bookreader.fragments.NetworkLibraryFragment;
@@ -57,7 +69,19 @@ import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.bookreader.widgets.FullWidthActionView;
 import com.github.axet.bookreader.widgets.RotatePreferenceCompat;
 
+import org.apache.commons.io.IOUtils;
+import org.geometerplus.fbreader.fbreader.options.ImageOptions;
+import org.geometerplus.fbreader.fbreader.options.MiscOptions;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -487,7 +511,110 @@ public class MainActivity extends FullscreenActivity
         thread.start();
     }
 
-    public void loadBook(Storage.Book book) {
+    @SuppressLint("RestrictedApi")
+    public void loadBook(final Storage.Book book) {
+        final List<Uri> uu = storage.recentUris(book);
+        if (uu.size() > 1) {
+            LayoutInflater inflater = LayoutInflater.from(this);
+            ContentResolver resolver = getContentResolver();
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+            RelativeLayout rl = new RelativeLayout(this);
+
+            builder.setTitle(R.string.sync_conflict);
+
+            View v = inflater.inflate(R.layout.recent, null);
+
+            final FBReaderView r = (FBReaderView) v.findViewById(R.id.recent_fbview);
+            //r.config.setValue(r.app.ViewOptions.ScrollbarType, 0);
+            r.config.setValue(r.app.MiscOptions.WordTappingAction, MiscOptions.WordTappingActionEnum.doNothing);
+            r.config.setValue(r.app.ImageOptions.TapAction, ImageOptions.TapActionEnum.doNothing);
+
+            final Storage.FBook fbook = storage.read(book);
+            r.loadBook(fbook);
+
+            SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(this);
+            String mode = shared.getString(MainApplication.PREFERENCE_VIEW_MODE, "");
+            r.setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
+
+            LinearLayout pages = (LinearLayout) v.findViewById(R.id.recent_pages);
+
+            Map<Integer, Storage.RecentInfo> rr = new TreeMap<>();
+
+            final ArrayList<Storage.RecentInfo> selected = new ArrayList<>();
+
+            for (Uri u : uu) {
+                try {
+                    InputStream is;
+                    String s = u.getScheme();
+                    if (s.equals(ContentResolver.SCHEME_CONTENT)) {
+                        is = resolver.openInputStream(u);
+                    } else if (s.equals(ContentResolver.SCHEME_FILE)) {
+                        is = new FileInputStream(Storage.getFile(u));
+                    } else {
+                        throw new RuntimeException("unknown uri");
+                    }
+                    String j = IOUtils.toString(is, Charset.defaultCharset());
+                    Storage.RecentInfo info = new Storage.RecentInfo(new JSONObject(j));
+                    if (info.position != null) {
+                        selected.clear();
+                        selected.add(info);
+                        rr.put(r.getPageNumber(info.position), info);
+                    }
+                } catch (IOException | JSONException e) {
+                    Log.d(TAG, "Unable to read json", e);
+                }
+            }
+
+            for (Integer i : rr.keySet()) {
+                final Storage.RecentInfo info = rr.get(i);
+                TextView p = (TextView) inflater.inflate(R.layout.recent_item, pages, false);
+                if (info.position != null)
+                    p.setText("" + i);
+                p.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        r.gotoPosition(info.position);
+                        selected.clear();
+                        selected.add(info);
+                    }
+                });
+                pages.addView(p);
+            }
+
+            builder.setView(v);
+
+            builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialog) {
+                    fbook.close();
+                }
+            });
+
+            builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    ;
+                }
+            });
+            builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    for(Uri u : uu) {
+                        storage.delete(u);
+                    }
+
+                    book.info = selected.get(0);
+                    storage.save(book);
+
+                    openFragment(ReaderFragment.newInstance(book.url), ReaderFragment.TAG).addToBackStack(null).commit();
+                }
+            });
+
+            builder.show();
+            return;
+        }
         openFragment(ReaderFragment.newInstance(book.url), ReaderFragment.TAG).addToBackStack(null).commit();
     }
 
