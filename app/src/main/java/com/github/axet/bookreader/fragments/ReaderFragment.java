@@ -689,7 +689,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         ZLIntegerRangeOption option = view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption;
         option.setValue(p);
         view.app.clearTextCaches();
-        view.app.getViewWidget().repaint();
+        view.reset();
         updateToolbar();
     }
 
@@ -700,7 +700,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         edit.apply();
         view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.setValue(f);
         view.app.clearTextCaches();
-        view.app.getViewWidget().repaint();
+        view.reset();
     }
 
     float getFontsizeReflow() {
