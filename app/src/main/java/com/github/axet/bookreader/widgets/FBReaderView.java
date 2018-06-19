@@ -2574,4 +2574,5 @@ public class FBReaderView extends RelativeLayout {
         if (pluginview.reflower != null)
             pluginview.reflower.current = 0;
     }
+
 }

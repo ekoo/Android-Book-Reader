@@ -88,6 +88,11 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
         }
     };
 
+    public static String getDisplayName(Uri u) {
+        String p = Storage.getDocumentPath(u);
+        return ".../" + new File(p).getName();
+    }
+
     public static class ByCreated implements Comparator<Item> {
 
         @Override
@@ -222,7 +227,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                         if (ext.equals(Storage.ZIP_EXT)) {
                             try {
                                 InputStream is = new FileInputStream(k);
-                                Storage.detector(dd, is, null);
+                                Storage.detecting(dd, is, null);
                             } catch (IOException | NoSuchAlgorithmException e) {
                                 throw new RuntimeException(e);
                             }
@@ -267,7 +272,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                             if (ext.equals(Storage.ZIP_EXT)) {
                                 try {
                                     InputStream is = contentResolver.openInputStream(k);
-                                    Storage.detector(dd, is, null);
+                                    Storage.detecting(dd, is, null);
                                 } catch (IOException | NoSuchAlgorithmException e) {
                                     throw new RuntimeException(e);
                                 }
@@ -779,10 +784,5 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
     @Override
     public String getHint() {
         return getString(R.string.search_local);
-    }
-
-    public String getDisplayName(Uri u) {
-        String p = Storage.getDocumentPath(u);
-        return ".../" + new File(p).getName();
     }
 }

@@ -127,7 +127,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 new FileMobi(), new FileTxt(), new FileTxtZip()};
     }
 
-    public static String detector(Detector[] dd, InputStream is, OutputStream os) throws IOException, NoSuchAlgorithmException {
+    public static String detecting(Detector[] dd, InputStream is, OutputStream os) throws IOException, NoSuchAlgorithmException {
         MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
         FileTypeDetectorXml xml = new FileTypeDetectorXml(dd);
         FileTypeDetectorZip zip = new FileTypeDetectorZip(dd);
@@ -214,6 +214,49 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         } else {
             throw new RuntimeException("unknown uri");
         }
+    }
+
+    public List<Uri> recentUris(final Book book) {
+        List<Uri> list = new ArrayList<>();
+        Uri storage = getStoragePath();
+        String s = storage.getScheme();
+        if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
+            ContentResolver contentResolver = context.getContentResolver();
+            Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(storage, DocumentsContract.getTreeDocumentId(storage));
+            Cursor childCursor = contentResolver.query(childrenUri, null, null, null, null);
+            if (childCursor != null) {
+                try {
+                    while (childCursor.moveToNext()) {
+                        String id = childCursor.getString(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID));
+                        String t = childCursor.getString(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME));
+                        String e = getExt(t).toLowerCase();
+                        if (t.startsWith(book.md5) && e.equals(JSON_EXT)) { // delete all but json
+                            Uri k = DocumentsContract.buildDocumentUriUsingTree(storage, id);
+                            list.add(k);
+                        }
+                    }
+                } finally {
+                    childCursor.close();
+                }
+            }
+        } else if (s.equals(ContentResolver.SCHEME_FILE)) {
+            File dir = getFile(storage);
+            File[] ff = dir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    String e = getExt(name).toLowerCase();
+                    return name.startsWith(book.md5) && e.equals(JSON_EXT);
+                }
+            });
+            if (ff != null) {
+                for (File f : ff) {
+                    list.add(Uri.fromFile(f));
+                }
+            }
+        } else {
+            throw new RuntimeException("unknown uri");
+        }
+        return list;
     }
 
     public static class Detector {
@@ -335,6 +378,27 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 return null;
             }
 
+            public String extract(ZipInputStream zip, File t) {
+                try {
+                    MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
+                    FileOutputStream os = new FileOutputStream(t);
+
+                    byte[] buf = new byte[BUF_SIZE];
+                    int len;
+                    while ((len = zip.read(buf)) > 0) {
+                        digest.update(buf, 0, len);
+                        os.write(buf, 0, len);
+                    }
+
+                    os.close();
+                    return Storage.toHex(digest.digest());
+                } catch (RuntimeException r) {
+                    throw r;
+                } catch (Exception r) {
+                    throw new RuntimeException(r);
+                }
+            }
+
             public String extract(ZipEntry e, File f, File t) {
                 try {
                     MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
@@ -431,7 +495,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         public void write(byte[] buf, int off, int len) {
             try {
                 os.write(buf, off, len);
-            } catch (IOException e) {
+            } catch (IOException e) { // ignore expcetions, stream can be closed by reading thread
             }
         }
 
@@ -892,7 +956,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             }
             FileDescriptor out = fd.getFileDescriptor();
             try {
-                String json = book.info.save().toString();
+                String json = book.info.save().toString(2);
                 Writer w = new FileWriter(out);
                 IOUtils.write(json, w);
                 w.close();
@@ -902,7 +966,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         } else if (s.equals(ContentResolver.SCHEME_FILE)) {
             try {
                 File f = Storage.getFile(u);
-                String json = book.info.save().toString();
+                String json = book.info.save().toString(2);
                 Writer w = new FileWriter(f);
                 IOUtils.write(json, w);
                 w.close();
@@ -1037,7 +1101,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
             Detector[] dd = supported();
 
-            book.md5 = detector(dd, is, os);
+            book.md5 = detecting(dd, is, os);
 
             for (Detector d : dd) {
                 if (d.detected) {
@@ -1418,7 +1482,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 Detector[] dd = supported();
                 try {
                     InputStream is = new FileInputStream(file);
-                    Storage.detector(dd, is, null);
+                    Storage.detecting(dd, is, null);
                 } catch (IOException | NoSuchAlgorithmException e) {
                     throw new RuntimeException(e);
                 }

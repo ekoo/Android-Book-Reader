@@ -33,4 +33,6 @@
     <string name="view_mode_paging">Paging View</string>
     <string name="pref_storagepath_title">Sync Folder</string>
     <string name="pref_storagepath_summary">No \'Sync Folder\' selected</string>
+    <string name="continue_reading">Continue reading from:</string>
+    <string name="sync_conflict">Sync conflict</string>
 </resources>
