@@ -686,10 +686,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         SharedPreferences.Editor edit = shared.edit();
         edit.putInt(MainApplication.PREFERENCE_FONTSIZE_FBREADER, p);
         edit.apply();
-        ZLIntegerRangeOption option = view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption;
-        option.setValue(p);
+        view.config.setValue(view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption, p);
         view.app.clearTextCaches();
-        view.app.getViewWidget().repaint();
+        view.reset();
         updateToolbar();
     }
 
@@ -698,9 +697,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         SharedPreferences.Editor edit = shared.edit();
         edit.putString(MainApplication.PREFERENCE_FONTFAMILY_FBREADER, f);
         edit.apply();
-        view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.setValue(f);
+        view.config.setValue(view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption, f);
         view.app.clearTextCaches();
-        view.app.getViewWidget().repaint();
+        view.reset();
     }
 
     float getFontsizeReflow() {

@@ -2542,7 +2542,7 @@ public class FBReaderView extends RelativeLayout {
         resetPosition();
     }
 
-    public void resetPosition() { // read current position from new loaded page
+    public void resetPosition() { // get position from new loaded page
         if (widget instanceof ScrollView) {
             ((ScrollView) widget).adapter.reset();
         } else {
