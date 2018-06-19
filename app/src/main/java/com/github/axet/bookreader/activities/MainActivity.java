@@ -520,7 +520,21 @@ public class MainActivity extends FullscreenActivity
 
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
-            RelativeLayout rl = new RelativeLayout(this);
+            final ArrayList<Storage.RecentInfo> selected = new ArrayList<>();
+
+            final Runnable done = new Runnable() {
+                @Override
+                public void run() {
+                    for (Uri u : uu) {
+                        storage.delete(u);
+                    }
+
+                    book.info = selected.get(0);
+                    storage.save(book);
+
+                    openFragment(ReaderFragment.newInstance(book.url), ReaderFragment.TAG).addToBackStack(null).commit();
+                }
+            };
 
             builder.setTitle(R.string.sync_conflict);
 
@@ -541,8 +555,6 @@ public class MainActivity extends FullscreenActivity
             LinearLayout pages = (LinearLayout) v.findViewById(R.id.recent_pages);
 
             Map<Integer, Storage.RecentInfo> rr = new TreeMap<>();
-
-            final ArrayList<Storage.RecentInfo> selected = new ArrayList<>();
 
             for (Uri u : uu) {
                 try {
@@ -565,6 +577,11 @@ public class MainActivity extends FullscreenActivity
                 } catch (IOException | JSONException e) {
                     Log.d(TAG, "Unable to read json", e);
                 }
+            }
+
+            if (rr.size() == 1) {
+                done.run();
+                return;
             }
 
             for (Integer i : rr.keySet()) {
@@ -601,14 +618,7 @@ public class MainActivity extends FullscreenActivity
             builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    for(Uri u : uu) {
-                        storage.delete(u);
-                    }
-
-                    book.info = selected.get(0);
-                    storage.save(book);
-
-                    openFragment(ReaderFragment.newInstance(book.url), ReaderFragment.TAG).addToBackStack(null).commit();
+                    done.run();
                 }
             });
 
