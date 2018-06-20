@@ -2051,14 +2051,14 @@ public class FBReaderView extends RelativeLayout {
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
                 if (book.info != null)
-                    pluginview.gotoPosition(book.info.position);
+                    gotoPluginPosition(book.info.position);
             } else if (plugin instanceof DjvuPlugin) {
                 pluginview = new DjvuPlugin.DjvuView(BookUtil.fileByBook(fbook.book));
                 BookModel Model = BookModel.createModel(fbook.book, plugin);
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
                 if (book.info != null)
-                    pluginview.gotoPosition(book.info.position);
+                    gotoPluginPosition(book.info.position);
             } else {
                 BookModel Model = BookModel.createModel(fbook.book, plugin);
                 ZLTextHyphenator.Instance().load(fbook.book.getLanguage());
@@ -2507,7 +2507,6 @@ public class FBReaderView extends RelativeLayout {
                 final BookModel.Label label = r.app.Model.getLabel(hyperlink.Id);
                 if (label != null) {
                     if (label.ModelId == null) {
-                        // r.app.BookTextView.setModel(new SingleParagraphModel(label.ParagraphIndex, r.app.Model.getTextModel()));
                         r.app.BookTextView.gotoPosition(0, 0, 0);
                         r.app.setView(r.app.BookTextView);
                     } else {
@@ -2533,6 +2532,14 @@ public class FBReaderView extends RelativeLayout {
         toast.show();
     }
 
+    void gotoPluginPosition(ZLTextPosition p) {
+        if (widget instanceof ScrollView) {
+            if (p.getElementIndex() != 0)
+                p = new ZLTextFixedPosition(p.getParagraphIndex(), 0, 0);
+        }
+        pluginview.gotoPosition(p);
+    }
+
     public void gotoPosition(TOCTree.Reference p) {
         if (p.Model != null)
             app.BookTextView.setModel(p.Model);
@@ -2541,13 +2548,13 @@ public class FBReaderView extends RelativeLayout {
 
     public void gotoPosition(ZLTextPosition p) {
         if (pluginview != null)
-            pluginview.gotoPosition(p);
+            gotoPluginPosition(p);
         else
             app.BookTextView.gotoPosition(p);
         resetPosition();
     }
 
-    public void resetPosition() { // get position from new loaded page
+    public void resetPosition() { // get position from new loaded page, then reset
         if (widget instanceof ScrollView) {
             ((ScrollView) widget).adapter.reset();
         } else {
@@ -2556,9 +2563,9 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
-    public void reset() {
+    public void reset() { // keep current position, then reset
         if (widget instanceof ScrollView) {
-            ((ScrollView) widget).updatePosition(); // keep current position
+            ((ScrollView) widget).updatePosition();
             ((ScrollView) widget).adapter.reset();
         } else {
             widget.reset();
