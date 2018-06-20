@@ -581,6 +581,9 @@ public class MainActivity extends FullscreenActivity
 
             final ArrayList<Storage.RecentInfo> selected = new ArrayList<>();
 
+            selected.clear();
+            selected.add(book.info);
+
             final Storage.FBook fbook = storage.read(book);
 
             final Runnable done = new Runnable() {
@@ -653,9 +656,6 @@ public class MainActivity extends FullscreenActivity
                 done.run();
                 return;
             }
-
-            selected.clear();
-            selected.add(book.info);
 
             for (int i = 0; i < rr.size(); i++) {
                 final Storage.RecentInfo info = rr.get(i);
