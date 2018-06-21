@@ -168,6 +168,7 @@ public class SettingsActivity extends AppCompatSettingsThemeActivity {
 
             bindPreferenceSummaryToValue(findPreference(MainApplication.PREFERENCE_SCREENLOCK));
             bindPreferenceSummaryToValue(findPreference(MainApplication.PREFERENCE_THEME));
+            bindPreferenceSummaryToValue(findPreference(MainApplication.PREFERENCE_VIEW_MODE));
 
             StoragePathPreferenceCompat s = (StoragePathPreferenceCompat) findPreference(MainApplication.PREFERENCE_STORAGE);
             s.setStorage(new Storage(getContext()));

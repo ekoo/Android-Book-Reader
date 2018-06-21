@@ -1998,13 +1998,22 @@ public class FBReaderView extends RelativeLayout {
         setWidget(Widgets.PAGING);
     }
 
-    public void config() {
-        SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(getContext());
+    public void configColorProfile(SharedPreferences shared) {
         if (shared.getString(MainApplication.PREFERENCE_THEME, "").equals(getContext().getString(R.string.Theme_Dark))) {
             config.setValue(app.ViewOptions.ColorProfileName, ColorProfile.NIGHT);
         } else {
             config.setValue(app.ViewOptions.ColorProfileName, ColorProfile.DAY);
         }
+    }
+
+    public void configWidget(SharedPreferences shared) {
+        String mode = shared.getString(MainApplication.PREFERENCE_VIEW_MODE, "");
+        setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
+    }
+
+    public void config() {
+        SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(getContext());
+        configColorProfile(shared);
 
         int d = shared.getInt(MainApplication.PREFERENCE_FONTSIZE_FBREADER, app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.getValue());
         config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption, d);
@@ -2484,8 +2493,7 @@ public class FBReaderView extends RelativeLayout {
         };
 
         SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(getContext());
-        String mode = shared.getString(MainApplication.PREFERENCE_VIEW_MODE, "");
-        r.setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
+        r.configWidget(shared);
 
         LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 

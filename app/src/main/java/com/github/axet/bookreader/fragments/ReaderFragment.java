@@ -929,6 +929,12 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        if (key.equals(MainApplication.PREFERENCE_VIEW_MODE)) {
+            view.configWidget(sharedPreferences);
+        }
+        if (key.equals(MainApplication.PREFERENCE_THEME)) {
+            view.configColorProfile(sharedPreferences);
+        }
     }
 
     @Override

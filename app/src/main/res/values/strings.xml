@@ -11,6 +11,16 @@
         <item>@string/Theme_Dark</item>
     </string-array>
 
+    <string-array name="viewmode_text">
+        <item>@string/view_mode_paging</item>
+        <item>@string/view_mode_continuous</item>
+    </string-array>
+
+    <string-array name="viewmode_value" translatable="false">
+        <item>PAGING</item>
+        <item>CONTINUOUS</item>
+    </string-array>
+
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
@@ -40,4 +50,5 @@
     <string name="pref_storagepath_summary">No \'Sync Folder\' selected</string>
     <string name="continue_reading">Continue reading from:</string>
     <string name="sync_conflict">Sync conflict</string>
+    <string name="view_mode">View Mode</string>
 </resources>

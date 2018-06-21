@@ -35,4 +35,5 @@
     <string name="pref_storagepath_summary">No \'Sync Folder\' selected</string>
     <string name="continue_reading">Continue reading from:</string>
     <string name="sync_conflict">Sync conflict</string>
+    <string name="view_mode">View Mode</string>
 </resources>
