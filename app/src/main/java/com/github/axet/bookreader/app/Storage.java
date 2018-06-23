@@ -69,6 +69,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.net.HttpURLConnection;
+import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -79,9 +80,14 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
+
+import de.innosystec.unrar.Archive;
+import de.innosystec.unrar.rarfile.FileHeader;
+import de.innosystec.unrar.rarfile.HostSystem;
 
 public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
@@ -158,8 +164,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 return new PDFPlugin();
             case DjvuPlugin.EXT:
                 return new DjvuPlugin();
-            case ComicsPlugin.EXT1:
-            case ComicsPlugin.EXT2:
+            case ComicsPlugin.EXTZ:
+            case ComicsPlugin.EXTR:
                 return new ComicsPlugin();
         }
         try {
@@ -822,13 +828,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public static class FileCbz extends ExtDetector.Handler {
         public FileCbz() {
-            super(ComicsPlugin.EXT1, new int[]{0x50, 0x4B, 0x03, 0x04});
+            super(ComicsPlugin.EXTZ, new int[]{0x50, 0x4B, 0x03, 0x04});
         }
     }
 
     public static class FileCbr extends ExtDetector.Handler {
         public FileCbr() {
-            super(ComicsPlugin.EXT2, "Rar!");
+            super(ComicsPlugin.EXTR, "Rar!");
         }
     }
 
@@ -1183,6 +1189,41 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
             if (book.ext == null)
                 throw new RuntimeException("Unsupported format");
+
+            if (book.ext.equals(ComicsPlugin.EXTR)) { // handling cbz solid archives
+                final FileInputStream fis = new FileInputStream(file);
+                final FileChannel fc = fis.getChannel();
+                File cbz = null;
+                try {
+                    final Archive archive = new Archive(new ComicsPlugin.RarStore(fc));
+                    if (archive.getMainHeader().isSolid()) {
+                        cbz = File.createTempFile("book", ".tmp", getCache());
+                        FileOutputStream zos = new FileOutputStream(cbz);
+                        ZipOutputStream out = new ZipOutputStream(zos);
+                        List<FileHeader> list = archive.getFileHeaders();
+                        for (FileHeader h : list) {
+                            if (h.isDirectory())
+                                continue;
+
+                            ZipEntry entry = new ZipEntry(ComicsPlugin.getRarFileName(h));
+                            out.putNextEntry(entry);
+
+                            archive.extractFile(h, out);
+                        }
+                        if (tmp) {
+                            file.delete();
+                        }
+                        out.close();
+                        book.ext = ComicsPlugin.EXTZ;
+                        file = cbz;
+                        tmp = true;
+                    }
+                } catch (Exception e) {
+                    if (cbz != null)
+                        cbz.delete();
+                    throw new RuntimeException("unsupported rar", e);
+                }
+            }
 
             String s = storage.getScheme();
 
