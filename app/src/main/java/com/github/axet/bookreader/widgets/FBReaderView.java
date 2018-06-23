@@ -659,7 +659,7 @@ public class FBReaderView extends RelativeLayout {
             drawOnCanvas(context, canvas, w, h, index);
         }
 
-        public double getPageHeight(int w, ZLView.PageIndex index) {
+        public double getPageHeight(int w, ScrollView.ScrollAdapter.PageCursor c) {
             return -1;
         }
 
@@ -1295,8 +1295,7 @@ public class FBReaderView extends RelativeLayout {
                     if (pluginview != null) {
                         if (!pluginview.reflow) {
                             PageCursor c = current();
-                            open(c);
-                            h = (int) Math.ceil(pluginview.getPageHeight(w, ZLViewEnums.PageIndex.current));
+                            h = (int) Math.ceil(pluginview.getPageHeight(w, c));
                         }
                     }
                     setMeasuredDimension(w, h);
@@ -1492,8 +1491,8 @@ public class FBReaderView extends RelativeLayout {
             }
 
             public class PageCursor {
-                ZLTextPosition start;
-                ZLTextPosition end;
+                public ZLTextPosition start;
+                public ZLTextPosition end;
 
                 public PageCursor(ZLTextPosition s, ZLTextPosition e) {
                     if (s != null)
@@ -2007,7 +2006,6 @@ public class FBReaderView extends RelativeLayout {
         @Override
         public void draw(Canvas c) {
             if (adapter.size.w != getWidth() || adapter.size.h != getHeight()) { // reset for textbook and reflow mode only
-                updatePosition();
                 adapter.reset();
             }
             super.draw(c);

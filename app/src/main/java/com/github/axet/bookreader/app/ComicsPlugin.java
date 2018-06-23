@@ -647,8 +647,13 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public double getPageHeight(int w, ZLView.PageIndex index) {
-            PluginPage r = new PluginPage((PluginPage) current, index, w, 0);
+        public double getPageHeight(int w, FBReaderView.ScrollView.ScrollAdapter.PageCursor c) {
+            int page;
+            if (c.start == null)
+                page = c.end.getParagraphIndex() - 1;
+            else
+                page = c.start.getParagraphIndex();
+            PluginPage r = new PluginPage((PluginPage) current, page, w, 0);
             return r.pageBox.h / r.ratio;
         }
 
