@@ -12,6 +12,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
@@ -21,6 +22,7 @@ import android.support.v4.view.GestureDetectorCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.LinearSmoothScroller;
 import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
@@ -43,6 +45,7 @@ import android.widget.TextView;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
+import com.github.axet.bookreader.app.ComicsPlugin;
 import com.github.axet.bookreader.app.DjvuPlugin;
 import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.PDFPlugin;
@@ -476,7 +479,7 @@ public class FBReaderView extends RelativeLayout {
         public void gotoPosition(ZLTextPosition p) {
             if (p == null)
                 return;
-            if (current.pageNumber != p.getParagraphIndex())
+            if (current.pageNumber != p.getParagraphIndex() || current.pageOffset != p.getElementIndex())
                 current.load(p);
             if (reflower != null) {
                 if (reflower.page != p.getParagraphIndex()) {
@@ -639,7 +642,7 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public ZLTextView.PagePosition pagePosition() {
-            return new ZLTextView.PagePosition(current.pageNumber, current.getPagesCount());
+            return new ZLTextView.PagePosition(current.pageNumber + 1, current.getPagesCount());
         }
 
         public Bitmap render(int w, int h, int page, Bitmap.Config c) {
@@ -867,9 +870,18 @@ public class FBReaderView extends RelativeLayout {
         }
 
         @Override
+        public void gotoHome() {
+            if (pluginview != null)
+                pluginview.gotoPosition(new ZLTextFixedPosition(0, 0, 0));
+            else
+                super.gotoHome();
+            resetPosition();
+        }
+
+        @Override
         public synchronized void gotoPage(int page) {
             if (pluginview != null)
-                pluginview.gotoPosition(new ZLTextFixedPosition(page, 0, 0));
+                pluginview.gotoPosition(new ZLTextFixedPosition(page - 1, 0, 0));
             else
                 super.gotoPage(page);
             resetPosition();
@@ -1523,6 +1535,9 @@ public class FBReaderView extends RelativeLayout {
                     if (pluginview != null) {
                         pluginview.gotoPosition(c.end);
                         pluginview.onScrollingFinished(ZLViewEnums.PageIndex.previous);
+                        if (widget instanceof ScrollView) {
+                            pluginview.current.pageOffset = 0;
+                        }
                         c.update(getCurrent());
                     } else {
                         app.BookTextView.gotoPosition(c.end);
@@ -1773,10 +1788,81 @@ public class FBReaderView extends RelativeLayout {
             }
         }
 
+        class TopSnappedSmoothScroller extends LinearSmoothScroller {
+            public TopSnappedSmoothScroller(Context context) {
+                super(context);
+
+            }
+
+            @Override
+            public PointF computeScrollVectorForPosition(int targetPosition) {
+                return lm.computeScrollVectorForPosition(targetPosition);
+            }
+
+            @Override
+            protected int getVerticalSnapPreference() {
+                return SNAP_TO_ANY;
+            }
+
+            @Override
+            public int calculateDtToFit(int viewStart, int viewEnd, int boxStart, int boxEnd, int
+                    snapPreference) {
+                switch (snapPreference) {
+                    case SNAP_TO_START:
+                        return boxStart - viewStart;
+                    case SNAP_TO_END:
+                        return boxEnd - viewEnd;
+                    case SNAP_TO_ANY:
+                        int dtBox = boxEnd - boxStart;
+                        int dtView = viewEnd - viewStart;
+                        if (dtBox < dtView) {
+                            return -viewStart;
+                        }
+                        final int dtStart = boxStart - viewStart;
+                        if (dtStart > 0) {
+                            return dtStart;
+                        }
+                        final int dtEnd = boxEnd - viewEnd;
+                        if (dtEnd < 0) {
+                            return dtEnd;
+                        }
+                        break;
+                    default:
+                        throw new IllegalArgumentException("snap preference should be one of the"
+                                + " constants defined in SmoothScroller, starting with SNAP_");
+                }
+                return 0;
+            }
+        }
+
+        class TopAlwaysSmoothScroller extends LinearSmoothScroller {
+            public TopAlwaysSmoothScroller(Context context) {
+                super(context);
+
+            }
+
+            @Override
+            public PointF computeScrollVectorForPosition(int targetPosition) {
+                return lm.computeScrollVectorForPosition(targetPosition);
+            }
+
+            @Override
+            protected int getVerticalSnapPreference() {
+                return SNAP_TO_START;
+            }
+        }
+
         public ScrollView(Context context) {
             super(context);
 
-            lm = new LinearLayoutManager(context);
+            lm = new LinearLayoutManager(context) {
+                @Override
+                public void smoothScrollToPosition(RecyclerView recyclerView, State state, int position) {
+                    RecyclerView.SmoothScroller smoothScroller = new TopAlwaysSmoothScroller(recyclerView.getContext());
+                    smoothScroller.setTargetPosition(position);
+                    startSmoothScroll(smoothScroller);
+                }
+            };
             gestures = new GestureDetectorCompat(context, gesturesListener);
 
             setLayoutManager(lm);
@@ -1818,16 +1904,40 @@ public class FBReaderView extends RelativeLayout {
         public void repaint() {
         }
 
+        public int getViewPercent(View view) {
+            int h = 0;
+            if (view.getBottom() > 0)
+                h = view.getBottom(); // visible height
+            if (getBottom() < view.getBottom())
+                h -= view.getBottom() - getBottom();
+            if (view.getTop() > 0)
+                h -= view.getTop();
+            int hp = h * 100 / view.getHeight();
+            return hp;
+        }
+
         public int findFirstPage() {
+            View v = null;
             Map<Integer, View> map = new TreeMap<>();
             for (int i = 0; i < lm.getChildCount(); i++) {
                 View view = lm.getChildAt(i);
-                int h = view.getBottom(); // visible height
-                if (view.getHeight() * 0.15 < h) // add only views atleast 15% visible
+                int hp = getViewPercent(view);
+                if (hp > 15) // add only views atleast 15% visible
                     map.put(view.getTop(), view);
+                if (hp == 100) {
+                    if (v == null || view.getTop() < v.getTop()) {
+                        v = view;
+                    }
+                }
             }
-            for (Integer key : map.keySet())
-                return ((ScrollAdapter.PageView) map.get(key)).holder.getAdapterPosition();
+            if (v == null) {
+                for (Integer key : map.keySet()) {
+                    v = map.get(key);
+                    break;
+                }
+            }
+            if (v != null)
+                return ((ScrollAdapter.PageView) v).holder.getAdapterPosition();
             return -1;
         }
 
@@ -1998,13 +2108,22 @@ public class FBReaderView extends RelativeLayout {
         setWidget(Widgets.PAGING);
     }
 
-    public void config() {
-        SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(getContext());
+    public void configColorProfile(SharedPreferences shared) {
         if (shared.getString(MainApplication.PREFERENCE_THEME, "").equals(getContext().getString(R.string.Theme_Dark))) {
             config.setValue(app.ViewOptions.ColorProfileName, ColorProfile.NIGHT);
         } else {
             config.setValue(app.ViewOptions.ColorProfileName, ColorProfile.DAY);
         }
+    }
+
+    public void configWidget(SharedPreferences shared) {
+        String mode = shared.getString(MainApplication.PREFERENCE_VIEW_MODE, "");
+        setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
+    }
+
+    public void config() {
+        SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(getContext());
+        configColorProfile(shared);
 
         int d = shared.getInt(MainApplication.PREFERENCE_FONTSIZE_FBREADER, app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.getValue());
         config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption, d);
@@ -2038,6 +2157,8 @@ public class FBReaderView extends RelativeLayout {
             removeView((View) widget);
         widget = v;
         addView((View) v, 0, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        if (pluginview != null)
+            gotoPluginPosition(getPosition());
     }
 
     public void loadBook(Storage.FBook fbook) {
@@ -2051,14 +2172,21 @@ public class FBReaderView extends RelativeLayout {
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
                 if (book.info != null)
-                    pluginview.gotoPosition(book.info.position);
+                    gotoPluginPosition(book.info.position);
             } else if (plugin instanceof DjvuPlugin) {
                 pluginview = new DjvuPlugin.DjvuView(BookUtil.fileByBook(fbook.book));
                 BookModel Model = BookModel.createModel(fbook.book, plugin);
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
                 if (book.info != null)
-                    pluginview.gotoPosition(book.info.position);
+                    gotoPluginPosition(book.info.position);
+            } else if (plugin instanceof ComicsPlugin) {
+                pluginview = new ComicsPlugin.ComicsView(BookUtil.fileByBook(fbook.book));
+                BookModel Model = BookModel.createModel(fbook.book, plugin);
+                app.BookTextView.setModel(Model.getTextModel());
+                app.Model = Model;
+                if (book.info != null)
+                    gotoPluginPosition(book.info.position);
             } else {
                 BookModel Model = BookModel.createModel(fbook.book, plugin);
                 ZLTextHyphenator.Instance().load(fbook.book.getLanguage());
@@ -2484,8 +2612,7 @@ public class FBReaderView extends RelativeLayout {
         };
 
         SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(getContext());
-        String mode = shared.getString(MainApplication.PREFERENCE_VIEW_MODE, "");
-        r.setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
+        r.configWidget(shared);
 
         LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 
@@ -2507,7 +2634,6 @@ public class FBReaderView extends RelativeLayout {
                 final BookModel.Label label = r.app.Model.getLabel(hyperlink.Id);
                 if (label != null) {
                     if (label.ModelId == null) {
-                        // r.app.BookTextView.setModel(new SingleParagraphModel(label.ParagraphIndex, r.app.Model.getTextModel()));
                         r.app.BookTextView.gotoPosition(0, 0, 0);
                         r.app.setView(r.app.BookTextView);
                     } else {
@@ -2533,6 +2659,16 @@ public class FBReaderView extends RelativeLayout {
         toast.show();
     }
 
+    void gotoPluginPosition(ZLTextPosition p) {
+        if (p == null)
+            return;
+        if (widget instanceof ScrollView) {
+            if (p.getElementIndex() != 0)
+                p = new ZLTextFixedPosition(p.getParagraphIndex(), 0, 0);
+        }
+        pluginview.gotoPosition(p);
+    }
+
     public void gotoPosition(TOCTree.Reference p) {
         if (p.Model != null)
             app.BookTextView.setModel(p.Model);
@@ -2541,13 +2677,13 @@ public class FBReaderView extends RelativeLayout {
 
     public void gotoPosition(ZLTextPosition p) {
         if (pluginview != null)
-            pluginview.gotoPosition(p);
+            gotoPluginPosition(p);
         else
             app.BookTextView.gotoPosition(p);
         resetPosition();
     }
 
-    public void resetPosition() { // get position from new loaded page
+    public void resetPosition() { // get position from new loaded page, then reset
         if (widget instanceof ScrollView) {
             ((ScrollView) widget).adapter.reset();
         } else {
@@ -2556,9 +2692,9 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
-    public void reset() {
+    public void reset() { // keep current position, then reset
         if (widget instanceof ScrollView) {
-            ((ScrollView) widget).updatePosition(); // keep current position
+            ((ScrollView) widget).updatePosition();
             ((ScrollView) widget).adapter.reset();
         } else {
             widget.reset();

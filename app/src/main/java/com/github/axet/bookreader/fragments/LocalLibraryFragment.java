@@ -227,7 +227,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                         if (ext.equals(Storage.ZIP_EXT)) {
                             try {
                                 InputStream is = new FileInputStream(k);
-                                Storage.detecting(dd, is, null);
+                                Storage.detecting(storage, dd, is, null, Uri.fromFile(k));
                             } catch (IOException | NoSuchAlgorithmException e) {
                                 throw new RuntimeException(e);
                             }
@@ -272,7 +272,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                             if (ext.equals(Storage.ZIP_EXT)) {
                                 try {
                                     InputStream is = contentResolver.openInputStream(k);
-                                    Storage.detecting(dd, is, null);
+                                    Storage.detecting(storage, dd, is, null, k);
                                 } catch (IOException | NoSuchAlgorithmException e) {
                                     throw new RuntimeException(e);
                                 }

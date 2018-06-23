@@ -125,7 +125,8 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         @Override
         public void draw(Canvas canvas, int w, int h, ZLView.PageIndex index, Bitmap.Config c) {
             PluginPage r = new PluginPage((PluginPage) current, index, w, h);
-            current.updatePage(r);
+            if (index == ZLViewEnums.PageIndex.current)
+                current.updatePage(r);
 
             r.scale(w, h);
             FBReaderView.RenderRect render = r.renderRect();

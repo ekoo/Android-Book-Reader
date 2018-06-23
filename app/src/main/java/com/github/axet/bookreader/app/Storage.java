@@ -1,6 +1,5 @@
 package com.github.axet.bookreader.app;
 
-import android.annotation.TargetApi;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -31,10 +30,8 @@ import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
-import com.github.axet.bookreader.fragments.LocalLibraryFragment;
 import com.github.axet.bookreader.widgets.FBReaderView;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.formats.BookReadingException;
@@ -77,8 +74,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -124,14 +119,15 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public static Detector[] supported() {
         return new Detector[]{new FileFB2(), new FileFB2Zip(), new FileEPUB(), new FileHTML(), new FileHTMLZip(),
                 new FilePDF(), new FileDjvu(), new FileRTF(), new FileRTFZip(), new FileDoc(),
-                new FileMobi(), new FileTxt(), new FileTxtZip()};
+                new FileMobi(), new FileTxt(), new FileTxtZip(), new FileCbz(), new FileCbr()};
     }
 
-    public static String detecting(Detector[] dd, InputStream is, OutputStream os) throws IOException, NoSuchAlgorithmException {
+    public static String detecting(Storage storage, Detector[] dd, InputStream is, OutputStream os, Uri u) throws IOException, NoSuchAlgorithmException {
         MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
         FileTypeDetectorXml xml = new FileTypeDetectorXml(dd);
         FileTypeDetectorZip zip = new FileTypeDetectorZip(dd);
         FileTypeDetector bin = new FileTypeDetector(dd);
+        ExtDetector ext = new ExtDetector(dd);
 
         byte[] buf = new byte[BUF_SIZE];
         int len;
@@ -150,6 +146,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         zip.close();
         xml.close();
 
+        ext.detect(storage, u);
+
         return toHex(digest.digest());
     }
 
@@ -160,6 +158,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 return new PDFPlugin();
             case DjvuPlugin.EXT:
                 return new DjvuPlugin();
+            case ComicsPlugin.EXT1:
+            case ComicsPlugin.EXT2:
+                return new ComicsPlugin();
         }
         try {
             return BookUtil.getPlugin(c, b.book);
@@ -169,7 +170,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public static class Info implements SystemInfo {
-        Context context;
+        public Context context;
 
         public Info(Context context) {
             this.context = context;
@@ -368,6 +369,53 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     }
 
+    public static class ExtDetector extends FileTypeDetector {
+        ArrayList<Handler> list = new ArrayList<>();
+
+        public static class Handler extends FileTypeDetector.Handler {
+            public Handler(String ext) {
+                super(ext);
+                clear();
+            }
+
+            public Handler(String ext, String str) {
+                super(ext, str);
+            }
+
+            public Handler(String ext, int[] b) {
+                super(ext, b);
+            }
+        }
+
+        public ExtDetector(Detector[] dd) {
+            super(dd);
+            for (Detector d : dd) {
+                if (d instanceof Handler) {
+                    Handler h = (Handler) d;
+                    h.clear();
+                    list.add(h);
+                }
+            }
+        }
+
+        public void detect(Storage storage, Uri u) {
+            String name = storage.getName(u);
+            String e = Storage.getExt(name).toLowerCase();
+            for (Handler h : list) {
+                if (h.done && h.detected && e.equals(h.ext)) {
+                    h.detected = true;
+                    h.done = true;
+                } else {
+                    h.detected = false;
+                }
+            }
+        }
+
+        public void close() {
+        }
+
+    }
+
     public static class FileTypeDetectorZipExtract extends FileTypeDetectorZip {
         public static class Handler extends FileTypeDetectorZip.Handler {
             public Handler(String ext) {
@@ -429,12 +477,46 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
     }
 
-    public static class FileTypeDetectorZip {
-        ArrayList<Handler> list = new ArrayList<>();
+    public static class FileTypeDetectorIO {
+        ParcelFileDescriptor.AutoCloseInputStream is;
         ParcelFileDescriptor.AutoCloseOutputStream os;
-        Thread thread;
 
         public static class Handler extends Detector {
+            public Handler(String ext) {
+                super(ext);
+            }
+        }
+
+        public FileTypeDetectorIO() {
+            try {
+                ParcelFileDescriptor[] pp = ParcelFileDescriptor.createPipe();
+                is = new ParcelFileDescriptor.AutoCloseInputStream(pp[0]);
+                os = new ParcelFileDescriptor.AutoCloseOutputStream(pp[1]);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public void write(byte[] buf, int off, int len) {
+            try {
+                os.write(buf, off, len);
+            } catch (IOException e) { // ignore expcetions, stream can be closed by reading thread
+            }
+        }
+
+        public void close() {
+            try {
+                os.close();
+            } catch (IOException e) {
+            }
+        }
+    }
+
+    public static class FileTypeDetectorZip extends FileTypeDetectorIO {
+        ArrayList<Handler> list = new ArrayList<>();
+        Thread thread;
+
+        public static class Handler extends FileTypeDetectorIO.Handler {
             public Handler(String ext) {
                 super(ext);
             }
@@ -444,21 +526,14 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
 
         public FileTypeDetectorZip(Detector[] dd) {
+            super();
+
             for (Detector d : dd) {
                 if (d instanceof Handler) {
                     Handler h = (Handler) d;
                     h.clear();
                     list.add(h);
                 }
-            }
-
-            final ParcelFileDescriptor.AutoCloseInputStream is;
-            try {
-                ParcelFileDescriptor[] pp = ParcelFileDescriptor.createPipe();
-                is = new ParcelFileDescriptor.AutoCloseInputStream(pp[0]);
-                os = new ParcelFileDescriptor.AutoCloseOutputStream(pp[1]);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
             }
 
             thread = new Thread("zip detector") {
@@ -492,18 +567,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             thread.start();
         }
 
-        public void write(byte[] buf, int off, int len) {
-            try {
-                os.write(buf, off, len);
-            } catch (IOException e) { // ignore expcetions, stream can be closed by reading thread
-            }
-        }
-
         public void close() {
-            try {
-                os.close();
-            } catch (IOException e) {
-            }
+            super.close();
             try {
                 thread.join();
             } catch (InterruptedException e) {
@@ -512,13 +577,11 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
     }
 
-    public static class FileTypeDetectorXml {
+    public static class FileTypeDetectorXml extends FileTypeDetectorIO {
         ArrayList<Handler> list = new ArrayList<>();
-        ParcelFileDescriptor.AutoCloseInputStream is;
-        ParcelFileDescriptor.AutoCloseOutputStream os;
         Thread thread;
 
-        public static class Handler extends Detector {
+        public static class Handler extends FileTypeDetectorIO.Handler {
             boolean first = true;
             String firstTag;
 
@@ -555,14 +618,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
             }
 
-            try {
-                ParcelFileDescriptor[] pp = ParcelFileDescriptor.createPipe();
-                is = new ParcelFileDescriptor.AutoCloseInputStream(pp[0]);
-                os = new ParcelFileDescriptor.AutoCloseOutputStream(pp[1]);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
             thread = new Thread("xml detector") {
                 @Override
                 public void run() {
@@ -595,18 +650,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             thread.start();
         }
 
-        public void write(byte[] buf, int off, int len) {
-            try {
-                os.write(buf, off, len);
-            } catch (IOException e) {
-            }
-        }
-
         public void close() {
-            try {
-                os.close();
-            } catch (IOException e) {
-            }
+            super.close();
             try {
                 thread.join();
             } catch (InterruptedException e) {
@@ -772,6 +817,18 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 byte[] id = tail(head, 8);
                 detected = equals(id, m);
             }
+        }
+    }
+
+    public static class FileCbz extends ExtDetector.Handler {
+        public FileCbz() {
+            super(ComicsPlugin.EXT1, new int[]{0x50, 0x4B, 0x03, 0x04});
+        }
+    }
+
+    public static class FileCbr extends ExtDetector.Handler {
+        public FileCbr() {
+            super(ComicsPlugin.EXT2, "Rar!");
         }
     }
 
@@ -1101,7 +1158,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
             Detector[] dd = supported();
 
-            book.md5 = detecting(dd, is, os);
+            book.md5 = detecting(this, dd, is, os, u);
 
             for (Detector d : dd) {
                 if (d.detected) {
@@ -1483,7 +1540,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 Detector[] dd = supported();
                 try {
                     InputStream is = new FileInputStream(file);
-                    Storage.detecting(dd, is, null);
+                    Storage.detecting(this, dd, is, null, Uri.fromFile(file));
                 } catch (IOException | NoSuchAlgorithmException e) {
                     throw new RuntimeException(e);
                 }

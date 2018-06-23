@@ -47,6 +47,7 @@ import com.github.axet.bookreader.BuildConfig;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.FullscreenActivity;
 import com.github.axet.bookreader.activities.MainActivity;
+import com.github.axet.bookreader.app.ComicsPlugin;
 import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.FBReaderView;
@@ -853,7 +854,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         homeMenu.setVisible(false);
         tocMenu.setVisible(view.app.Model.TOCTree != null && view.app.Model.TOCTree.hasChildren());
         searchMenu.setVisible(view.pluginview == null); // pdf and djvu do not support search
-        reflow.setVisible(view.pluginview != null);
+        reflow.setVisible(view.pluginview != null && !(view.pluginview instanceof ComicsPlugin.ComicsView));
 
         if (BuildConfig.DEBUG && view.pluginview != null) {
             debug.setVisible(true);
@@ -929,6 +930,12 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        if (key.equals(MainApplication.PREFERENCE_VIEW_MODE)) {
+            view.configWidget(sharedPreferences);
+        }
+        if (key.equals(MainApplication.PREFERENCE_THEME)) {
+            view.configColorProfile(sharedPreferences);
+        }
     }
 
     @Override
