@@ -43,6 +43,7 @@ import android.widget.TextView;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
+import com.github.axet.bookreader.app.ComicsPlugin;
 import com.github.axet.bookreader.app.DjvuPlugin;
 import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.PDFPlugin;
@@ -476,7 +477,7 @@ public class FBReaderView extends RelativeLayout {
         public void gotoPosition(ZLTextPosition p) {
             if (p == null)
                 return;
-            if (current.pageNumber != p.getParagraphIndex())
+            if (current.pageNumber != p.getParagraphIndex() || current.pageOffset != p.getElementIndex())
                 current.load(p);
             if (reflower != null) {
                 if (reflower.page != p.getParagraphIndex()) {
@@ -639,7 +640,7 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public ZLTextView.PagePosition pagePosition() {
-            return new ZLTextView.PagePosition(current.pageNumber, current.getPagesCount());
+            return new ZLTextView.PagePosition(current.pageNumber + 1, current.getPagesCount());
         }
 
         public Bitmap render(int w, int h, int page, Bitmap.Config c) {
@@ -867,9 +868,18 @@ public class FBReaderView extends RelativeLayout {
         }
 
         @Override
+        public void gotoHome() {
+            if (pluginview != null)
+                pluginview.gotoPosition(new ZLTextFixedPosition(0, 0, 0));
+            else
+                super.gotoHome();
+            resetPosition();
+        }
+
+        @Override
         public synchronized void gotoPage(int page) {
             if (pluginview != null)
-                pluginview.gotoPosition(new ZLTextFixedPosition(page, 0, 0));
+                pluginview.gotoPosition(new ZLTextFixedPosition(page - 1, 0, 0));
             else
                 super.gotoPage(page);
             resetPosition();
@@ -1523,6 +1533,9 @@ public class FBReaderView extends RelativeLayout {
                     if (pluginview != null) {
                         pluginview.gotoPosition(c.end);
                         pluginview.onScrollingFinished(ZLViewEnums.PageIndex.previous);
+                        if (widget instanceof ScrollView) {
+                            pluginview.current.pageOffset = 0;
+                        }
                         c.update(getCurrent());
                     } else {
                         app.BookTextView.gotoPosition(c.end);
@@ -1859,7 +1872,7 @@ public class FBReaderView extends RelativeLayout {
             }
             if (pos < 0 || pos >= adapter.pages.size())
                 return;
-            smoothScrollToPosition(pos);
+            lm.scrollToPositionWithOffset(pos, 0);
         }
 
         @Override
@@ -2047,6 +2060,8 @@ public class FBReaderView extends RelativeLayout {
             removeView((View) widget);
         widget = v;
         addView((View) v, 0, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        if (pluginview != null)
+            gotoPluginPosition(getPosition());
     }
 
     public void loadBook(Storage.FBook fbook) {
@@ -2063,6 +2078,13 @@ public class FBReaderView extends RelativeLayout {
                     gotoPluginPosition(book.info.position);
             } else if (plugin instanceof DjvuPlugin) {
                 pluginview = new DjvuPlugin.DjvuView(BookUtil.fileByBook(fbook.book));
+                BookModel Model = BookModel.createModel(fbook.book, plugin);
+                app.BookTextView.setModel(Model.getTextModel());
+                app.Model = Model;
+                if (book.info != null)
+                    gotoPluginPosition(book.info.position);
+            } else if (plugin instanceof ComicsPlugin) {
+                pluginview = new ComicsPlugin.ComicsView(BookUtil.fileByBook(fbook.book));
                 BookModel Model = BookModel.createModel(fbook.book, plugin);
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
@@ -2541,6 +2563,8 @@ public class FBReaderView extends RelativeLayout {
     }
 
     void gotoPluginPosition(ZLTextPosition p) {
+        if (p == null)
+            return;
         if (widget instanceof ScrollView) {
             if (p.getElementIndex() != 0)
                 p = new ZLTextFixedPosition(p.getParagraphIndex(), 0, 0);
