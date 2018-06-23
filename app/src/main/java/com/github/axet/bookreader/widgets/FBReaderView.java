@@ -12,6 +12,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
@@ -21,6 +22,7 @@ import android.support.v4.view.GestureDetectorCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.LinearSmoothScroller;
 import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
@@ -1786,10 +1788,81 @@ public class FBReaderView extends RelativeLayout {
             }
         }
 
+        class TopSnappedSmoothScroller extends LinearSmoothScroller {
+            public TopSnappedSmoothScroller(Context context) {
+                super(context);
+
+            }
+
+            @Override
+            public PointF computeScrollVectorForPosition(int targetPosition) {
+                return lm.computeScrollVectorForPosition(targetPosition);
+            }
+
+            @Override
+            protected int getVerticalSnapPreference() {
+                return SNAP_TO_ANY;
+            }
+
+            @Override
+            public int calculateDtToFit(int viewStart, int viewEnd, int boxStart, int boxEnd, int
+                    snapPreference) {
+                switch (snapPreference) {
+                    case SNAP_TO_START:
+                        return boxStart - viewStart;
+                    case SNAP_TO_END:
+                        return boxEnd - viewEnd;
+                    case SNAP_TO_ANY:
+                        int dtBox = boxEnd - boxStart;
+                        int dtView = viewEnd - viewStart;
+                        if (dtBox < dtView) {
+                            return -viewStart;
+                        }
+                        final int dtStart = boxStart - viewStart;
+                        if (dtStart > 0) {
+                            return dtStart;
+                        }
+                        final int dtEnd = boxEnd - viewEnd;
+                        if (dtEnd < 0) {
+                            return dtEnd;
+                        }
+                        break;
+                    default:
+                        throw new IllegalArgumentException("snap preference should be one of the"
+                                + " constants defined in SmoothScroller, starting with SNAP_");
+                }
+                return 0;
+            }
+        }
+
+        class TopAlwaysSmoothScroller extends LinearSmoothScroller {
+            public TopAlwaysSmoothScroller(Context context) {
+                super(context);
+
+            }
+
+            @Override
+            public PointF computeScrollVectorForPosition(int targetPosition) {
+                return lm.computeScrollVectorForPosition(targetPosition);
+            }
+
+            @Override
+            protected int getVerticalSnapPreference() {
+                return SNAP_TO_START;
+            }
+        }
+
         public ScrollView(Context context) {
             super(context);
 
-            lm = new LinearLayoutManager(context);
+            lm = new LinearLayoutManager(context) {
+                @Override
+                public void smoothScrollToPosition(RecyclerView recyclerView, State state, int position) {
+                    RecyclerView.SmoothScroller smoothScroller = new TopAlwaysSmoothScroller(recyclerView.getContext());
+                    smoothScroller.setTargetPosition(position);
+                    startSmoothScroll(smoothScroller);
+                }
+            };
             gestures = new GestureDetectorCompat(context, gesturesListener);
 
             setLayoutManager(lm);
@@ -1832,15 +1905,27 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public int findFirstPage() {
-            Map<Integer, View> map = new TreeMap<>();
+            int chp = 0;
+            View v = null;
             for (int i = 0; i < lm.getChildCount(); i++) {
                 View view = lm.getChildAt(i);
-                int h = view.getBottom(); // visible height
-                if (view.getHeight() * 0.15 < h) // add only views atleast 15% visible
-                    map.put(view.getTop(), view);
+                int h = 0;
+                if (view.getBottom() > 0)
+                    h = view.getBottom(); // visible height
+                if (getBottom() < view.getBottom())
+                    h -= view.getBottom() - getBottom();
+                if (view.getTop() > 0)
+                    h -= view.getTop();
+                int hp = h * 100 / view.getHeight();
+                if (hp > chp) {
+                    chp = hp;
+                    v = view;
+                } else if (hp == chp && v != null && view.getTop() < v.getTop()) {
+                    v = view;
+                }
             }
-            for (Integer key : map.keySet())
-                return ((ScrollAdapter.PageView) map.get(key)).holder.getAdapterPosition();
+            if (v != null)
+                return ((ScrollAdapter.PageView) v).holder.getAdapterPosition();
             return -1;
         }
 
@@ -1872,7 +1957,7 @@ public class FBReaderView extends RelativeLayout {
             }
             if (pos < 0 || pos >= adapter.pages.size())
                 return;
-            lm.scrollToPositionWithOffset(pos, 0);
+            smoothScrollToPosition(pos);
         }
 
         @Override
