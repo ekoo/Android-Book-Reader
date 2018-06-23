@@ -784,8 +784,11 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
     @Override
     public ZLImage readCover(ZLFile file) {
         ComicsView view = new ComicsView(file);
-        view.current.scale(Storage.COVER_SIZE, Storage.COVER_SIZE); // reduce render memory footprint
-        Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.RGB_565);
+        int m = Math.max(view.current.pageBox.w, view.current.pageBox.h);
+        double ratio = Storage.COVER_SIZE / (double) m;
+        int w = (int) (view.current.pageBox.w * ratio);
+        int h = (int) (view.current.pageBox.h * ratio);
+        Bitmap bm = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
         Canvas canvas = new Canvas(bm);
         view.drawWallpaper(canvas);
         view.draw(canvas, bm.getWidth(), bm.getHeight(), ZLViewEnums.PageIndex.current);
