@@ -27,6 +27,7 @@ import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -1917,22 +1918,35 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public int findFirstPage() {
-            View v = null;
-            Map<Integer, View> map = new TreeMap<>();
+            Map<Integer, View> hp15 = new TreeMap<>();
+            Map<Integer, View> hp100 = new TreeMap<>();
+            Map<Integer, View> hp0 = new TreeMap<>();
             for (int i = 0; i < lm.getChildCount(); i++) {
                 View view = lm.getChildAt(i);
                 int hp = getViewPercent(view);
                 if (hp > 15) // add only views atleast 15% visible
-                    map.put(view.getTop(), view);
+                    hp15.put(view.getTop(), view);
                 if (hp == 100) {
-                    if (v == null || view.getTop() < v.getTop()) {
-                        v = view;
-                    }
+                    hp100.put(view.getTop(), view);
+                }
+                if (hp > 0) {
+                    hp0.put(view.getTop(), view);
+                }
+            }
+            View v = null;
+            for (Integer key : hp100.keySet()) {
+                v = hp15.get(key);
+                break;
+            }
+            if (v == null) {
+                for (Integer key : hp15.keySet()) {
+                    v = hp15.get(key);
+                    break;
                 }
             }
             if (v == null) {
-                for (Integer key : map.keySet()) {
-                    v = map.get(key);
+                for (Integer key : hp15.keySet()) {
+                    v = hp0.get(key);
                     break;
                 }
             }
@@ -1992,8 +2006,10 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public void draw(Canvas c) {
-            if (adapter.size.w != getWidth() || adapter.size.h != getHeight()) // reset for textbook and reflow mode only
+            if (adapter.size.w != getWidth() || adapter.size.h != getHeight()) { // reset for textbook and reflow mode only
+                updatePosition();
                 adapter.reset();
+            }
             super.draw(c);
             updatePosition();
             drawFooter(c);

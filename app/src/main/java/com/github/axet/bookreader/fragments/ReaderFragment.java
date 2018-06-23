@@ -945,13 +945,11 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public void onFullscreenChanged(boolean f) {
-        view.reset();
     }
 
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        view.reset();
     }
 
     public boolean onKeyDown(int keyCode, KeyEvent event) {
