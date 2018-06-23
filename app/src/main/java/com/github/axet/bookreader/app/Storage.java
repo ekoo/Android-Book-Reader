@@ -1210,10 +1210,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
                             archive.extractFile(h, out);
                         }
-                        if (tmp) {
-                            file.delete();
-                        }
                         out.close();
+                        if (tmp)
+                            file.delete();
                         book.ext = ComicsPlugin.EXTZ;
                         file = cbz;
                         tmp = true;
