@@ -1904,24 +1904,36 @@ public class FBReaderView extends RelativeLayout {
         public void repaint() {
         }
 
+        public int getViewPercent(View view) {
+            int h = 0;
+            if (view.getBottom() > 0)
+                h = view.getBottom(); // visible height
+            if (getBottom() < view.getBottom())
+                h -= view.getBottom() - getBottom();
+            if (view.getTop() > 0)
+                h -= view.getTop();
+            int hp = h * 100 / view.getHeight();
+            return hp;
+        }
+
         public int findFirstPage() {
-            int chp = 0;
             View v = null;
+            Map<Integer, View> map = new TreeMap<>();
             for (int i = 0; i < lm.getChildCount(); i++) {
                 View view = lm.getChildAt(i);
-                int h = 0;
-                if (view.getBottom() > 0)
-                    h = view.getBottom(); // visible height
-                if (getBottom() < view.getBottom())
-                    h -= view.getBottom() - getBottom();
-                if (view.getTop() > 0)
-                    h -= view.getTop();
-                int hp = h * 100 / view.getHeight();
-                if (hp > chp) {
-                    chp = hp;
-                    v = view;
-                } else if (hp == chp && v != null && view.getTop() < v.getTop()) {
-                    v = view;
+                int hp = getViewPercent(view);
+                if (hp > 15) // add only views atleast 15% visible
+                    map.put(view.getTop(), view);
+                if (hp == 100) {
+                    if (v == null || view.getTop() < v.getTop()) {
+                        v = view;
+                    }
+                }
+            }
+            if (v == null) {
+                for (Integer key : map.keySet()) {
+                    v = map.get(key);
+                    break;
                 }
             }
             if (v != null)
