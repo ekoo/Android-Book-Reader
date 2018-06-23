@@ -11,8 +11,6 @@ import com.github.axet.bookreader.widgets.FBReaderView;
 
 import net.lingala.zip4j.core.ZipFile;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.geometerplus.fbreader.book.AbstractBook;
 import org.geometerplus.fbreader.book.BookUtil;
@@ -56,8 +54,8 @@ import de.innosystec.unrar.rarfile.HostSystem;
 public class ComicsPlugin extends BuiltinFormatPlugin {
     public static String TAG = ComicsPlugin.class.getSimpleName();
 
-    public static final String EXT1 = "cbz";
-    public static final String EXT2 = "cbr";
+    public static final String EXTZ = "cbz";
+    public static final String EXTR = "cbr";
 
     public static boolean isImage(ArchiveFile a) {
         File f = new File(a.getPath());
@@ -79,7 +77,23 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         options.inJustDecodeBounds = true;
         Rect outPadding = new Rect();
         BitmapFactory.decodeStream(is, outPadding, options);
+        try {
+            is.close();
+        } catch (IOException e) {
+            Log.d(TAG, "unable to close is", e);
+        }
+        if (options.outWidth == -1 || options.outHeight == -1)
+            return null;
         return new FBReaderView.PluginRect(0, 0, options.outWidth, options.outHeight);
+    }
+
+    public static String getRarFileName(FileHeader header) {
+        String s = header.getFileNameW();
+        if (s == null || s.isEmpty())
+            s = header.getFileNameString();
+        if (header.getHostOS().equals(HostSystem.win32))
+            s = s.replaceAll("\\\\", "/");
+        return s;
     }
 
     public static class ZipStore extends net.lingala.zip4j.core.NativeStorage {
@@ -245,6 +259,18 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         public Decoder() {
         }
 
+        public Bitmap render(int p) {
+            ArchiveFile f = pages.get(p);
+            InputStream is = f.open();
+            Bitmap bm = BitmapFactory.decodeStream(is);
+            try {
+                is.close();
+            } catch (IOException e) {
+                Log.d(TAG, "closing stream", e);
+            }
+            return bm;
+        }
+
         void load(FileDescriptor fd) {
             pages = list(fd);
             Collections.sort(pages, new SortByName());
@@ -279,14 +305,6 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         }
 
         void close() {
-        }
-
-        public void renderPage(Bitmap bm, PluginPage p, Rect dst) {
-            Canvas c = new Canvas(bm);
-            if (p.bm == null)
-                p.load();
-            Rect src = new Rect(0, 0, p.bm.getWidth(), p.bm.getHeight());
-            c.drawBitmap(p.bm, src, dst, paint);
         }
     }
 
@@ -425,12 +443,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
 
                         @Override
                         public String getPath() {
-                            String s = header.getFileNameW();
-                            if (s == null || s.isEmpty())
-                                s = header.getFileNameString();
-                            if (header.getHostOS().equals(HostSystem.win32))
-                                s = s.replaceAll("\\\\", "/");
-                            return s;
+                            return getRarFileName(header);
                         }
 
                         @Override
@@ -445,7 +458,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
                                             archive.extractFile(header, os);
                                             os.flush();
                                             os.close();
-                                        } catch (Exception e) {
+                                        } catch (Throwable e) {
                                             Log.d(TAG, "extract file broken", e);
                                         }
                                     }
@@ -568,7 +581,6 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
 
     public static class PluginPage extends FBReaderView.PluginPage {
         public Decoder doc;
-        public Bitmap bm;
 
         public PluginPage(PluginPage r) {
             super(r);
@@ -604,21 +616,9 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         public void load() {
             ArchiveFile f = doc.pages.get(pageNumber);
             pageBox = f.getRect();
+            if (pageBox == null)
+                pageBox = new FBReaderView.PluginRect(0, 0, 100, 100);
             dpi = 72;
-        }
-
-        public void loadImage() {
-            ArchiveFile f = doc.pages.get(pageNumber);
-            if (bm != null)
-                close();
-            bm = BitmapFactory.decodeStream(f.open());
-        }
-
-        public void close() {
-            if (bm != null) {
-                bm.recycle();
-                bm = null;
-            }
         }
 
         @Override
@@ -636,9 +636,9 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
             try {
                 File ff = new File(f.getPath());
                 is = new FileInputStream(ff);
-                if (ff.toString().toLowerCase().endsWith(EXT1))
+                if (ff.toString().toLowerCase().endsWith(EXTZ))
                     doc = new ZipDecoder(is.getFD());
-                if (ff.toString().toLowerCase().endsWith(EXT2))
+                if (ff.toString().toLowerCase().endsWith(EXTR))
                     doc = new RarDecoder(is.getFD());
                 current = new PluginPage(doc);
             } catch (IOException e) {
@@ -655,11 +655,8 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         @Override
         public Bitmap render(int w, int h, int page, Bitmap.Config c) {
             PluginPage r = new PluginPage((PluginPage) current, page, w, h);
-            r.scale(w * 2, h * 2);
-            Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);
-            doc.renderPage(bm, r, new Rect(0, 0, bm.getWidth(), bm.getHeight()));
+            Bitmap bm = doc.render(r.pageNumber);
             bm.setDensity(r.dpi);
-            r.close();
             return bm;
         }
 
@@ -671,10 +668,11 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
 
             FBReaderView.RenderRect render = r.renderRect();
 
-            r.load();
-            r.loadImage();
-            canvas.drawBitmap(r.bm, render.toRect(r.pageBox.w, r.pageBox.h), render.dst, paint);
-            r.close();
+            Bitmap bm = doc.render(r.pageNumber);
+            if (bm != null) {
+                canvas.drawBitmap(bm, render.toRect(r.pageBox.w, r.pageBox.h), render.dst, paint);
+                bm.recycle();
+            }
         }
     }
 
@@ -766,7 +764,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
     }
 
     public ComicsPlugin() {
-        super(Storage.systeminfo, EXT1);
+        super(Storage.systeminfo, EXTZ);
     }
 
     @Override
