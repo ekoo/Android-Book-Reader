@@ -171,6 +171,10 @@ public class MainActivity extends FullscreenActivity
         void searchClose();
     }
 
+    public interface OnBackPressed {
+        boolean onBackPressed();
+    }
+
     public static class SortByPage implements Comparator<Storage.RecentInfo> {
         @Override
         public int compare(Storage.RecentInfo o1, Storage.RecentInfo o2) {
@@ -298,6 +302,14 @@ public class MainActivity extends FullscreenActivity
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
+            FragmentManager fm = getSupportFragmentManager();
+            for (Fragment f : fm.getFragments()) {
+                if (f != null && f.isVisible() && f instanceof OnBackPressed) {
+                    OnBackPressed s = (OnBackPressed) f;
+                    if (s.onBackPressed())
+                        return;
+                }
+            }
             super.onBackPressed();
         }
     }

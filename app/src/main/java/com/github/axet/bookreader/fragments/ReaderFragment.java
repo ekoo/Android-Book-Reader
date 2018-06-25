@@ -71,7 +71,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.TreeSet;
 
-public class ReaderFragment extends Fragment implements MainActivity.SearchListener, SharedPreferences.OnSharedPreferenceChangeListener, FullscreenActivity.FullscreenListener {
+public class ReaderFragment extends Fragment implements MainActivity.SearchListener, SharedPreferences.OnSharedPreferenceChangeListener, FullscreenActivity.FullscreenListener, MainActivity.OnBackPressed {
     public static final String TAG = ReaderFragment.class.getSimpleName();
 
     public static final int FONT_START = 15;
@@ -950,6 +950,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
+        view.pinchClose();
     }
 
     public boolean onKeyDown(int keyCode, KeyEvent event) {
@@ -969,6 +970,15 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             return true;
         }
         if ((keyCode == KeyEvent.KEYCODE_VOLUME_UP)) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean onBackPressed() {
+        if (view.isPinch()) {
+            view.pinchClose();
             return true;
         }
         return false;
