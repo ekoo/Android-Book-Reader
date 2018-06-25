@@ -10,6 +10,7 @@ import android.util.Log;
 import com.github.axet.bookreader.widgets.FBReaderView;
 
 import net.lingala.zip4j.core.ZipFile;
+import net.lingala.zip4j.io.ZipInputStream;
 
 import org.apache.commons.io.IOUtils;
 import org.geometerplus.fbreader.book.AbstractBook;
@@ -78,7 +79,10 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         Rect outPadding = new Rect();
         BitmapFactory.decodeStream(is, outPadding, options);
         try {
-            is.close();
+            if (is instanceof ZipInputStream)
+                ((ZipInputStream) is).close(true);
+            else
+                is.close();
         } catch (IOException e) {
             Log.d(TAG, "unable to close is", e);
         }

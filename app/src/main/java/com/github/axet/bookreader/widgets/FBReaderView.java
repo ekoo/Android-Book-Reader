@@ -18,7 +18,10 @@ import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.graphics.drawable.DrawableCompat;
 import android.support.v4.view.GestureDetectorCompat;
+import android.support.v4.view.ScaleGestureDetectorCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
@@ -27,11 +30,11 @@ import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -143,6 +146,7 @@ public class FBReaderView extends RelativeLayout {
     public PluginView pluginview;
     public PageTurningListener pageTurningListener;
     GestureDetectorCompat gestures;
+    PinchView pinch;
 
     public static class PluginRect {
         public int x; // lower left x
@@ -876,7 +880,7 @@ public class FBReaderView extends RelativeLayout {
                 pluginview.gotoPosition(new ZLTextFixedPosition(0, 0, 0));
             else
                 super.gotoHome();
-            resetPosition();
+            resetNewPosition();
         }
 
         @Override
@@ -885,7 +889,7 @@ public class FBReaderView extends RelativeLayout {
                 pluginview.gotoPosition(new ZLTextFixedPosition(page - 1, 0, 0));
             else
                 super.gotoPage(page);
-            resetPosition();
+            resetNewPosition();
         }
 
         @Override
@@ -895,6 +899,8 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public class FBAndroidWidget extends ZLAndroidWidget {
+        PinchGesture pinch;
+
         public FBAndroidWidget() {
             super(FBReaderView.this.getContext());
 
@@ -906,6 +912,25 @@ public class FBReaderView extends RelativeLayout {
             setFocusable(true);
 
             config.setValue(app.PageTurningOptions.FingerScrolling, PageTurningOptions.FingerScrollingType.byTapAndFlick);
+
+            pinch = new PinchGesture(FBReaderView.this.getContext()) {
+                @Override
+                public void onScaleBegin(float x, float y) {
+                    Rect dst;
+                    PluginPage p = pluginview.current; // current.renderRect() show partial page
+                    if (p.pageOffset < 0) { // show empty space at beginig
+                        int t = (int) (-p.pageOffset / p.ratio);
+                        dst = new Rect(0, t, p.w, t + (int) (p.pageBox.h / p.ratio));
+                    } else if (p.pageOffset == 0 && p.hh > p.pageBox.h) {  // show middle vertically
+                        int t = (int) ((p.hh - p.pageBox.h) / p.ratio / 2);
+                        dst = new Rect(0, t, p.w, p.h - t);
+                    } else {
+                        int t = (int) (-p.pageOffset / p.ratio);
+                        dst = new Rect(0, t, p.w, t + (int) (p.pageBox.h / p.ratio));
+                    }
+                    onScaleBegin(pluginview.current.pageNumber, dst);
+                }
+            };
         }
 
         @Override
@@ -981,6 +1006,15 @@ public class FBReaderView extends RelativeLayout {
                     pluginview.reflower.reset();
                 }
             }
+        }
+
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+            if (pluginview != null && !pluginview.reflow) {
+                if (pinch.onTouchEvent(event))
+                    return true;
+            }
+            return super.onTouchEvent(event);
         }
     }
 
@@ -1229,7 +1263,7 @@ public class FBReaderView extends RelativeLayout {
     public class ScrollView extends RecyclerView implements ZLViewWidget {
         public LinearLayoutManager lm;
         public ScrollAdapter adapter = new ScrollAdapter();
-        Gestures gesturesListener = new Gestures();
+        Gestures gesturesListener = new Gestures(getContext());
 
         public class ScrollAdapter extends RecyclerView.Adapter<ScrollAdapter.PageHolder> {
             public ArrayList<PageCursor> pages = new ArrayList<>();
@@ -1663,6 +1697,28 @@ public class FBReaderView extends RelativeLayout {
             int x;
             int y;
             ScrollAdapter.PageView v;
+            PinchGesture pinch;
+
+            Gestures(Context context) {
+                pinch = new PinchGesture(context) {
+                    @Override
+                    public void onScaleBegin(float x, float y) {
+                        ScrollView.ScrollAdapter.PageView v = ScrollView.this.findView(x, y);
+                        if (v == null)
+                            return;
+                        int pos = v.holder.getAdapterPosition();
+                        if (pos == -1)
+                            return;
+                        ScrollView.ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+                        int page;
+                        if (c.start == null)
+                            page = c.end.getParagraphIndex() - 1;
+                        else
+                            page = c.start.getParagraphIndex();
+                        onScaleBegin(page, new Rect(v.getLeft(), v.getTop(), v.getWidth(), v.getHeight()));
+                    }
+                };
+            }
 
             boolean open(MotionEvent e) {
                 this.e = e;
@@ -1778,6 +1834,8 @@ public class FBReaderView extends RelativeLayout {
             }
 
             public boolean onTouchEvent(MotionEvent e) {
+                if (pinch.onTouchEvent(e))
+                    return true;
                 onRelease(e);
                 onCancel(e);
                 if (gestures.onTouchEvent(e))
@@ -1791,7 +1849,6 @@ public class FBReaderView extends RelativeLayout {
         class TopSnappedSmoothScroller extends LinearSmoothScroller {
             public TopSnappedSmoothScroller(Context context) {
                 super(context);
-
             }
 
             @Override
@@ -1838,7 +1895,6 @@ public class FBReaderView extends RelativeLayout {
         class TopAlwaysSmoothScroller extends LinearSmoothScroller {
             public TopAlwaysSmoothScroller(Context context) {
                 super(context);
-
             }
 
             @Override
@@ -1888,9 +1944,13 @@ public class FBReaderView extends RelativeLayout {
         }
 
         ScrollAdapter.PageView findView(MotionEvent e) {
+            return findView(e.getX(), e.getY());
+        }
+
+        ScrollAdapter.PageView findView(float x, float y) {
             for (int i = 0; i < lm.getChildCount(); i++) {
                 ScrollAdapter.PageView view = (ScrollAdapter.PageView) lm.getChildAt(i);
-                if (view.getLeft() < e.getX() && view.getTop() < e.getY() && view.getRight() > e.getX() && view.getBottom() > e.getY())
+                if (view.getLeft() < x && view.getTop() < y && view.getRight() > x && view.getBottom() > y)
                     return view;
             }
             return null;
@@ -2007,6 +2067,7 @@ public class FBReaderView extends RelativeLayout {
         public void draw(Canvas c) {
             if (adapter.size.w != getWidth() || adapter.size.h != getHeight()) { // reset for textbook and reflow mode only
                 adapter.reset();
+                pinchClose();
             }
             super.draw(c);
             updatePosition();
@@ -2064,6 +2125,268 @@ public class FBReaderView extends RelativeLayout {
         public int getMainAreaHeight() {
             final ZLView.FooterArea footer = ZLApplication.Instance().getCurrentView().getFooterArea();
             return footer != null ? getHeight() - footer.getHeight() : getHeight();
+        }
+    }
+
+    public class PinchGesture implements ScaleGestureDetector.OnScaleGestureListener {
+        ScaleGestureDetector scale;
+        boolean scaleTouch = false;
+
+        public PinchGesture(Context context) {
+            scale = new ScaleGestureDetector(context, this);
+            ScaleGestureDetectorCompat.setQuickScaleEnabled(scale, false);
+        }
+
+        boolean isScaleTouch(MotionEvent e) {
+            if (pinch != null)
+                return true;
+            if (pluginview == null || pluginview.reflow)
+                return false;
+            if (e.getPointerCount() >= 2) {
+                return true;
+            }
+            return false;
+        }
+
+        public boolean onTouchEvent(MotionEvent e) {
+            if (isScaleTouch(e)) {
+                if (scaleTouch && (e.getAction() == MotionEvent.ACTION_UP || e.getAction() == MotionEvent.ACTION_DOWN) && e.getPointerCount() == 1)
+                    scaleTouch = false;
+                if (e.getPointerCount() == 2)
+                    scaleTouch = true;
+                scale.onTouchEvent(e);
+                if (pinch != null) {
+                    if (!scaleTouch)
+                        pinch.onTouchEvent(e);
+                    return true;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public boolean onScale(ScaleGestureDetector detector) {
+            scaleTouch = true;
+            if (pinch == null)
+                return false;
+            pinch.onScale(detector);
+            return true;
+        }
+
+        @Override
+        public boolean onScaleBegin(ScaleGestureDetector detector) {
+            scaleTouch = true;
+            if (pinch == null) {
+                float x = detector.getFocusX();
+                float y = detector.getFocusY();
+                onScaleBegin(x, y);
+            }
+            pinch.start = detector.getCurrentSpan();
+            return true;
+        }
+
+        public void onScaleBegin(float x, float y) {
+        }
+
+        public void onScaleBegin(int page, Rect v) {
+            pinch = new PinchView(getContext(), page, v);
+            FBReaderView.this.addView(pinch);
+        }
+
+        @Override
+        public void onScaleEnd(ScaleGestureDetector detector) {
+            scaleTouch = true;
+            pinch.onScaleEnd();
+            if (pinch.end < 0)
+                pinchClose();
+        }
+    }
+
+    public class PinchView extends View implements GestureDetector.OnGestureListener {
+        float start; // starting sloop
+        float end;
+        float current;
+        float centerx = 0.5f;
+        float centery = 0.5f;
+        Rect v;
+        float sx;
+        float sy;
+        Bitmap bm;
+        Rect src;
+        Rect dst;
+        GestureDetectorCompat gestures;
+        Drawable close;
+        Rect closeRect;
+
+        public PinchView(Context context, int page, Rect v) {
+            super(context);
+            this.v = v;
+            this.dst = new Rect(v);
+
+            close = ContextCompat.getDrawable(context, R.drawable.ic_close_black_24dp);
+            int closeSize = ThemeUtils.dp2px(context, 40);
+            close.setBounds(new Rect(0, 0, closeSize, closeSize));
+            closeRect = new Rect(v.width() - closeSize, 0, v.width(), closeSize);
+            DrawableCompat.setTint(DrawableCompat.wrap(close), Color.WHITE);
+
+            bm = pluginview.render(getWidth(), getHeight(), page);
+            src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
+            gestures = new GestureDetectorCompat(context, this);
+            gestures.setIsLongpressEnabled(false);
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            canvas.drawBitmap(bm, src, dst, pluginview.paint);
+            canvas.save();
+            canvas.translate(closeRect.left, closeRect.top);
+            close.draw(canvas);
+            canvas.restore();
+        }
+
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+            if (gestures.onTouchEvent(event))
+                return true;
+            return super.onTouchEvent(event);
+        }
+
+        public void onScale(ScaleGestureDetector detector) {
+            current = detector.getCurrentSpan() - start;
+
+            centerx = (detector.getFocusX() - dst.left) / dst.width();
+            centery = (detector.getFocusY() - dst.top) / dst.height();
+
+            float ratio = v.height() / (float) v.width();
+
+            float currentx = current * centerx;
+            float currenty = current * centery;
+
+            int x = (int) (v.left + sx - currentx);
+            int y = (int) (v.top + sy - currenty * ratio);
+            int w = (int) (v.width() + end + current);
+            int h = (int) (v.height() + end * ratio + current * ratio);
+            int r = x + w;
+            int b = y + h;
+
+            if (w > v.width()) {
+                if (x > v.left)
+                    centerx = 0;
+                if (r < v.right)
+                    centerx = 1;
+            }
+
+            if (h > v.height()) {
+                if (y > v.top)
+                    centery = 0;
+                if (b < v.bottom)
+                    centery = 1;
+            }
+
+            calc();
+
+            invalidate();
+        }
+
+        public void onScaleEnd() {
+            float ratio = v.height() / (float) v.width();
+
+            float currentx = current * centerx;
+            float currenty = current * centery;
+
+            sx -= currentx;
+            sy -= currenty * ratio;
+
+            end += current;
+            current = 0;
+
+            calc();
+
+            invalidate();
+        }
+
+        void calc() {
+            float ratio = v.height() / (float) v.width();
+
+            float currentx = current * centerx;
+            float currenty = current * centery;
+
+            int x = (int) (v.left + sx - currentx);
+            int y = (int) (v.top + sy - currenty * ratio);
+            int w = (int) (v.width() + end + current);
+            int h = (int) (v.height() + end * ratio + current * ratio);
+            int r = x + w;
+            int b = y + h;
+
+            dst.left = x;
+            dst.top = y;
+            dst.right = r;
+            dst.bottom = b;
+        }
+
+        public void close() {
+            if (bm != null) {
+                bm.recycle();
+                bm = null;
+            }
+        }
+
+        @Override
+        public boolean onDown(MotionEvent e) {
+            return false;
+        }
+
+        @Override
+        public void onShowPress(MotionEvent e) {
+        }
+
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            if (e.getY() < dst.top || e.getX() < dst.left || e.getX() > dst.right || e.getY() > dst.bottom)
+                pinchClose();
+            if (closeRect.contains((int) e.getX(), (int) e.getY()))
+                pinchClose();
+            return true;
+        }
+
+        @Override
+        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+            sx -= distanceX;
+            sy -= distanceY;
+
+            float ratio = v.height() / (float) v.width();
+
+            int x = (int) (v.left + sx);
+            int y = (int) (v.top + sy);
+            int w = (int) (v.width() + end);
+            int h = (int) (v.height() + end * ratio);
+            int r = x + w;
+            int b = y + h;
+
+            if (x > v.left)
+                sx = 0;
+            if (y > v.top)
+                sy = 0;
+            if (r < v.right)
+                sx = v.right - w - v.left;
+            if (b < v.bottom)
+                sy = v.bottom - h - v.top;
+
+            calc();
+
+            invalidate();
+
+            return true;
+        }
+
+        @Override
+        public void onLongPress(MotionEvent e) {
+        }
+
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            return false;
         }
     }
 
@@ -2167,6 +2490,7 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void setWidget(ZLViewWidget v) {
+        pinchClose();
         if (widget != null)
             removeView((View) widget);
         widget = v;
@@ -2555,21 +2879,21 @@ public class FBReaderView extends RelativeLayout {
             @Override
             protected void run(Object... params) {
                 Reader.getTextView().findPrevious();
-                resetPosition();
+                resetNewPosition();
             }
         });
         app.addAction(ActionCode.FIND_NEXT, new FBAction(app) {
             @Override
             protected void run(Object... params) {
                 Reader.getTextView().findNext();
-                resetPosition();
+                resetNewPosition();
             }
         });
         app.addAction(ActionCode.CLEAR_FIND_RESULTS, new FBAction(app) {
             @Override
             protected void run(Object... params) {
                 Reader.getTextView().clearFindResults();
-                resetPosition();
+                resetNewPosition();
             }
         });
 
@@ -2694,10 +3018,10 @@ public class FBReaderView extends RelativeLayout {
             gotoPluginPosition(p);
         else
             app.BookTextView.gotoPosition(p);
-        resetPosition();
+        resetNewPosition();
     }
 
-    public void resetPosition() { // get position from new loaded page, then reset
+    public void resetNewPosition() { // get position from new loaded page, then reset
         if (widget instanceof ScrollView) {
             ((ScrollView) widget).adapter.reset();
         } else {
@@ -2728,6 +3052,18 @@ public class FBReaderView extends RelativeLayout {
         pluginview.current.pageOffset = 0;
         if (pluginview.reflower != null)
             pluginview.reflower.current = 0;
+    }
+
+    public boolean isPinch() {
+        return pinch != null;
+    }
+
+    public void pinchClose() {
+        if (pinch != null) {
+            FBReaderView.this.removeView(pinch);
+            pinch.close();
+            pinch = null;
+        }
     }
 
 }
