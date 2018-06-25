@@ -928,7 +928,7 @@ public class FBReaderView extends RelativeLayout {
                         int t = (int) (-p.pageOffset / p.ratio);
                         dst = new Rect(0, t, p.w, t + (int) (p.pageBox.h / p.ratio));
                     }
-                    onScaleBegin(pluginview.current.pageNumber, dst);
+                    pinchOpen(pluginview.current.pageNumber, dst);
                 }
             };
         }
@@ -1715,7 +1715,7 @@ public class FBReaderView extends RelativeLayout {
                             page = c.end.getParagraphIndex() - 1;
                         else
                             page = c.start.getParagraphIndex();
-                        onScaleBegin(page, new Rect(v.getLeft(), v.getTop(), v.getWidth(), v.getHeight()));
+                        pinchOpen(page, new Rect(v.getLeft(), v.getTop(), v.getLeft() + v.getWidth(), v.getTop() + v.getHeight()));
                     }
                 };
             }
@@ -2187,11 +2187,6 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public void onScaleBegin(float x, float y) {
-        }
-
-        public void onScaleBegin(int page, Rect v) {
-            pinch = new PinchView(getContext(), page, v);
-            FBReaderView.this.addView(pinch);
         }
 
         @Override
@@ -3062,6 +3057,11 @@ public class FBReaderView extends RelativeLayout {
 
     public boolean isPinch() {
         return pinch != null;
+    }
+
+    public void pinchOpen(int page, Rect v) {
+        pinch = new PinchView(getContext(), page, v);
+        FBReaderView.this.addView(pinch);
     }
 
     public void pinchClose() {
