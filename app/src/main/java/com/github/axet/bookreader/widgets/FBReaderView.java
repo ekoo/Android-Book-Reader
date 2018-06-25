@@ -2218,6 +2218,7 @@ public class FBReaderView extends RelativeLayout {
         GestureDetectorCompat gestures;
         Drawable close;
         Rect closeRect;
+        Paint closePaint;
 
         public PinchView(Context context, int page, Rect v) {
             super(context);
@@ -2225,12 +2226,16 @@ public class FBReaderView extends RelativeLayout {
             this.dst = new Rect(v);
 
             close = ContextCompat.getDrawable(context, R.drawable.ic_close_black_24dp);
-            int closeSize = ThemeUtils.dp2px(context, 40);
-            close.setBounds(new Rect(0, 0, closeSize, closeSize));
-            closeRect = new Rect(v.width() - closeSize, 0, v.width(), closeSize);
+            int closeSize = ThemeUtils.dp2px(context, 50);
+            int closePadding = ThemeUtils.dp2px(context, 5);
+            closeRect = new Rect(v.width() - closeSize + closePadding, closePadding, v.width() - closePadding, closeSize - closePadding);
+            close.setBounds(new Rect(0, 0, closeRect.width(), closeRect.height()));
             DrawableCompat.setTint(DrawableCompat.wrap(close), Color.WHITE);
+            closePaint = new Paint();
+            closePaint.setStyle(Paint.Style.FILL);
+            closePaint.setColor(0x33333333);
 
-            bm = pluginview.render(getWidth(), getHeight(), page);
+            bm = pluginview.render(v.width(), v.height(), page);
             src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
             gestures = new GestureDetectorCompat(context, this);
             gestures.setIsLongpressEnabled(false);
@@ -2239,6 +2244,7 @@ public class FBReaderView extends RelativeLayout {
         @Override
         protected void onDraw(Canvas canvas) {
             canvas.drawBitmap(bm, src, dst, pluginview.paint);
+            canvas.drawRect(closeRect, closePaint);
             canvas.save();
             canvas.translate(closeRect.left, closeRect.top);
             close.draw(canvas);
