@@ -263,10 +263,12 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         public Decoder() {
         }
 
-        public Bitmap render(int p) {
+        public Bitmap render(int p, Bitmap.Config c) {
             ArchiveFile f = pages.get(p);
             InputStream is = f.open();
-            Bitmap bm = BitmapFactory.decodeStream(is);
+            BitmapFactory.Options op = new BitmapFactory.Options();
+            op.inPreferredConfig = c;
+            Bitmap bm = BitmapFactory.decodeStream(is, null, op);
             try {
                 is.close();
             } catch (IOException e) {
@@ -664,7 +666,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         @Override
         public Bitmap render(int w, int h, int page, Bitmap.Config c) {
             PluginPage r = new PluginPage((PluginPage) current, page, w, h);
-            Bitmap bm = doc.render(r.pageNumber);
+            Bitmap bm = doc.render(r.pageNumber, c);
             bm.setDensity(r.dpi);
             return bm;
         }
@@ -677,7 +679,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
 
             FBReaderView.RenderRect render = r.renderRect();
 
-            Bitmap bm = doc.render(r.pageNumber);
+            Bitmap bm = doc.render(r.pageNumber, c);
             if (bm != null) {
                 canvas.drawBitmap(bm, render.toRect(r.pageBox.w, r.pageBox.h), render.dst, paint);
                 bm.recycle();
