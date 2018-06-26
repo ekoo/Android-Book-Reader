@@ -108,6 +108,7 @@ public class MainActivity extends FullscreenActivity
     Map<String, MenuItem> networkMenuMap = new TreeMap<>();
     public MenuItem libraryMenu; // navigation drawer
     BooksCatalogs catalogs;
+    boolean isRunning;
 
     BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
@@ -562,6 +563,8 @@ public class MainActivity extends FullscreenActivity
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
+                            if (isFinishing() || !isRunning)
+                                return;
                             loadBook(book);
                             if (success != null)
                                 success.run();
@@ -778,6 +781,7 @@ public class MainActivity extends FullscreenActivity
     @Override
     protected void onPause() {
         super.onPause();
+        isRunning = false;
     }
 
     @Override
@@ -839,6 +843,7 @@ public class MainActivity extends FullscreenActivity
     @Override
     protected void onResume() {
         super.onResume();
+        isRunning = true;
         RotatePreferenceCompat.onResume(this, MainApplication.PREFERENCE_ROTATE);
         CacheImagesAdapter.cacheClear(this);
     }
