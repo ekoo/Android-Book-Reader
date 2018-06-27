@@ -16,6 +16,7 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
@@ -913,24 +914,26 @@ public class FBReaderView extends RelativeLayout {
 
             config.setValue(app.PageTurningOptions.FingerScrolling, PageTurningOptions.FingerScrollingType.byTapAndFlick);
 
-            pinch = new PinchGesture(FBReaderView.this.getContext()) {
-                @Override
-                public void onScaleBegin(float x, float y) {
-                    Rect dst;
-                    PluginPage p = pluginview.current; // current.renderRect() show partial page
-                    if (p.pageOffset < 0) { // show empty space at beginig
-                        int t = (int) (-p.pageOffset / p.ratio);
-                        dst = new Rect(0, t, p.w, t + (int) (p.pageBox.h / p.ratio));
-                    } else if (p.pageOffset == 0 && p.hh > p.pageBox.h) {  // show middle vertically
-                        int t = (int) ((p.hh - p.pageBox.h) / p.ratio / 2);
-                        dst = new Rect(0, t, p.w, p.h - t);
-                    } else {
-                        int t = (int) (-p.pageOffset / p.ratio);
-                        dst = new Rect(0, t, p.w, t + (int) (p.pageBox.h / p.ratio));
+            if (Looper.myLooper() != null) { // render view only
+                pinch = new PinchGesture(FBReaderView.this.getContext()) {
+                    @Override
+                    public void onScaleBegin(float x, float y) {
+                        Rect dst;
+                        PluginPage p = pluginview.current; // current.renderRect() show partial page
+                        if (p.pageOffset < 0) { // show empty space at beginig
+                            int t = (int) (-p.pageOffset / p.ratio);
+                            dst = new Rect(0, t, p.w, t + (int) (p.pageBox.h / p.ratio));
+                        } else if (p.pageOffset == 0 && p.hh > p.pageBox.h) {  // show middle vertically
+                            int t = (int) ((p.hh - p.pageBox.h) / p.ratio / 2);
+                            dst = new Rect(0, t, p.w, p.h - t);
+                        } else {
+                            int t = (int) (-p.pageOffset / p.ratio);
+                            dst = new Rect(0, t, p.w, t + (int) (p.pageBox.h / p.ratio));
+                        }
+                        pinchOpen(pluginview.current.pageNumber, dst);
                     }
-                    pinchOpen(pluginview.current.pageNumber, dst);
-                }
-            };
+                };
+            }
         }
 
         @Override
@@ -1700,24 +1703,26 @@ public class FBReaderView extends RelativeLayout {
             PinchGesture pinch;
 
             Gestures(Context context) {
-                pinch = new PinchGesture(context) {
-                    @Override
-                    public void onScaleBegin(float x, float y) {
-                        ScrollView.ScrollAdapter.PageView v = ScrollView.this.findView(x, y);
-                        if (v == null)
-                            return;
-                        int pos = v.holder.getAdapterPosition();
-                        if (pos == -1)
-                            return;
-                        ScrollView.ScrollAdapter.PageCursor c = adapter.pages.get(pos);
-                        int page;
-                        if (c.start == null)
-                            page = c.end.getParagraphIndex() - 1;
-                        else
-                            page = c.start.getParagraphIndex();
-                        pinchOpen(page, new Rect(v.getLeft(), v.getTop(), v.getLeft() + v.getWidth(), v.getTop() + v.getHeight()));
-                    }
-                };
+                if (Looper.myLooper() != null) {
+                    pinch = new PinchGesture(context) {
+                        @Override
+                        public void onScaleBegin(float x, float y) {
+                            ScrollView.ScrollAdapter.PageView v = ScrollView.this.findView(x, y);
+                            if (v == null)
+                                return;
+                            int pos = v.holder.getAdapterPosition();
+                            if (pos == -1)
+                                return;
+                            ScrollView.ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+                            int page;
+                            if (c.start == null)
+                                page = c.end.getParagraphIndex() - 1;
+                            else
+                                page = c.start.getParagraphIndex();
+                            pinchOpen(page, new Rect(v.getLeft(), v.getTop(), v.getLeft() + v.getWidth(), v.getTop() + v.getHeight()));
+                        }
+                    };
+                }
             }
 
             boolean open(MotionEvent e) {
