@@ -296,7 +296,6 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
         void load(Uri u) {
             folders.clear();
             all.clear();
-            list.clear();
             clearTasks();
             String s = u.getScheme();
             if (Build.VERSION.SDK_INT >= 21 && s.startsWith(ContentResolver.SCHEME_CONTENT)) {
