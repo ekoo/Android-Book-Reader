@@ -1,6 +1,7 @@
 package com.github.axet.bookreader.fragments;
 
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -54,6 +55,7 @@ import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.bookreader.widgets.ToolbarButtonView;
 import com.github.axet.bookreader.widgets.ToolbarFontSizeView;
 
+import org.apache.commons.io.IOUtils;
 import org.geometerplus.fbreader.bookmodel.TOCTree;
 import org.geometerplus.fbreader.fbreader.ActionCode;
 import org.geometerplus.fbreader.fbreader.options.ColorProfile;
@@ -63,8 +65,12 @@ import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.ui.android.view.AndroidFontUtil;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -747,6 +753,15 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     void savePosition() {
         if (book == null)
             return;
+        Uri u = storage.recentUri(book);
+        if (storage.exists(u)) { // file can be changed during sync, check for conflicts
+            Storage.RecentInfo info = new Storage.RecentInfo(getContext(), u);
+            if (info.position != null) {
+                if (book.info.position == null || !info.position.samePositionAs(book.info.position)) {
+                    storage.move(u, storage.getStoragePath());
+                }
+            }
+        }
         book.info.position = view.getPosition();
         storage.save(book);
     }

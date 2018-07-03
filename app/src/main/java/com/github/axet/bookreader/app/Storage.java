@@ -87,7 +87,6 @@ import javax.xml.parsers.SAXParserFactory;
 
 import de.innosystec.unrar.Archive;
 import de.innosystec.unrar.rarfile.FileHeader;
-import de.innosystec.unrar.rarfile.HostSystem;
 
 public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
@@ -1717,4 +1716,30 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
     }
 
+    public Uri move(Uri u, Uri dir) {
+        try {
+            Uri n = getNextFile(getStoragePath(), getDocumentName(u), Storage.JSON_EXT);
+            InputStream is;
+            OutputStream os;
+            String s = u.getScheme();
+            if (Build.VERSION.SDK_INT >= 21 && s.startsWith(ContentResolver.SCHEME_CONTENT)) {
+                ContentResolver resolver = getContext().getContentResolver();
+                is = resolver.openInputStream(u);
+                n = createFile(dir, Storage.getDocumentChildPath(n));
+                os = resolver.openOutputStream(n);
+            } else if (s.startsWith(ContentResolver.SCHEME_FILE)) {
+                is = new FileInputStream(Storage.getFile(u));
+                os = new FileOutputStream(Storage.getFile(n));
+            } else {
+                throw new RuntimeException("unknown uri");
+            }
+            IOUtils.copy(is, os);
+            is.close();
+            os.close();
+            delete(u);
+            return n;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
