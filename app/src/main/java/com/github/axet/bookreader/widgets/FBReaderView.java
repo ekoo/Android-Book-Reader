@@ -796,7 +796,7 @@ public class FBReaderView extends RelativeLayout {
             super(reader);
         }
 
-        public void setContext() {
+        public ZLAndroidPaintContext setContext() {
             final ZLAndroidPaintContext context = new ZLAndroidPaintContext(
                     app.SystemInfo,
                     new Canvas(),
@@ -811,6 +811,7 @@ public class FBReaderView extends RelativeLayout {
                     getVerticalScrollbarWidth()
             );
             setContext(context);
+            return context;
         }
 
         @Override
@@ -1586,8 +1587,9 @@ public class FBReaderView extends RelativeLayout {
                         pluginview.gotoPosition(c.start);
                     else {
                         PageCursor cc = getCurrent();
-                        if (!cc.equals(c))
-                            app.BookTextView.gotoPosition(c.start);
+                        if (!cc.equals(c)) {
+                            app.BookTextView.gotoPosition(c.start, c.end);
+                        }
                     }
                 }
             }
