@@ -1626,6 +1626,7 @@ public class FBReaderView extends RelativeLayout {
                 getRecycledViewPool().clear();
                 pages.clear();
                 if (app.Model != null) {
+                    app.BookTextView.preparePage(((CustomView) app.BookTextView).setContext(), ZLViewEnums.PageIndex.current);
                     PageCursor c = getCurrent();
                     pages.add(c);
                 }
