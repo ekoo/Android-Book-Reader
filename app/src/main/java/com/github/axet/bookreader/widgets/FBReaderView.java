@@ -405,7 +405,7 @@ public class FBReaderView extends RelativeLayout {
 
         public int count() {
             if (k2 == null)
-                return 0;
+                return -1;
             return k2.getCount();
         }
 
@@ -1378,7 +1378,7 @@ public class FBReaderView extends RelativeLayout {
                             synchronized (lock) {
                                 if (thread == null) {
                                     if (pluginview.reflower != null) {
-                                        if (pluginview.reflower.page != page || pluginview.reflower.count() == 0 || pluginview.reflower.w != getWidth() || pluginview.reflower.h != getHeight()) {
+                                        if (pluginview.reflower.page != page || pluginview.reflower.count() == -1 || pluginview.reflower.w != getWidth() || pluginview.reflower.h != getHeight()) {
                                             pluginview.reflower.close();
                                             pluginview.reflower = null;
                                         }
@@ -1431,10 +1431,14 @@ public class FBReaderView extends RelativeLayout {
                                     Canvas canvas = getCanvas(draw, c);
                                     pluginview.current.pageNumber = page;
                                     pluginview.reflower.current = c.start.getElementIndex();
-                                    Bitmap bm = pluginview.reflower.render(c.start.getElementIndex());
-                                    Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
-                                    Rect dst = new Rect(0, 0, canvas.getWidth(), canvas.getHeight());
-                                    canvas.drawBitmap(bm, src, dst, pluginview.paint);
+                                    if (pluginview.reflower.count() > 0) { // empty source page?
+                                        Bitmap bm = pluginview.reflower.render(c.start.getElementIndex());
+                                        Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
+                                        Rect dst = new Rect(0, 0, canvas.getWidth(), canvas.getHeight());
+                                        canvas.drawBitmap(bm, src, dst, pluginview.paint);
+                                    } else {
+                                        canvas.drawColor(Color.WHITE);
+                                    }
                                     update();
                                     drawCache(draw);
                                 } else {
