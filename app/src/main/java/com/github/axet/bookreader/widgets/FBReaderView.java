@@ -359,6 +359,7 @@ public class FBReaderView extends RelativeLayout {
         int w;
         int h;
         Context context;
+        public Bitmap bm; // source bm, in case or errors, recycled otherwise
 
         public Reflow(Context context, int w, int h, int page) {
             this.context = context;
@@ -393,11 +394,17 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public void load(Bitmap bm) {
+            if (this.bm != null)
+                this.bm.recycle();
+            this.bm = bm;
             current = 0;
             k2.load(bm);
         }
 
         public void load(Bitmap bm, int page, int current) {
+            if (this.bm != null)
+                this.bm.recycle();
+            this.bm = bm;
             this.page = page;
             this.current = current;
             k2.load(bm);
@@ -439,6 +446,10 @@ public class FBReaderView extends RelativeLayout {
             if (k2 != null) {
                 k2.close();
                 k2 = null;
+            }
+            if (bm != null) {
+                bm.recycle();
+                bm = null;
             }
         }
     }
@@ -719,8 +730,10 @@ public class FBReaderView extends RelativeLayout {
                             reflower.close();
                             reflower = null;
                         } else {
-                            bm.recycle();
-                            bm = reflower.render(render);
+                            if (reflower.count() > 0) { // empty source page
+                                bm.recycle();
+                                bm = reflower.render(render);
+                            }
                         }
                         break;
                     case next: // next can point to many (no more then 2) pages ahead, we need to walk every page manually
@@ -736,20 +749,7 @@ public class FBReaderView extends RelativeLayout {
                         break;
                 }
                 if (bm != null) {
-                    Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
-                    float wr = w / (float) bm.getWidth();
-                    float hr = h / (float) bm.getHeight();
-                    int dh = (int) (bm.getHeight() * wr);
-                    int dw = (int) (bm.getWidth() * hr);
-                    Rect dst;
-                    if (dh > h) { // scaling width max makes it too high
-                        int mid = (w - dw) / 2;
-                        dst = new Rect(mid, 0, dw + mid, h); // scale it by height max and take calulated width
-                    } else { // take width
-                        int mid = (h - dh) / 2;
-                        dst = new Rect(0, mid, w, dh + mid); // scale it by width max and take calulated height
-                    }
-                    canvas.drawBitmap(bm, src, dst, paint);
+                    drawPage(canvas, w, h, bm);
                     bm.recycle();
                     return;
                 }
@@ -759,6 +759,23 @@ public class FBReaderView extends RelativeLayout {
                 reflower = null;
             }
             draw(canvas, w, h, index);
+        }
+
+        public void drawPage(Canvas canvas, int w, int h, Bitmap bm) {
+            Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
+            float wr = w / (float) bm.getWidth();
+            float hr = h / (float) bm.getHeight();
+            int dh = (int) (bm.getHeight() * wr);
+            int dw = (int) (bm.getWidth() * hr);
+            Rect dst;
+            if (dh > h) { // scaling width max makes it too high
+                int mid = (w - dw) / 2;
+                dst = new Rect(mid, 0, dw + mid, h); // scale it by height max and take calulated width
+            } else { // take width
+                int mid = (h - dh) / 2;
+                dst = new Rect(0, mid, w, dh + mid); // scale it by width max and take calulated height
+            }
+            canvas.drawBitmap(bm, src, dst, paint);
         }
 
         public void draw(Canvas bitmap, int w, int h, ZLView.PageIndex index, Bitmap.Config c) {
@@ -1393,7 +1410,8 @@ public class FBReaderView extends RelativeLayout {
                                                 Reflow reflower = new Reflow(getContext(), getWidth(), getHeight(), page);
                                                 Bitmap bm = pluginview.render(getWidth(), getHeight(), page);
                                                 reflower.load(bm);
-                                                bm.recycle();
+                                                if (reflower.count() > 0)
+                                                    bm.recycle();
                                                 if (i < 0) {
                                                     i = reflower.count() + i;
                                                     c.start = new ZLTextFixedPosition(page, i, 0);
@@ -1437,7 +1455,8 @@ public class FBReaderView extends RelativeLayout {
                                         Rect dst = new Rect(0, 0, canvas.getWidth(), canvas.getHeight());
                                         canvas.drawBitmap(bm, src, dst, pluginview.paint);
                                     } else {
-                                        canvas.drawColor(Color.WHITE);
+                                        pluginview.drawWallpaper(canvas);
+                                        pluginview.drawPage(canvas, getWidth(), getHeight(), pluginview.reflower.bm);
                                     }
                                     update();
                                     drawCache(draw);
