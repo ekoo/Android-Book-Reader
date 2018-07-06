@@ -15,6 +15,7 @@ import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Parcelable;
@@ -27,6 +28,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.LinearSmoothScroller;
+import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
@@ -34,6 +36,7 @@ import android.util.DisplayMetrics;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
@@ -47,6 +50,8 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.github.axet.androidlibrary.services.FileProvider;
+import com.github.axet.androidlibrary.services.StorageProvider;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
@@ -55,6 +60,7 @@ import com.github.axet.bookreader.app.DjvuPlugin;
 import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.PDFPlugin;
 import com.github.axet.bookreader.app.Storage;
+import com.github.axet.bookreader.services.ImagesProvider;
 import com.github.axet.k2pdfopt.K2PdfOpt;
 import com.github.johnpersano.supertoasts.SuperActivityToast;
 import com.github.johnpersano.supertoasts.SuperToast;
@@ -68,7 +74,6 @@ import org.geometerplus.android.fbreader.TextSearchPopup;
 import org.geometerplus.android.fbreader.api.FBReaderIntents;
 import org.geometerplus.android.fbreader.bookmark.EditBookmarkActivity;
 import org.geometerplus.android.fbreader.dict.DictionaryUtil;
-import org.geometerplus.android.fbreader.image.ImageViewActivity;
 import org.geometerplus.android.fbreader.libraryService.BookCollectionShadow;
 import org.geometerplus.android.util.OrientationUtil;
 import org.geometerplus.android.util.UIMessageUtil;
@@ -112,6 +117,7 @@ import org.geometerplus.zlibrary.text.view.ZLTextElementAreaVector;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextHyperlink;
 import org.geometerplus.zlibrary.text.view.ZLTextHyperlinkRegionSoul;
+import org.geometerplus.zlibrary.text.view.ZLTextImageElement;
 import org.geometerplus.zlibrary.text.view.ZLTextImageRegionSoul;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextRegion;
@@ -829,6 +835,20 @@ public class FBReaderView extends RelativeLayout {
             );
             setContext(context);
             return context;
+        }
+
+        public void setScalingType(ZLTextImageElement imageElement, ZLPaintContext.ScalingType s) {
+            book.info.scales.put(imageElement.Id, s);
+        }
+
+        @Override
+        protected ZLPaintContext.ScalingType getScalingType(ZLTextImageElement imageElement) {
+            if (book.info != null) {
+                ZLPaintContext.ScalingType s = book.info.scales.get(imageElement.Id);
+                if (s != null)
+                    return s;
+            }
+            return super.getScalingType(imageElement);
         }
 
         @Override
@@ -2505,7 +2525,7 @@ public class FBReaderView extends RelativeLayout {
         config.setValue(app.ViewOptions.getFooterOptions().ShowProgress, FooterOptions.ProgressDisplayType.asPages);
 
         config.setValue(app.ImageOptions.TapAction, ImageOptions.TapActionEnum.openImageView);
-        config.setValue(app.ImageOptions.FitToScreen, FBView.ImageFitting.all);
+        config.setValue(app.ImageOptions.FitToScreen, FBView.ImageFitting.covers);
 
         config.setValue(app.MiscOptions.WordTappingAction, MiscOptions.WordTappingActionEnum.startSelecting);
     }
@@ -2562,8 +2582,11 @@ public class FBReaderView extends RelativeLayout {
                 ZLTextHyphenator.Instance().load(fbook.book.getLanguage());
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
-                if (book.info != null)
+                if (book.info != null) {
                     app.BookTextView.gotoPosition(book.info.position);
+                    if (book.info.scale != null)
+                        config.setValue(app.ImageOptions.FitToScreen, book.info.scale);
+                }
             }
             widget.repaint();
         } catch (RuntimeException e) {
@@ -2711,23 +2734,83 @@ public class FBReaderView extends RelativeLayout {
                         }
                     }
                 } else if (soul instanceof ZLTextImageRegionSoul) {
-                    Reader.getTextView().hideOutline();
-                    Reader.getViewWidget().repaint();
-                    final String url = ((ZLTextImageRegionSoul) soul).ImageElement.URL;
-                    if (url != null) {
-                        try {
-                            final Intent intent = new Intent();
-                            intent.setClass(a, ImageViewActivity.class);
-                            intent.putExtra(ImageViewActivity.URL_KEY, url);
-                            intent.putExtra(
-                                    ImageViewActivity.BACKGROUND_COLOR_KEY,
-                                    Reader.ImageOptions.ImageViewBackground.getValue().intValue()
-                            );
-                            OrientationUtil.startActivity(a, intent);
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                    final ZLTextImageRegionSoul image = ((ZLTextImageRegionSoul) soul);
+                    final View anchor = new View(getContext());
+                    LayoutParams lp = new LayoutParams(region.getRight() - region.getLeft(), region.getBottom() - region.getTop());
+                    lp.leftMargin = region.getLeft();
+                    lp.topMargin = region.getTop();
+                    FBReaderView.this.addView(anchor, lp);
+                    PopupMenu menu = new PopupMenu(getContext(), anchor, Gravity.BOTTOM);
+                    menu.inflate(R.menu.image_menu);
+                    menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                        @Override
+                        public boolean onMenuItemClick(MenuItem item) {
+                            switch (item.getItemId()) {
+                                case R.id.action_open: {
+                                    String t = image.ImageElement.Id;
+                                    String type = Storage.getTypeByExt(ImagesProvider.EXT);
+                                    Uri uri = ImagesProvider.share(getContext(), Uri.parse(image.ImageElement.URL), t);
+                                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                                    intent.setDataAndType(uri, type);
+                                    FileProvider.grantPermissions(getContext(), intent, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                                    getContext().startActivity(intent);
+                                    break;
+                                }
+                                case R.id.action_share: {
+                                    String t = image.ImageElement.Id;
+                                    String type = Storage.getTypeByExt(ImagesProvider.EXT);
+                                    Uri uri = StorageProvider.share(getContext(), Uri.parse(image.ImageElement.URL), t);
+                                    Intent intent = new Intent(Intent.ACTION_SEND);
+                                    intent.setType(type);
+                                    intent.putExtra(Intent.EXTRA_EMAIL, "");
+                                    intent.putExtra(Intent.EXTRA_SUBJECT, t);
+                                    intent.putExtra(Intent.EXTRA_TEXT, getContext().getString(R.string.shared_via, getContext().getString(R.string.app_name)));
+                                    intent.putExtra(Intent.EXTRA_STREAM, uri);
+                                    FileProvider.grantPermissions(getContext(), intent, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                                    getContext().startActivity(intent);
+                                    break;
+                                }
+                                case R.id.action_original:
+                                    if (book.info == null)
+                                        book.info = new Storage.RecentInfo();
+                                    ((CustomView) app.BookTextView).setScalingType(image.ImageElement, ZLPaintContext.ScalingType.OriginalSize);
+                                    resetCaches();
+                                    break;
+                                case R.id.action_zoom:
+                                    if (book.info == null)
+                                        book.info = new Storage.RecentInfo();
+                                    ((CustomView) app.BookTextView).setScalingType(image.ImageElement, ZLPaintContext.ScalingType.FitMaximum);
+                                    resetCaches();
+                                    break;
+                                case R.id.action_original_all:
+                                    if (book.info == null)
+                                        book.info = new Storage.RecentInfo();
+                                    book.info.scales.clear();
+                                    book.info.scale = FBView.ImageFitting.covers;
+                                    config.setValue(app.ImageOptions.FitToScreen, FBView.ImageFitting.covers);
+                                    resetCaches();
+                                    break;
+                                case R.id.action_zoom_all:
+                                    if (book.info == null)
+                                        book.info = new Storage.RecentInfo();
+                                    book.info.scales.clear();
+                                    book.info.scale = FBView.ImageFitting.all;
+                                    config.setValue(app.ImageOptions.FitToScreen, FBView.ImageFitting.all);
+                                    resetCaches();
+                                    break;
+                            }
+                            return true;
                         }
-                    }
+                    });
+                    menu.setOnDismissListener(new PopupMenu.OnDismissListener() {
+                        @Override
+                        public void onDismiss(PopupMenu menu) {
+                            Reader.getTextView().hideOutline();
+                            Reader.getViewWidget().repaint();
+                            FBReaderView.this.removeView(anchor);
+                        }
+                    });
+                    menu.show();
                 } else if (soul instanceof ZLTextWordRegionSoul) {
                     DictionaryUtil.openTextInDictionary(
                             a,
@@ -3070,6 +3153,11 @@ public class FBReaderView extends RelativeLayout {
             widget.reset();
             widget.repaint();
         }
+    }
+
+    public void resetCaches() {
+        app.clearTextCaches();
+        reset();
     }
 
     public void invalidateFooter() {

@@ -34,6 +34,7 @@ import com.github.axet.bookreader.widgets.FBReaderView;
 
 import org.apache.commons.io.IOUtils;
 import org.geometerplus.fbreader.book.BookUtil;
+import org.geometerplus.fbreader.fbreader.FBView;
 import org.geometerplus.fbreader.formats.BookReadingException;
 import org.geometerplus.fbreader.formats.FormatPlugin;
 import org.geometerplus.fbreader.formats.PluginCollection;
@@ -42,6 +43,7 @@ import org.geometerplus.zlibrary.core.image.ZLFileImageProxy;
 import org.geometerplus.zlibrary.core.image.ZLImage;
 import org.geometerplus.zlibrary.core.image.ZLStreamImage;
 import org.geometerplus.zlibrary.core.util.SystemInfo;
+import org.geometerplus.zlibrary.core.view.ZLPaintContext;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.ui.android.image.ZLBitmapImage;
@@ -74,7 +76,9 @@ import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -928,6 +932,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         public ZLTextPosition position;
         public String authors;
         public String title;
+        public Map<String, ZLPaintContext.ScalingType> scales = new HashMap<>(); // individual scales
+        public FBView.ImageFitting scale; // all images
 
         public RecentInfo() {
         }
@@ -939,6 +945,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 position = new ZLTextFixedPosition(info.position);
             authors = info.authors;
             title = info.title;
+            scale = info.scale;
+            scales = new HashMap<>(info.scales);
         }
 
         public RecentInfo(File f) {
@@ -979,6 +987,17 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             JSONArray a = o.optJSONArray("position");
             if (a != null)
                 position = new ZLTextFixedPosition(a.getInt(0), a.getInt(1), a.getInt(2));
+            String scale = o.optString("scale");
+            if (scale != null && !scale.isEmpty())
+                this.scale = FBView.ImageFitting.valueOf(scale);
+            Object scales = o.opt("scales");
+            if (scales != null) {
+                Map<String, Object> map = WebViewCustom.toMap((JSONObject) scales);
+                for (String key : map.keySet()) {
+                    String v = (String) map.get(key);
+                    this.scales.put(key, ZLPaintContext.ScalingType.valueOf(v));
+                }
+            }
         }
 
         public JSONObject save() throws JSONException {
@@ -993,6 +1012,11 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 a.put(position.getElementIndex());
                 a.put(position.getCharIndex());
                 o.put("position", a);
+            }
+            if (scale != null)
+                o.put("scale", scale.name());
+            if (!scales.isEmpty()) {
+                o.put("scales", WebViewCustom.toJSON(scales));
             }
             return o;
         }
@@ -1236,7 +1260,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         String n = Storage.getNameNoExt(t);
                         String e = Storage.getExt(t);
                         if (n.equals(book.md5) && !e.equals(JSON_EXT)) { // delete all but json
-                            Uri k = DocumentsContract.buildDocumentUriUsingTree(u, id);
+                            Uri k = DocumentsContract.buildDocumentUriUsingTree(childrenUri, id);
                             delete(k);
                         }
                     }

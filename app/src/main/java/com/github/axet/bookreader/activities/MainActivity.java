@@ -298,6 +298,7 @@ public class MainActivity extends FullscreenActivity
         }
     }
 
+    @SuppressLint("RestrictedApi")
     @Override
     public void onBackPressed() {
         if (drawer.isDrawerOpen(GravityCompat.START)) {
