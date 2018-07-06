@@ -155,7 +155,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         zip.close();
         xml.close();
 
-        ext.detect(storage, u);
+        String s = u.getScheme();
+        if (s.equals(ContentResolver.SCHEME_CONTENT) || s.equals(ContentResolver.SCHEME_FILE)) // ext detection works for local files only
+            ext.detect(storage, u);
 
         return toHex(digest.digest());
     }
@@ -934,6 +936,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         public String title;
         public Map<String, ZLPaintContext.ScalingType> scales = new HashMap<>(); // individual scales
         public FBView.ImageFitting scale; // all images
+        public Integer fontsize; // FBView size or Reflow / 100
 
         public RecentInfo() {
         }
@@ -947,6 +950,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             title = info.title;
             scale = info.scale;
             scales = new HashMap<>(info.scales);
+            fontsize = info.fontsize;
         }
 
         public RecentInfo(File f) {
@@ -1006,6 +1010,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     this.scales.put(key, ZLPaintContext.ScalingType.valueOf(v));
                 }
             }
+            fontsize = o.optInt("fontsize", -1);
+            if (fontsize == -1)
+                fontsize = null;
         }
 
         public JSONObject save() throws JSONException {
@@ -1026,6 +1033,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (!scales.isEmpty()) {
                 o.put("scales", WebViewCustom.toJSON(scales));
             }
+            if (fontsize != null)
+                o.put("fontsize", fontsize);
             return o;
         }
 
@@ -1047,6 +1056,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 else if (!scales.containsKey(k)) // only add non existent values to the list
                     scales.put(k, v);
             }
+            if (fontsize == null || last < info.last)
+                fontsize = info.fontsize;
         }
     }
 
