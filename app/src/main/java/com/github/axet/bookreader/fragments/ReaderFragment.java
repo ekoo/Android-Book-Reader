@@ -866,7 +866,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         searchMenu.setVisible(view.pluginview == null); // pdf and djvu do not support search
         reflow.setVisible(view.pluginview != null && !(view.pluginview instanceof ComicsPlugin.ComicsView));
 
-        if (BuildConfig.DEBUG && view.pluginview != null) {
+        if (BuildConfig.DEBUG && view.pluginview != null && !(view.pluginview instanceof ComicsPlugin.ComicsView)) {
             debug.setVisible(true);
         } else {
             debug.setVisible(false);
