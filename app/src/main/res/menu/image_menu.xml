@@ -14,21 +14,21 @@
     <item
         android:id="@+id/action_original"
         android:orderInCategory="100"
-        android:title="Original Size"
+        android:title="@string/image_original_size"
         app:showAsAction="never" />
     <item
         android:id="@+id/action_zoom"
         android:orderInCategory="100"
-        android:title="Fit To Screen"
+        android:title="@string/image_fit_to_screen"
         app:showAsAction="never" />
     <item
         android:id="@+id/action_original_all"
         android:orderInCategory="100"
-        android:title="Original Size All Images"
+        android:title="@string/image_original_size_all_images"
         app:showAsAction="never" />
     <item
         android:id="@+id/action_zoom_all"
         android:orderInCategory="100"
-        android:title="Fit To Screen All Images"
+        android:title="@string/image_fit_to_screen_all_images"
         app:showAsAction="never" />
 </menu>

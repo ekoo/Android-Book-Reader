@@ -51,4 +51,8 @@
     <string name="continue_reading">Continue reading from:</string>
     <string name="sync_conflict">Sync conflict</string>
     <string name="view_mode">View Mode</string>
+    <string name="image_original_size">Original Size</string>
+    <string name="image_fit_to_screen">Fit To Screen</string>
+    <string name="image_original_size_all_images">Original Size All Images</string>
+    <string name="image_fit_to_screen_all_images">Fit To Screen All Images</string>
 </resources>
