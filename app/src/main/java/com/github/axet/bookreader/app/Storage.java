@@ -961,7 +961,15 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         public RecentInfo(Context context, Uri u) {
             try {
                 ContentResolver resolver = context.getContentResolver();
-                InputStream is = resolver.openInputStream(u);
+                InputStream is;
+                String s = u.getScheme();
+                if (s.equals(ContentResolver.SCHEME_CONTENT)) {
+                    is = resolver.openInputStream(u);
+                } else if (s.equals(ContentResolver.SCHEME_FILE)) {
+                    is = new FileInputStream(Storage.getFile(u));
+                } else {
+                    throw new RuntimeException("unknown uri");
+                }
                 load(is);
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -972,7 +980,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             load(o);
         }
 
-        void load(InputStream is) throws Exception {
+        public void load(InputStream is) throws Exception {
             String json = IOUtils.toString(is, Charset.defaultCharset());
             JSONObject j = new JSONObject(json);
             load(j);
@@ -1019,6 +1027,26 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 o.put("scales", WebViewCustom.toJSON(scales));
             }
             return o;
+        }
+
+        public void merge(RecentInfo info) {
+            if (created > info.created)
+                created = info.created;
+            if (position == null || last < info.last)
+                position = new ZLTextFixedPosition(info.position);
+            if (authors == null || last < info.last)
+                authors = info.authors;
+            if (title == null || last < info.last)
+                title = info.title;
+            if (scale == null || last < info.last)
+                scale = info.scale;
+            for (String k : info.scales.keySet()) {
+                ZLPaintContext.ScalingType v = info.scales.get(k);
+                if (last < info.last) // replace with new values
+                    scales.put(k, v);
+                else if (!scales.containsKey(k)) // only add non existent values to the list
+                    scales.put(k, v);
+            }
         }
     }
 
