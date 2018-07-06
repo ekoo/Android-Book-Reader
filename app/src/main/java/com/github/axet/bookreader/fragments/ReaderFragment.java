@@ -675,10 +675,13 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     }
 
     public int getFontsizeFB() {
+        if (view.book.info.fontsize != null)
+            return view.book.info.fontsize;
         return view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.getValue();
     }
 
     void setFontsizeFB(int p) {
+        view.book.info.fontsize = p;
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         SharedPreferences.Editor edit = shared.edit();
         edit.putInt(MainApplication.PREFERENCE_FONTSIZE_FBREADER, p);
@@ -698,11 +701,14 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     }
 
     float getFontsizeReflow() {
+        if (view.book.info.fontsize != null)
+            return view.book.info.fontsize / 100f;
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         return shared.getFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, MainApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
     }
 
     void setFontsizeReflow(float p) {
+        view.book.info.fontsize = (int) (p * 100f);
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         SharedPreferences.Editor editor = shared.edit();
         editor.putFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, p);
@@ -750,8 +756,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 }
             }
         }
-        book.info.scale = view.book.info.scale;
-        book.info.scales = view.book.info.scales;
+        book.info = new Storage.RecentInfo(view.book.info);
         book.info.position = view.getPosition();
         storage.save(book);
     }

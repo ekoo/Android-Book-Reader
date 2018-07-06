@@ -366,10 +366,12 @@ public class FBReaderView extends RelativeLayout {
         int h;
         Context context;
         public Bitmap bm; // source bm, in case or errors, recycled otherwise
+        public Storage.RecentInfo info;
 
-        public Reflow(Context context, int w, int h, int page) {
+        public Reflow(Context context, int w, int h, int page, Storage.RecentInfo info) {
             this.context = context;
             this.page = page;
+            this.info = info;
             reset(w, h);
         }
 
@@ -386,6 +388,8 @@ public class FBReaderView extends RelativeLayout {
             if (this.w != w || this.h != h) {
                 SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(context);
                 Float old = shared.getFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, MainApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
+                if (info.fontsize != null)
+                    old = info.fontsize / 100f;
                 if (k2 != null) {
                     old = k2.getFontSize();
                     k2.close();
@@ -472,6 +476,7 @@ public class FBReaderView extends RelativeLayout {
         public boolean reflow = false;
         public boolean reflowDebug;
         public Reflow reflower;
+        public Storage.RecentInfo info;
 
         public PluginView() {
             try {
@@ -690,7 +695,7 @@ public class FBReaderView extends RelativeLayout {
             if (reflow) {
                 if (reflower == null) {
                     int page = current.pageNumber;
-                    reflower = new Reflow(context, w, h, page);
+                    reflower = new Reflow(context, w, h, page, info);
                 }
                 Bitmap bm = null;
                 reflower.reset(w, h);
@@ -843,11 +848,9 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         protected ZLPaintContext.ScalingType getScalingType(ZLTextImageElement imageElement) {
-            if (book.info != null) {
-                ZLPaintContext.ScalingType s = book.info.scales.get(imageElement.Id);
-                if (s != null)
-                    return s;
-            }
+            ZLPaintContext.ScalingType s = book.info.scales.get(imageElement.Id);
+            if (s != null)
+                return s;
             return super.getScalingType(imageElement);
         }
 
@@ -1427,7 +1430,7 @@ public class FBReaderView extends RelativeLayout {
                                             @Override
                                             public void run() {
                                                 int i = index;
-                                                Reflow reflower = new Reflow(getContext(), getWidth(), getHeight(), page);
+                                                Reflow reflower = new Reflow(getContext(), getWidth(), getHeight(), page, book.info);
                                                 Bitmap bm = pluginview.render(getWidth(), getHeight(), page);
                                                 reflower.load(bm);
                                                 if (reflower.count() > 0)
@@ -2554,39 +2557,46 @@ public class FBReaderView extends RelativeLayout {
     public void loadBook(Storage.FBook fbook) {
         try {
             this.book = fbook;
+            if (book.info == null)
+                book.info = new Storage.RecentInfo();
             final PluginCollection pluginCollection = PluginCollection.Instance(app.SystemInfo);
             FormatPlugin plugin = Storage.getPlugin(pluginCollection, fbook);
             if (plugin instanceof PDFPlugin) {
                 pluginview = new PDFPlugin.PDFiumView(BookUtil.fileByBook(fbook.book));
+                pluginview.info = book.info;
                 BookModel Model = BookModel.createModel(fbook.book, plugin);
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
-                if (book.info != null)
+                if (book.info.position != null)
                     gotoPluginPosition(book.info.position);
             } else if (plugin instanceof DjvuPlugin) {
                 pluginview = new DjvuPlugin.DjvuView(BookUtil.fileByBook(fbook.book));
+                pluginview.info = book.info;
                 BookModel Model = BookModel.createModel(fbook.book, plugin);
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
-                if (book.info != null)
+                if (book.info.position != null)
                     gotoPluginPosition(book.info.position);
             } else if (plugin instanceof ComicsPlugin) {
                 pluginview = new ComicsPlugin.ComicsView(BookUtil.fileByBook(fbook.book));
+                pluginview.info = book.info;
                 BookModel Model = BookModel.createModel(fbook.book, plugin);
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
-                if (book.info != null)
+                if (book.info.position != null)
                     gotoPluginPosition(book.info.position);
             } else {
                 BookModel Model = BookModel.createModel(fbook.book, plugin);
                 ZLTextHyphenator.Instance().load(fbook.book.getLanguage());
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
-                if (book.info != null) {
+                if (book.info.position != null) {
                     app.BookTextView.gotoPosition(book.info.position);
-                    if (book.info.scale != null)
-                        config.setValue(app.ImageOptions.FitToScreen, book.info.scale);
                 }
+                if (book.info.scale != null)
+                    config.setValue(app.ImageOptions.FitToScreen, book.info.scale);
+                if (book.info.fontsize != null)
+                    config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption, book.info.fontsize);
             }
             widget.repaint();
         } catch (RuntimeException e) {
@@ -2771,28 +2781,20 @@ public class FBReaderView extends RelativeLayout {
                                     break;
                                 }
                                 case R.id.action_original:
-                                    if (book.info == null)
-                                        book.info = new Storage.RecentInfo();
                                     ((CustomView) app.BookTextView).setScalingType(image.ImageElement, ZLPaintContext.ScalingType.OriginalSize);
                                     resetCaches();
                                     break;
                                 case R.id.action_zoom:
-                                    if (book.info == null)
-                                        book.info = new Storage.RecentInfo();
                                     ((CustomView) app.BookTextView).setScalingType(image.ImageElement, ZLPaintContext.ScalingType.FitMaximum);
                                     resetCaches();
                                     break;
                                 case R.id.action_original_all:
-                                    if (book.info == null)
-                                        book.info = new Storage.RecentInfo();
                                     book.info.scales.clear();
                                     book.info.scale = FBView.ImageFitting.covers;
                                     config.setValue(app.ImageOptions.FitToScreen, FBView.ImageFitting.covers);
                                     resetCaches();
                                     break;
                                 case R.id.action_zoom_all:
-                                    if (book.info == null)
-                                        book.info = new Storage.RecentInfo();
                                     book.info.scales.clear();
                                     book.info.scale = FBView.ImageFitting.all;
                                     config.setValue(app.ImageOptions.FitToScreen, FBView.ImageFitting.all);
