@@ -215,12 +215,17 @@
 
         <provider
             android:name="com.github.axet.androidlibrary.services.FileProvider"
-            android:authorities="com.github.axet.android-library"
+            android:authorities="com.github.axet.bookreader"
             android:exported="false"
             android:grantUriPermissions="true" />
         <provider
             android:name="com.github.axet.androidlibrary.services.StorageProvider"
-            android:authorities="com.github.axet.androidlibrary"
+            android:authorities="com.github.axet.bookreader"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+        <provider
+            android:name="com.github.axet.bookreader.services.ImagesProvider"
+            android:authorities="com.github.axet.bookreader.images"
             android:exported="false"
             android:grantUriPermissions="true" />
 

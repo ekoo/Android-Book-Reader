@@ -2,7 +2,6 @@ package com.github.axet.bookreader.activities;
 
 import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -10,9 +9,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
@@ -28,10 +25,6 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.SearchView;
-import android.text.Html;
-import android.text.Spannable;
-import android.text.SpannableStringBuilder;
-import android.text.style.BackgroundColorSpan;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -43,8 +36,6 @@ import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
-import android.widget.RelativeLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
@@ -60,7 +51,6 @@ import com.github.axet.bookreader.app.LocalBooksCatalog;
 import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.NetworkBooksCatalog;
 import com.github.axet.bookreader.app.Storage;
-import com.github.axet.bookreader.app.TextFormatter;
 import com.github.axet.bookreader.fragments.LibraryFragment;
 import com.github.axet.bookreader.fragments.LocalLibraryFragment;
 import com.github.axet.bookreader.fragments.NetworkLibraryFragment;
@@ -69,25 +59,17 @@ import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.bookreader.widgets.FullWidthActionView;
 import com.github.axet.bookreader.widgets.RotatePreferenceCompat;
 
-import org.apache.commons.io.IOUtils;
 import org.geometerplus.fbreader.fbreader.options.ImageOptions;
 import org.geometerplus.fbreader.fbreader.options.MiscOptions;
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 public class MainActivity extends FullscreenActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -298,6 +280,7 @@ public class MainActivity extends FullscreenActivity
         }
     }
 
+    @SuppressLint("RestrictedApi")
     @Override
     public void onBackPressed() {
         if (drawer.isDrawerOpen(GravityCompat.START)) {
@@ -590,14 +573,13 @@ public class MainActivity extends FullscreenActivity
         final List<Uri> uu = storage.recentUris(book);
         if (uu.size() > 1) {
             LayoutInflater inflater = LayoutInflater.from(this);
-            ContentResolver resolver = getContentResolver();
 
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
-            final ArrayList<Storage.RecentInfo> selected = new ArrayList<>();
+            final ArrayList<ZLTextPosition> selected = new ArrayList<>();
 
             selected.clear();
-            selected.add(book.info);
+            selected.add(book.info.position);
 
             final Storage.FBook fbook = storage.read(book);
 
@@ -607,10 +589,15 @@ public class MainActivity extends FullscreenActivity
                     fbook.close();
 
                     for (Uri u : uu) {
+                        try {
+                            Storage.RecentInfo info = new Storage.RecentInfo(MainActivity.this, u);
+                            book.info.merge(info);
+                        } catch (Exception e) {
+                            Log.d(TAG, "unable to merge info", e);
+                        }
                         storage.delete(u);
                     }
-
-                    book.info = selected.get(0);
+                    book.info.position = selected.get(0);
                     storage.save(book);
 
                     openFragment(ReaderFragment.newInstance(book.url), ReaderFragment.TAG).addToBackStack(null).commit();
@@ -638,17 +625,7 @@ public class MainActivity extends FullscreenActivity
 
             for (Uri u : uu) {
                 try {
-                    InputStream is;
-                    String s = u.getScheme();
-                    if (s.equals(ContentResolver.SCHEME_CONTENT)) {
-                        is = resolver.openInputStream(u);
-                    } else if (s.equals(ContentResolver.SCHEME_FILE)) {
-                        is = new FileInputStream(Storage.getFile(u));
-                    } else {
-                        throw new RuntimeException("unknown uri");
-                    }
-                    String j = IOUtils.toString(is, Charset.defaultCharset());
-                    Storage.RecentInfo info = new Storage.RecentInfo(new JSONObject(j));
+                    Storage.RecentInfo info = new Storage.RecentInfo(MainActivity.this, u);
                     if (info.position != null) {
                         boolean found = false;
                         for (int i = 0; i < rr.size(); i++) {
@@ -660,8 +637,8 @@ public class MainActivity extends FullscreenActivity
                             rr.add(info);
                         }
                     }
-                } catch (IOException | JSONException e) {
-                    Log.d(TAG, "Unable to read json", e);
+                } catch (Exception e) {
+                    Log.d(TAG, "Unable to read info", e);
                 }
             }
 
@@ -682,7 +659,7 @@ public class MainActivity extends FullscreenActivity
                     public void onClick(View v) {
                         r.gotoPosition(info.position);
                         selected.clear();
-                        selected.add(info);
+                        selected.add(info.position);
                     }
                 });
                 pages.addView(p);

@@ -1,7 +1,6 @@
 package com.github.axet.bookreader.fragments;
 
 import android.content.BroadcastReceiver;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -20,7 +19,6 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -53,24 +51,16 @@ import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.bookreader.widgets.ToolbarButtonView;
-import com.github.axet.bookreader.widgets.ToolbarFontSizeView;
 
-import org.apache.commons.io.IOUtils;
 import org.geometerplus.fbreader.bookmodel.TOCTree;
 import org.geometerplus.fbreader.fbreader.ActionCode;
-import org.geometerplus.fbreader.fbreader.options.ColorProfile;
-import org.geometerplus.zlibrary.core.options.ZLIntegerRangeOption;
 import org.geometerplus.zlibrary.core.util.ZLTTFInfoDetector;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.ui.android.view.AndroidFontUtil;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -694,8 +684,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         edit.putInt(MainApplication.PREFERENCE_FONTSIZE_FBREADER, p);
         edit.apply();
         view.config.setValue(view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption, p);
-        view.app.clearTextCaches();
-        view.reset();
+        view.resetCaches();
         updateToolbar();
     }
 
@@ -705,8 +694,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         edit.putString(MainApplication.PREFERENCE_FONTFAMILY_FBREADER, f);
         edit.apply();
         view.config.setValue(view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption, f);
-        view.app.clearTextCaches();
-        view.reset();
+        view.resetCaches();
     }
 
     float getFontsizeReflow() {
@@ -762,6 +750,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 }
             }
         }
+        book.info.scale = view.book.info.scale;
+        book.info.scales = view.book.info.scales;
         book.info.position = view.getPosition();
         storage.save(book);
     }
