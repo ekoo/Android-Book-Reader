@@ -40,36 +40,26 @@ import com.github.axet.bookreader.app.LocalBooksCatalog;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.BrowserDialogFragment;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.geometerplus.android.util.UIUtil;
-import org.geometerplus.fbreader.formats.BookReadingException;
-import org.geometerplus.fbreader.formats.FormatPlugin;
-import org.geometerplus.fbreader.formats.PluginCollection;
 import org.geometerplus.fbreader.network.tree.NetworkItemsLoader;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.Writer;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 public class LocalLibraryFragment extends Fragment implements MainActivity.SearchListener {
     public static final String TAG = LocalLibraryFragment.class.getSimpleName();
@@ -467,7 +457,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
     }
 
     public File recentFile(Book book) {
-        return new File(n.getCache(), book.md5 + "." + Storage.JSON_EXT);
+        return n.getFile(book.md5 + "." + Storage.JSON_EXT);
     }
 
     public void load(final Book book) {

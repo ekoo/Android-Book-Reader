@@ -10,19 +10,15 @@ import com.github.axet.androidlibrary.crypto.MD5;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.output.StringBuilderWriter;
-import org.apache.commons.io.output.WriterOutputStream;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.util.Map;
-import java.util.TreeMap;
+import java.io.FilenameFilter;
 
 public class LocalBooksCatalog extends BooksCatalog {
+    public static String CATALOG_NAME = "localcatalog_";
+
     Storage storage;
 
     public LocalBooksCatalog(Context context) {
@@ -74,15 +70,27 @@ public class LocalBooksCatalog extends BooksCatalog {
         return getDisplayName(u);
     }
 
-    public File getCache() {
-        File f = new File(storage.getCache(), MD5.digest(url));
-        if (!f.exists() && !f.mkdirs() && !f.exists())
-            throw new RuntimeException("unable to write");
-        return f;
+    public String getPrefix() {
+        return CATALOG_NAME + MD5.digest(url) + "_";
+    }
+
+    public File getFile(String name) {
+        return new File(storage.getCache(), getPrefix() +  name);
     }
 
     public void delete() {
-        FileUtils.deleteQuietly(getCache());
+        File cache = storage.getCache();
+        final String prefix = getPrefix();
+        File[] ff = cache.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.startsWith(prefix);
+            }
+        });
+        if (ff == null)
+            return;
+        for (File f : ff)
+            FileUtils.deleteQuietly(f);
     }
 
     public String getDisplayName(Uri u) {
