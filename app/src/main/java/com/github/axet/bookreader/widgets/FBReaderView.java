@@ -1259,11 +1259,11 @@ public class FBReaderView extends RelativeLayout {
                 Paint paint = new Paint();
                 ZLTextElementAreaVector p;
 
-                public PageView(Context context) {
-                    super(context);
-                    f = new FrameLayout(context);
+                public PageView(ViewGroup parent) {
+                    super(parent.getContext());
+                    f = new FrameLayout(getContext());
 
-                    progressBar = new ProgressBar(context) {
+                    progressBar = new ProgressBar(getContext()) {
                         Handler handler = new Handler();
 
                         @Override
@@ -1293,7 +1293,7 @@ public class FBReaderView extends RelativeLayout {
                     progressBar.setIndeterminate(true);
                     f.addView(progressBar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-                    text = new TextView(context);
+                    text = new TextView(getContext());
                     text.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
                     f.addView(text, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
                 }
@@ -1348,9 +1348,11 @@ public class FBReaderView extends RelativeLayout {
                                 index = c.start.getElementIndex();
                             }
                             synchronized (lock) {
+                                final int w = getWidth() - app.BookTextView.getLeftMargin() - app.BookTextView.getRightMargin();
+                                final int h = getHeight();
                                 if (thread == null) {
                                     if (pluginview.reflower != null) {
-                                        if (pluginview.reflower.page != page || pluginview.reflower.count() == -1 || pluginview.reflower.w != getWidth() || pluginview.reflower.h != getHeight()) {
+                                        if (pluginview.reflower.page != page || pluginview.reflower.count() == -1 || pluginview.reflower.w != w || pluginview.reflower.h != h) {
                                             pluginview.reflower.close();
                                             pluginview.reflower = null;
                                         }
@@ -1362,8 +1364,8 @@ public class FBReaderView extends RelativeLayout {
                                             @Override
                                             public void run() {
                                                 int i = index;
-                                                Reflow reflower = new Reflow(getContext(), getWidth(), getHeight(), page, book.info);
-                                                Bitmap bm = pluginview.render(getWidth(), getHeight(), page);
+                                                Reflow reflower = new Reflow(getContext(), w, h, page, book.info);
+                                                Bitmap bm = pluginview.render(w, h, page);
                                                 reflower.load(bm);
                                                 if (reflower.count() > 0)
                                                     bm.recycle();
@@ -1407,7 +1409,8 @@ public class FBReaderView extends RelativeLayout {
                                     if (pluginview.reflower.count() > 0) { // empty source page?
                                         Bitmap bm = pluginview.reflower.render(c.start.getElementIndex());
                                         Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
-                                        Rect dst = new Rect(0, 0, canvas.getWidth(), canvas.getHeight());
+                                        Rect dst = new Rect(app.BookTextView.getLeftMargin(), 0, app.BookTextView.getLeftMargin() + w, h);
+                                        canvas.drawColor(Color.WHITE);
                                         canvas.drawBitmap(bm, src, dst, pluginview.paint);
                                     } else {
                                         pluginview.drawWallpaper(canvas);
@@ -1451,7 +1454,7 @@ public class FBReaderView extends RelativeLayout {
                     canvas.save();
                     canvas.translate(getWidth() / 2 - progressBar.getMeasuredWidth() / 2, getHeight() / 2 - progressBar.getMeasuredHeight() / 2);
 
-                    String t = page + "." + index;
+                    String t = (page + 1) + "." + (index == -1 ? "*" : index);
                     text.setText(t);
 
                     int dp60 = ThemeUtils.dp2px(getContext(), 60);
@@ -1574,7 +1577,7 @@ public class FBReaderView extends RelativeLayout {
 
             @Override
             public PageHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-                return new PageHolder(new PageView(getContext()));
+                return new PageHolder(new PageView(parent));
             }
 
             @Override
