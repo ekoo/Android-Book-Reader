@@ -113,6 +113,7 @@ import org.geometerplus.zlibrary.text.hyphenation.ZLTextHyphenator;
 import org.geometerplus.zlibrary.text.model.ZLTextMark;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
+import org.geometerplus.zlibrary.text.view.ZLTextElementArea;
 import org.geometerplus.zlibrary.text.view.ZLTextElementAreaVector;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextHyperlink;
@@ -476,7 +477,7 @@ public class FBReaderView extends RelativeLayout {
         public boolean reflow = false;
         public boolean reflowDebug;
         public Reflow reflower;
-        public Storage.RecentInfo info;
+        public Storage.RecentInfo info; // reflow fontsize
 
         public PluginView() {
             try {
@@ -738,6 +739,7 @@ public class FBReaderView extends RelativeLayout {
                         }
                         reflower.load(bm, page, render);
                         if (reflowDebug) {
+                            reflower.bm = null; // do not recycle
                             reflower.close();
                             reflower = null;
                         } else {
@@ -772,6 +774,17 @@ public class FBReaderView extends RelativeLayout {
             draw(canvas, w, h, index);
         }
 
+        public void draw(Canvas bitmap, int w, int h, ZLView.PageIndex index, Bitmap.Config c) {
+        }
+
+        public void draw(Canvas bitmap, int w, int h, ZLView.PageIndex index) {
+            try {
+                draw(bitmap, w, h, index, Bitmap.Config.ARGB_8888);
+            } catch (OutOfMemoryError e) {
+                draw(bitmap, w, h, index, Bitmap.Config.RGB_565);
+            }
+        }
+
         public void drawPage(Canvas canvas, int w, int h, Bitmap bm) {
             Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
             float wr = w / (float) bm.getWidth();
@@ -787,17 +800,6 @@ public class FBReaderView extends RelativeLayout {
                 dst = new Rect(0, mid, w, dh + mid); // scale it by width max and take calulated height
             }
             canvas.drawBitmap(bm, src, dst, paint);
-        }
-
-        public void draw(Canvas bitmap, int w, int h, ZLView.PageIndex index, Bitmap.Config c) {
-        }
-
-        public void draw(Canvas bitmap, int w, int h, ZLView.PageIndex index) {
-            try {
-                draw(bitmap, w, h, index, Bitmap.Config.ARGB_8888);
-            } catch (OutOfMemoryError e) {
-                draw(bitmap, w, h, index, Bitmap.Config.RGB_565);
-            }
         }
 
         public void close() {
@@ -824,10 +826,10 @@ public class FBReaderView extends RelativeLayout {
             super(reader);
         }
 
-        public ZLAndroidPaintContext setContext() {
-            final ZLAndroidPaintContext context = new ZLAndroidPaintContext(
+        public ZLAndroidPaintContext createContext(Canvas c) {
+            return new ZLAndroidPaintContext(
                     app.SystemInfo,
-                    new Canvas(),
+                    c,
                     new ZLAndroidPaintContext.Geometry(
                             getWidth(),
                             getHeight(),
@@ -838,6 +840,10 @@ public class FBReaderView extends RelativeLayout {
                     ),
                     getVerticalScrollbarWidth()
             );
+        }
+
+        public ZLAndroidPaintContext setContext() {
+            ZLAndroidPaintContext context = createContext(new Canvas());
             setContext(context);
             return context;
         }
@@ -1101,80 +1107,6 @@ public class FBReaderView extends RelativeLayout {
         @Override
         public int getBatteryLevel() {
             return battery;
-        }
-    }
-
-    public static class SingleParagraphModel implements ZLTextModel {
-        int index;
-        ZLTextModel model;
-
-        public SingleParagraphModel(int index, ZLTextModel m) {
-            this.index = index;
-            this.model = m;
-        }
-
-        @Override
-        public String getId() {
-            return null;
-        }
-
-        @Override
-        public String getLanguage() {
-            return null;
-        }
-
-        @Override
-        public int getParagraphsNumber() {
-            return 1;
-        }
-
-        @Override
-        public ZLTextParagraph getParagraph(int index) {
-            return model.getParagraph(this.index);
-        }
-
-        @Override
-        public void removeAllMarks() {
-        }
-
-        @Override
-        public ZLTextMark getFirstMark() {
-            return null;
-        }
-
-        @Override
-        public ZLTextMark getLastMark() {
-            return null;
-        }
-
-        @Override
-        public ZLTextMark getNextMark(ZLTextMark position) {
-            return null;
-        }
-
-        @Override
-        public ZLTextMark getPreviousMark(ZLTextMark position) {
-            return null;
-        }
-
-        @Override
-        public List<ZLTextMark> getMarks() {
-            return new ArrayList<>();
-        }
-
-        @Override
-        public int getTextLength(int index) {
-            return model.getTextLength(this.index);
-        }
-
-        @Override
-        public int findParagraphByTextLength(int length) {
-            return 0;
-        }
-
-        @Override
-        public int search(String text, int startIndex, int endIndex, boolean ignoreCase) {
-            return 0;
         }
     }
 
@@ -1672,7 +1604,7 @@ public class FBReaderView extends RelativeLayout {
                 getRecycledViewPool().clear();
                 pages.clear();
                 if (app.Model != null) {
-                    app.BookTextView.preparePage(((CustomView) app.BookTextView).setContext(), ZLViewEnums.PageIndex.current);
+                    app.BookTextView.preparePage(((CustomView) app.BookTextView).createContext(new Canvas()), ZLViewEnums.PageIndex.current);
                     PageCursor c = getCurrent();
                     pages.add(c);
                 }
@@ -2010,6 +1942,15 @@ public class FBReaderView extends RelativeLayout {
             return null;
         }
 
+        ScrollAdapter.PageView findRegionView(ZLTextRegion.Soul soul) {
+            for (int i = 0; i < lm.getChildCount(); i++) {
+                ScrollAdapter.PageView view = (ScrollAdapter.PageView) lm.getChildAt(i);
+                if (view.p != null && view.p.getRegion(soul) != null)
+                    return view;
+            }
+            return null;
+        }
+
         public void reset() {
             postInvalidate();
         }
@@ -2155,7 +2096,7 @@ public class FBReaderView extends RelativeLayout {
                 FBView.Footer footer = app.BookTextView.getFooterArea();
                 if (footer == null)
                     return;
-                final ZLAndroidPaintContext context = new ZLAndroidPaintContext(
+                ZLAndroidPaintContext context = new ZLAndroidPaintContext(
                         app.SystemInfo,
                         c,
                         new ZLAndroidPaintContext.Geometry(
@@ -2168,7 +2109,7 @@ public class FBReaderView extends RelativeLayout {
                         ),
                         0
                 );
-                final int voffset = getHeight() - footer.getHeight();
+                int voffset = getHeight() - footer.getHeight();
                 c.save();
                 c.translate(0, voffset);
                 footer.paint(context);
@@ -2749,8 +2690,13 @@ public class FBReaderView extends RelativeLayout {
                     LayoutParams lp = new LayoutParams(region.getRight() - region.getLeft(), region.getBottom() - region.getTop());
                     lp.leftMargin = region.getLeft();
                     lp.topMargin = region.getTop();
+                    if (widget instanceof ScrollView) {
+                        ScrollView.ScrollAdapter.PageView p = ((ScrollView) widget).findRegionView(soul);
+                        lp.leftMargin += p.getLeft();
+                        lp.topMargin += p.getTop();
+                    }
                     FBReaderView.this.addView(anchor, lp);
-                    PopupMenu menu = new PopupMenu(getContext(), anchor, Gravity.BOTTOM);
+                    final PopupMenu menu = new PopupMenu(getContext(), anchor, Gravity.BOTTOM);
                     menu.inflate(R.menu.image_menu);
                     menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                         @Override
@@ -2812,7 +2758,12 @@ public class FBReaderView extends RelativeLayout {
                             FBReaderView.this.removeView(anchor);
                         }
                     });
-                    menu.show();
+                    getHandler().post(new Runnable() { // allow anchor view to be placed
+                        @Override
+                        public void run() {
+                            menu.show();
+                        }
+                    });
                 } else if (soul instanceof ZLTextWordRegionSoul) {
                     DictionaryUtil.openTextInDictionary(
                             a,
