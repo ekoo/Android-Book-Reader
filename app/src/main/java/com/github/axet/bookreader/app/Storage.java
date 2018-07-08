@@ -145,8 +145,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return toHex(digest.digest());
     }
 
-    public static FormatPlugin getPlugin(Context context, PluginCollection c, Storage.FBook b) {
-        Storage.Info info = new Storage.Info(context);
+    public static FormatPlugin getPlugin(Storage.Info info, Storage.FBook b) {
+        PluginCollection c = PluginCollection.Instance(info);
         ZLFile f = BookUtil.fileByBook(b.book);
         switch (f.getExtension()) {
             case PDFPlugin.EXT:
@@ -1346,8 +1346,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public ZLImage loadCover(FBook book) {
         try {
-            final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
-            FormatPlugin plugin = getPlugin(context, pluginCollection, book);
+            FormatPlugin plugin = getPlugin(new Info(context), book);
             ZLFile file = BookUtil.fileByBook(book.book);
             return plugin.readCover(file);
         } catch (RuntimeException e) {
@@ -1656,9 +1655,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
             }
 
-            final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
             fbook.book = new org.geometerplus.fbreader.book.Book(-1, file.getPath(), null, null, null);
-            FormatPlugin plugin = Storage.getPlugin(context, pluginCollection, fbook);
+            FormatPlugin plugin = Storage.getPlugin(new Info(context), fbook);
             try {
                 plugin.readMetainfo(fbook.book);
             } catch (BookReadingException e) {

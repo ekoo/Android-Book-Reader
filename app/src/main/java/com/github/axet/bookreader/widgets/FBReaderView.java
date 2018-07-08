@@ -439,8 +439,8 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public class FBReaderApp extends org.geometerplus.fbreader.fbreader.FBReaderApp {
-        public FBReaderApp(org.geometerplus.zlibrary.core.util.SystemInfo systemInfo, IBookCollection<Book> collection) {
-            super(systemInfo, collection);
+        public FBReaderApp(Context context) {
+            super(new Storage.Info(context), new BookCollectionShadow());
         }
 
         @Override
@@ -1548,7 +1548,7 @@ public class FBReaderView extends RelativeLayout {
 
     public void create() {
         config = new ConfigShadow();
-        app = new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow());
+        app = new FBReaderApp(getContext());
 
         app.setWindow(new FBApplicationWindow());
         app.initWindow();
@@ -1639,8 +1639,7 @@ public class FBReaderView extends RelativeLayout {
             this.book = fbook;
             if (book.info == null)
                 book.info = new Storage.RecentInfo();
-            final PluginCollection pluginCollection = PluginCollection.Instance(app.SystemInfo);
-            FormatPlugin plugin = Storage.getPlugin(getContext(), pluginCollection, fbook);
+            FormatPlugin plugin = Storage.getPlugin((Storage.Info) app.SystemInfo, fbook);
             if (plugin instanceof PDFPlugin) {
                 pluginview = new PDFPlugin.PDFiumView(BookUtil.fileByBook(fbook.book));
                 BookModel Model = BookModel.createModel(fbook.book, plugin);
@@ -1667,9 +1666,8 @@ public class FBReaderView extends RelativeLayout {
                 ZLTextHyphenator.Instance().load(fbook.book.getLanguage());
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
-                if (book.info.position != null) {
+                if (book.info.position != null)
                     app.BookTextView.gotoPosition(book.info.position);
-                }
                 if (book.info.scale != null)
                     config.setValue(app.ImageOptions.FitToScreen, book.info.scale);
                 if (book.info.fontsize != null)
