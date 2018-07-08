@@ -224,7 +224,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         } else if (s.equals(ContentResolver.SCHEME_FILE)) {
             return Uri.fromFile(recentFile(book));
         } else {
-            throw new RuntimeException("unknown uri");
+            throw new UnknownUri();
         }
     }
 
@@ -266,7 +266,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
             }
         } else {
-            throw new RuntimeException("unknown uri");
+            throw new UnknownUri();
         }
         return list;
     }
@@ -972,7 +972,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 } else if (s.equals(ContentResolver.SCHEME_FILE)) {
                     is = new FileInputStream(Storage.getFile(u));
                 } else {
-                    throw new RuntimeException("unknown uri");
+                    throw new UnknownUri();
                 }
                 load(is);
             } catch (Exception e) {
@@ -1099,7 +1099,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 throw new RuntimeException(e);
             }
         } else {
-            throw new RuntimeException("unknown uri");
+            throw new UnknownUri();
         }
     }
 
@@ -1193,6 +1193,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return cache;
     }
 
+    public File createTempBook(String ext) throws IOException {
+        return File.createTempFile("book", "." + ext, getCache());
+    }
+
     public Book load(InputStream is, Uri u) {
         Uri storage = getStoragePath();
 
@@ -1219,7 +1223,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (u.getScheme().equals(ContentResolver.SCHEME_FILE)) {
                 file = Storage.getFile(u);
             } else {
-                file = File.createTempFile("book", ".tmp", getCache());
+                file = createTempBook("tmp");
                 os = new FileOutputStream(file);
                 tmp = true;
             }
@@ -1235,11 +1239,11 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         FileTypeDetectorZipExtract.Handler e = (FileTypeDetectorZipExtract.Handler) d;
                         if (!tmp) { // !tmp
                             File z = file;
-                            file = File.createTempFile("book", ".tmp", getCache());
+                            file = createTempBook("tmp");
                             book.md5 = e.extract(z, file);
                             tmp = true; // force to delete 'fbook.file'
                         } else { // tmp
-                            File tt = File.createTempFile("book", ".tmp", getCache());
+                            File tt = createTempBook("tmp");
                             book.md5 = e.extract(file, tt);
                             file.delete(); // delete old
                             file = tt; // tmp = true
@@ -1259,7 +1263,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 try {
                     final Archive archive = new Archive(new ComicsPlugin.RarStore(fc));
                     if (archive.getMainHeader().isSolid()) {
-                        cbz = File.createTempFile("book", ".tmp", getCache());
+                        cbz = createTempBook("tmp");
                         FileOutputStream zos = new FileOutputStream(cbz);
                         ZipOutputStream out = new ZipOutputStream(zos);
                         List<FileHeader> list = archive.getFileHeaders();
@@ -1342,7 +1346,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     Storage.copy(file, to);
                 book.url = Uri.fromFile(to);
             } else {
-                throw new RuntimeException("unknown uri");
+                throw new UnknownUri();
             }
         } catch (RuntimeException e) {
             if (tmp && file != null)
@@ -1561,7 +1565,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             File dir = getFile(uri);
             list(list, dir);
         } else {
-            throw new RuntimeException("unknow uri");
+            throw new UnknownUri();
         }
         return list;
     }
@@ -1608,7 +1612,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
             }
         } else {
-            throw new RuntimeException("unknown uri");
+            throw new UnknownUri();
         }
     }
 
@@ -1623,7 +1627,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             String s = b.url.getScheme();
             if (s.equals(ContentResolver.SCHEME_CONTENT)) {
                 String ext = getExt(b.url);
-                fbook.tmp = File.createTempFile("book", "." + ext, getCache());
+                fbook.tmp = createTempBook(ext);
                 OutputStream os = new FileOutputStream(fbook.tmp);
                 ContentResolver resolver = getContext().getContentResolver();
                 InputStream is = resolver.openInputStream(b.url);
@@ -1634,7 +1638,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             } else if (s.equals(ContentResolver.SCHEME_FILE)) {
                 file = getFile(b.url);
             } else {
-                throw new RuntimeException("unknown uri");
+                throw new UnknownUri();
             }
 
             String ext = getExt(file).toLowerCase();
@@ -1652,11 +1656,11 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                             FileTypeDetectorZipExtract.Handler e = (FileTypeDetectorZipExtract.Handler) d;
                             if (fbook.tmp == null) { // !tmp
                                 File z = file;
-                                file = File.createTempFile("book", "." + d.ext, getCache());
+                                file = createTempBook(d.ext);
                                 e.extract(z, file);
                                 fbook.tmp = file;
                             } else { // tmp
-                                File tt = File.createTempFile("book", "." + d.ext, getCache());
+                                File tt = createTempBook(d.ext);
                                 e.extract(file, tt);
                                 file.delete(); // delete old
                                 fbook.tmp = tt;
@@ -1794,7 +1798,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 is = new FileInputStream(Storage.getFile(u));
                 os = new FileOutputStream(Storage.getFile(n));
             } else {
-                throw new RuntimeException("unknown uri");
+                throw new UnknownUri();
             }
             IOUtils.copy(is, os);
             is.close();

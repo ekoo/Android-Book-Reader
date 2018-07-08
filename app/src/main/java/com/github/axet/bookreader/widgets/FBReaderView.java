@@ -2041,6 +2041,7 @@ public class FBReaderView extends RelativeLayout {
             if (pos < 0 || pos >= adapter.pages.size())
                 return;
             smoothScrollToPosition(pos);
+            pinchClose();
         }
 
         @Override

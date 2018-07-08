@@ -294,7 +294,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             } else if (s.startsWith(ContentResolver.SCHEME_FILE)) {
                 load(Storage.getFile(u));
             } else {
-                throw new RuntimeException("unknow uri");
+                throw new Storage.UnknownUri();
             }
             Collections.sort(all, new ByCreated());
         }
