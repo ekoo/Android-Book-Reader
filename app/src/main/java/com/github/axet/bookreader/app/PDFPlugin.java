@@ -193,6 +193,11 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         public PdfDocument doc;
 
         public PDFiumView(ZLFile f) {
+            this(f, null);
+        }
+
+        public PDFiumView(ZLFile f, Storage.RecentInfo info) {
+            super(info);
             try {
                 core = new PdfiumCore();
                 fd = ParcelFileDescriptor.open(new File(f.getPath()), ParcelFileDescriptor.MODE_READ_ONLY);

@@ -31,6 +31,11 @@ public class PluginView {
     public Storage.RecentInfo info; // reflow fontsize
 
     public PluginView() {
+        this(null);
+    }
+
+    public PluginView(Storage.RecentInfo info) {
+        this.info = info;
         try {
             org.geometerplus.fbreader.fbreader.FBReaderApp app = new org.geometerplus.fbreader.fbreader.FBReaderApp(Storage.systeminfo, new BookCollectionShadow());
             ZLFile wallpaper = app.BookTextView.getWallpaperFile();

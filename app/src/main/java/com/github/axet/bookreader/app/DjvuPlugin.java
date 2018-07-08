@@ -101,6 +101,11 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         FileInputStream is;
 
         public DjvuView(ZLFile f) {
+            this(f, null);
+        }
+
+        public DjvuView(ZLFile f, Storage.RecentInfo info) {
+            super(info);
             try {
                 is = new FileInputStream(new File(f.getPath()));
                 doc = new DjvuLibre(is.getFD());
