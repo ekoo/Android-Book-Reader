@@ -8,7 +8,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -20,8 +19,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.graphics.drawable.DrawableCompat;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.ScaleGestureDetectorCompat;
 import android.support.v7.app.AlertDialog;
@@ -32,7 +29,6 @@ import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
-import android.util.DisplayMetrics;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -61,7 +57,6 @@ import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.PDFPlugin;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.services.ImagesProvider;
-import com.github.axet.k2pdfopt.K2PdfOpt;
 import com.github.johnpersano.supertoasts.SuperActivityToast;
 import com.github.johnpersano.supertoasts.SuperToast;
 import com.github.johnpersano.supertoasts.util.OnClickWrapper;
@@ -100,7 +95,6 @@ import org.geometerplus.fbreader.util.AutoTextSnippet;
 import org.geometerplus.fbreader.util.TextSnippet;
 import org.geometerplus.zlibrary.core.application.ZLApplication;
 import org.geometerplus.zlibrary.core.application.ZLApplicationWindow;
-import org.geometerplus.zlibrary.core.filesystem.ZLFile;
 import org.geometerplus.zlibrary.core.options.Config;
 import org.geometerplus.zlibrary.core.options.StringPair;
 import org.geometerplus.zlibrary.core.options.ZLOption;
@@ -110,10 +104,7 @@ import org.geometerplus.zlibrary.core.view.ZLView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.core.view.ZLViewWidget;
 import org.geometerplus.zlibrary.text.hyphenation.ZLTextHyphenator;
-import org.geometerplus.zlibrary.text.model.ZLTextMark;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
-import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
-import org.geometerplus.zlibrary.text.view.ZLTextElementArea;
 import org.geometerplus.zlibrary.text.view.ZLTextElementAreaVector;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextHyperlink;
@@ -127,7 +118,6 @@ import org.geometerplus.zlibrary.text.view.ZLTextWordRegionSoul;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidPaintContext;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -153,7 +143,6 @@ public class FBReaderView extends RelativeLayout {
     public Storage.FBook book;
     public PluginView pluginview;
     public PageTurningListener pageTurningListener;
-    GestureDetectorCompat gestures;
     PinchView pinch;
 
     public interface PageTurningListener {
@@ -893,9 +882,7 @@ public class FBReaderView extends RelativeLayout {
                     if (pluginview != null) {
                         pluginview.gotoPosition(c.end);
                         pluginview.onScrollingFinished(ZLViewEnums.PageIndex.previous);
-                        if (widget instanceof ScrollView) {
-                            pluginview.current.pageOffset = 0;
-                        }
+                        pluginview.current.pageOffset = 0; // widget instanceof ScrollView
                         c.update(getCurrent());
                     } else {
                         app.BookTextView.gotoPosition(c.end);
@@ -1024,8 +1011,11 @@ public class FBReaderView extends RelativeLayout {
             int y;
             ScrollAdapter.PageView v;
             PinchGesture pinch;
+            GestureDetectorCompat gestures;
 
             Gestures(Context context) {
+                gestures = new GestureDetectorCompat(context, this);
+
                 if (Looper.myLooper() != null) {
                     pinch = new PinchGesture(context) {
                         @Override
@@ -1247,7 +1237,6 @@ public class FBReaderView extends RelativeLayout {
                     startSmoothScroll(smoothScroller);
                 }
             };
-            gestures = new GestureDetectorCompat(context, gesturesListener);
 
             setLayoutManager(lm);
             setAdapter(adapter);
@@ -1417,7 +1406,7 @@ public class FBReaderView extends RelativeLayout {
             if (first == -1)
                 return;
             if (pluginview != null && pluginview.reflow) {
-                ScrollView.ScrollAdapter.PageCursor cc = ((ScrollView) widget).adapter.pages.get(first);
+                ScrollView.ScrollAdapter.PageCursor cc = adapter.pages.get(first);
                 if (cc.start == null) {
                     int p = cc.end.getParagraphIndex();
                     int i = cc.end.getElementIndex() - 1;
@@ -1429,8 +1418,8 @@ public class FBReaderView extends RelativeLayout {
                 }
                 clearReflowPage(); // reset reflow page, since we treat pageOffset differently for reflower/full page view
             } else {
-                ScrollView.ScrollAdapter.PageCursor c = ((ScrollView) widget).adapter.pages.get(first);
-                ((ScrollView) widget).adapter.open(c);
+                ScrollView.ScrollAdapter.PageCursor c = adapter.pages.get(first);
+                adapter.open(c);
             }
         }
 
