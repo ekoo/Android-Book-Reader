@@ -6,6 +6,10 @@ import android.graphics.Paint;
 
 import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.bookreader.widgets.FBReaderView;
+import com.github.axet.bookreader.widgets.PluginPage;
+import com.github.axet.bookreader.widgets.PluginRect;
+import com.github.axet.bookreader.widgets.PluginView;
+import com.github.axet.bookreader.widgets.RenderRect;
 import com.github.axet.djvulibre.Config;
 import com.github.axet.djvulibre.DjvuLibre;
 
@@ -45,7 +49,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         Storage.K2PdfOptInit(Storage.zlib);
     }
 
-    public static class PluginPage extends FBReaderView.PluginPage {
+    public static class PluginPage extends com.github.axet.bookreader.widgets.PluginPage {
         public DjvuLibre doc;
 
         public PluginPage(PluginPage r) {
@@ -81,7 +85,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
         public void load() {
             DjvuLibre.Page p = doc.getPageInfo(pageNumber);
-            pageBox = new FBReaderView.PluginRect(0, 0, p.width, p.height);
+            pageBox = new PluginRect(0, 0, p.width, p.height);
             dpi = p.dpi;
         }
 
@@ -91,7 +95,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class DjvuView extends FBReaderView.PluginView {
+    public static class DjvuView extends PluginView {
         public DjvuLibre doc;
         Paint paint = new Paint();
         FileInputStream is;
@@ -134,7 +138,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
                 current.updatePage(r);
 
             r.scale(w, h);
-            FBReaderView.RenderRect render = r.renderRect();
+            RenderRect render = r.renderRect();
 
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);
             bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);

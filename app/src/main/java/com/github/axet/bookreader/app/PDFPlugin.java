@@ -8,6 +8,10 @@ import android.os.ParcelFileDescriptor;
 
 import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.bookreader.widgets.FBReaderView;
+import com.github.axet.bookreader.widgets.PluginPage;
+import com.github.axet.bookreader.widgets.PluginRect;
+import com.github.axet.bookreader.widgets.PluginView;
+import com.github.axet.bookreader.widgets.RenderRect;
 import com.shockwave.pdfium.Config;
 import com.shockwave.pdfium.PdfDocument;
 import com.shockwave.pdfium.PdfiumCore;
@@ -49,7 +53,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     }
 
     @TargetApi(21)
-    public static class PluginNativePage extends FBReaderView.PluginPage {
+    public static class PluginNativePage extends PluginPage {
         public PdfRenderer doc;
         public PdfRenderer.Page page;
 
@@ -82,12 +86,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             if (page != null)
                 page.close();
             page = doc.openPage(pageNumber);
-            pageBox = new FBReaderView.PluginRect(0, 0, page.getWidth(), page.getHeight());
+            pageBox = new PluginRect(0, 0, page.getWidth(), page.getHeight());
         }
     }
 
     @TargetApi(21)
-    public static class PDFNativeView extends FBReaderView.PluginView {
+    public static class PDFNativeView extends PluginView {
         ParcelFileDescriptor fd;
         public PdfRenderer doc;
 
@@ -117,7 +121,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 current.updatePage(r);
 
             r.scale(w, h);
-            FBReaderView.RenderRect render = r.renderRect();
+            RenderRect render = r.renderRect();
 
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);
             bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
@@ -130,7 +134,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     }
 
-    public static class PluginPdfiumPage extends FBReaderView.PluginPage {
+    public static class PluginPdfiumPage extends PluginPage {
         public PdfiumCore core;
         public PdfDocument doc;
 
@@ -178,12 +182,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         void load(int index) {
             Size s = core.getPageSize(doc, index);
-            pageBox = new FBReaderView.PluginRect(0, 0, s.getWidth(), s.getHeight());
+            pageBox = new PluginRect(0, 0, s.getWidth(), s.getHeight());
             dpi = 72; // default Pdifium resolution
         }
     }
 
-    public static class PDFiumView extends FBReaderView.PluginView {
+    public static class PDFiumView extends PluginView {
         public PdfiumCore core;
         ParcelFileDescriptor fd;
         public PdfDocument doc;
@@ -237,7 +241,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 current.updatePage(r);
 
             r.scale(w, h);
-            FBReaderView.RenderRect render = r.renderRect();
+            RenderRect render = r.renderRect();
 
             core.openPage(doc, r.pageNumber);
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);

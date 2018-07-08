@@ -8,6 +8,9 @@ import android.graphics.Rect;
 import android.util.Log;
 
 import com.github.axet.bookreader.widgets.FBReaderView;
+import com.github.axet.bookreader.widgets.PluginRect;
+import com.github.axet.bookreader.widgets.PluginView;
+import com.github.axet.bookreader.widgets.RenderRect;
 
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.io.ZipInputStream;
@@ -73,7 +76,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         return false;
     }
 
-    public static FBReaderView.PluginRect getImageSize(InputStream is) {
+    public static PluginRect getImageSize(InputStream is) {
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
         Rect outPadding = new Rect();
@@ -88,7 +91,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         }
         if (options.outWidth == -1 || options.outHeight == -1)
             return null;
-        return new FBReaderView.PluginRect(0, 0, options.outWidth, options.outHeight);
+        return new PluginRect(0, 0, options.outWidth, options.outHeight);
     }
 
     public static String getRarFileName(FileHeader header) {
@@ -323,7 +326,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
 
         long getLength();
 
-        FBReaderView.PluginRect getRect();
+        PluginRect getRect();
     }
 
     public static class RarFile extends NativeFile {
@@ -438,10 +441,10 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
                         continue;
                     final FileHeader header = h;
                     ArchiveFile a = new ArchiveFile() {
-                        FBReaderView.PluginRect r = null;
+                        PluginRect r = null;
 
                         @Override
-                        public FBReaderView.PluginRect getRect() {
+                        public PluginRect getRect() {
                             if (r == null)
                                 r = getImageSize(open());
                             return r;
@@ -533,10 +536,10 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
                     if (zipEntry.isDirectory())
                         continue;
                     ArchiveFile a = new ArchiveFile() {
-                        FBReaderView.PluginRect r = null;
+                        PluginRect r = null;
 
                         @Override
-                        public FBReaderView.PluginRect getRect() {
+                        public PluginRect getRect() {
                             if (r == null)
                                 r = getImageSize(open());
                             return r;
@@ -585,7 +588,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class PluginPage extends FBReaderView.PluginPage {
+    public static class PluginPage extends com.github.axet.bookreader.widgets.PluginPage {
         public Decoder doc;
 
         public PluginPage(PluginPage r) {
@@ -623,7 +626,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
             ArchiveFile f = doc.pages.get(pageNumber);
             pageBox = f.getRect();
             if (pageBox == null)
-                pageBox = new FBReaderView.PluginRect(0, 0, 100, 100);
+                pageBox = new PluginRect(0, 0, 100, 100);
             dpi = 72;
         }
 
@@ -633,7 +636,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class ComicsView extends FBReaderView.PluginView {
+    public static class ComicsView extends PluginView {
         public Decoder doc;
         Paint paint = new Paint();
         FileInputStream is;
@@ -677,7 +680,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
             if (index == ZLViewEnums.PageIndex.current)
                 current.updatePage(r);
 
-            FBReaderView.RenderRect render = r.renderRect();
+            RenderRect render = r.renderRect();
 
             Bitmap bm = doc.render(r.pageNumber, c);
             if (bm != null) {

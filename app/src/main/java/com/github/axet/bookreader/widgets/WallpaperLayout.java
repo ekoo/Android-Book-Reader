@@ -9,7 +9,7 @@ import android.util.AttributeSet;
 import android.widget.FrameLayout;
 
 public class WallpaperLayout extends FrameLayout {
-    FBReaderView.PluginView bg = new FBReaderView.PluginView();
+    PluginView bg = new PluginView();
 
     public WallpaperLayout(@NonNull Context context) {
         super(context);
