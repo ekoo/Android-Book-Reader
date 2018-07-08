@@ -12,7 +12,6 @@ import android.support.v7.preference.PreferenceManager;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
-import com.github.axet.bookreader.fragments.LocalLibraryFragment;
 
 import org.geometerplus.android.fbreader.network.auth.AndroidNetworkContext;
 import org.geometerplus.fbreader.network.INetworkLink;

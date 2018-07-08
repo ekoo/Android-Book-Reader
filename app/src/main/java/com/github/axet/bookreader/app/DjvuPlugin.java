@@ -6,7 +6,6 @@ import android.graphics.Paint;
 
 import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.bookreader.widgets.FBReaderView;
-import com.github.axet.bookreader.widgets.PluginPage;
 import com.github.axet.bookreader.widgets.PluginRect;
 import com.github.axet.bookreader.widgets.PluginView;
 import com.github.axet.bookreader.widgets.RenderRect;
@@ -41,12 +40,13 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
     public static final String EXT = "djvu";
 
-    static {
+    public static DjvuPlugin create(Storage.Info info) {
         if (Config.natives) {
-            Natives.loadLibraries(Storage.zlib, "djvu", "djvulibrejni");
+            Natives.loadLibraries(info.context, "djvu", "djvulibrejni");
             Config.natives = false;
         }
-        Storage.K2PdfOptInit(Storage.zlib);
+        Storage.K2PdfOptInit(info.context);
+        return new DjvuPlugin(info);
     }
 
     public static class PluginPage extends com.github.axet.bookreader.widgets.PluginPage {
@@ -101,11 +101,6 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         FileInputStream is;
 
         public DjvuView(ZLFile f) {
-            this(f, null);
-        }
-
-        public DjvuView(ZLFile f, Storage.RecentInfo info) {
-            super(info);
             try {
                 is = new FileInputStream(new File(f.getPath()));
                 doc = new DjvuLibre(is.getFD());
@@ -240,8 +235,8 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public DjvuPlugin() {
-        super(Storage.systeminfo, EXT);
+    public DjvuPlugin(Storage.Info info) {
+        super(info, EXT);
     }
 
     @Override

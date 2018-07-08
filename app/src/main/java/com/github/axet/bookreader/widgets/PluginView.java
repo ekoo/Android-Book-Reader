@@ -28,16 +28,10 @@ public class PluginView {
     public boolean reflow = false;
     public boolean reflowDebug;
     public Reflow reflower;
-    public Storage.RecentInfo info; // reflow fontsize
 
     public PluginView() {
-        this(null);
-    }
-
-    public PluginView(Storage.RecentInfo info) {
-        this.info = info;
         try {
-            org.geometerplus.fbreader.fbreader.FBReaderApp app = new org.geometerplus.fbreader.fbreader.FBReaderApp(Storage.systeminfo, new BookCollectionShadow());
+            org.geometerplus.fbreader.fbreader.FBReaderApp app = new org.geometerplus.fbreader.fbreader.FBReaderApp(null, new BookCollectionShadow());
             ZLFile wallpaper = app.BookTextView.getWallpaperFile();
             if (wallpaper != null)
                 this.wallpaper = BitmapFactory.decodeStream(wallpaper.getInputStream());
@@ -238,16 +232,16 @@ public class PluginView {
         return render(w, h, page, Bitmap.Config.RGB_565); // reflower active, always 565
     }
 
-    public void drawOnBitmap(Context context, Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
+    public void drawOnBitmap(Context context, Bitmap bitmap, int w, int h, ZLView.PageIndex index, Storage.RecentInfo info) {
         Canvas canvas = new Canvas(bitmap);
-        drawOnCanvas(context, canvas, w, h, index);
+        drawOnCanvas(context, canvas, w, h, index, info);
     }
 
     public double getPageHeight(int w, FBReaderView.ScrollView.ScrollAdapter.PageCursor c) {
         return -1;
     }
 
-    public void drawOnCanvas(Context context, Canvas canvas, int w, int h, ZLView.PageIndex index) {
+    public void drawOnCanvas(Context context, Canvas canvas, int w, int h, ZLView.PageIndex index, Storage.RecentInfo info) {
         drawWallpaper(canvas);
         if (reflow) {
             if (reflower == null) {

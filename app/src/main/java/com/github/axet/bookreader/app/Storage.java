@@ -47,7 +47,6 @@ import org.geometerplus.zlibrary.core.view.ZLPaintContext;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.ui.android.image.ZLBitmapImage;
-import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -102,22 +101,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public static final String JSON_EXT = "json";
     public static final String ZIP_EXT = "zip";
 
-    public static ZLAndroidApplication zlib;
-    public static Storage.Info systeminfo;
-
-    public static void init(final Context context) {
-        if (Storage.systeminfo == null)
-            Storage.systeminfo = new Storage.Info(context);
-        if (Storage.zlib == null) {
-            Storage.zlib = new ZLAndroidApplication() {
-                {
-                    attachBaseContext(context);
-                    onCreate();
-                }
-            };
-        }
-    }
-
     public static void K2PdfOptInit(Context context) {
         if (com.github.axet.k2pdfopt.Config.natives) {
             Natives.loadLibraries(context, "willus", "k2pdfopt", "k2pdfoptjni");
@@ -162,16 +145,17 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return toHex(digest.digest());
     }
 
-    public static FormatPlugin getPlugin(PluginCollection c, Storage.FBook b) {
+    public static FormatPlugin getPlugin(Context context, PluginCollection c, Storage.FBook b) {
+        Storage.Info info = new Storage.Info(context);
         ZLFile f = BookUtil.fileByBook(b.book);
         switch (f.getExtension()) {
             case PDFPlugin.EXT:
-                return new PDFPlugin();
+                return PDFPlugin.create(info);
             case DjvuPlugin.EXT:
-                return new DjvuPlugin();
+                return DjvuPlugin.create(info);
             case ComicsPlugin.EXTZ:
             case ComicsPlugin.EXTR:
-                return new ComicsPlugin();
+                return new ComicsPlugin(info);
         }
         try {
             return BookUtil.getPlugin(c, b.book);
@@ -189,12 +173,12 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
         @Override
         public String tempDirectory() {
-            return context.getFilesDir().getPath();
+            return context.getCacheDir().getPath();
         }
 
         @Override
         public String networkCacheDirectory() {
-            return context.getFilesDir().getPath();
+            return context.getCacheDir().getPath();
         }
     }
 
@@ -1363,7 +1347,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public ZLImage loadCover(FBook book) {
         try {
             final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
-            FormatPlugin plugin = getPlugin(pluginCollection, book);
+            FormatPlugin plugin = getPlugin(context, pluginCollection, book);
             ZLFile file = BookUtil.fileByBook(book.book);
             return plugin.readCover(file);
         } catch (RuntimeException e) {
@@ -1674,7 +1658,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
             final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
             fbook.book = new org.geometerplus.fbreader.book.Book(-1, file.getPath(), null, null, null);
-            FormatPlugin plugin = Storage.getPlugin(pluginCollection, fbook);
+            FormatPlugin plugin = Storage.getPlugin(context, pluginCollection, fbook);
             try {
                 plugin.readMetainfo(fbook.book);
             } catch (BookReadingException e) {

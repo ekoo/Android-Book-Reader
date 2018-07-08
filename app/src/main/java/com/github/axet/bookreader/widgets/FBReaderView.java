@@ -366,7 +366,7 @@ public class FBReaderView extends RelativeLayout {
         @Override
         public void drawOnBitmap(Bitmap bitmap, ZLViewEnums.PageIndex index) {
             if (pluginview != null)
-                pluginview.drawOnBitmap(getContext(), bitmap, getWidth(), getMainAreaHeight(), index);
+                pluginview.drawOnBitmap(getContext(), bitmap, getWidth(), getMainAreaHeight(), index, book.info);
             else
                 super.drawOnBitmap(bitmap, index);
         }
@@ -753,7 +753,7 @@ public class FBReaderView extends RelativeLayout {
                             return;
                         }
                         open(c);
-                        pluginview.drawOnCanvas(getContext(), draw, getWidth(), getHeight(), ZLViewEnums.PageIndex.current);
+                        pluginview.drawOnCanvas(getContext(), draw, getWidth(), getHeight(), ZLViewEnums.PageIndex.current, book.info);
                         update();
                     } else {
                         open(c);
@@ -1640,23 +1640,23 @@ public class FBReaderView extends RelativeLayout {
             if (book.info == null)
                 book.info = new Storage.RecentInfo();
             final PluginCollection pluginCollection = PluginCollection.Instance(app.SystemInfo);
-            FormatPlugin plugin = Storage.getPlugin(pluginCollection, fbook);
+            FormatPlugin plugin = Storage.getPlugin(getContext(), pluginCollection, fbook);
             if (plugin instanceof PDFPlugin) {
-                pluginview = new PDFPlugin.PDFiumView(BookUtil.fileByBook(fbook.book), book.info);
+                pluginview = new PDFPlugin.PDFiumView(BookUtil.fileByBook(fbook.book));
                 BookModel Model = BookModel.createModel(fbook.book, plugin);
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
                 if (book.info.position != null)
                     gotoPluginPosition(book.info.position);
             } else if (plugin instanceof DjvuPlugin) {
-                pluginview = new DjvuPlugin.DjvuView(BookUtil.fileByBook(fbook.book), book.info);
+                pluginview = new DjvuPlugin.DjvuView(BookUtil.fileByBook(fbook.book));
                 BookModel Model = BookModel.createModel(fbook.book, plugin);
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
                 if (book.info.position != null)
                     gotoPluginPosition(book.info.position);
             } else if (plugin instanceof ComicsPlugin) {
-                pluginview = new ComicsPlugin.ComicsView(BookUtil.fileByBook(fbook.book), book.info);
+                pluginview = new ComicsPlugin.ComicsView(BookUtil.fileByBook(fbook.book));
                 BookModel Model = BookModel.createModel(fbook.book, plugin);
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;

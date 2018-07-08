@@ -642,11 +642,6 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         FileInputStream is;
 
         public ComicsView(ZLFile f) {
-            this(f, null);
-        }
-
-        public ComicsView(ZLFile f, Storage.RecentInfo info) {
-            super(info);
             try {
                 File ff = new File(f.getPath());
                 is = new FileInputStream(ff);
@@ -782,8 +777,8 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public ComicsPlugin() {
-        super(Storage.systeminfo, EXTZ);
+    public ComicsPlugin(Storage.Info info) {
+        super(info, EXTZ);
     }
 
     @Override

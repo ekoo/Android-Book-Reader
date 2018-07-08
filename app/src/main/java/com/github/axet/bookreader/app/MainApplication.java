@@ -3,10 +3,11 @@ package com.github.axet.bookreader.app;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.support.multidex.MultiDexApplication;
-import android.support.v7.preference.Preference;
 import android.support.v7.preference.PreferenceManager;
 
 import com.github.axet.bookreader.R;
+
+import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
 
 public class MainApplication extends MultiDexApplication {
 
@@ -26,6 +27,8 @@ public class MainApplication extends MultiDexApplication {
     public static String PREFERENCE_VIEW_MODE = "view_mode";
     public static String PREFERENCE_STORAGE = "storage_path";
 
+    public ZLAndroidApplication zlib;
+
     public static int getTheme(Context context, int light, int dark) {
         final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
         String theme = shared.getString(PREFERENCE_THEME, "");
@@ -39,7 +42,14 @@ public class MainApplication extends MultiDexApplication {
     @Override
     public void onCreate() {
         super.onCreate();
-        Storage.init(this);
+
+        zlib = new ZLAndroidApplication() {
+            {
+                attachBaseContext(MainApplication.this);
+                onCreate();
+            }
+        };
+
     }
 
 }

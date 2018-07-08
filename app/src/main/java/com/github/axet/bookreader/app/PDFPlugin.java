@@ -44,12 +44,13 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     public static final String EXT = "pdf";
 
-    static {
+    public static PDFPlugin create(Storage.Info info) {
         if (Config.natives) {
-            Natives.loadLibraries(Storage.zlib, "modpdfium", "pdfiumjni");
+            Natives.loadLibraries(info.context, "modpdfium", "pdfiumjni");
             Config.natives = false;
         }
-        Storage.K2PdfOptInit(Storage.zlib);
+        Storage.K2PdfOptInit(info.context);
+        return new PDFPlugin(info);
     }
 
     @TargetApi(21)
@@ -193,11 +194,6 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         public PdfDocument doc;
 
         public PDFiumView(ZLFile f) {
-            this(f, null);
-        }
-
-        public PDFiumView(ZLFile f, Storage.RecentInfo info) {
-            super(info);
             try {
                 core = new PdfiumCore();
                 fd = ParcelFileDescriptor.open(new File(f.getPath()), ParcelFileDescriptor.MODE_READ_ONLY);
@@ -345,8 +341,8 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public PDFPlugin() {
-        super(Storage.systeminfo, EXT);
+    public PDFPlugin(Storage.Info info) {
+        super(info, EXT);
     }
 
     @Override
