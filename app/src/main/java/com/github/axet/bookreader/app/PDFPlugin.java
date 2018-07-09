@@ -12,10 +12,9 @@ import com.github.axet.bookreader.widgets.PluginPage;
 import com.github.axet.bookreader.widgets.PluginRect;
 import com.github.axet.bookreader.widgets.PluginView;
 import com.github.axet.bookreader.widgets.RenderRect;
-import com.shockwave.pdfium.Config;
-import com.shockwave.pdfium.PdfDocument;
-import com.shockwave.pdfium.PdfiumCore;
-import com.shockwave.pdfium.util.Size;
+import com.github.axet.djvulibre.DjvuLibre;
+import com.github.axet.pdfium.Config;
+import com.github.axet.pdfium.Pdfium;
 
 import org.geometerplus.fbreader.book.AbstractBook;
 import org.geometerplus.fbreader.book.BookUtil;
@@ -136,12 +135,10 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     }
 
     public static class PluginPdfiumPage extends PluginPage {
-        public PdfiumCore core;
-        public PdfDocument doc;
+        public Pdfium doc;
 
         public PluginPdfiumPage(PluginPdfiumPage r) {
             super(r);
-            core = r.core;
             doc = r.doc;
         }
 
@@ -166,15 +163,14 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             renderPage();
         }
 
-        public PluginPdfiumPage(PdfiumCore c, PdfDocument d) {
-            core = c;
+        public PluginPdfiumPage(Pdfium d) {
             doc = d;
             load();
         }
 
         @Override
         public int getPagesCount() {
-            return core.getPageCount(doc);
+            return doc.getPagesCount();
         }
 
         public void load() {
@@ -182,30 +178,29 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         void load(int index) {
-            Size s = core.getPageSize(doc, index);
-            pageBox = new PluginRect(0, 0, s.getWidth(), s.getHeight());
+            Pdfium.Size s = doc.getPageSize(index);
+            pageBox = new PluginRect(0, 0, s.width, s.height);
             dpi = 72; // default Pdifium resolution
         }
     }
 
     public static class PDFiumView extends PluginView {
-        public PdfiumCore core;
         ParcelFileDescriptor fd;
-        public PdfDocument doc;
+        public Pdfium doc;
 
         public PDFiumView(ZLFile f) {
             try {
-                core = new PdfiumCore();
+                doc = new Pdfium();
                 fd = ParcelFileDescriptor.open(new File(f.getPath()), ParcelFileDescriptor.MODE_READ_ONLY);
-                doc = core.newDocument(fd);
-                current = new PluginPdfiumPage(core, doc);
+                doc.open(fd.getFileDescriptor());
+                current = new PluginPdfiumPage(doc);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
 
         public void close() {
-            core.closeDocument(doc);
+            doc.close();
             try {
                 fd.close();
             } catch (IOException e) {
@@ -229,8 +224,9 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             PluginPdfiumPage r = new PluginPdfiumPage((PluginPdfiumPage) current, page, w, h);
             r.scale(w * 2, h * 2);
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);
-            core.openPage(doc, r.pageNumber);
-            core.renderPageBitmap(doc, bm, r.pageNumber, 0, 0, bm.getWidth(), bm.getHeight());
+            Pdfium.Page p = doc.openPage(r.pageNumber);
+            p.render(bm, 0, 0, bm.getWidth(), bm.getHeight());
+            p.close();
             bm.setDensity(r.dpi);
             return bm;
         }
@@ -244,10 +240,11 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             r.scale(w, h);
             RenderRect render = r.renderRect();
 
-            core.openPage(doc, r.pageNumber);
+            Pdfium.Page p = doc.openPage(r.pageNumber);
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);
             bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
-            core.renderPageBitmap(doc, bm, r.pageNumber, 0, 0, bm.getWidth(), bm.getHeight());
+            p.render(bm, 0, 0, bm.getWidth(), bm.getHeight());
+            p.close();
             canvas.drawBitmap(bm, render.toRect(bm.getWidth(), bm.getHeight()), render.dst, paint);
             bm.recycle();
         }
@@ -278,7 +275,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         @Override
         public int getParagraphsNumber() {
-            return core.getPageCount(doc);
+            return doc.getPagesCount();
         }
 
         @Override
@@ -349,13 +346,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     public void readMetainfo(AbstractBook book) throws BookReadingException {
         ZLFile f = BookUtil.fileByBook(book);
         try {
-            PdfiumCore core = new PdfiumCore();
+            Pdfium doc = new Pdfium();
             ParcelFileDescriptor fd = ParcelFileDescriptor.open(new File(f.getPath()), ParcelFileDescriptor.MODE_READ_ONLY);
-            PdfDocument doc = core.newDocument(fd);
-            PdfDocument.Meta info = core.getDocumentMeta(doc);
-            book.addAuthor(info.getAuthor());
-            book.setTitle(info.getTitle());
-            core.closeDocument(doc);
+            doc.open(fd.getFileDescriptor());
+            book.addAuthor(doc.getMeta(Pdfium.META_AUTHOR));
+            book.setTitle(doc.getMeta(Pdfium.META_TITLE));
+            doc.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -400,20 +396,34 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     public void readModel(BookModel model) throws BookReadingException {
         PDFTextModel m = new PDFTextModel(BookUtil.fileByBook(model.Book));
         model.setBookTextModel(m);
-        List<PdfDocument.Bookmark> bookmarks = m.core.getTableOfContents(m.doc);
-        loadTOC(bookmarks, model.TOCTree);
+        Pdfium.Bookmark[] bookmarks = m.doc.getTOC();
+        loadTOC(0, 0, bookmarks, model.TOCTree);
     }
 
-    void loadTOC(List<PdfDocument.Bookmark> bb, TOCTree tree) {
-        for (PdfDocument.Bookmark b : bb) {
-            String tt = b.getTitle();
-            if (tt.isEmpty() && !b.hasChildren())
+    int loadTOC(int pos, int level, Pdfium.Bookmark[] bb, TOCTree tree) {
+        int count = 0;
+        TOCTree last = null;
+        for (int i = pos; i < bb.length; ) {
+            Pdfium.Bookmark b = bb[i];
+            String tt = b.title;
+            if (tt == null || tt.isEmpty())
                 continue;
-            TOCTree t = new TOCTree(tree);
-            t.setText(tt);
-            t.setReference(null, (int) b.getPageIdx());
-            if (b.hasChildren())
-                loadTOC(b.getChildren(), t);
+            if (b.level > level) {
+                int c = loadTOC(i, b.level, bb, last);
+                i += c;
+                count += c;
+            } else if (b.level < level) {
+                break;
+            } else {
+                TOCTree t = new TOCTree(tree);
+                t.setText(tt);
+                t.setReference(null, b.page);
+                last = t;
+                i++;
+                count++;
+            }
         }
+        return count;
     }
+
 }
