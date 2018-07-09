@@ -91,6 +91,7 @@ public class MainActivity extends FullscreenActivity
     public MenuItem libraryMenu; // navigation drawer
     BooksCatalogs catalogs;
     boolean isRunning;
+    String lastSearch;
 
     BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
@@ -310,6 +311,7 @@ public class MainActivity extends FullscreenActivity
             @SuppressLint("RestrictedApi")
             @Override
             public boolean onQueryTextSubmit(String query) {
+                lastSearch = query;
                 searchView.clearFocus();
                 FragmentManager fm = getSupportFragmentManager();
                 for (Fragment f : fm.getFragments()) {
@@ -330,6 +332,8 @@ public class MainActivity extends FullscreenActivity
             @SuppressLint("RestrictedApi")
             @Override
             public void onClick(View v) {
+                if (lastSearch != null && !lastSearch.isEmpty())
+                    searchView.setQuery(lastSearch, false);
                 FragmentManager fm = getSupportFragmentManager();
                 for (Fragment f : fm.getFragments()) {
                     if (f != null && f.isVisible() && f instanceof SearchListener) {
