@@ -199,7 +199,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
         public void refresh() {
             if (searchCatalog != null || filter == null || filter.isEmpty()) {
-                list = all;
+                list = new ArrayList<>(all);
                 clearTasks();
             } else {
                 list = new ArrayList<>();
