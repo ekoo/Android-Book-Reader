@@ -53,16 +53,16 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     }
 
     @TargetApi(21)
-    public static class PluginNativePage extends PluginPage {
+    public static class NativePage extends PluginPage {
         public PdfRenderer doc;
         public PdfRenderer.Page page;
 
-        public PluginNativePage(PluginNativePage r) {
+        public NativePage(NativePage r) {
             super(r);
             doc = r.doc;
         }
 
-        public PluginNativePage(PluginNativePage r, ZLViewEnums.PageIndex index, int w, int h) {
+        public NativePage(NativePage r, ZLViewEnums.PageIndex index, int w, int h) {
             this(r);
             this.w = w;
             this.h = h;
@@ -73,7 +73,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             }
         }
 
-        public PluginNativePage(PdfRenderer d) {
+        public NativePage(PdfRenderer d) {
             doc = d;
         }
 
@@ -91,15 +91,15 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     }
 
     @TargetApi(21)
-    public static class PDFNativeView extends PluginView {
+    public static class NativeView extends PluginView {
         ParcelFileDescriptor fd;
         public PdfRenderer doc;
 
-        public PDFNativeView(ZLFile f) {
+        public NativeView(ZLFile f) {
             try {
                 fd = ParcelFileDescriptor.open(new File(f.getPath()), ParcelFileDescriptor.MODE_READ_ONLY);
                 doc = new PdfRenderer(fd);
-                current = new PluginNativePage(doc);
+                current = new NativePage(doc);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -116,7 +116,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         @Override
         public void draw(Canvas canvas, int w, int h, ZLView.PageIndex index, Bitmap.Config c) {
-            PluginNativePage r = new PluginNativePage((PluginNativePage) current, index, w, h);
+            NativePage r = new NativePage((NativePage) current, index, w, h);
             if (index == ZLViewEnums.PageIndex.current)
                 current.updatePage(r);
 
@@ -134,15 +134,15 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     }
 
-    public static class PluginPdfiumPage extends PluginPage {
+    public static class PdfiumPage extends PluginPage {
         public Pdfium doc;
 
-        public PluginPdfiumPage(PluginPdfiumPage r) {
+        public PdfiumPage(PdfiumPage r) {
             super(r);
             doc = r.doc;
         }
 
-        public PluginPdfiumPage(PluginPdfiumPage r, ZLViewEnums.PageIndex index, int w, int h) {
+        public PdfiumPage(PdfiumPage r, ZLViewEnums.PageIndex index, int w, int h) {
             this(r);
             this.w = w;
             this.h = h;
@@ -153,8 +153,8 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             }
         }
 
-        public PluginPdfiumPage(PluginPdfiumPage r, int page, int w, int h) {
-            this(r);
+        public PdfiumPage(Pdfium d, int page, int w, int h) {
+            this.doc = d;
             this.w = w;
             this.h = h;
             pageNumber = page;
@@ -163,7 +163,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             renderPage();
         }
 
-        public PluginPdfiumPage(Pdfium d) {
+        public PdfiumPage(Pdfium d) {
             doc = d;
             load();
         }
@@ -184,16 +184,16 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class PDFiumView extends PluginView {
+    public static class PdfiumView extends PluginView {
         ParcelFileDescriptor fd;
         public Pdfium doc;
 
-        public PDFiumView(ZLFile f) {
+        public PdfiumView(ZLFile f) {
             try {
                 doc = new Pdfium();
                 fd = ParcelFileDescriptor.open(new File(f.getPath()), ParcelFileDescriptor.MODE_READ_ONLY);
                 doc.open(fd.getFileDescriptor());
-                current = new PluginPdfiumPage(doc);
+                current = new PdfiumPage(doc);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -215,13 +215,13 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 page = c.end.getParagraphIndex() - 1;
             else
                 page = c.start.getParagraphIndex();
-            PluginPdfiumPage r = new PluginPdfiumPage((PluginPdfiumPage) current, page, w, 0);
+            PdfiumPage r = new PdfiumPage(doc, page, w, 0);
             return r.pageBox.h / r.ratio;
         }
 
         @Override
         public Bitmap render(int w, int h, int page, Bitmap.Config c) {
-            PluginPdfiumPage r = new PluginPdfiumPage((PluginPdfiumPage) current, page, w, h);
+            PdfiumPage r = new PdfiumPage(doc, page, w, h);
             r.scale(w * 2, h * 2);
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);
             Pdfium.Page p = doc.openPage(r.pageNumber);
@@ -233,7 +233,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         @Override
         public void draw(Canvas canvas, int w, int h, ZLView.PageIndex index, Bitmap.Config c) {
-            PluginPdfiumPage r = new PluginPdfiumPage((PluginPdfiumPage) current, index, w, h);
+            PdfiumPage r = new PdfiumPage((PdfiumPage) current, index, w, h);
             if (index == ZLViewEnums.PageIndex.current)
                 current.updatePage(r);
 
@@ -250,7 +250,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class PDFTextModel extends PDFiumView implements ZLTextModel {
+    public static class PDFTextModel extends PdfiumView implements ZLTextModel {
         public ArrayList<ZLTextParagraph> pars = new ArrayList<>();
 
         public PDFTextModel(ZLFile f) {
@@ -367,7 +367,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     @Override
     public ZLImage readCover(ZLFile f) {
-        PDFiumView view = new PDFiumView(f);
+        PdfiumView view = new PdfiumView(f);
         view.current.scale(Storage.COVER_SIZE, Storage.COVER_SIZE); // reduce render memory footprint
         Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.RGB_565);
         Canvas canvas = new Canvas(bm);

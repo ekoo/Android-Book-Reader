@@ -1641,7 +1641,7 @@ public class FBReaderView extends RelativeLayout {
                 book.info = new Storage.RecentInfo();
             FormatPlugin plugin = Storage.getPlugin((Storage.Info) app.SystemInfo, fbook);
             if (plugin instanceof PDFPlugin) {
-                pluginview = new PDFPlugin.PDFiumView(BookUtil.fileByBook(fbook.book));
+                pluginview = new PDFPlugin.PdfiumView(BookUtil.fileByBook(fbook.book));
                 BookModel Model = BookModel.createModel(fbook.book, plugin);
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;

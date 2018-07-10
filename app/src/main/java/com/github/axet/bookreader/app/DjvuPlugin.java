@@ -49,15 +49,15 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         return new DjvuPlugin(info);
     }
 
-    public static class PluginPage extends com.github.axet.bookreader.widgets.PluginPage {
+    public static class DjvuPage extends com.github.axet.bookreader.widgets.PluginPage {
         public DjvuLibre doc;
 
-        public PluginPage(PluginPage r) {
+        public DjvuPage(DjvuPage r) {
             super(r);
             doc = r.doc;
         }
 
-        public PluginPage(PluginPage r, ZLViewEnums.PageIndex index, int w, int h) {
+        public DjvuPage(DjvuPage r, ZLViewEnums.PageIndex index, int w, int h) {
             this(r);
             this.w = w;
             this.h = h;
@@ -68,8 +68,8 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             }
         }
 
-        public PluginPage(PluginPage r, int page, int w, int h) {
-            this(r);
+        public DjvuPage(DjvuLibre d, int page, int w, int h) {
+            this.doc = d;
             this.w = w;
             this.h = h;
             pageNumber = page;
@@ -78,7 +78,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             renderPage();
         }
 
-        public PluginPage(DjvuLibre d) {
+        public DjvuPage(DjvuLibre d) {
             doc = d;
             load();
         }
@@ -104,7 +104,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             try {
                 is = new FileInputStream(new File(f.getPath()));
                 doc = new DjvuLibre(is.getFD());
-                current = new PluginPage(doc);
+                current = new DjvuPage(doc);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -117,13 +117,13 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
                 page = c.end.getParagraphIndex() - 1;
             else
                 page = c.start.getParagraphIndex();
-            PluginPage r = new PluginPage((PluginPage) current, page, w, 0);
+            DjvuPage r = new DjvuPage(doc, page, w, 0);
             return r.pageBox.h / r.ratio;
         }
 
         @Override
         public Bitmap render(int w, int h, int page, Bitmap.Config c) {
-            PluginPage r = new PluginPage((PluginPage) current, page, w, h);
+            DjvuPage r = new DjvuPage(doc, page, w, h);
             r.scale(w * 2, h * 2);
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);
             doc.renderPage(bm, r.pageNumber, 0, 0, r.pageBox.w, r.pageBox.h, 0, 0, r.pageBox.w, r.pageBox.h);
@@ -133,7 +133,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
         @Override
         public void draw(Canvas canvas, int w, int h, ZLView.PageIndex index, Bitmap.Config c) {
-            PluginPage r = new PluginPage((PluginPage) current, index, w, h);
+            DjvuPage r = new DjvuPage((DjvuPage) current, index, w, h);
             if (index == ZLViewEnums.PageIndex.current)
                 current.updatePage(r);
 
