@@ -276,14 +276,14 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
         @Override
         public Bitmap downloadImageTask(CacheImagesAdapter.DownloadImageTask task) {
+            Storage.Book book = (Storage.Book) task.item;
+            Storage.FBook fbook = null;
             try {
-                Storage.Book book = (Storage.Book) task.item;
-                Storage.FBook fbook = storage.read(book);
+                fbook = storage.read(book);
                 File cover = Storage.coverFile(getContext(), book);
                 if (!cover.exists() || cover.length() == 0) {
                     storage.createCover(fbook, cover);
                 }
-                fbook.close();
                 book.cover = cover;
                 try {
                     Bitmap bm = BitmapFactory.decodeStream(new FileInputStream(cover));
@@ -294,6 +294,9 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                 }
             } catch (RuntimeException e) {
                 Log.e(TAG, "Unable to load cover", e);
+            } finally {
+                if (fbook != null)
+                    fbook.close();
             }
             return null;
         }

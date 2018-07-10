@@ -479,30 +479,31 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
         }
 
         Storage.FBook fbook = null;
-
-        if (book.info.authors == null || book.info.authors.isEmpty()) {
-            if (fbook == null)
-                fbook = storage.read(book);
-            book.info.authors = fbook.book.authorsString(", ");
-        }
-        if (book.info.title == null || book.info.title.isEmpty() || book.info.title.equals(book.md5)) {
-            if (fbook == null)
-                fbook = storage.read(book);
-            book.info.title = Storage.getTitle(book, fbook);
-        }
-        if (book.cover == null) {
-            File cover = coverFile(book);
-            if (!cover.exists() || cover.length() == 0) {
+        try {
+            if (book.info.authors == null || book.info.authors.isEmpty()) {
                 if (fbook == null)
                     fbook = storage.read(book);
-                storage.createCover(fbook, cover);
+                book.info.authors = fbook.book.authorsString(", ");
             }
-            book.cover = cover;
+            if (book.info.title == null || book.info.title.isEmpty() || book.info.title.equals(book.md5)) {
+                if (fbook == null)
+                    fbook = storage.read(book);
+                book.info.title = Storage.getTitle(book, fbook);
+            }
+            if (book.cover == null) {
+                File cover = coverFile(book);
+                if (!cover.exists() || cover.length() == 0) {
+                    if (fbook == null)
+                        fbook = storage.read(book);
+                    storage.createCover(fbook, cover);
+                }
+                book.cover = cover;
+            }
+            save(book);
+        } finally {
+            if (fbook != null)
+                fbook.close();
         }
-        save(book);
-
-        if (fbook != null)
-            fbook.close();
     }
 
     public void save(Book book) {
