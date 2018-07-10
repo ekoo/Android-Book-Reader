@@ -8,10 +8,13 @@ import android.os.ParcelFileDescriptor;
 
 import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.bookreader.widgets.FBReaderView;
-import com.shockwave.pdfium.Config;
-import com.shockwave.pdfium.PdfDocument;
-import com.shockwave.pdfium.PdfiumCore;
-import com.shockwave.pdfium.util.Size;
+import com.github.axet.bookreader.widgets.PluginPage;
+import com.github.axet.bookreader.widgets.PluginRect;
+import com.github.axet.bookreader.widgets.PluginView;
+import com.github.axet.bookreader.widgets.RenderRect;
+import com.github.axet.djvulibre.DjvuLibre;
+import com.github.axet.pdfium.Config;
+import com.github.axet.pdfium.Pdfium;
 
 import org.geometerplus.fbreader.book.AbstractBook;
 import org.geometerplus.fbreader.book.BookUtil;
@@ -40,25 +43,26 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     public static final String EXT = "pdf";
 
-    static {
+    public static PDFPlugin create(Storage.Info info) {
         if (Config.natives) {
-            Natives.loadLibraries(Storage.zlib, "modpdfium", "pdfiumjni");
+            Natives.loadLibraries(info.context, "modpdfium", "pdfiumjni");
             Config.natives = false;
         }
-        Storage.K2PdfOptInit(Storage.zlib);
+        Storage.K2PdfOptInit(info.context);
+        return new PDFPlugin(info);
     }
 
     @TargetApi(21)
-    public static class PluginNativePage extends FBReaderView.PluginPage {
+    public static class NativePage extends PluginPage {
         public PdfRenderer doc;
         public PdfRenderer.Page page;
 
-        public PluginNativePage(PluginNativePage r) {
+        public NativePage(NativePage r) {
             super(r);
             doc = r.doc;
         }
 
-        public PluginNativePage(PluginNativePage r, ZLViewEnums.PageIndex index, int w, int h) {
+        public NativePage(NativePage r, ZLViewEnums.PageIndex index, int w, int h) {
             this(r);
             this.w = w;
             this.h = h;
@@ -69,7 +73,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             }
         }
 
-        public PluginNativePage(PdfRenderer d) {
+        public NativePage(PdfRenderer d) {
             doc = d;
         }
 
@@ -82,20 +86,20 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             if (page != null)
                 page.close();
             page = doc.openPage(pageNumber);
-            pageBox = new FBReaderView.PluginRect(0, 0, page.getWidth(), page.getHeight());
+            pageBox = new PluginRect(0, 0, page.getWidth(), page.getHeight());
         }
     }
 
     @TargetApi(21)
-    public static class PDFNativeView extends FBReaderView.PluginView {
+    public static class NativeView extends PluginView {
         ParcelFileDescriptor fd;
         public PdfRenderer doc;
 
-        public PDFNativeView(ZLFile f) {
+        public NativeView(ZLFile f) {
             try {
                 fd = ParcelFileDescriptor.open(new File(f.getPath()), ParcelFileDescriptor.MODE_READ_ONLY);
                 doc = new PdfRenderer(fd);
-                current = new PluginNativePage(doc);
+                current = new NativePage(doc);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -112,12 +116,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         @Override
         public void draw(Canvas canvas, int w, int h, ZLView.PageIndex index, Bitmap.Config c) {
-            PluginNativePage r = new PluginNativePage((PluginNativePage) current, index, w, h);
+            NativePage r = new NativePage((NativePage) current, index, w, h);
             if (index == ZLViewEnums.PageIndex.current)
                 current.updatePage(r);
 
             r.scale(w, h);
-            FBReaderView.RenderRect render = r.renderRect();
+            RenderRect render = r.renderRect();
 
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);
             bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
@@ -130,17 +134,15 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     }
 
-    public static class PluginPdfiumPage extends FBReaderView.PluginPage {
-        public PdfiumCore core;
-        public PdfDocument doc;
+    public static class PdfiumPage extends PluginPage {
+        public Pdfium doc;
 
-        public PluginPdfiumPage(PluginPdfiumPage r) {
+        public PdfiumPage(PdfiumPage r) {
             super(r);
-            core = r.core;
             doc = r.doc;
         }
 
-        public PluginPdfiumPage(PluginPdfiumPage r, ZLViewEnums.PageIndex index, int w, int h) {
+        public PdfiumPage(PdfiumPage r, ZLViewEnums.PageIndex index, int w, int h) {
             this(r);
             this.w = w;
             this.h = h;
@@ -151,8 +153,8 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             }
         }
 
-        public PluginPdfiumPage(PluginPdfiumPage r, int page, int w, int h) {
-            this(r);
+        public PdfiumPage(Pdfium d, int page, int w, int h) {
+            this.doc = d;
             this.w = w;
             this.h = h;
             pageNumber = page;
@@ -161,15 +163,14 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             renderPage();
         }
 
-        public PluginPdfiumPage(PdfiumCore c, PdfDocument d) {
-            core = c;
+        public PdfiumPage(Pdfium d) {
             doc = d;
             load();
         }
 
         @Override
         public int getPagesCount() {
-            return core.getPageCount(doc);
+            return doc.getPagesCount();
         }
 
         public void load() {
@@ -177,30 +178,29 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         void load(int index) {
-            Size s = core.getPageSize(doc, index);
-            pageBox = new FBReaderView.PluginRect(0, 0, s.getWidth(), s.getHeight());
+            Pdfium.Size s = doc.getPageSize(index);
+            pageBox = new PluginRect(0, 0, s.width, s.height);
             dpi = 72; // default Pdifium resolution
         }
     }
 
-    public static class PDFiumView extends FBReaderView.PluginView {
-        public PdfiumCore core;
+    public static class PdfiumView extends PluginView {
         ParcelFileDescriptor fd;
-        public PdfDocument doc;
+        public Pdfium doc;
 
-        public PDFiumView(ZLFile f) {
+        public PdfiumView(ZLFile f) {
             try {
-                core = new PdfiumCore();
+                doc = new Pdfium();
                 fd = ParcelFileDescriptor.open(new File(f.getPath()), ParcelFileDescriptor.MODE_READ_ONLY);
-                doc = core.newDocument(fd);
-                current = new PluginPdfiumPage(core, doc);
+                doc.open(fd.getFileDescriptor());
+                current = new PdfiumPage(doc);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
 
         public void close() {
-            core.closeDocument(doc);
+            doc.close();
             try {
                 fd.close();
             } catch (IOException e) {
@@ -215,40 +215,42 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 page = c.end.getParagraphIndex() - 1;
             else
                 page = c.start.getParagraphIndex();
-            PluginPdfiumPage r = new PluginPdfiumPage((PluginPdfiumPage) current, page, w, 0);
+            PdfiumPage r = new PdfiumPage(doc, page, w, 0);
             return r.pageBox.h / r.ratio;
         }
 
         @Override
         public Bitmap render(int w, int h, int page, Bitmap.Config c) {
-            PluginPdfiumPage r = new PluginPdfiumPage((PluginPdfiumPage) current, page, w, h);
+            PdfiumPage r = new PdfiumPage(doc, page, w, h);
             r.scale(w * 2, h * 2);
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);
-            core.openPage(doc, r.pageNumber);
-            core.renderPageBitmap(doc, bm, r.pageNumber, 0, 0, bm.getWidth(), bm.getHeight());
+            Pdfium.Page p = doc.openPage(r.pageNumber);
+            p.render(bm, 0, 0, bm.getWidth(), bm.getHeight());
+            p.close();
             bm.setDensity(r.dpi);
             return bm;
         }
 
         @Override
         public void draw(Canvas canvas, int w, int h, ZLView.PageIndex index, Bitmap.Config c) {
-            PluginPdfiumPage r = new PluginPdfiumPage((PluginPdfiumPage) current, index, w, h);
+            PdfiumPage r = new PdfiumPage((PdfiumPage) current, index, w, h);
             if (index == ZLViewEnums.PageIndex.current)
                 current.updatePage(r);
 
             r.scale(w, h);
-            FBReaderView.RenderRect render = r.renderRect();
+            RenderRect render = r.renderRect();
 
-            core.openPage(doc, r.pageNumber);
+            Pdfium.Page p = doc.openPage(r.pageNumber);
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);
             bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
-            core.renderPageBitmap(doc, bm, r.pageNumber, 0, 0, bm.getWidth(), bm.getHeight());
+            p.render(bm, 0, 0, bm.getWidth(), bm.getHeight());
+            p.close();
             canvas.drawBitmap(bm, render.toRect(bm.getWidth(), bm.getHeight()), render.dst, paint);
             bm.recycle();
         }
     }
 
-    public static class PDFTextModel extends PDFiumView implements ZLTextModel {
+    public static class PDFTextModel extends PdfiumView implements ZLTextModel {
         public ArrayList<ZLTextParagraph> pars = new ArrayList<>();
 
         public PDFTextModel(ZLFile f) {
@@ -273,7 +275,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         @Override
         public int getParagraphsNumber() {
-            return core.getPageCount(doc);
+            return doc.getPagesCount();
         }
 
         @Override
@@ -336,21 +338,20 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public PDFPlugin() {
-        super(Storage.systeminfo, EXT);
+    public PDFPlugin(Storage.Info info) {
+        super(info, EXT);
     }
 
     @Override
     public void readMetainfo(AbstractBook book) throws BookReadingException {
         ZLFile f = BookUtil.fileByBook(book);
         try {
-            PdfiumCore core = new PdfiumCore();
+            Pdfium doc = new Pdfium();
             ParcelFileDescriptor fd = ParcelFileDescriptor.open(new File(f.getPath()), ParcelFileDescriptor.MODE_READ_ONLY);
-            PdfDocument doc = core.newDocument(fd);
-            PdfDocument.Meta info = core.getDocumentMeta(doc);
-            book.addAuthor(info.getAuthor());
-            book.setTitle(info.getTitle());
-            core.closeDocument(doc);
+            doc.open(fd.getFileDescriptor());
+            book.addAuthor(doc.getMeta(Pdfium.META_AUTHOR));
+            book.setTitle(doc.getMeta(Pdfium.META_TITLE));
+            doc.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -366,7 +367,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     @Override
     public ZLImage readCover(ZLFile f) {
-        PDFiumView view = new PDFiumView(f);
+        PdfiumView view = new PdfiumView(f);
         view.current.scale(Storage.COVER_SIZE, Storage.COVER_SIZE); // reduce render memory footprint
         Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.RGB_565);
         Canvas canvas = new Canvas(bm);
@@ -395,20 +396,34 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     public void readModel(BookModel model) throws BookReadingException {
         PDFTextModel m = new PDFTextModel(BookUtil.fileByBook(model.Book));
         model.setBookTextModel(m);
-        List<PdfDocument.Bookmark> bookmarks = m.core.getTableOfContents(m.doc);
-        loadTOC(bookmarks, model.TOCTree);
+        Pdfium.Bookmark[] bookmarks = m.doc.getTOC();
+        loadTOC(0, 0, bookmarks, model.TOCTree);
     }
 
-    void loadTOC(List<PdfDocument.Bookmark> bb, TOCTree tree) {
-        for (PdfDocument.Bookmark b : bb) {
-            String tt = b.getTitle();
-            if (tt.isEmpty() && !b.hasChildren())
+    int loadTOC(int pos, int level, Pdfium.Bookmark[] bb, TOCTree tree) {
+        int count = 0;
+        TOCTree last = null;
+        for (int i = pos; i < bb.length; ) {
+            Pdfium.Bookmark b = bb[i];
+            String tt = b.title;
+            if (tt == null || tt.isEmpty())
                 continue;
-            TOCTree t = new TOCTree(tree);
-            t.setText(tt);
-            t.setReference(null, (int) b.getPageIdx());
-            if (b.hasChildren())
-                loadTOC(b.getChildren(), t);
+            if (b.level > level) {
+                int c = loadTOC(i, b.level, bb, last);
+                i += c;
+                count += c;
+            } else if (b.level < level) {
+                break;
+            } else {
+                TOCTree t = new TOCTree(tree);
+                t.setText(tt);
+                t.setReference(null, b.page);
+                last = t;
+                i++;
+                count++;
+            }
         }
+        return count;
     }
+
 }

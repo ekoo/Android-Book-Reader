@@ -47,7 +47,6 @@ import org.geometerplus.zlibrary.core.view.ZLPaintContext;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.ui.android.image.ZLBitmapImage;
-import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -102,22 +101,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public static final String JSON_EXT = "json";
     public static final String ZIP_EXT = "zip";
 
-    public static ZLAndroidApplication zlib;
-    public static Storage.Info systeminfo;
-
-    public static void init(final Context context) {
-        if (Storage.systeminfo == null)
-            Storage.systeminfo = new Storage.Info(context);
-        if (Storage.zlib == null) {
-            Storage.zlib = new ZLAndroidApplication() {
-                {
-                    attachBaseContext(context);
-                    onCreate();
-                }
-            };
-        }
-    }
-
     public static void K2PdfOptInit(Context context) {
         if (com.github.axet.k2pdfopt.Config.natives) {
             Natives.loadLibraries(context, "willus", "k2pdfopt", "k2pdfoptjni");
@@ -162,16 +145,17 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return toHex(digest.digest());
     }
 
-    public static FormatPlugin getPlugin(PluginCollection c, Storage.FBook b) {
+    public static FormatPlugin getPlugin(Storage.Info info, Storage.FBook b) {
+        PluginCollection c = PluginCollection.Instance(info);
         ZLFile f = BookUtil.fileByBook(b.book);
         switch (f.getExtension()) {
             case PDFPlugin.EXT:
-                return new PDFPlugin();
+                return PDFPlugin.create(info);
             case DjvuPlugin.EXT:
-                return new DjvuPlugin();
+                return DjvuPlugin.create(info);
             case ComicsPlugin.EXTZ:
             case ComicsPlugin.EXTR:
-                return new ComicsPlugin();
+                return new ComicsPlugin(info);
         }
         try {
             return BookUtil.getPlugin(c, b.book);
@@ -189,12 +173,12 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
         @Override
         public String tempDirectory() {
-            return context.getFilesDir().getPath();
+            return context.getCacheDir().getPath();
         }
 
         @Override
         public String networkCacheDirectory() {
-            return context.getFilesDir().getPath();
+            return context.getCacheDir().getPath();
         }
     }
 
@@ -224,7 +208,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         } else if (s.equals(ContentResolver.SCHEME_FILE)) {
             return Uri.fromFile(recentFile(book));
         } else {
-            throw new RuntimeException("unknown uri");
+            throw new UnknownUri();
         }
     }
 
@@ -266,7 +250,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
             }
         } else {
-            throw new RuntimeException("unknown uri");
+            throw new UnknownUri();
         }
         return list;
     }
@@ -972,7 +956,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 } else if (s.equals(ContentResolver.SCHEME_FILE)) {
                     is = new FileInputStream(Storage.getFile(u));
                 } else {
-                    throw new RuntimeException("unknown uri");
+                    throw new UnknownUri();
                 }
                 load(is);
             } catch (Exception e) {
@@ -1099,7 +1083,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 throw new RuntimeException(e);
             }
         } else {
-            throw new RuntimeException("unknown uri");
+            throw new UnknownUri();
         }
     }
 
@@ -1193,6 +1177,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return cache;
     }
 
+    public File createTempBook(String ext) throws IOException {
+        return File.createTempFile("book", "." + ext, getCache());
+    }
+
     public Book load(InputStream is, Uri u) {
         Uri storage = getStoragePath();
 
@@ -1219,7 +1207,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (u.getScheme().equals(ContentResolver.SCHEME_FILE)) {
                 file = Storage.getFile(u);
             } else {
-                file = File.createTempFile("book", ".tmp", getCache());
+                file = createTempBook("tmp");
                 os = new FileOutputStream(file);
                 tmp = true;
             }
@@ -1235,11 +1223,11 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         FileTypeDetectorZipExtract.Handler e = (FileTypeDetectorZipExtract.Handler) d;
                         if (!tmp) { // !tmp
                             File z = file;
-                            file = File.createTempFile("book", ".tmp", getCache());
+                            file = createTempBook("tmp");
                             book.md5 = e.extract(z, file);
                             tmp = true; // force to delete 'fbook.file'
                         } else { // tmp
-                            File tt = File.createTempFile("book", ".tmp", getCache());
+                            File tt = createTempBook("tmp");
                             book.md5 = e.extract(file, tt);
                             file.delete(); // delete old
                             file = tt; // tmp = true
@@ -1259,7 +1247,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 try {
                     final Archive archive = new Archive(new ComicsPlugin.RarStore(fc));
                     if (archive.getMainHeader().isSolid()) {
-                        cbz = File.createTempFile("book", ".tmp", getCache());
+                        cbz = createTempBook("tmp");
                         FileOutputStream zos = new FileOutputStream(cbz);
                         ZipOutputStream out = new ZipOutputStream(zos);
                         List<FileHeader> list = archive.getFileHeaders();
@@ -1342,7 +1330,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     Storage.copy(file, to);
                 book.url = Uri.fromFile(to);
             } else {
-                throw new RuntimeException("unknown uri");
+                throw new UnknownUri();
             }
         } catch (RuntimeException e) {
             if (tmp && file != null)
@@ -1358,8 +1346,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public ZLImage loadCover(FBook book) {
         try {
-            final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
-            FormatPlugin plugin = getPlugin(pluginCollection, book);
+            FormatPlugin plugin = getPlugin(new Info(context), book);
             ZLFile file = BookUtil.fileByBook(book.book);
             return plugin.readCover(file);
         } catch (RuntimeException e) {
@@ -1393,10 +1380,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (fbook == null)
                 fbook = read(book);
             book.info.title = getTitle(book, fbook);
-        }
-        File cover = coverFile(context, book);
-        if (!cover.exists() || cover.length() == 0) {
-            createCover(fbook, cover);
         }
         if (fbook != null)
             fbook.close();
@@ -1561,7 +1544,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             File dir = getFile(uri);
             list(list, dir);
         } else {
-            throw new RuntimeException("unknow uri");
+            throw new UnknownUri();
         }
         return list;
     }
@@ -1608,7 +1591,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
             }
         } else {
-            throw new RuntimeException("unknown uri");
+            throw new UnknownUri();
         }
     }
 
@@ -1623,7 +1606,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             String s = b.url.getScheme();
             if (s.equals(ContentResolver.SCHEME_CONTENT)) {
                 String ext = getExt(b.url);
-                fbook.tmp = File.createTempFile("book", "." + ext, getCache());
+                fbook.tmp = createTempBook(ext);
                 OutputStream os = new FileOutputStream(fbook.tmp);
                 ContentResolver resolver = getContext().getContentResolver();
                 InputStream is = resolver.openInputStream(b.url);
@@ -1634,7 +1617,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             } else if (s.equals(ContentResolver.SCHEME_FILE)) {
                 file = getFile(b.url);
             } else {
-                throw new RuntimeException("unknown uri");
+                throw new UnknownUri();
             }
 
             String ext = getExt(file).toLowerCase();
@@ -1652,11 +1635,11 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                             FileTypeDetectorZipExtract.Handler e = (FileTypeDetectorZipExtract.Handler) d;
                             if (fbook.tmp == null) { // !tmp
                                 File z = file;
-                                file = File.createTempFile("book", "." + d.ext, getCache());
+                                file = createTempBook(d.ext);
                                 e.extract(z, file);
                                 fbook.tmp = file;
                             } else { // tmp
-                                File tt = File.createTempFile("book", "." + d.ext, getCache());
+                                File tt = createTempBook(d.ext);
                                 e.extract(file, tt);
                                 file.delete(); // delete old
                                 fbook.tmp = tt;
@@ -1668,9 +1651,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
             }
 
-            final PluginCollection pluginCollection = PluginCollection.Instance(new Info(context));
             fbook.book = new org.geometerplus.fbreader.book.Book(-1, file.getPath(), null, null, null);
-            FormatPlugin plugin = Storage.getPlugin(pluginCollection, fbook);
+            FormatPlugin plugin = Storage.getPlugin(new Info(context), fbook);
             try {
                 plugin.readMetainfo(fbook.book);
             } catch (BookReadingException e) {
@@ -1794,7 +1776,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 is = new FileInputStream(Storage.getFile(u));
                 os = new FileOutputStream(Storage.getFile(n));
             } else {
-                throw new RuntimeException("unknown uri");
+                throw new UnknownUri();
             }
             IOUtils.copy(is, os);
             is.close();

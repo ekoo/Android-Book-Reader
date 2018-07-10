@@ -24,7 +24,6 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.PopupMenu;
-import android.support.v7.widget.SearchView;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -42,6 +41,7 @@ import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.OpenChoicer;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
+import com.github.axet.androidlibrary.widgets.SearchView;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
@@ -91,6 +91,7 @@ public class MainActivity extends FullscreenActivity
     public MenuItem libraryMenu; // navigation drawer
     BooksCatalogs catalogs;
     boolean isRunning;
+    String lastSearch;
 
     BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
@@ -111,7 +112,7 @@ public class MainActivity extends FullscreenActivity
     }
 
     public void Post(final Throwable e) {
-        Log.d(TAG, "Error", e);
+        Log.e(TAG, "Error", e);
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -130,7 +131,7 @@ public class MainActivity extends FullscreenActivity
     }
 
     public void Error(Throwable e) {
-        Log.d(TAG, "Error", e);
+        Log.e(TAG, "Error", e);
         Error(toString(e));
     }
 
@@ -310,6 +311,7 @@ public class MainActivity extends FullscreenActivity
             @SuppressLint("RestrictedApi")
             @Override
             public boolean onQueryTextSubmit(String query) {
+                lastSearch = query;
                 searchView.clearFocus();
                 FragmentManager fm = getSupportFragmentManager();
                 for (Fragment f : fm.getFragments()) {
@@ -330,6 +332,8 @@ public class MainActivity extends FullscreenActivity
             @SuppressLint("RestrictedApi")
             @Override
             public void onClick(View v) {
+                if (lastSearch != null && !lastSearch.isEmpty())
+                    searchView.setQuery(lastSearch, false);
                 FragmentManager fm = getSupportFragmentManager();
                 for (Fragment f : fm.getFragments()) {
                     if (f != null && f.isVisible() && f instanceof SearchListener) {
@@ -339,10 +343,10 @@ public class MainActivity extends FullscreenActivity
                 }
             }
         });
-        searchView.setOnCloseListener(new SearchView.OnCloseListener() {
+        searchView.setOnCollapsedListener(new SearchView.OnCollapsedListener() {
             @SuppressLint("RestrictedApi")
             @Override
-            public boolean onClose() {
+            public void onCollapsed() {
                 FragmentManager fm = getSupportFragmentManager();
                 for (Fragment f : fm.getFragments()) {
                     if (f != null && f.isVisible() && f instanceof SearchListener) {
@@ -350,7 +354,12 @@ public class MainActivity extends FullscreenActivity
                         s.searchClose();
                     }
                 }
-                return true;
+            }
+        });
+        searchView.setOnCloseButtonListener(new SearchView.OnCloseButtonListener() {
+            @Override
+            public void onClosed() {
+                lastSearch = "";
             }
         });
 

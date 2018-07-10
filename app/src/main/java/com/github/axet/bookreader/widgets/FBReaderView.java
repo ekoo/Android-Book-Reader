@@ -8,7 +8,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -20,8 +19,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.graphics.drawable.DrawableCompat;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.ScaleGestureDetectorCompat;
 import android.support.v7.app.AlertDialog;
@@ -32,7 +29,6 @@ import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
-import android.util.DisplayMetrics;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -61,7 +57,6 @@ import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.PDFPlugin;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.services.ImagesProvider;
-import com.github.axet.k2pdfopt.K2PdfOpt;
 import com.github.johnpersano.supertoasts.SuperActivityToast;
 import com.github.johnpersano.supertoasts.SuperToast;
 import com.github.johnpersano.supertoasts.util.OnClickWrapper;
@@ -100,7 +95,6 @@ import org.geometerplus.fbreader.util.AutoTextSnippet;
 import org.geometerplus.fbreader.util.TextSnippet;
 import org.geometerplus.zlibrary.core.application.ZLApplication;
 import org.geometerplus.zlibrary.core.application.ZLApplicationWindow;
-import org.geometerplus.zlibrary.core.filesystem.ZLFile;
 import org.geometerplus.zlibrary.core.options.Config;
 import org.geometerplus.zlibrary.core.options.StringPair;
 import org.geometerplus.zlibrary.core.options.ZLOption;
@@ -110,10 +104,7 @@ import org.geometerplus.zlibrary.core.view.ZLView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.core.view.ZLViewWidget;
 import org.geometerplus.zlibrary.text.hyphenation.ZLTextHyphenator;
-import org.geometerplus.zlibrary.text.model.ZLTextMark;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
-import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
-import org.geometerplus.zlibrary.text.view.ZLTextElementArea;
 import org.geometerplus.zlibrary.text.view.ZLTextElementAreaVector;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextHyperlink;
@@ -127,7 +118,6 @@ import org.geometerplus.zlibrary.text.view.ZLTextWordRegionSoul;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidPaintContext;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -153,672 +143,10 @@ public class FBReaderView extends RelativeLayout {
     public Storage.FBook book;
     public PluginView pluginview;
     public PageTurningListener pageTurningListener;
-    GestureDetectorCompat gestures;
     PinchView pinch;
-
-    public static class PluginRect {
-        public int x; // lower left x
-        public int y; // lower left y
-        public int w; // x + w = upper right x
-        public int h; // y + h = upper right y
-
-        public PluginRect() {
-        }
-
-        public PluginRect(PluginRect r) {
-            this.x = r.x;
-            this.y = r.y;
-            this.w = r.w;
-            this.h = r.h;
-        }
-
-        public PluginRect(int x, int y, int w, int h) {
-            this.x = x;
-            this.y = y;
-            this.w = w;
-            this.h = h;
-        }
-
-        public Rect toRect(int w, int h) {
-            return new Rect(x, h - this.h - y, x + this.w, h - y);
-        }
-    }
-
-    public static abstract class PluginPage {
-        public int pageNumber;
-        public int pageOffset; // pageBox sizes
-        public PluginRect pageBox; // pageBox sizes
-        public int w; // display w
-        public int h; // display h
-        public double hh; // pageBox sizes, visible height
-        public double ratio;
-        public int pageStep; // pageBox sizes, page step size (fullscreen height == pageStep + pageOverlap)
-        public int pageOverlap; // pageBox sizes, page overlap size (fullscreen height == pageStep + pageOverlap)
-        public int dpi; // pageBox dpi, set manually
-
-        public PluginPage() {
-        }
-
-        public PluginPage(PluginPage r) {
-            w = r.w;
-            h = r.h;
-            hh = r.hh;
-            ratio = r.ratio;
-            pageNumber = r.pageNumber;
-            pageOffset = r.pageOffset;
-            if (r.pageBox != null)
-                pageBox = new PluginRect(r.pageBox);
-            pageStep = r.pageStep;
-            pageOverlap = r.pageOverlap;
-        }
-
-        public PluginPage(PluginPage r, ZLViewEnums.PageIndex index) {
-            this(r);
-            load(index);
-        }
-
-        public void renderPage() {
-            ratio = pageBox.w / (double) w;
-            hh = h * ratio;
-
-            pageOverlap = (int) (hh * PAGE_OVERLAP_PERCENTS / 100);
-            pageStep = (int) (hh - pageOverlap); // -5% or lowest base line
-        }
-
-        public void load(ZLViewEnums.PageIndex index) {
-            switch (index) {
-                case next:
-                    next();
-                    break;
-                case previous:
-                    prev();
-                    break;
-            }
-        }
-
-        public abstract void load();
-
-        public abstract int getPagesCount();
-
-        public boolean next() {
-            int pageOffset = this.pageOffset + pageStep;
-            int tail = pageBox.h - pageOffset;
-            if (pageOffset >= pageBox.h || tail <= pageOverlap) {
-                int pageNumber = this.pageNumber + 1;
-                if (pageNumber >= getPagesCount())
-                    return false;
-                this.pageOffset = 0;
-                this.pageNumber = pageNumber;
-                load();
-                renderPage();
-                return true;
-            }
-            this.pageOffset = pageOffset;
-            return true;
-        }
-
-        public boolean prev() {
-            int pageOffset = this.pageOffset - pageStep;
-            if (this.pageOffset > 0 && pageOffset < 0) { // happens only on screen rotate
-                this.pageOffset = pageOffset; // sync to top = 0 or keep negative offset
-                return true;
-            } else if (pageOffset < 0) {
-                int pageNumber = this.pageNumber - 1;
-                if (pageNumber < 0)
-                    return false;
-                this.pageNumber = pageNumber;
-                load(); // load pageBox
-                renderPage(); // calculate pageStep
-                int tail = pageBox.h % pageStep;
-                pageOffset = pageBox.h - tail;
-                if (tail <= pageOverlap)
-                    pageOffset = pageOffset - pageStep; // skip tail
-                this.pageOffset = pageOffset;
-                return true;
-            }
-            this.pageOffset = pageOffset;
-            return true;
-        }
-
-        public void scale(int w, int h) {
-            double ratio = w / (double) pageBox.w;
-            this.hh *= ratio;
-            this.ratio *= ratio;
-            pageBox.w = w;
-            pageBox.h = (int) (pageBox.h * ratio);
-            pageOffset = (int) (pageOffset * ratio);
-            dpi = (int) (dpi * ratio);
-        }
-
-        public RenderRect renderRect() {
-            RenderRect render = new RenderRect(); // render region
-
-            render.x = 0;
-            render.w = pageBox.w;
-
-            if (pageOffset < 0) { // show empty space at beginig
-                int tail = (int) (pageBox.h - pageOffset - hh); // tail to cut from the bottom
-                if (tail < 0) {
-                    render.h = pageBox.h;
-                    render.y = 0;
-                } else {
-                    render.h = pageBox.h - tail;
-                    render.y = tail;
-                }
-                render.dst = new Rect(0, (int) (-pageOffset / ratio), w, h);
-            } else if (pageOffset == 0 && hh > pageBox.h) {  // show middle vertically
-                int t = (int) ((hh - pageBox.h) / ratio / 2);
-                render.h = pageBox.h;
-                render.dst = new Rect(0, t, w, h - t);
-            } else {
-                render.h = (int) hh;
-                render.y = pageBox.h - render.h - pageOffset - 1;
-                if (render.y < 0) {
-                    render.h += render.y;
-                    h += render.y / ratio; // convert to display sizes
-                    render.y = 0;
-                }
-                render.dst = new Rect(0, 0, w, h);
-            }
-
-            render.src = new Rect(0, 0, render.w, render.h);
-
-            return render;
-        }
-
-        public boolean equals(int n, int o) {
-            return pageNumber == n && pageOffset == o;
-        }
-
-        public void load(ZLTextPosition p) {
-            if (p == null) {
-                load(0, 0);
-            } else {
-                load(p.getParagraphIndex(), p.getElementIndex());
-            }
-        }
-
-        public void load(int n, int o) {
-            pageNumber = n;
-            pageOffset = o;
-            load();
-        }
-
-        public void updatePage(PluginPage r) {
-            w = r.w;
-            h = r.h;
-            ratio = r.ratio;
-            hh = r.hh;
-            pageStep = r.pageStep;
-            pageOverlap = r.pageOverlap;
-        }
-    }
-
-    public static class RenderRect extends FBReaderView.PluginRect {
-        public Rect src;
-        public Rect dst;
-    }
-
-    public static class Reflow {
-        public K2PdfOpt k2;
-        public int current = 0; // current view position
-        public int page = 0; // document page
-        int w;
-        int h;
-        Context context;
-        public Bitmap bm; // source bm, in case or errors, recycled otherwise
-        public Storage.RecentInfo info;
-
-        public Reflow(Context context, int w, int h, int page, Storage.RecentInfo info) {
-            this.context = context;
-            this.page = page;
-            this.info = info;
-            reset(w, h);
-        }
-
-        public void reset() {
-            w = 0;
-            h = 0;
-            if (k2 != null) {
-                k2.close();
-                k2 = null;
-            }
-        }
-
-        public void reset(int w, int h) {
-            if (this.w != w || this.h != h) {
-                SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(context);
-                Float old = shared.getFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, MainApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
-                if (info.fontsize != null)
-                    old = info.fontsize / 100f;
-                if (k2 != null) {
-                    old = k2.getFontSize();
-                    k2.close();
-                }
-                k2 = new K2PdfOpt();
-                DisplayMetrics d = context.getResources().getDisplayMetrics();
-                k2.create(w, h, d.densityDpi);
-                k2.setFontSize(old);
-                this.w = w;
-                this.h = h;
-            }
-        }
-
-        public void load(Bitmap bm) {
-            if (this.bm != null)
-                this.bm.recycle();
-            this.bm = bm;
-            current = 0;
-            k2.load(bm);
-        }
-
-        public void load(Bitmap bm, int page, int current) {
-            if (this.bm != null)
-                this.bm.recycle();
-            this.bm = bm;
-            this.page = page;
-            this.current = current;
-            k2.load(bm);
-        }
-
-        public int count() {
-            if (k2 == null)
-                return -1;
-            return k2.getCount();
-        }
-
-        public Bitmap render(int page) {
-            return k2.renderPage(page);
-        }
-
-        public boolean canScroll(ZLViewEnums.PageIndex index) {
-            switch (index) {
-                case previous:
-                    return current > 0;
-                case next:
-                    return current + 1 < count();
-                default:
-                    return true; // current???
-            }
-        }
-
-        public void onScrollingFinished(ZLViewEnums.PageIndex index) {
-            switch (index) {
-                case next:
-                    current++;
-                    break;
-                case previous:
-                    current--;
-                    break;
-            }
-        }
-
-        public void close() {
-            if (k2 != null) {
-                k2.close();
-                k2 = null;
-            }
-            if (bm != null) {
-                bm.recycle();
-                bm = null;
-            }
-        }
-    }
 
     public interface PageTurningListener {
         void onScrollingFinished(ZLViewEnums.PageIndex index);
-    }
-
-    public static class PluginView {
-        public Bitmap wallpaper;
-        public int wallpaperColor;
-        public Paint paint = new Paint();
-        public PluginPage current;
-        public boolean reflow = false;
-        public boolean reflowDebug;
-        public Reflow reflower;
-        public Storage.RecentInfo info; // reflow fontsize
-
-        public PluginView() {
-            try {
-                org.geometerplus.fbreader.fbreader.FBReaderApp app = new org.geometerplus.fbreader.fbreader.FBReaderApp(Storage.systeminfo, new BookCollectionShadow());
-                ZLFile wallpaper = app.BookTextView.getWallpaperFile();
-                if (wallpaper != null)
-                    this.wallpaper = BitmapFactory.decodeStream(wallpaper.getInputStream());
-                wallpaperColor = (0xff << 24) | app.BookTextView.getBackgroundColor().intValue();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public void drawWallpaper(Canvas canvas) {
-            if (wallpaper != null) {
-                float dx = wallpaper.getWidth();
-                float dy = wallpaper.getHeight();
-                for (int cw = 0; cw < canvas.getWidth() + dx; cw += dx) {
-                    for (int ch = 0; ch < canvas.getHeight() + dy; ch += dy) {
-                        canvas.drawBitmap(wallpaper, cw - dx, ch - dy, paint);
-                    }
-                }
-            } else {
-                canvas.drawColor(wallpaperColor);
-            }
-        }
-
-        public void gotoPosition(ZLTextPosition p) {
-            if (p == null)
-                return;
-            if (current.pageNumber != p.getParagraphIndex() || current.pageOffset != p.getElementIndex())
-                current.load(p);
-            if (reflower != null) {
-                if (reflower.page != p.getParagraphIndex()) {
-                    reflower.reset();
-                    reflower.page = current.pageNumber;
-                }
-                reflower.current = p.getElementIndex();
-            }
-        }
-
-        public boolean onScrollingFinished(ZLViewEnums.PageIndex index) {
-            if (reflow && reflowDebug) {
-                switch (index) {
-                    case previous:
-                        current.pageNumber--;
-                        current.pageOffset = 0;
-                        current.load();
-                        break;
-                    case next:
-                        current.pageNumber++;
-                        current.pageOffset = 0;
-                        current.load();
-                        break;
-                }
-                return false;
-            }
-            if (reflower != null) {
-                reflower.onScrollingFinished(index);
-                if (reflower.page != current.pageNumber) {
-                    current.pageNumber = reflower.page;
-                    current.pageOffset = 0;
-                    current.load();
-                }
-                if (reflower.current == -1) {
-                    current.pageNumber = reflower.page - 1;
-                    current.pageOffset = 0;
-                    current.load();
-                }
-                if (reflower.current >= reflower.count()) { // current points to next page +1
-                    current.pageNumber = reflower.page + 1;
-                    current.pageOffset = 0;
-                    current.load();
-                }
-                return false;
-            }
-            PluginPage old = new PluginPage(current) {
-                @Override
-                public void load() {
-                }
-
-                @Override
-                public int getPagesCount() {
-                    return current.getPagesCount();
-                }
-            };
-            current.load(index);
-            PluginPage r;
-            switch (index) {
-                case previous:
-                    r = new PluginPage(current, ZLViewEnums.PageIndex.next) {
-                        @Override
-                        public void load() {
-                        }
-
-                        @Override
-                        public int getPagesCount() {
-                            return current.getPagesCount();
-                        }
-                    };
-                    break;
-                case next:
-                    r = new PluginPage(current, ZLViewEnums.PageIndex.previous) {
-                        @Override
-                        public void load() {
-                        }
-
-                        @Override
-                        public int getPagesCount() {
-                            return current.getPagesCount();
-                        }
-                    };
-                    break;
-                default:
-                    return false;
-            }
-            return !old.equals(r.pageNumber, r.pageOffset); // need reset cache true/false?
-        }
-
-        public ZLTextFixedPosition getPosition() {
-            return new ZLTextFixedPosition(current.pageNumber, current.pageOffset, 0);
-        }
-
-        public ZLTextFixedPosition getNextPosition() {
-            if (current.w == 0 || current.h == 0)
-                return null; // after reset() we do not know display size
-            PluginPage next = new PluginPage(current, ZLViewEnums.PageIndex.next) {
-                @Override
-                public void load() {
-                }
-
-                @Override
-                public int getPagesCount() {
-                    return current.getPagesCount();
-                }
-            };
-            if (current.equals(next.pageNumber, next.pageOffset))
-                return null; // !canScroll()
-            ZLTextFixedPosition e = new ZLTextFixedPosition(next.pageNumber, next.pageOffset, 0);
-            if (e.ParagraphIndex >= next.getPagesCount())
-                return null;
-            return e;
-        }
-
-        public boolean canScroll(ZLView.PageIndex index) {
-            if (reflower != null) {
-                if (reflower.canScroll(index))
-                    return true;
-                switch (index) {
-                    case previous:
-                        if (current.pageNumber > 0)
-                            return true;
-                        if (current.pageNumber != reflower.page) { // only happens to 0 page of document, we need to know it reflow count
-                            int render = reflower.current;
-                            Bitmap bm = render(reflower.w, reflower.h, current.pageNumber); // 0 page
-                            reflower.load(bm, current.pageNumber, 0);
-                            bm.recycle();
-                            int count = reflower.count();
-                            count += render;
-                            reflower.current = count;
-                            return count > 0;
-                        }
-                        return false;
-                    case next:
-                        if (current.pageNumber + 1 < current.getPagesCount())
-                            return true;
-                        if (current.pageNumber != reflower.page) { // only happens to last page of document, we need to know it reflow count
-                            int render = reflower.current - reflower.count();
-                            Bitmap bm = render(reflower.w, reflower.h, current.pageNumber); // last page
-                            reflower.load(bm, current.pageNumber, 0);
-                            bm.recycle();
-                            reflower.current = render;
-                            return render + 1 < reflower.count();
-                        }
-                        return false;
-                    default:
-                        return true; // current???
-                }
-            }
-            PluginPage r = new PluginPage(current, index) {
-                @Override
-                public void load() {
-                }
-
-                @Override
-                public int getPagesCount() {
-                    return current.getPagesCount();
-                }
-            };
-            return !r.equals(current.pageNumber, current.pageOffset);
-        }
-
-        public ZLTextView.PagePosition pagePosition() {
-            return new ZLTextView.PagePosition(current.pageNumber + 1, current.getPagesCount());
-        }
-
-        public Bitmap render(int w, int h, int page, Bitmap.Config c) {
-            return null;
-        }
-
-        public Bitmap render(int w, int h, int page) {
-            return render(w, h, page, Bitmap.Config.RGB_565); // reflower active, always 565
-        }
-
-        public void drawOnBitmap(Context context, Bitmap bitmap, int w, int h, ZLView.PageIndex index) {
-            Canvas canvas = new Canvas(bitmap);
-            drawOnCanvas(context, canvas, w, h, index);
-        }
-
-        public double getPageHeight(int w, ScrollView.ScrollAdapter.PageCursor c) {
-            return -1;
-        }
-
-        public void drawOnCanvas(Context context, Canvas canvas, int w, int h, ZLView.PageIndex index) {
-            drawWallpaper(canvas);
-            if (reflow) {
-                if (reflower == null) {
-                    int page = current.pageNumber;
-                    reflower = new Reflow(context, w, h, page, info);
-                }
-                Bitmap bm = null;
-                reflower.reset(w, h);
-                int render = reflower.current; // render reflow page index
-                int page = reflower.page; // render pageNumber
-                if (reflowDebug) {
-                    switch (index) {
-                        case previous:
-                            page = current.pageNumber - 1;
-                            break;
-                        case next:
-                            page = current.pageNumber + 1;
-                            break;
-                        case current:
-                            break;
-                    }
-                    index = ZLViewEnums.PageIndex.current;
-                    render = 0;
-                }
-                switch (index) {
-                    case previous: // prev can point to many (no more then 2) pages behind, we need to walk every page manually
-                        render -= 1;
-                        while (render < 0) {
-                            page--;
-                            bm = render(w, h, page);
-                            reflower.load(bm);
-                            bm.recycle();
-                            int count = reflower.count();
-                            render = render + count;
-                            reflower.page = page;
-                            reflower.current = render + 1;
-                        }
-                        bm = reflower.render(render);
-                        break;
-                    case current:
-                        bm = render(w, h, page);
-                        if (reflowDebug) {
-                            reflower.k2.setVerbose(true);
-                            reflower.k2.setShowMarkedSource(true);
-                        }
-                        reflower.load(bm, page, render);
-                        if (reflowDebug) {
-                            reflower.bm = null; // do not recycle
-                            reflower.close();
-                            reflower = null;
-                        } else {
-                            if (reflower.count() > 0) { // empty source page
-                                bm.recycle();
-                                bm = reflower.render(render);
-                            }
-                        }
-                        break;
-                    case next: // next can point to many (no more then 2) pages ahead, we need to walk every page manually
-                        render += 1;
-                        while (reflower.count() - render <= 0) {
-                            page++;
-                            render -= reflower.count();
-                            bm = render(w, h, page);
-                            reflower.load(bm, page, render - 1);
-                            bm.recycle();
-                        }
-                        bm = reflower.render(render);
-                        break;
-                }
-                if (bm != null) {
-                    drawPage(canvas, w, h, bm);
-                    bm.recycle();
-                    return;
-                }
-            }
-            if (reflower != null) {
-                reflower.close();
-                reflower = null;
-            }
-            draw(canvas, w, h, index);
-        }
-
-        public void draw(Canvas bitmap, int w, int h, ZLView.PageIndex index, Bitmap.Config c) {
-        }
-
-        public void draw(Canvas bitmap, int w, int h, ZLView.PageIndex index) {
-            try {
-                draw(bitmap, w, h, index, Bitmap.Config.ARGB_8888);
-            } catch (OutOfMemoryError e) {
-                draw(bitmap, w, h, index, Bitmap.Config.RGB_565);
-            }
-        }
-
-        public void drawPage(Canvas canvas, int w, int h, Bitmap bm) {
-            Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
-            float wr = w / (float) bm.getWidth();
-            float hr = h / (float) bm.getHeight();
-            int dh = (int) (bm.getHeight() * wr);
-            int dw = (int) (bm.getWidth() * hr);
-            Rect dst;
-            if (dh > h) { // scaling width max makes it too high
-                int mid = (w - dw) / 2;
-                dst = new Rect(mid, 0, dw + mid, h); // scale it by height max and take calulated width
-            } else { // take width
-                int mid = (h - dh) / 2;
-                dst = new Rect(0, mid, w, dh + mid); // scale it by width max and take calulated height
-            }
-            canvas.drawBitmap(bm, src, dst, paint);
-        }
-
-        public void close() {
-        }
-
-        public TOCTree getCurrentTOCElement(TOCTree TOCTree) {
-            TOCTree treeToSelect = null;
-            for (TOCTree tree : TOCTree) {
-                final TOCTree.Reference reference = tree.getReference();
-                if (reference == null) {
-                    continue;
-                }
-                if (reference.ParagraphIndex > current.pageNumber) {
-                    break;
-                }
-                treeToSelect = tree;
-            }
-            return treeToSelect;
-        }
     }
 
     public class CustomView extends FBView {
@@ -1038,7 +366,7 @@ public class FBReaderView extends RelativeLayout {
         @Override
         public void drawOnBitmap(Bitmap bitmap, ZLViewEnums.PageIndex index) {
             if (pluginview != null)
-                pluginview.drawOnBitmap(getContext(), bitmap, getWidth(), getMainAreaHeight(), index);
+                pluginview.drawOnBitmap(getContext(), bitmap, getWidth(), getMainAreaHeight(), index, book.info);
             else
                 super.drawOnBitmap(bitmap, index);
         }
@@ -1111,8 +439,8 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public class FBReaderApp extends org.geometerplus.fbreader.fbreader.FBReaderApp {
-        public FBReaderApp(org.geometerplus.zlibrary.core.util.SystemInfo systemInfo, IBookCollection<Book> collection) {
-            super(systemInfo, collection);
+        public FBReaderApp(Context context) {
+            super(new Storage.Info(context), new BookCollectionShadow());
         }
 
         @Override
@@ -1365,7 +693,7 @@ public class FBReaderView extends RelativeLayout {
                                             public void run() {
                                                 int i = index;
                                                 Reflow reflower = new Reflow(getContext(), w, h, page, book.info);
-                                                Bitmap bm = pluginview.render(w, h, page);
+                                                Bitmap bm = pluginview.render(reflower.w, reflower.h, page);
                                                 reflower.load(bm);
                                                 if (reflower.count() > 0)
                                                     bm.recycle();
@@ -1409,7 +737,7 @@ public class FBReaderView extends RelativeLayout {
                                     if (pluginview.reflower.count() > 0) { // empty source page?
                                         Bitmap bm = pluginview.reflower.render(c.start.getElementIndex());
                                         Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
-                                        Rect dst = new Rect(app.BookTextView.getLeftMargin(), 0, app.BookTextView.getLeftMargin() + w, h);
+                                        Rect dst = new Rect(app.BookTextView.getLeftMargin(), 0, app.BookTextView.getLeftMargin() + pluginview.reflower.w, pluginview.reflower.h);
                                         canvas.drawColor(Color.WHITE);
                                         canvas.drawBitmap(bm, src, dst, pluginview.paint);
                                     } else {
@@ -1425,7 +753,7 @@ public class FBReaderView extends RelativeLayout {
                             return;
                         }
                         open(c);
-                        pluginview.drawOnCanvas(getContext(), draw, getWidth(), getHeight(), ZLViewEnums.PageIndex.current);
+                        pluginview.drawOnCanvas(getContext(), draw, getWidth(), getHeight(), ZLViewEnums.PageIndex.current, book.info);
                         update();
                     } else {
                         open(c);
@@ -1554,9 +882,7 @@ public class FBReaderView extends RelativeLayout {
                     if (pluginview != null) {
                         pluginview.gotoPosition(c.end);
                         pluginview.onScrollingFinished(ZLViewEnums.PageIndex.previous);
-                        if (widget instanceof ScrollView) {
-                            pluginview.current.pageOffset = 0;
-                        }
+                        pluginview.current.pageOffset = 0; // widget instanceof ScrollView
                         c.update(getCurrent());
                     } else {
                         app.BookTextView.gotoPosition(c.end);
@@ -1684,9 +1010,13 @@ public class FBReaderView extends RelativeLayout {
             int x;
             int y;
             ScrollAdapter.PageView v;
+            ScrollAdapter.PageCursor c;
             PinchGesture pinch;
+            GestureDetectorCompat gestures;
 
             Gestures(Context context) {
+                gestures = new GestureDetectorCompat(context, this);
+
                 if (Looper.myLooper() != null) {
                     pinch = new PinchGesture(context) {
                         @Override
@@ -1710,21 +1040,31 @@ public class FBReaderView extends RelativeLayout {
             }
 
             boolean open(MotionEvent e) {
+                if (!openCursor(e))
+                    return false;
+                return openText(e);
+            }
+
+            boolean openCursor(MotionEvent e) {
                 this.e = e;
                 v = findView(e);
                 if (v == null)
                     return false;
+                x = (int) (e.getX() - v.getLeft());
+                y = (int) (e.getY() - v.getTop());
                 int pos = v.holder.getAdapterPosition();
                 if (pos == -1)
                     return false;
-                ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+                c = adapter.pages.get(pos);
+                return true;
+            }
+
+            boolean openText(MotionEvent e) {
                 if (v.p == null)
                     return false;
                 if (!app.BookTextView.getStartCursor().samePositionAs(c.start))
                     app.BookTextView.gotoPosition(c.start);
                 app.BookTextView.myCurrentPage.TextElementMap = v.p;
-                x = (int) (e.getX() - v.getLeft());
-                y = (int) (e.getY() - v.getTop());
                 return true;
             }
 
@@ -1908,7 +1248,6 @@ public class FBReaderView extends RelativeLayout {
                     startSmoothScroll(smoothScroller);
                 }
             };
-            gestures = new GestureDetectorCompat(context, gesturesListener);
 
             setLayoutManager(lm);
             setAdapter(adapter);
@@ -2041,6 +1380,7 @@ public class FBReaderView extends RelativeLayout {
             if (pos < 0 || pos >= adapter.pages.size())
                 return;
             smoothScrollToPosition(pos);
+            pinchClose();
         }
 
         @Override
@@ -2077,7 +1417,7 @@ public class FBReaderView extends RelativeLayout {
             if (first == -1)
                 return;
             if (pluginview != null && pluginview.reflow) {
-                ScrollView.ScrollAdapter.PageCursor cc = ((ScrollView) widget).adapter.pages.get(first);
+                ScrollView.ScrollAdapter.PageCursor cc = adapter.pages.get(first);
                 if (cc.start == null) {
                     int p = cc.end.getParagraphIndex();
                     int i = cc.end.getElementIndex() - 1;
@@ -2089,8 +1429,8 @@ public class FBReaderView extends RelativeLayout {
                 }
                 clearReflowPage(); // reset reflow page, since we treat pageOffset differently for reflower/full page view
             } else {
-                ScrollView.ScrollAdapter.PageCursor c = ((ScrollView) widget).adapter.pages.get(first);
-                ((ScrollView) widget).adapter.open(c);
+                ScrollView.ScrollAdapter.PageCursor c = adapter.pages.get(first);
+                adapter.open(c);
             }
         }
 
@@ -2196,199 +1536,6 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
-    public class PinchView extends View implements GestureDetector.OnGestureListener {
-        float start; // starting sloop
-        float end;
-        float current;
-        float centerx = 0.5f;
-        float centery = 0.5f;
-        Rect v;
-        float sx;
-        float sy;
-        Bitmap bm;
-        Rect src;
-        Rect dst;
-        GestureDetectorCompat gestures;
-        Drawable close;
-        Rect closeRect;
-        Paint closePaint;
-
-        public PinchView(Context context, int page, Rect v) {
-            super(context);
-            this.v = v;
-            this.dst = new Rect(v);
-
-            close = ContextCompat.getDrawable(context, R.drawable.ic_close_black_24dp);
-            int closeSize = ThemeUtils.dp2px(context, 50);
-            int closePadding = ThemeUtils.dp2px(context, 5);
-            closeRect = new Rect(v.width() - closeSize + closePadding, closePadding, v.width() - closePadding, closeSize - closePadding);
-            close.setBounds(new Rect(0, 0, closeRect.width(), closeRect.height()));
-            DrawableCompat.setTint(DrawableCompat.wrap(close), Color.WHITE);
-            closePaint = new Paint();
-            closePaint.setStyle(Paint.Style.FILL);
-            closePaint.setColor(0x33333333);
-
-            bm = pluginview.render(v.width(), v.height(), page);
-            src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
-            gestures = new GestureDetectorCompat(context, this);
-            gestures.setIsLongpressEnabled(false);
-        }
-
-        @Override
-        protected void onDraw(Canvas canvas) {
-            canvas.drawBitmap(bm, src, dst, pluginview.paint);
-            canvas.drawRect(closeRect, closePaint);
-            canvas.save();
-            canvas.translate(closeRect.left, closeRect.top);
-            close.draw(canvas);
-            canvas.restore();
-        }
-
-        @Override
-        public boolean onTouchEvent(MotionEvent event) {
-            if (gestures.onTouchEvent(event))
-                return true;
-            return super.onTouchEvent(event);
-        }
-
-        public void onScale(ScaleGestureDetector detector) {
-            current = detector.getCurrentSpan() - start;
-
-            centerx = (detector.getFocusX() - dst.left) / dst.width();
-            centery = (detector.getFocusY() - dst.top) / dst.height();
-
-            float ratio = v.height() / (float) v.width();
-
-            float currentx = current * centerx;
-            float currenty = current * centery;
-
-            int x = (int) (v.left + sx - currentx);
-            int y = (int) (v.top + sy - currenty * ratio);
-            int w = (int) (v.width() + end + current);
-            int h = (int) (v.height() + end * ratio + current * ratio);
-            int r = x + w;
-            int b = y + h;
-
-            if (w > v.width()) {
-                if (x > v.left)
-                    centerx = 0;
-                if (r < v.right)
-                    centerx = 1;
-            }
-
-            if (h > v.height()) {
-                if (y > v.top)
-                    centery = 0;
-                if (b < v.bottom)
-                    centery = 1;
-            }
-
-            calc();
-
-            invalidate();
-        }
-
-        public void onScaleEnd() {
-            float ratio = v.height() / (float) v.width();
-
-            float currentx = current * centerx;
-            float currenty = current * centery;
-
-            sx -= currentx;
-            sy -= currenty * ratio;
-
-            end += current;
-            current = 0;
-
-            calc();
-
-            invalidate();
-        }
-
-        void calc() {
-            float ratio = v.height() / (float) v.width();
-
-            float currentx = current * centerx;
-            float currenty = current * centery;
-
-            int x = (int) (v.left + sx - currentx);
-            int y = (int) (v.top + sy - currenty * ratio);
-            int w = (int) (v.width() + end + current);
-            int h = (int) (v.height() + end * ratio + current * ratio);
-            int r = x + w;
-            int b = y + h;
-
-            dst.left = x;
-            dst.top = y;
-            dst.right = r;
-            dst.bottom = b;
-        }
-
-        public void close() {
-            if (bm != null) {
-                bm.recycle();
-                bm = null;
-            }
-        }
-
-        @Override
-        public boolean onDown(MotionEvent e) {
-            return false;
-        }
-
-        @Override
-        public void onShowPress(MotionEvent e) {
-        }
-
-        @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            if (e.getY() < dst.top || e.getX() < dst.left || e.getX() > dst.right || e.getY() > dst.bottom)
-                pinchClose();
-            if (closeRect.contains((int) e.getX(), (int) e.getY()))
-                pinchClose();
-            return true;
-        }
-
-        @Override
-        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-            sx -= distanceX;
-            sy -= distanceY;
-
-            float ratio = v.height() / (float) v.width();
-
-            int x = (int) (v.left + sx);
-            int y = (int) (v.top + sy);
-            int w = (int) (v.width() + end);
-            int h = (int) (v.height() + end * ratio);
-            int r = x + w;
-            int b = y + h;
-
-            if (x > v.left)
-                sx = 0;
-            if (y > v.top)
-                sy = 0;
-            if (r < v.right)
-                sx = v.right - w - v.left;
-            if (b < v.bottom)
-                sy = v.bottom - h - v.top;
-
-            calc();
-
-            invalidate();
-
-            return true;
-        }
-
-        @Override
-        public void onLongPress(MotionEvent e) {
-        }
-
-        @Override
-        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            return false;
-        }
-    }
-
     public FBReaderView(Context context) { // create child view
         super(context);
         create();
@@ -2412,7 +1559,7 @@ public class FBReaderView extends RelativeLayout {
 
     public void create() {
         config = new ConfigShadow();
-        app = new FBReaderApp(new Storage.Info(getContext()), new BookCollectionShadow());
+        app = new FBReaderApp(getContext());
 
         app.setWindow(new FBApplicationWindow());
         app.initWindow();
@@ -2503,11 +1650,9 @@ public class FBReaderView extends RelativeLayout {
             this.book = fbook;
             if (book.info == null)
                 book.info = new Storage.RecentInfo();
-            final PluginCollection pluginCollection = PluginCollection.Instance(app.SystemInfo);
-            FormatPlugin plugin = Storage.getPlugin(pluginCollection, fbook);
+            FormatPlugin plugin = Storage.getPlugin((Storage.Info) app.SystemInfo, fbook);
             if (plugin instanceof PDFPlugin) {
-                pluginview = new PDFPlugin.PDFiumView(BookUtil.fileByBook(fbook.book));
-                pluginview.info = book.info;
+                pluginview = new PDFPlugin.PdfiumView(BookUtil.fileByBook(fbook.book));
                 BookModel Model = BookModel.createModel(fbook.book, plugin);
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
@@ -2515,7 +1660,6 @@ public class FBReaderView extends RelativeLayout {
                     gotoPluginPosition(book.info.position);
             } else if (plugin instanceof DjvuPlugin) {
                 pluginview = new DjvuPlugin.DjvuView(BookUtil.fileByBook(fbook.book));
-                pluginview.info = book.info;
                 BookModel Model = BookModel.createModel(fbook.book, plugin);
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
@@ -2523,7 +1667,6 @@ public class FBReaderView extends RelativeLayout {
                     gotoPluginPosition(book.info.position);
             } else if (plugin instanceof ComicsPlugin) {
                 pluginview = new ComicsPlugin.ComicsView(BookUtil.fileByBook(fbook.book));
-                pluginview.info = book.info;
                 BookModel Model = BookModel.createModel(fbook.book, plugin);
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
@@ -2534,9 +1677,8 @@ public class FBReaderView extends RelativeLayout {
                 ZLTextHyphenator.Instance().load(fbook.book.getLanguage());
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
-                if (book.info.position != null) {
+                if (book.info.position != null)
                     app.BookTextView.gotoPosition(book.info.position);
-                }
                 if (book.info.scale != null)
                     config.setValue(app.ImageOptions.FitToScreen, book.info.scale);
                 if (book.info.fontsize != null)
@@ -3135,13 +2277,19 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void pinchOpen(int page, Rect v) {
-        pinch = new PinchView(getContext(), page, v);
-        FBReaderView.this.addView(pinch);
+        Bitmap bm = pluginview.render(v.width(), v.height(), page);
+        pinch = new PinchView(getContext(), v, bm) {
+            @Override
+            public void pinchClose() {
+                FBReaderView.this.pinchClose();
+            }
+        };
+        addView(pinch);
     }
 
     public void pinchClose() {
         if (pinch != null) {
-            FBReaderView.this.removeView(pinch);
+            removeView(pinch);
             pinch.close();
             pinch = null;
         }

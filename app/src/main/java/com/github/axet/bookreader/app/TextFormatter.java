@@ -8,7 +8,6 @@ import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.LineBackgroundSpan;
-import android.text.style.ReplacementSpan;
 
 import java.util.ArrayList;
 import java.util.Collections;

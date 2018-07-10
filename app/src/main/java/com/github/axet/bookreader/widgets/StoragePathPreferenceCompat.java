@@ -5,15 +5,12 @@ import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.res.TypedArray;
 import android.net.Uri;
-import android.preference.PreferenceManager;
 import android.util.AttributeSet;
 import android.widget.Toast;
 
-import com.github.axet.androidlibrary.app.Storage;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.androidlibrary.widgets.OpenStorageChoicer;
 import com.github.axet.bookreader.R;
-import com.github.axet.bookreader.app.MainApplication;
 
 import java.io.File;
 

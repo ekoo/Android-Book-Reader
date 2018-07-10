@@ -17,7 +17,6 @@ import android.view.Window;
 import android.view.WindowManager;
 
 import com.github.axet.androidlibrary.widgets.AppCompatThemeActivity;
-import com.github.axet.androidlibrary.widgets.ScreenlockPreference;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.MainApplication;
 

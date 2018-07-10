@@ -1,7 +1,5 @@
 package com.github.axet.bookreader.app;
 
-import android.net.Uri;
-
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 
 import org.apache.commons.io.output.StringBuilderWriter;
@@ -9,7 +7,6 @@ import org.apache.commons.io.output.WriterOutputStream;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
