@@ -417,8 +417,8 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
 
         @Override
         public Bitmap downloadImageTask(CacheImagesAdapter.DownloadImageTask task) {
-            Book book = (Book) task.item;
             try {
+                Book book = (Book) task.item;
                 String md5 = MD5.digest(book.url.toString());
                 book.md5 = md5; // url md5, not file content!
                 book.ext = storage.getExt(book.url).toLowerCase();
@@ -445,10 +445,16 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                 if (book.cover == null)
                     return null;
 
-                return BitmapFactory.decodeStream(new FileInputStream(book.cover));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+                try {
+                    return BitmapFactory.decodeStream(new FileInputStream(book.cover));
+                } catch (IOException e) {
+                    book.cover.delete();
+                    throw new RuntimeException(e);
+                }
+            } catch (RuntimeException e) {
+                Log.e(TAG, "Unable to load cover", e);
             }
+            return null;
         }
     }
 

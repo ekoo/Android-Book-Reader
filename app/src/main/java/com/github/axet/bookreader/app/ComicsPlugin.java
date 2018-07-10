@@ -262,7 +262,6 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
     public static class Decoder {
         public ArrayList<ArchiveToc> toc;
         public ArrayList<ArchiveFile> pages;
-        public Paint paint = new Paint();
 
         public Decoder() {
         }
@@ -283,6 +282,8 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
 
         void load(FileDescriptor fd) {
             pages = list(fd);
+            if (pages.size() == 0)
+                throw new RuntimeException("no comics found!");
             Collections.sort(pages, new SortByName());
             loadTOC();
         }

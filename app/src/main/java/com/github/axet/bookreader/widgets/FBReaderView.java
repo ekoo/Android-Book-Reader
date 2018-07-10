@@ -693,7 +693,7 @@ public class FBReaderView extends RelativeLayout {
                                             public void run() {
                                                 int i = index;
                                                 Reflow reflower = new Reflow(getContext(), w, h, page, book.info);
-                                                Bitmap bm = pluginview.render(w, h, page);
+                                                Bitmap bm = pluginview.render(reflower.w, reflower.h, page);
                                                 reflower.load(bm);
                                                 if (reflower.count() > 0)
                                                     bm.recycle();
@@ -737,7 +737,7 @@ public class FBReaderView extends RelativeLayout {
                                     if (pluginview.reflower.count() > 0) { // empty source page?
                                         Bitmap bm = pluginview.reflower.render(c.start.getElementIndex());
                                         Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
-                                        Rect dst = new Rect(app.BookTextView.getLeftMargin(), 0, app.BookTextView.getLeftMargin() + w, h);
+                                        Rect dst = new Rect(app.BookTextView.getLeftMargin(), 0, app.BookTextView.getLeftMargin() + pluginview.reflower.w, pluginview.reflower.h);
                                         canvas.drawColor(Color.WHITE);
                                         canvas.drawBitmap(bm, src, dst, pluginview.paint);
                                     } else {
@@ -1039,21 +1039,31 @@ public class FBReaderView extends RelativeLayout {
             }
 
             boolean open(MotionEvent e) {
+                if (!openCursor(e))
+                    return false;
+                return openText(e);
+            }
+
+            boolean openCursor(MotionEvent e) {
                 this.e = e;
                 v = findView(e);
                 if (v == null)
                     return false;
+                x = (int) (e.getX() - v.getLeft());
+                y = (int) (e.getY() - v.getTop());
                 int pos = v.holder.getAdapterPosition();
                 if (pos == -1)
                     return false;
-                ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+                c = adapter.pages.get(pos);
+                return true;
+            }
+
+            boolean openText(MotionEvent e) {
                 if (v.p == null)
                     return false;
                 if (!app.BookTextView.getStartCursor().samePositionAs(c.start))
                     app.BookTextView.gotoPosition(c.start);
                 app.BookTextView.myCurrentPage.TextElementMap = v.p;
-                x = (int) (e.getX() - v.getLeft());
-                y = (int) (e.getY() - v.getTop());
                 return true;
             }
 

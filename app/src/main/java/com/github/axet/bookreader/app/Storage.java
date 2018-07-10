@@ -1381,10 +1381,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 fbook = read(book);
             book.info.title = getTitle(book, fbook);
         }
-        File cover = coverFile(context, book);
-        if (!cover.exists() || cover.length() == 0) {
-            createCover(fbook, cover);
-        }
         if (fbook != null)
             fbook.close();
     }
