@@ -301,7 +301,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
 
         public void refresh() {
             if (filter == null || filter.isEmpty()) {
-                list = all;
+                list = new ArrayList<>(all);
                 clearTasks();
             } else {
                 list = new ArrayList<>();
@@ -427,7 +427,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                     try {
                         book.info = new Storage.RecentInfo(r);
                     } catch (RuntimeException e) {
-                        Log.d(TAG, "Unable to load info", e);
+                        Log.e(TAG, "Unable to load info", e);
                     }
                 }
                 File cover = coverFile(book);
@@ -435,16 +435,13 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                     try {
                         LocalLibraryFragment.this.load(book); // load cover && authors
                     } catch (RuntimeException e) {
-                        Log.d(TAG, "unable to load file", e);
-                        all.remove(book);
+                        Log.e(TAG, "unable to load file", e);
                     }
                 } else {
                     book.cover = cover;
                 }
-
                 if (book.cover == null)
                     return null;
-
                 try {
                     return BitmapFactory.decodeStream(new FileInputStream(book.cover));
                 } catch (IOException e) {
