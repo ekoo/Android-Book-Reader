@@ -1010,6 +1010,7 @@ public class FBReaderView extends RelativeLayout {
             int x;
             int y;
             ScrollAdapter.PageView v;
+            ScrollAdapter.PageCursor c;
             PinchGesture pinch;
             GestureDetectorCompat gestures;
 
