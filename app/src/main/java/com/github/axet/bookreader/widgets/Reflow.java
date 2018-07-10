@@ -53,6 +53,7 @@ public class Reflow {
             k2.setFontSize(old);
             this.w = w;
             this.h = h;
+            this.current = 0; // size changed, reflow page can overflow total pages
         }
     }
 
