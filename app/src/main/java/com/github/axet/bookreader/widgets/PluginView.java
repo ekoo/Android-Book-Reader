@@ -293,7 +293,7 @@ public class PluginView {
                         reflower.close();
                         reflower = null;
                     } else {
-                        if (reflower.count() > 0) { // empty source page
+                        if (reflower.count() > render) { // empty source page
                             bm.recycle();
                             bm = reflower.render(render);
                         }
