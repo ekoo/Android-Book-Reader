@@ -9,6 +9,7 @@ import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.k2pdfopt.K2PdfOpt;
 
+import org.geometerplus.fbreader.fbreader.FBView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 
 public class Reflow {
@@ -17,14 +18,17 @@ public class Reflow {
     public int page = 0; // document page
     int w;
     int h;
+    int rw;
     Context context;
     public Bitmap bm; // source bm, in case or errors, recycled otherwise
     public Storage.RecentInfo info;
+    FBReaderView.CustomView custom;
 
-    public Reflow(Context context, int w, int h, int page, Storage.RecentInfo info) {
+    public Reflow(Context context, int w, int h, int page, FBReaderView.CustomView custom, Storage.RecentInfo info) {
         this.context = context;
         this.page = page;
         this.info = info;
+        this.custom = custom;
         reset(w, h);
     }
 
@@ -47,12 +51,14 @@ public class Reflow {
                 old = k2.getFontSize();
                 k2.close();
             }
+            int rw = w - custom.getLeftMargin() - custom.getRightMargin();
             k2 = new K2PdfOpt();
             DisplayMetrics d = context.getResources().getDisplayMetrics();
-            k2.create(w, h, d.densityDpi);
+            k2.create(rw, h, d.densityDpi);
             k2.setFontSize(old);
             this.w = w;
             this.h = h;
+            this.rw = rw;
             this.current = 0; // size changed, reflow page can overflow total pages
         }
     }
@@ -78,6 +84,13 @@ public class Reflow {
         if (k2 == null)
             return -1;
         return k2.getCount();
+    }
+
+    public int emptyCount() {
+        int c = count();
+        if (c == 0)
+            c = 1;
+        return c;
     }
 
     public Bitmap render(int page) {

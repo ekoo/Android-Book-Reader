@@ -73,10 +73,8 @@ import org.geometerplus.android.fbreader.libraryService.BookCollectionShadow;
 import org.geometerplus.android.util.OrientationUtil;
 import org.geometerplus.android.util.UIMessageUtil;
 import org.geometerplus.android.util.UIUtil;
-import org.geometerplus.fbreader.book.Book;
 import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.book.Bookmark;
-import org.geometerplus.fbreader.book.IBookCollection;
 import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.bookmodel.FBHyperlinkType;
 import org.geometerplus.fbreader.bookmodel.TOCTree;
@@ -90,7 +88,6 @@ import org.geometerplus.fbreader.fbreader.options.ImageOptions;
 import org.geometerplus.fbreader.fbreader.options.MiscOptions;
 import org.geometerplus.fbreader.fbreader.options.PageTurningOptions;
 import org.geometerplus.fbreader.formats.FormatPlugin;
-import org.geometerplus.fbreader.formats.PluginCollection;
 import org.geometerplus.fbreader.util.AutoTextSnippet;
 import org.geometerplus.fbreader.util.TextSnippet;
 import org.geometerplus.zlibrary.core.application.ZLApplication;
@@ -366,7 +363,7 @@ public class FBReaderView extends RelativeLayout {
         @Override
         public void drawOnBitmap(Bitmap bitmap, ZLViewEnums.PageIndex index) {
             if (pluginview != null)
-                pluginview.drawOnBitmap(getContext(), bitmap, getWidth(), getMainAreaHeight(), index, book.info);
+                pluginview.drawOnBitmap(getContext(), bitmap, getWidth(), getMainAreaHeight(), index, (CustomView) app.BookTextView, book.info);
             else
                 super.drawOnBitmap(bitmap, index);
         }
@@ -676,7 +673,7 @@ public class FBReaderView extends RelativeLayout {
                                 index = c.start.getElementIndex();
                             }
                             synchronized (lock) {
-                                final int w = getWidth() - app.BookTextView.getLeftMargin() - app.BookTextView.getRightMargin();
+                                final int w = getWidth();
                                 final int h = getHeight();
                                 if (thread == null) {
                                     if (pluginview.reflower != null) {
@@ -692,7 +689,7 @@ public class FBReaderView extends RelativeLayout {
                                             @Override
                                             public void run() {
                                                 int i = index;
-                                                Reflow reflower = new Reflow(getContext(), w, h, page, book.info);
+                                                Reflow reflower = new Reflow(getContext(), w, h, page, (CustomView) app.BookTextView, book.info);
                                                 Bitmap bm = pluginview.render(reflower.w, reflower.h, page);
                                                 reflower.load(bm);
                                                 if (reflower.count() > 0)
@@ -737,7 +734,7 @@ public class FBReaderView extends RelativeLayout {
                                     if (pluginview.reflower.count() > 0) { // empty source page?
                                         Bitmap bm = pluginview.reflower.render(c.start.getElementIndex());
                                         Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
-                                        Rect dst = new Rect(app.BookTextView.getLeftMargin(), 0, app.BookTextView.getLeftMargin() + pluginview.reflower.w, pluginview.reflower.h);
+                                        Rect dst = new Rect(app.BookTextView.getLeftMargin(), 0, app.BookTextView.getLeftMargin() + pluginview.reflower.rw, pluginview.reflower.h);
                                         canvas.drawColor(Color.WHITE);
                                         canvas.drawBitmap(bm, src, dst, pluginview.paint);
                                     } else {
@@ -753,7 +750,7 @@ public class FBReaderView extends RelativeLayout {
                             return;
                         }
                         open(c);
-                        pluginview.drawOnCanvas(getContext(), draw, getWidth(), getHeight(), ZLViewEnums.PageIndex.current, book.info);
+                        pluginview.drawOnCanvas(getContext(), draw, getWidth(), getHeight(), ZLViewEnums.PageIndex.current, (CustomView) app.BookTextView, book.info);
                         update();
                     } else {
                         open(c);
