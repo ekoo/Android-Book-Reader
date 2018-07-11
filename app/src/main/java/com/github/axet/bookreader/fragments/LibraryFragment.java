@@ -259,6 +259,13 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             all = storage.list();
         }
 
+        public void delete(Storage.Book b) {
+            all.remove(b);
+            int i = list.indexOf(b);
+            list.remove(i);
+            notifyItemRemoved(i);
+        }
+
         public void refresh() {
             list.clear();
             if (filter == null || filter.isEmpty()) {
@@ -576,7 +583,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
                                     storage.delete(b);
-                                    books.refresh();
+                                    books.delete(b);
                                 }
                             });
                             builder.show();
