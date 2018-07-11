@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 
@@ -97,7 +98,7 @@ public class PluginView {
                 current.pageOffset = 0;
                 current.load();
             }
-            if (reflower.current >= reflower.count()) { // current points to next page +1
+            if (reflower.current >= reflower.emptyCount()) { // current points to next page +1
                 current.pageNumber = reflower.page + 1;
                 current.pageOffset = 0;
                 current.load();
@@ -182,7 +183,7 @@ public class PluginView {
                         return true;
                     if (current.pageNumber != reflower.page) { // only happens to 0 page of document, we need to know it reflow count
                         int render = reflower.current;
-                        Bitmap bm = render(reflower.w, reflower.h, current.pageNumber); // 0 page
+                        Bitmap bm = render(reflower.rw, reflower.h, current.pageNumber); // 0 page
                         reflower.load(bm, current.pageNumber, 0);
                         bm.recycle();
                         int count = reflower.count();
@@ -196,7 +197,7 @@ public class PluginView {
                         return true;
                     if (current.pageNumber != reflower.page) { // only happens to last page of document, we need to know it reflow count
                         int render = reflower.current - reflower.count();
-                        Bitmap bm = render(reflower.w, reflower.h, current.pageNumber); // last page
+                        Bitmap bm = render(reflower.rw, reflower.h, current.pageNumber); // last page
                         reflower.load(bm, current.pageNumber, 0);
                         bm.recycle();
                         reflower.current = render;
@@ -232,21 +233,20 @@ public class PluginView {
         return render(w, h, page, Bitmap.Config.RGB_565); // reflower active, always 565
     }
 
-    public void drawOnBitmap(Context context, Bitmap bitmap, int w, int h, ZLView.PageIndex index, Storage.RecentInfo info) {
+    public void drawOnBitmap(Context context, Bitmap bitmap, int w, int h, ZLView.PageIndex index, FBReaderView.CustomView custom, Storage.RecentInfo info) {
         Canvas canvas = new Canvas(bitmap);
-        drawOnCanvas(context, canvas, w, h, index, info);
+        drawOnCanvas(context, canvas, w, h, index, custom, info);
     }
 
     public double getPageHeight(int w, FBReaderView.ScrollView.ScrollAdapter.PageCursor c) {
         return -1;
     }
 
-    public void drawOnCanvas(Context context, Canvas canvas, int w, int h, ZLView.PageIndex index, Storage.RecentInfo info) {
-        drawWallpaper(canvas);
+    public void drawOnCanvas(Context context, Canvas canvas, int w, int h, ZLView.PageIndex index, FBReaderView.CustomView custom, Storage.RecentInfo info) {
         if (reflow) {
             if (reflower == null) {
                 int page = current.pageNumber;
-                reflower = new Reflow(context, w, h, page, info);
+                reflower = new Reflow(context, w, h, page, custom, info);
             }
             Bitmap bm = null;
             reflower.reset(w, h);
@@ -271,18 +271,22 @@ public class PluginView {
                     render -= 1;
                     while (render < 0) {
                         page--;
-                        bm = render(w, h, page);
+                        if (bm != null)
+                            bm.recycle();
+                        bm = render(reflower.rw, reflower.h, page);
                         reflower.load(bm);
-                        bm.recycle();
-                        int count = reflower.count();
-                        render = render + count;
+                        render = render + reflower.emptyCount();
                         reflower.page = page;
-                        reflower.current = render + 1;
+                        reflower.current = render + 1; // onScrollingFinished - 1
                     }
-                    bm = reflower.render(render);
+                    if (reflower.count() > render) {
+                        if (bm != null)
+                            bm.recycle();
+                        bm = reflower.render(render);
+                    }
                     break;
                 case current:
-                    bm = render(w, h, page);
+                    bm = render(reflower.rw, reflower.h, page);
                     if (reflowDebug) {
                         reflower.k2.setVerbose(true);
                         reflower.k2.setShowMarkedSource(true);
@@ -301,17 +305,26 @@ public class PluginView {
                     break;
                 case next: // next can point to many (no more then 2) pages ahead, we need to walk every page manually
                     render += 1;
-                    while (reflower.count() - render <= 0) {
+                    while (reflower.emptyCount() - render <= 0) {
                         page++;
-                        render -= reflower.count();
-                        bm = render(w, h, page);
-                        reflower.load(bm, page, render - 1);
-                        bm.recycle();
+                        render -= reflower.emptyCount();
+                        if (bm != null)
+                            bm.recycle();
+                        bm = render(reflower.rw, reflower.h, page);
+                        reflower.load(bm, page, render - 1); // onScrollingFinished + 1
                     }
-                    bm = reflower.render(render);
+                    if (reflower.count() > render) {
+                        if (bm != null)
+                            bm.recycle();
+                        bm = reflower.render(render);
+                    }
                     break;
             }
             if (bm != null) {
+                if (reflower == null || reflower.bm == bm)
+                    drawWallpaper(canvas); // we are about to draw original page, perapre bacgkournd
+                else
+                    canvas.drawColor(Color.WHITE); // prepare white
                 drawPage(canvas, w, h, bm);
                 bm.recycle();
                 return;
@@ -321,6 +334,7 @@ public class PluginView {
             reflower.close();
             reflower = null;
         }
+        drawWallpaper(canvas);
         draw(canvas, w, h, index);
     }
 
