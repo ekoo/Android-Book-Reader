@@ -127,8 +127,6 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
         public void updateGrid() {
             final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
-
-            layout = R.layout.book_item;
             if (shared.getString(MainApplication.PREFERENCE_LIBRARY_LAYOUT + getLayout(), "").equals("book_list_item")) {
                 setNumColumns(1);
                 layout = R.layout.book_list_item;
@@ -136,10 +134,18 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                 setNumColumns(4);
                 layout = R.layout.book_item;
             }
+        }
 
-            BooksAdapter a = (BooksAdapter) grid.getAdapter();
-            if (a != null)
-                a.notifyDataSetChanged();
+        void onCreateOptionsMenu(Menu menu) {
+            MenuItem grid = menu.findItem(R.id.action_grid);
+
+            updateGrid();
+
+            if (layout == R.layout.book_item) {
+                grid.setIcon(R.drawable.ic_view_module_black_24dp);
+            } else {
+                grid.setIcon(R.drawable.ic_view_list_black_24dp);
+            }
         }
 
         public boolean onOptionsItemSelected(MenuItem item) {
@@ -162,9 +168,12 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
 
         public void setNumColumns(int i) {
+            LinearLayoutManager reset = null;
             if (i == 1) {
                 LinearLayoutManager lm = new LinearLayoutManager(context);
-                grid.setLayoutManager(lm);
+                RecyclerView.LayoutManager l = grid.getLayoutManager();
+                if (l == null || l instanceof GridLayoutManager)
+                    reset = lm;
             } else {
                 GridLayoutManager lm = new GridLayoutManager(context, i);
                 lm.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
@@ -173,8 +182,12 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                         return FragmentHolder.this.getSpanSize(position);
                     }
                 });
-                grid.setLayoutManager(lm);
+                RecyclerView.LayoutManager l = grid.getLayoutManager();
+                if (l == null || !(l instanceof GridLayoutManager) || ((GridLayoutManager) l).getSpanCount() != i)
+                    reset = lm;
             }
+            if (reset != null)
+                grid.setLayoutManager(reset);
         }
 
         public int getSpanSize(int position) {
@@ -209,6 +222,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     }
 
     public class LibraryAdapter extends BooksAdapter {
+        ArrayList<Storage.Book> all = new ArrayList<>();
         ArrayList<Storage.Book> list = new ArrayList<>();
 
         public LibraryAdapter(FragmentHolder holder) {
@@ -241,14 +255,17 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             return list.get(position);
         }
 
+        public void load() {
+            all = storage.list();
+        }
+
         public void refresh() {
             list.clear();
-            ArrayList<Storage.Book> ll = storage.list();
             if (filter == null || filter.isEmpty()) {
-                list = ll;
+                list = new ArrayList<>(all);
                 clearTasks();
             } else {
-                for (Storage.Book b : ll) {
+                for (Storage.Book b : all) {
                     if (SearchView.filter(filter, b.info.title)) {
                         list.add(b);
                     }
@@ -467,20 +484,19 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         storage = new Storage(getContext());
         holder = new FragmentHolder(getContext());
         books = new LibraryAdapter(holder);
-        books.refresh();
         setHasOptionsMenu(true);
     }
 
     @Override
     public void onResume() {
         super.onResume();
+        books.load();
         books.refresh();
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_library, container, false);
 
         holder.create(v);
@@ -582,7 +598,6 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         main.setFullscreen(false);
         main.clearMenu();
         main.libraryMenu.setChecked(true);
-        books.refresh();
     }
 
     @Override
@@ -621,7 +636,6 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         MenuItem fontsize = menu.findItem(R.id.action_fontsize);
         MenuItem debug = menu.findItem(R.id.action_debug);
         MenuItem rtl = menu.findItem(R.id.action_rtl);
-        MenuItem grid = menu.findItem(R.id.action_grid);
         MenuItem mode = menu.findItem(R.id.action_mode);
 
         reflow.setVisible(false);
@@ -633,13 +647,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         rtl.setVisible(false);
         mode.setVisible(false);
 
-        holder.updateGrid();
-        if (holder.layout == R.layout.book_item) {
-            grid.setIcon(R.drawable.ic_view_module_black_24dp);
-        } else {
-            grid.setIcon(R.drawable.ic_view_list_black_24dp);
-        }
-
+        holder.onCreateOptionsMenu(menu);
     }
 
     @Override
@@ -666,4 +674,10 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     public String getHint() {
         return getString(R.string.search_local);
     }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+    }
+
 }

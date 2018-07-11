@@ -856,6 +856,8 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
             homeMenu.setVisible(false);
         else
             homeMenu.setVisible(true);
+
+        holder.onCreateOptionsMenu(menu);
     }
 
     @Override

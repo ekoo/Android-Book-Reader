@@ -92,6 +92,7 @@ public class MainActivity extends FullscreenActivity
     BooksCatalogs catalogs;
     boolean isRunning;
     String lastSearch;
+    LibraryFragment libraryFragment = LibraryFragment.newInstance();
 
     BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
@@ -515,7 +516,7 @@ public class MainActivity extends FullscreenActivity
 
     public void loadBook(final Uri u, final Runnable success) {
         FragmentManager fm = getSupportFragmentManager();
-        fm.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+        fm.popBackStack(LibraryFragment.TAG, 0);
 
         int dp10 = ThemeUtils.dp2px(this, 10);
 
@@ -609,7 +610,7 @@ public class MainActivity extends FullscreenActivity
                     book.info.position = selected.get(0);
                     storage.save(book);
 
-                    openFragment(ReaderFragment.newInstance(book.url), ReaderFragment.TAG).addToBackStack(null).commit();
+                    addFragment(ReaderFragment.newInstance(book.url), ReaderFragment.TAG).addToBackStack(null).commit();
                 }
             };
 
@@ -699,38 +700,38 @@ public class MainActivity extends FullscreenActivity
             builder.show();
             return;
         }
-        openFragment(ReaderFragment.newInstance(book.url), ReaderFragment.TAG).addToBackStack(null).commit();
+        addFragment(ReaderFragment.newInstance(book.url), ReaderFragment.TAG).addToBackStack(null).commit();
     }
 
     public void openLibrary() {
         FragmentManager fm = getSupportFragmentManager();
         fm.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
-        openFragment(new LibraryFragment(), LibraryFragment.TAG).commit();
+        openFragment(libraryFragment, LibraryFragment.TAG).commit();
     }
 
     public void openLibrary(BooksCatalog ct) {
         String n = ct.url;
         FragmentManager fm = getSupportFragmentManager();
-        fm.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+        fm.popBackStack(LibraryFragment.TAG, 0);
         if (ct instanceof LocalBooksCatalog) {
             Fragment f = fm.findFragmentByTag(LocalLibraryFragment.TAG);
             if (f != null) {
                 if (f.getArguments().getString("url").equals(n)) {
-                    openFragment(f, LocalLibraryFragment.TAG).commit();
+                    addFragment(f, LocalLibraryFragment.TAG).commit();
                     return;
                 }
             }
-            openFragment(LocalLibraryFragment.newInstance(n), LocalLibraryFragment.TAG).commit();
+            addFragment(LocalLibraryFragment.newInstance(n), LocalLibraryFragment.TAG).commit();
         }
         if (ct instanceof NetworkBooksCatalog) {
             Fragment f = fm.findFragmentByTag(NetworkLibraryFragment.TAG);
             if (f != null) {
                 if (f.getArguments().getString("url").equals(n)) {
-                    openFragment(f, NetworkLibraryFragment.TAG).commit();
+                    addFragment(f, NetworkLibraryFragment.TAG).commit();
                     return;
                 }
             }
-            openFragment(NetworkLibraryFragment.newInstance(n), NetworkLibraryFragment.TAG).commit();
+            addFragment(NetworkLibraryFragment.newInstance(n), NetworkLibraryFragment.TAG).commit();
         }
     }
 
@@ -749,6 +750,10 @@ public class MainActivity extends FullscreenActivity
         for (int i = 0; i < networkMenu.size(); i++) {
             networkMenu.getItem(i).setChecked(false);
         }
+    }
+
+    public FragmentTransaction addFragment(Fragment f, String tag) {
+        return openFragment(f, tag).addToBackStack(null);
     }
 
     public FragmentTransaction openFragment(Fragment f, String tag) {
@@ -833,4 +838,5 @@ public class MainActivity extends FullscreenActivity
         RotatePreferenceCompat.onResume(this, MainApplication.PREFERENCE_ROTATE);
         CacheImagesAdapter.cacheClear(this);
     }
+
 }
