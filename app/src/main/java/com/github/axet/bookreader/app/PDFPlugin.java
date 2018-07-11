@@ -92,12 +92,11 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     @TargetApi(21)
     public static class NativeView extends PluginView {
-        ParcelFileDescriptor fd;
         public PdfRenderer doc;
 
         public NativeView(ZLFile f) {
             try {
-                fd = ParcelFileDescriptor.open(new File(f.getPath()), ParcelFileDescriptor.MODE_READ_ONLY);
+                ParcelFileDescriptor fd = ParcelFileDescriptor.open(new File(f.getPath()), ParcelFileDescriptor.MODE_READ_ONLY);
                 doc = new PdfRenderer(fd);
                 current = new NativePage(doc);
             } catch (IOException e) {
@@ -107,11 +106,6 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         public void close() {
             doc.close();
-            try {
-                fd.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
         }
 
         @Override
