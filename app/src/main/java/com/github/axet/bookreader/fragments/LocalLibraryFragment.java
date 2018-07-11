@@ -560,55 +560,9 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
         setHasOptionsMenu(true);
     }
 
-    void loadDefault() {
-        final MainActivity main = (MainActivity) getActivity();
-        books.load();
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                loadView();
-            }
-        });
-    }
-
-    void loadView() {
-        loadBooks();
-        loadtoolBar();
-    }
-
     void loadBooks() {
         books.clearTasks();
         books.refresh();
-    }
-
-    void loadtoolBar() {
-        holder.searchtoolbar.removeAllViews();
-        if (holder.searchtoolbar.getChildCount() == 0)
-            holder.toolbar.setVisibility(View.GONE);
-        else
-            holder.toolbar.setVisibility(View.VISIBLE);
-    }
-
-    void selectToolbar() {
-        String id = getArguments().getString("toolbar");
-        if (id == null)
-            return;
-        for (int i = 0; i < holder.searchtoolbar.getChildCount(); i++) {
-            View v = holder.searchtoolbar.getChildAt(i);
-            NetworkItemsLoader b = (NetworkItemsLoader) v.getTag();
-            ImageButton k = (ImageButton) v.findViewById(R.id.toolbar_icon_image);
-            if (b.Tree.getUniqueKey().Id.equals(id)) {
-                int[] states = new int[]{
-                        android.R.attr.state_checked,
-                };
-                k.setImageState(states, false);
-            } else {
-                int[] states = new int[]{
-                        -android.R.attr.state_checked,
-                };
-                k.setImageState(states, false);
-            }
-        }
     }
 
     @Override
@@ -655,13 +609,6 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
     }
 
     @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        loadtoolBar();
-        selectToolbar();
-    }
-
-    @Override
     public void onStart() {
         super.onStart();
         final MainActivity main = (MainActivity) getActivity();
@@ -701,7 +648,8 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
     @Override
     public void onResume() {
         super.onResume();
-        loadDefault();
+        books.load();
+        loadBooks();
     }
 
     @Override
@@ -766,6 +714,8 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             homeMenu.setVisible(false);
         else
             homeMenu.setVisible(true);
+
+        holder.onCreateOptionsMenu(menu);
     }
 
     @Override
