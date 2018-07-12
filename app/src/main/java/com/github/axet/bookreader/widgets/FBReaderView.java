@@ -1517,7 +1517,7 @@ public class FBReaderView extends RelativeLayout {
                             page = c.end.getParagraphIndex() - 1;
                         else
                             page = c.start.getParagraphIndex();
-                        if (pluginview.selection.getStart() <= page && page <= pluginview.selection.getEnd()) {
+                        if (pluginview.selection != null && pluginview.selection.getStart() <= page && page <= pluginview.selection.getEnd()) {
                             if (view.selection == null) {
                                 view.selection = new SelectionView(getContext(), pluginview, (CustomView) app.BookTextView,
                                         new PDFPlugin.Selection.Page(c.start.getParagraphIndex(), view.getWidth(), view.getHeight()),
