@@ -30,8 +30,15 @@ public class PluginView {
     public boolean reflow = false;
     public boolean reflowDebug;
     public Reflow reflower;
+    public Selection selection;
 
     public static class Selection { // plugin coords (render bm size's)
+        public interface Setter {
+            void setStart(int x, int y);
+
+            void setEnd(int x, int y);
+        }
+
         public static class Page {
             public int page;
             public int w;
@@ -59,10 +66,7 @@ public class PluginView {
             }
         }
 
-        public boolean isWord(String s) {
-            if (s.length() == 0)
-                return false;
-            Character c = s.toCharArray()[0];
+        public boolean isWord(Character c) {
             if (Character.isSpaceChar(c))
                 return false;
             return Character.isDigit(c) || Character.isLetter(c) || Character.isLetterOrDigit(c) || c == '[' || c == ']' || c == '(' || c == ')';
@@ -71,15 +75,15 @@ public class PluginView {
         public void setStart(Page page, Point point) {
         }
 
-        public Page getStart() {
-            return null;
+        public int getStart() {
+            return -1;
         }
 
         public void setEnd(Page page, Point point) {
         }
 
-        public Page getEnd() {
-            return null;
+        public int getEnd() {
+            return -1;
         }
 
         public String getText() {
@@ -480,7 +484,8 @@ public class PluginView {
     }
 
     public Selection select(ZLTextPosition start, Reflow.Info info, int w, int h, int x, int y) {
-        return select(selectPage(start, info, w, h), selectPoint(start, info, x, y));
+        selection = select(selectPage(start, info, w, h), selectPoint(start, info, x, y));
+        return selection;
     }
 
 }

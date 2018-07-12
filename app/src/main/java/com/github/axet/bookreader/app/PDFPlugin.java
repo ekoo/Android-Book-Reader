@@ -53,7 +53,8 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     }
 
     public static class SelectionPage {
-        Pdfium.Page page;
+        int page;
+        Pdfium.Page ppage;
         Pdfium.Text text;
         int index; // char index
         long count; // total symbols
@@ -62,6 +63,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         public SelectionPage(SelectionPage s) {
             page = s.page;
+            ppage = s.ppage;
             text = s.text;
             index = s.index;
             count = s.count;
@@ -70,11 +72,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         public SelectionPage(Pdfium pdfium, PluginView.Selection.Page page) {
-            this(pdfium.openPage(page.page), page.w, page.h);
+            this(page.page, pdfium.openPage(page.page), page.w, page.h);
         }
 
-        public SelectionPage(Pdfium.Page page, int w, int h) {
-            this.page = page;
+        public SelectionPage(int p, Pdfium.Page page, int w, int h) {
+            this.page = p;
+            this.ppage = page;
             this.text = page.open();
             this.count = text.getCount();
             this.w = w;
@@ -84,7 +87,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         public void close() {
             text.close();
-            page.close();
+            ppage.close();
         }
 
     }
@@ -96,7 +99,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         public Selection(Pdfium pdfium, SelectionPage sp, Point point) {
             this.pdfium = pdfium;
-            point = new Point(sp.page.toPage(0, 0, sp.w, sp.h, 0, point.x, point.y));
+            point = new Point(sp.ppage.toPage(0, 0, sp.w, sp.h, 0, point.x, point.y));
             selectWord(sp, point);
         }
 
@@ -108,7 +111,9 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         boolean isWord(SelectionPage p, int i) {
             String s = p.text.getText(i, 1);
-            return isWord(s);
+            if (s == null || s.length() != 1)
+                return false;
+            return isWord(s.toCharArray()[0]);
         }
 
         void selectWord(SelectionPage page, Point point) {
@@ -133,7 +138,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         public void setStart(Page page, Point point) {
             SelectionPage start = new SelectionPage(pdfium, page);
             if (start.count > 0) {
-                point = new Point(start.page.toPage(0, 0, page.w, page.h, 0, point.x, point.y));
+                point = new Point(start.ppage.toPage(0, 0, page.w, page.h, 0, point.x, point.y));
                 int index = start.text.getIndex(point.x, point.y);
                 if (index == -1) {
                     start.close();
@@ -147,10 +152,15 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
+        public int getStart() {
+            return start.page;
+        }
+
+        @Override
         public void setEnd(Page page, Point point) {
             SelectionPage end = new SelectionPage(pdfium, page);
             if (end.count > 0) {
-                point = new Point(end.page.toPage(0, 0, page.w, page.h, 0, point.x, point.y));
+                point = new Point(end.ppage.toPage(0, 0, page.w, page.h, 0, point.x, point.y));
                 int index = end.text.getIndex(point.x, point.y);
                 if (index == -1) {
                     end.close();
@@ -164,20 +174,29 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
+        public int getEnd() {
+            return end.page;
+        }
+
+        @Override
         public String getText() {
+            int s = Math.min(start.index, end.index);
+            int e = Math.max(start.index, end.index);
             if (start.page == end.page)
-                return start.text.getText(start.index, end.index - start.index + 1);
+                return start.text.getText(s, e - s + 1);
             else
                 return null;
         }
 
         @Override
         public Rect[] getBounds(Page p) {
+            int s = Math.min(start.index, end.index);
+            int e = Math.max(start.index, end.index);
             if (start.page == end.page) {
-                Rect[] rr = start.text.getBounds(start.index, end.index - start.index + 1);
+                Rect[] rr = start.text.getBounds(s, e - s + 1);
                 for (int i = 0; i < rr.length; i++) {
                     Rect r = rr[i];
-                    r = start.page.toDevice(0, 0, start.w, start.h, 0, r);
+                    r = start.ppage.toDevice(0, 0, start.w, start.h, 0, r);
                     rr[i] = r;
                 }
                 return rr;
@@ -188,12 +207,14 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         @Override
         public void close() {
-            if (start != null)
+            if (start != null) {
                 start.close();
-            start = null;
-            if (end != null)
+                start = null;
+            }
+            if (end != null) {
                 end.close();
-            end = null;
+                end = null;
+            }
         }
     }
 

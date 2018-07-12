@@ -141,7 +141,6 @@ public class FBReaderView extends RelativeLayout {
     public PluginView pluginview;
     public PageTurningListener pageTurningListener;
     PinchView pinch;
-    SelectionView selection;
 
     public interface PageTurningListener {
         void onScrollingFinished(ZLViewEnums.PageIndex index);
@@ -577,18 +576,20 @@ public class FBReaderView extends RelativeLayout {
             public class PageView extends View {
                 public PageHolder holder;
                 TimeAnimatorCompat time;
-                FrameLayout f;
+                FrameLayout progress;
                 ProgressBar progressBar;
-                TextView text;
-                Bitmap bm;
-                PageCursor cache;
-                Paint paint = new Paint();
-                ZLTextElementAreaVector p;
+                TextView progressText;
+                Bitmap bm; // cache bitmap
+                PageCursor cache; // cache cursor
+                Paint paint = new Paint(); // cache paint
+
+                ZLTextElementAreaVector text;
                 Reflow.Info info;
+                SelectionView selection;
 
                 public PageView(ViewGroup parent) {
                     super(parent.getContext());
-                    f = new FrameLayout(getContext());
+                    progress = new FrameLayout(getContext());
 
                     progressBar = new ProgressBar(getContext()) {
                         Handler handler = new Handler();
@@ -618,11 +619,11 @@ public class FBReaderView extends RelativeLayout {
                         }
                     };
                     progressBar.setIndeterminate(true);
-                    f.addView(progressBar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                    progress.addView(progressBar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-                    text = new TextView(getContext());
-                    text.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-                    f.addView(text, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
+                    progressText = new TextView(getContext());
+                    progressText.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                    progress.addView(progressText, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
                 }
 
                 @Override
@@ -771,7 +772,7 @@ public class FBReaderView extends RelativeLayout {
                                 getVerticalScrollbarWidth()
                         );
                         app.BookTextView.paint(context, ZLViewEnums.PageIndex.current);
-                        p = app.BookTextView.myCurrentPage.TextElementMap;
+                        text = app.BookTextView.myCurrentPage.TextElementMap;
                         app.BookTextView.myCurrentPage.TextElementMap = new ZLTextElementAreaVector();
                         update();
                     }
@@ -783,12 +784,12 @@ public class FBReaderView extends RelativeLayout {
                     canvas.translate(getWidth() / 2 - progressBar.getMeasuredWidth() / 2, getHeight() / 2 - progressBar.getMeasuredHeight() / 2);
 
                     String t = (page + 1) + "." + (index == -1 ? "*" : index);
-                    text.setText(t);
+                    progressText.setText(t);
 
                     int dp60 = ThemeUtils.dp2px(getContext(), 60);
-                    f.measure(MeasureSpec.makeMeasureSpec(dp60, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp60, MeasureSpec.EXACTLY));
-                    f.layout(0, 0, dp60, dp60);
-                    f.draw(canvas);
+                    progress.measure(MeasureSpec.makeMeasureSpec(dp60, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp60, MeasureSpec.EXACTLY));
+                    progress.layout(0, 0, dp60, dp60);
+                    progress.draw(canvas);
 
                     canvas.restore();
                 }
@@ -798,7 +799,7 @@ public class FBReaderView extends RelativeLayout {
                         bm.recycle();
                         bm = null;
                     }
-                    p = null;
+                    text = null;
                     info = null;
                     if (time != null) {
                         time.cancel();
@@ -1061,11 +1062,11 @@ public class FBReaderView extends RelativeLayout {
             }
 
             boolean openText(MotionEvent e) {
-                if (v.p == null)
+                if (v.text == null)
                     return false;
                 if (!app.BookTextView.getStartCursor().samePositionAs(c.start))
                     app.BookTextView.gotoPosition(c.start);
-                app.BookTextView.myCurrentPage.TextElementMap = v.p;
+                app.BookTextView.myCurrentPage.TextElementMap = v.text;
                 return true;
             }
 
@@ -1119,14 +1120,6 @@ public class FBReaderView extends RelativeLayout {
             public void onLongPress(MotionEvent e) {
                 if (!openCursor(e))
                     return;
-                if (pluginview != null) {
-                    Rect rect = null;
-                    PluginView.Selection s = pluginview.select(c.start, v.info, v.getWidth(), v.getHeight(), x, y);
-                    if (s != null) {
-                        selectionOpen(rect, s);
-                        return;
-                    }
-                }
                 if (!openText(e))
                     return;
                 app.BookTextView.onFingerLongPress(x, y);
@@ -1253,6 +1246,13 @@ public class FBReaderView extends RelativeLayout {
 
             lm = new LinearLayoutManager(context) {
                 @Override
+                public int scrollVerticallyBy(int dy, Recycler recycler, State state) {
+                    int off = super.scrollVerticallyBy(dy, recycler, state);
+                    updateSelection();
+                    return off;
+                }
+
+                @Override
                 public void smoothScrollToPosition(RecyclerView recyclerView, State state, int position) {
                     RecyclerView.SmoothScroller smoothScroller = new TopAlwaysSmoothScroller(recyclerView.getContext());
                     smoothScroller.setTargetPosition(position);
@@ -1298,7 +1298,7 @@ public class FBReaderView extends RelativeLayout {
         ScrollAdapter.PageView findRegionView(ZLTextRegion.Soul soul) {
             for (int i = 0; i < lm.getChildCount(); i++) {
                 ScrollAdapter.PageView view = (ScrollAdapter.PageView) lm.getChildAt(i);
-                if (view.p != null && view.p.getRegion(soul) != null)
+                if (view.text != null && view.text.getRegion(soul) != null)
                     return view;
             }
             return null;
@@ -1474,6 +1474,95 @@ public class FBReaderView extends RelativeLayout {
         public int getMainAreaHeight() {
             final ZLView.FooterArea footer = ZLApplication.Instance().getCurrentView().getFooterArea();
             return footer != null ? getHeight() - footer.getHeight() : getHeight();
+        }
+
+        public void selectionClose() {
+            for (int i = 0; i < lm.getChildCount(); i++) {
+                ScrollView.ScrollAdapter.PageView view = (ScrollView.ScrollAdapter.PageView) lm.getChildAt(i);
+                selectionRemove(view);
+            }
+        }
+
+        public void selectionRemove(ScrollAdapter.PageView view) {
+            if (view.selection != null) {
+                FBReaderView.this.selectionRemove(view.selection);
+                view.selection.close();
+                view.selection = null;
+            }
+        }
+
+        public void selectionUpdate(ScrollAdapter.PageView view) {
+            view.selection.update();
+            view.selection.lp.leftMargin = view.getLeft() + view.selection.rect.left;
+            view.selection.lp.topMargin = view.getTop() + view.selection.rect.top;
+            if (pluginview.reflow) {
+                view.selection.lp.leftMargin += view.info.margin.left;
+            }
+            view.selection.requestLayout();
+        }
+
+        public void updateSelection() {
+            for (int i = 0; i < lm.getChildCount(); i++) {
+                final ScrollAdapter.PageView view = (ScrollAdapter.PageView) lm.getChildAt(i);
+                int pos = view.holder.getAdapterPosition();
+                if (pos == -1) {
+                    selectionRemove(view);
+                } else {
+                    ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+                    if (pluginview.reflow) {
+                        ;
+                    } else {
+                        int page;
+                        if (c.start == null)
+                            page = c.end.getParagraphIndex() - 1;
+                        else
+                            page = c.start.getParagraphIndex();
+                        if (pluginview.selection.getStart() <= page && page <= pluginview.selection.getEnd()) {
+                            if (view.selection == null) {
+                                view.selection = new SelectionView(getContext(), pluginview, (CustomView) app.BookTextView,
+                                        new PDFPlugin.Selection.Page(c.start.getParagraphIndex(), view.getWidth(), view.getHeight()),
+                                        new PDFPlugin.Selection.Setter() {
+                                            @Override
+                                            public void setStart(int x, int y) {
+                                                x = view.selection.lp.leftMargin + x;
+                                                y = view.selection.lp.topMargin + y;
+                                                ScrollAdapter.PageView v = findView(x, y);
+                                                if (v != null) {
+                                                    int pos = v.holder.getAdapterPosition();
+                                                    if (pos != -1) {
+                                                        ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+                                                        pluginview.selection.setStart(pluginview.selectPage(c.start, v.info, v.getWidth(), v.getHeight()), pluginview.selectPoint(c.start, v.info, x, y));
+                                                    }
+                                                }
+                                                selectionUpdate(view);
+                                            }
+
+                                            @Override
+                                            public void setEnd(int x, int y) {
+                                                x = view.selection.lp.leftMargin + x;
+                                                y = view.selection.lp.topMargin + y;
+                                                ScrollAdapter.PageView v = findView(x, y);
+                                                if (v != null) {
+                                                    int pos = v.holder.getAdapterPosition();
+                                                    if (pos != -1) {
+                                                        ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+                                                        pluginview.selection.setEnd(pluginview.selectPage(c.start, v.info, v.getWidth(), v.getHeight()), pluginview.selectPoint(c.start, v.info, x, y));
+                                                    }
+                                                }
+                                                selectionUpdate(view);
+                                            }
+                                        });
+                                selectionUpdate(view);
+                                selectionAdd(view.selection);
+                            } else {
+                                selectionUpdate(view);
+                            }
+                        } else {
+                            selectionRemove(view);
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -2306,10 +2395,20 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
-    public void selectionOpen(Rect rect, PluginView.Selection s) {
+    public void selectionAdd(View v) {
+        addView(v);
+    }
+
+    public void selectionRemove(View v) {
+        removeView(v);
     }
 
     public void selectionClose() {
+        if (widget instanceof ScrollView) {
+            ((ScrollView) widget).selectionClose();
+        } else {
+            ;
+        }
     }
 
 }
