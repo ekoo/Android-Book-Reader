@@ -37,6 +37,23 @@ public class PluginView {
             void setStart(int x, int y);
 
             void setEnd(int x, int y);
+
+            Bounds getBounds();
+        }
+
+        public static class Bounds {
+            public Rect[] rr;
+            public boolean reverse;
+            public boolean start;
+            public boolean end;
+
+            public Bounds() {
+            }
+
+            public Bounds(Rect[] r, boolean b) {
+                rr = r;
+                reverse = b;
+            }
         }
 
         public static class Page {
@@ -90,7 +107,7 @@ public class PluginView {
             return null;
         }
 
-        public Rect[] getBounds(Page page) {
+        public Bounds getBounds(Page page) {
             return null;
         }
 

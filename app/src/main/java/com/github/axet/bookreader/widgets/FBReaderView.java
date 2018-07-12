@@ -1120,6 +1120,15 @@ public class FBReaderView extends RelativeLayout {
             public void onLongPress(MotionEvent e) {
                 if (!openCursor(e))
                     return;
+                if (pluginview != null) {
+                    PluginView.Selection s = pluginview.select(c.start, v.info, v.getWidth(), v.getHeight(), x, y);
+                    if (s != null) {
+                        updateSelection();
+                        return;
+                    } else {
+                        selectionClose();
+                    }
+                }
                 if (!openText(e))
                     return;
                 app.BookTextView.onFingerLongPress(x, y);
@@ -1289,7 +1298,7 @@ public class FBReaderView extends RelativeLayout {
         ScrollAdapter.PageView findView(float x, float y) {
             for (int i = 0; i < lm.getChildCount(); i++) {
                 ScrollAdapter.PageView view = (ScrollAdapter.PageView) lm.getChildAt(i);
-                if (view.getLeft() < x && view.getTop() < y && view.getRight() > x && view.getBottom() > y)
+                if (view.getLeft() < view.getRight() && view.getTop() < view.getBottom() && x >= view.getLeft() && x < view.getRight() && y >= view.getTop() && y < view.getBottom())
                     return view;
             }
             return null;
@@ -1486,7 +1495,6 @@ public class FBReaderView extends RelativeLayout {
         public void selectionRemove(ScrollAdapter.PageView view) {
             if (view.selection != null) {
                 FBReaderView.this.selectionRemove(view.selection);
-                view.selection.close();
                 view.selection = null;
             }
         }
@@ -1508,58 +1516,71 @@ public class FBReaderView extends RelativeLayout {
                 if (pos == -1) {
                     selectionRemove(view);
                 } else {
-                    ScrollAdapter.PageCursor c = adapter.pages.get(pos);
-                    if (pluginview.reflow) {
-                        ;
-                    } else {
-                        int page;
-                        if (c.start == null)
-                            page = c.end.getParagraphIndex() - 1;
-                        else
-                            page = c.start.getParagraphIndex();
-                        if (pluginview.selection != null && pluginview.selection.getStart() <= page && page <= pluginview.selection.getEnd()) {
-                            if (view.selection == null) {
-                                view.selection = new SelectionView(getContext(), pluginview, (CustomView) app.BookTextView,
-                                        new PDFPlugin.Selection.Page(c.start.getParagraphIndex(), view.getWidth(), view.getHeight()),
-                                        new PDFPlugin.Selection.Setter() {
-                                            @Override
-                                            public void setStart(int x, int y) {
-                                                x = view.selection.lp.leftMargin + x;
-                                                y = view.selection.lp.topMargin + y;
-                                                ScrollAdapter.PageView v = findView(x, y);
-                                                if (v != null) {
-                                                    int pos = v.holder.getAdapterPosition();
-                                                    if (pos != -1) {
-                                                        ScrollAdapter.PageCursor c = adapter.pages.get(pos);
-                                                        pluginview.selection.setStart(pluginview.selectPage(c.start, v.info, v.getWidth(), v.getHeight()), pluginview.selectPoint(c.start, v.info, x, y));
-                                                    }
-                                                }
-                                                selectionUpdate(view);
+                    final ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+                    int p;
+                    if (c.start == null)
+                        p = c.end.getParagraphIndex() - 1;
+                    else
+                        p = c.start.getParagraphIndex();
+                    final PluginView.Selection.Page page = new PluginView.Selection.Page(p, view.getWidth(), view.getHeight());
+                    if (pluginview.selection != null && pluginview.selection.getStart() <= page.page && page.page <= pluginview.selection.getEnd()) {
+                        if (view.selection == null) {
+                            PluginView.Selection.Setter setter = new PDFPlugin.Selection.Setter() {
+                                @Override
+                                public void setStart(int x, int y) {
+                                    x = view.selection.lp.leftMargin + x;
+                                    y = view.selection.lp.topMargin + y;
+                                    ScrollAdapter.PageView v = findView(x, y);
+                                    if (v != null) {
+                                        int pos = v.holder.getAdapterPosition();
+                                        if (pos != -1) {
+                                            ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+                                            x = x - v.getLeft();
+                                            y = y - v.getTop();
+                                            pluginview.selection.setStart(pluginview.selectPage(c.start, v.info, v.getWidth(), v.getHeight()), pluginview.selectPoint(c.start, v.info, x, y));
+                                            if (v != view) {
+                                                updateSelection();
+                                                return;
                                             }
+                                        }
+                                    }
+                                    selectionUpdate(view);
+                                }
 
-                                            @Override
-                                            public void setEnd(int x, int y) {
-                                                x = view.selection.lp.leftMargin + x;
-                                                y = view.selection.lp.topMargin + y;
-                                                ScrollAdapter.PageView v = findView(x, y);
-                                                if (v != null) {
-                                                    int pos = v.holder.getAdapterPosition();
-                                                    if (pos != -1) {
-                                                        ScrollAdapter.PageCursor c = adapter.pages.get(pos);
-                                                        pluginview.selection.setEnd(pluginview.selectPage(c.start, v.info, v.getWidth(), v.getHeight()), pluginview.selectPoint(c.start, v.info, x, y));
-                                                    }
-                                                }
-                                                selectionUpdate(view);
+                                @Override
+                                public void setEnd(int x, int y) {
+                                    x = view.selection.lp.leftMargin + x;
+                                    y = view.selection.lp.topMargin + y;
+                                    ScrollAdapter.PageView v = findView(x, y);
+                                    if (v != null) {
+                                        int pos = v.holder.getAdapterPosition();
+                                        if (pos != -1) {
+                                            ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+                                            x = x - v.getLeft();
+                                            y = y - v.getTop();
+                                            pluginview.selection.setEnd(pluginview.selectPage(c.start, v.info, v.getWidth(), v.getHeight()), pluginview.selectPoint(c.start, v.info, x, y));
+                                            if (v != view) {
+                                                updateSelection();
+                                                return;
                                             }
-                                        });
-                                selectionUpdate(view);
-                                selectionAdd(view.selection);
-                            } else {
-                                selectionUpdate(view);
-                            }
+                                        }
+                                    }
+                                    selectionUpdate(view);
+                                }
+
+                                @Override
+                                public PluginView.Selection.Bounds getBounds() {
+                                    return pluginview.selection.getBounds(page);
+                                }
+                            };
+                            view.selection = new SelectionView(getContext(), (CustomView) app.BookTextView, setter);
+                            selectionUpdate(view);
+                            selectionAdd(view.selection);
                         } else {
-                            selectionRemove(view);
+                            selectionUpdate(view);
                         }
+                    } else {
+                        selectionRemove(view);
                     }
                 }
             }

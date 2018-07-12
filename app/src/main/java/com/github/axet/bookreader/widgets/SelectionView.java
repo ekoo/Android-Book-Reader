@@ -20,20 +20,14 @@ import java.util.ArrayList;
 public class SelectionView extends View {
     Paint paint;
     Paint handles;
-    PluginView pluginview;
     PDFPlugin.Selection.Setter setter;
-    PDFPlugin.Selection.Page page;
     RelativeLayout.LayoutParams lp;
     Rect rect = new Rect();
+    PluginView.Selection.Bounds bounds;
 
-    HotRect startRect;
+    TouchRect startRect = new TouchRect();
     ArrayList<Rect> lines = new ArrayList<>();
-    HotRect endRect;
-
-    Point touchStart;
-    Point touchStartOff;
-    Point touchEnd;
-    Point touchEndOff;
+    TouchRect endRect = new TouchRect();
 
     public static class Rect {
         public int left;
@@ -96,7 +90,7 @@ public class SelectionView extends View {
             return new android.graphics.Rect(left, top, right, bottom);
         }
 
-        public void relativeTo(Rect rect) {
+        public void relativeTo(Rect rect) { // make child of rect, abs coords == rect.x + this.x
             int w = width();
             int h = height();
             left = left - rect.left;
@@ -105,10 +99,6 @@ public class SelectionView extends View {
             bottom = top + h;
         }
 
-        public void makeChild(Point p) {
-            p.x = p.x - left;
-            p.y = p.y - top;
-        }
     }
 
     public static class CircleRect extends Rect {
@@ -128,14 +118,77 @@ public class SelectionView extends View {
         }
 
         @Override
-        public void relativeTo(Rect rect) {
+        public void relativeTo(Rect rect) { // make child of rect, abs coords == rect.x + this.x
             super.relativeTo(rect);
             hotx = hotx - rect.left;
             hoty = hoty - rect.top;
         }
+
+        public HotPoint makePoint(int x, int y) {
+            return new HotPoint(x, y, hotx - x, hoty - y);
+        }
     }
 
-    public SelectionView(Context context, PluginView pluginview, FBReaderView.CustomView custom, PDFPlugin.Selection.Page page, PDFPlugin.Selection.Setter setter) {
+    public static class TouchRect {
+        public HotRect rect;
+        public HotPoint touch;
+
+        public TouchRect() {
+        }
+
+        public void relativeTo(Rect rect) {
+            this.rect.relativeTo(rect);
+            if (touch != null)
+                touch.relativeTo(rect);
+        }
+
+        public boolean onTouchEvent(MotionEvent event) {
+            int x = (int) event.getX();
+            int y = (int) event.getY();
+            if (event.getAction() == MotionEvent.ACTION_DOWN && rect.contains(x, y) || touch != null) {
+                if (touch == null)
+                    touch = rect.makePoint(x, y);
+                else
+                    touch = new HotPoint(x, y, touch);
+                return true;
+            }
+            return false;
+        }
+
+        public void onTouchRelease(MotionEvent event) {
+            if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL)
+                touch = null;
+        }
+    }
+
+    public static class HotPoint extends Point {
+        public int offx;
+        public int offy;
+
+        public HotPoint(int x, int y, int hx, int hy) {
+            super(x + hx, y + hy);
+            offx = hx;
+            offy = hy;
+        }
+
+        public HotPoint(int x, int y, HotPoint h) {
+            super(x + h.offx, y + h.offy);
+            offx = h.offx;
+            offy = h.offy;
+        }
+
+        public void relativeTo(Rect r) { // make child of rect, abs coords == r.x + p.x
+            x = x - r.left;
+            y = y - r.top;
+        }
+
+        public void absTo(Rect r) { // make abs coords
+            x = x + r.left;
+            y = y + r.top;
+        }
+    }
+
+    public SelectionView(Context context, FBReaderView.CustomView custom, PDFPlugin.Selection.Setter setter) {
         super(context);
 
         this.paint = new Paint();
@@ -146,8 +199,6 @@ public class SelectionView extends View {
         this.handles.setStyle(Paint.Style.FILL);
         this.handles.setColor(0xff << 24 | custom.getSelectionBackgroundColor().intValue());
 
-        this.pluginview = pluginview;
-        this.page = page;
         this.setter = setter;
 
         lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -169,6 +220,13 @@ public class SelectionView extends View {
         return rect;
     }
 
+    public void drawHandle(Canvas canvas, SelectionCursor.Which which, TouchRect rect) { // SelectionCursor.draw
+        if (rect.touch != null)
+            drawHandle(canvas, which, rect.touch.x, rect.touch.y);
+        else
+            drawHandle(canvas, which, rect.rect.hotx, rect.rect.hoty);
+    }
+
     public void drawHandle(Canvas canvas, SelectionCursor.Which which, int x, int y) { // SelectionCursor.draw
         final int dpi = ZLibrary.Instance().getDisplayDPI();
         final int unit = dpi / 120;
@@ -182,94 +240,92 @@ public class SelectionView extends View {
     }
 
     public void update() {
-        if (pluginview.selection.getStart() == page.page && page.page == pluginview.selection.getEnd()) {
-            android.graphics.Rect[] rr = pluginview.selection.getBounds(page);
+        bounds = setter.getBounds();
 
-            lines.clear();
-            int i = 0;
-            rect = new Rect(rr[i++]);
-            Rect line = new Rect(rect);
-            for (; i < rr.length; i++) {
-                Rect r = new Rect(rr[i]);
-                rect.union(r);
-                if (line.bottom < r.top) {
-                    lines.add(line);
-                    line = new Rect(r);
-                } else {
-                    line.union(r);
-                }
-            }
-            lines.add(line);
+        if (bounds.rr == null || bounds.rr.length == 0)
+            return;
 
-            Rect first = lines.get(0);
-            Rect last = lines.get(lines.size() - 1);
-            startRect = rectHandle(SelectionCursor.Which.Left, first.left, first.top + first.height() / 2);
-            rect.union(startRect);
-            if (touchStart != null) {
-                rect.union(rectHandle(SelectionCursor.Which.Left, touchStart.x, touchStart.y));
-                rect.makeChild(touchStart);
+        lines.clear();
+        int i = 0;
+        rect = new Rect(bounds.rr[i++]);
+        Rect line = new Rect(rect);
+        for (; i < bounds.rr.length; i++) {
+            Rect r = new Rect(bounds.rr[i]);
+            rect.union(r);
+            if (line.bottom < r.top) {
+                lines.add(line);
+                line = new Rect(r);
+            } else {
+                line.union(r);
             }
-            endRect = rectHandle(SelectionCursor.Which.Right, last.right, last.top + last.height() / 2);
-            rect.union(endRect);
-            if (touchEnd != null) {
-                rect.union(rectHandle(SelectionCursor.Which.Right, touchEnd.x, touchEnd.y));
-                rect.makeChild(touchEnd);
-            }
-
-            for (Rect r : lines) {
-                r.relativeTo(rect);
-            }
-            startRect.relativeTo(rect);
-            endRect.relativeTo(rect);
-
-            lp.width = rect.width();
-            lp.height = rect.height();
         }
-    }
+        lines.add(line);
 
+        Rect first = lines.get(0);
+        HotRect f = rectHandle(SelectionCursor.Which.Left, first.left, first.top + first.height() / 2);
+        Rect last = lines.get(lines.size() - 1);
+        HotRect l = rectHandle(SelectionCursor.Which.Right, last.right, last.top + last.height() / 2);
+
+        if (bounds.reverse) {
+            startRect.rect = l;
+            endRect.rect = f;
+        } else {
+            startRect.rect = f;
+            endRect.rect = l;
+        }
+
+        if (bounds.start) {
+            rect.union(startRect.rect);
+            if (startRect.touch != null)
+                rect.union(rectHandle(bounds.reverse ? SelectionCursor.Which.Right : SelectionCursor.Which.Left, startRect.touch.x, startRect.touch.y));
+        }
+
+        if (bounds.end) {
+            rect.union(endRect.rect);
+            if (endRect.touch != null)
+                rect.union(rectHandle(bounds.reverse ? SelectionCursor.Which.Left : SelectionCursor.Which.Right, endRect.touch.x, endRect.touch.y));
+        }
+
+        for (Rect r : lines)
+            r.relativeTo(rect);
+        startRect.relativeTo(rect);
+        endRect.relativeTo(rect);
+
+        lp.width = rect.width();
+        lp.height = rect.height();
+    }
 
     @Override
     protected void onDraw(Canvas canvas) {
-        if (touchStart != null)
-            drawHandle(canvas, SelectionCursor.Which.Left, touchStart.x, touchStart.y);
-        else
-            drawHandle(canvas, SelectionCursor.Which.Left, startRect.hotx, startRect.hoty);
-        for (Rect r : lines) {
+        for (Rect r : lines)
             canvas.drawRect(r.toRect(), paint);
-        }
-        if (touchEnd != null)
-            drawHandle(canvas, SelectionCursor.Which.Right, touchEnd.x, touchEnd.y);
-        else
-            drawHandle(canvas, SelectionCursor.Which.Right, endRect.hotx, endRect.hoty);
+        if (bounds.start)
+            drawHandle(canvas, bounds.reverse ? SelectionCursor.Which.Right : SelectionCursor.Which.Left, startRect);
+        if (bounds.end)
+            drawHandle(canvas, bounds.reverse ? SelectionCursor.Which.Left : SelectionCursor.Which.Right, endRect);
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         int x = (int) event.getX();
         int y = (int) event.getY();
-        if (startRect.contains(x, y) || touchStart != null) {
-            if (touchStart == null)
-                touchStartOff = new Point(startRect.hotx - x, startRect.hoty - y);
-            touchStart = new Point(rect.left + x + touchStartOff.x, rect.top + y + touchStartOff.y);
-            if (event.getAction() == MotionEvent.ACTION_UP)
-                touchStart = null;
-            setter.setStart(x + touchStartOff.x, y + touchStartOff.y);
+        if (bounds.start && startRect.onTouchEvent(event)) {
+            x = x + startRect.touch.offx;
+            y = y + startRect.touch.offy;
+            startRect.touch.absTo(rect);
+            startRect.onTouchRelease(event);
+            setter.setStart(x, y);
             return true;
         }
-        if (endRect.contains(x, y) || touchEnd != null) {
-            if (touchEnd == null)
-                touchEndOff = new Point(endRect.hotx - x, endRect.hoty - y);
-            touchEnd = new Point(rect.left + x + touchEndOff.x, rect.top + y + touchEndOff.y);
-            if (event.getAction() == MotionEvent.ACTION_UP)
-                touchEnd = null;
-            setter.setEnd(x + touchEndOff.x, y + touchEndOff.y);
+        if (bounds.end && endRect.onTouchEvent(event)) {
+            x = x + endRect.touch.offx;
+            y = y + endRect.touch.offy;
+            endRect.touch.absTo(rect);
+            endRect.onTouchRelease(event);
+            setter.setEnd(x, y);
             return true;
         }
         return super.onTouchEvent(event);
-    }
-
-    public void close() {
-        ;
     }
 
 }
