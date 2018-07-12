@@ -20,6 +20,7 @@ import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
 
 import java.io.IOException;
+import java.util.Map;
 
 public class PluginView {
     public Bitmap wallpaper;
@@ -29,6 +30,73 @@ public class PluginView {
     public boolean reflow = false;
     public boolean reflowDebug;
     public Reflow reflower;
+    public Selection selection;
+
+    public static class Selection { // plugin coords (render bm size's)
+        public interface Setter {
+            void setStart(int x, int y);
+
+            void setEnd(int x, int y);
+        }
+
+        public static class Page {
+            public int page;
+            public int w;
+            public int h;
+
+            public Page(int p, int w, int h) {
+                this.page = p;
+                this.w = w;
+                this.h = h;
+            }
+        }
+
+        public static class Point {
+            public int x;
+            public int y;
+
+            public Point(int x, int y) {
+                this.x = x;
+                this.y = y;
+            }
+
+            public Point(android.graphics.Point p) {
+                this.x = p.x;
+                this.y = p.y;
+            }
+        }
+
+        public boolean isWord(Character c) {
+            if (Character.isSpaceChar(c))
+                return false;
+            return Character.isDigit(c) || Character.isLetter(c) || Character.isLetterOrDigit(c) || c == '[' || c == ']' || c == '(' || c == ')';
+        }
+
+        public void setStart(Page page, Point point) {
+        }
+
+        public int getStart() {
+            return -1;
+        }
+
+        public void setEnd(Page page, Point point) {
+        }
+
+        public int getEnd() {
+            return -1;
+        }
+
+        public String getText() {
+            return null;
+        }
+
+        public Rect[] getBounds(Page page) {
+            return null;
+        }
+
+        public void close() {
+        }
+    }
 
     public PluginView() {
         try {
@@ -383,4 +451,41 @@ public class PluginView {
         }
         return treeToSelect;
     }
+
+    public Selection select(Selection.Page p, Selection.Point point) {
+        return null;
+    }
+
+    Selection.Page selectPage(ZLTextPosition start, Reflow.Info info, int w, int h) {
+        if (reflow)
+            return new PluginView.Selection.Page(start.getParagraphIndex(), info.bm.width(), info.bm.height());
+        else
+            return new PluginView.Selection.Page(start.getParagraphIndex(), w, h);
+    }
+
+    Selection.Point selectPoint(ZLTextPosition start, Reflow.Info info, int x, int y) {
+        if (reflow) {
+            x = x - info.margin.left;
+            Map<Rect, Rect> dst = info.dst.get(start.getElementIndex());
+            for (Rect k : dst.keySet()) {
+                if (k.contains(x, y)) {
+                    Rect v = dst.get(k);
+
+                    double kx = v.width() / (double) k.width();
+                    double ky = v.height() / (double) k.height();
+
+                    return new Selection.Point(v.left + (int) ((x - k.left) * kx), v.top + (int) ((y - k.top) * ky));
+                }
+            }
+            return null;
+        } else {
+            return new Selection.Point(x, y);
+        }
+    }
+
+    public Selection select(ZLTextPosition start, Reflow.Info info, int w, int h, int x, int y) {
+        selection = select(selectPage(start, info, w, h), selectPoint(start, info, x, y));
+        return selection;
+    }
+
 }

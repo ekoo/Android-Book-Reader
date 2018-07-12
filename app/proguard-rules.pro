@@ -13,8 +13,13 @@
 -keep class com.github.axet.djvulibre.DjvuLibre$Bookmark {*;}
 
 -keep class com.github.axet.pdfium.Pdfium {*;}
+-keep class com.github.axet.pdfium.Pdfium$Bookmark {*;}
+-keep class com.github.axet.pdfium.Pdfium$Link {*;}
+-keep class com.github.axet.pdfium.Pdfium$PdfPasswordException {*;}
+-keep class com.github.axet.pdfium.Pdfium$Size {*;}
 -keep class com.github.axet.pdfium.Pdfium$Page {*;}
 -keep class com.github.axet.pdfium.Pdfium$Text {*;}
+-keep class com.github.axet.pdfium.Pdfium$TextResult {*;}
 -keep class com.github.axet.pdfium.Pdfium$Search {*;}
 
 -keep class com.github.axet.k2pdfopt.K2PdfOpt {*;}

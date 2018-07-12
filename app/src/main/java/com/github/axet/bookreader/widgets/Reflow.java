@@ -3,7 +3,9 @@ package com.github.axet.bookreader.widgets;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.Rect;
 import android.util.DisplayMetrics;
+import android.util.SparseArray;
 
 import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
@@ -11,6 +13,9 @@ import com.github.axet.k2pdfopt.K2PdfOpt;
 
 import org.geometerplus.fbreader.fbreader.FBView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class Reflow {
     public K2PdfOpt k2;
@@ -23,6 +28,28 @@ public class Reflow {
     public Bitmap bm; // source bm, in case or errors, recycled otherwise
     public Storage.RecentInfo info;
     FBReaderView.CustomView custom;
+
+    public static class Info {
+        public Rect bm; // source bitmap size
+        public Rect margin; // page margins
+        public SparseArray<Map<Rect, Rect>> src = new SparseArray<>();
+        public SparseArray<Map<Rect, Rect>> dst = new SparseArray<>();
+
+        public Info(Reflow reflow, Bitmap bm) {
+            this.bm = new Rect(0, 0, bm.getWidth(), bm.getHeight());
+            margin = new Rect(reflow.getLeftMargin(), 0, reflow.getRightMargin(), 0);
+            for (int i = 0; i < reflow.count(); i++) {
+                Map<Rect, Rect> s = reflow.k2.getRectMaps(i);
+                Map<Rect, Rect> d = new HashMap<>();
+                for (Rect k : s.keySet()) {
+                    Rect v = s.get(k);
+                    d.put(v, k);
+                }
+                src.put(i, s);
+                dst.put(i, d);
+            }
+        }
+    }
 
     public Reflow(Context context, int w, int h, int page, FBReaderView.CustomView custom, Storage.RecentInfo info) {
         this.context = context;
@@ -41,6 +68,14 @@ public class Reflow {
         }
     }
 
+    public int getLeftMargin() {
+        return custom.getLeftMargin();
+    }
+
+    public int getRightMargin() {
+        return custom.getRightMargin();
+    }
+
     public void reset(int w, int h) {
         if (this.w != w || this.h != h) {
             SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(context);
@@ -51,7 +86,7 @@ public class Reflow {
                 old = k2.getFontSize();
                 k2.close();
             }
-            int rw = w - custom.getLeftMargin() - custom.getRightMargin();
+            int rw = w - getLeftMargin() - getRightMargin();
             k2 = new K2PdfOpt();
             DisplayMetrics d = context.getResources().getDisplayMetrics();
             k2.create(rw, h, d.densityDpi);
@@ -129,4 +164,5 @@ public class Reflow {
             bm = null;
         }
     }
+
 }
