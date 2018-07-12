@@ -64,7 +64,7 @@ dependencies {
     implementation 'com.github.axet.fbreader:library:0.1.9'
     implementation 'com.github.axet:djvulibre:0.0.12'
     implementation 'com.github.axet:pdfium:2.0.6'
-    implementation 'com.github.axet:k2pdfopt:0.1.0'
+    implementation 'com.github.axet:k2pdfopt:0.1.1'
     implementation('com.github.axet:java-unrar:1.7.0-3') {
         exclude group: 'commons-logging', module: 'commons-logging'
     }

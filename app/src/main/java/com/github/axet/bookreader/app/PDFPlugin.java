@@ -3,6 +3,7 @@ package com.github.axet.bookreader.app;
 import android.annotation.TargetApi;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Rect;
 import android.graphics.pdf.PdfRenderer;
 import android.os.ParcelFileDescriptor;
 
@@ -12,7 +13,6 @@ import com.github.axet.bookreader.widgets.PluginPage;
 import com.github.axet.bookreader.widgets.PluginRect;
 import com.github.axet.bookreader.widgets.PluginView;
 import com.github.axet.bookreader.widgets.RenderRect;
-import com.github.axet.djvulibre.DjvuLibre;
 import com.github.axet.pdfium.Config;
 import com.github.axet.pdfium.Pdfium;
 
@@ -50,6 +50,151 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
         Storage.K2PdfOptInit(info.context);
         return new PDFPlugin(info);
+    }
+
+    public static class SelectionPage {
+        Pdfium.Page page;
+        Pdfium.Text text;
+        int index; // char index
+        long count; // total symbols
+        int w;
+        int h;
+
+        public SelectionPage(SelectionPage s) {
+            page = s.page;
+            text = s.text;
+            index = s.index;
+            count = s.count;
+            w = s.w;
+            h = s.h;
+        }
+
+        public SelectionPage(Pdfium pdfium, PluginView.Selection.Page page) {
+            this(pdfium.openPage(page.page), page.w, page.h);
+        }
+
+        public SelectionPage(Pdfium.Page page, int w, int h) {
+            this.page = page;
+            this.text = page.open();
+            this.count = text.getCount();
+            this.w = w;
+            this.h = h;
+            this.index = -1;
+        }
+
+        public void close() {
+            text.close();
+            page.close();
+        }
+
+    }
+
+    public static class Selection extends PluginView.Selection {
+        Pdfium pdfium;
+        SelectionPage start;
+        SelectionPage end;
+
+        public Selection(Pdfium pdfium, SelectionPage sp, Point point) {
+            this.pdfium = pdfium;
+            point = new Point(sp.page.toPage(0, 0, sp.w, sp.h, 0, point.x, point.y));
+            selectWord(sp, point);
+        }
+
+        public boolean isEmpty() {
+            if (start == null || end == null)
+                return true;
+            return start.index == -1 || end.index == -1;
+        }
+
+        boolean isWord(SelectionPage p, int i) {
+            String s = p.text.getText(i, 1);
+            return isWord(s);
+        }
+
+        void selectWord(SelectionPage page, Point point) {
+            start = page;
+            int index = start.text.getIndex(point.x, point.y);
+            if (index < 0 || index >= start.count)
+                return;
+            int start = index;
+            while (start > 1 && isWord(this.start, start)) {
+                this.start.index = start;
+                start--;
+            }
+            end = new SelectionPage(this.start);
+            int end = index;
+            while (end < this.end.count && isWord(this.end, end)) {
+                this.end.index = end;
+                end++;
+            }
+        }
+
+        @Override
+        public void setStart(Page page, Point point) {
+            SelectionPage start = new SelectionPage(pdfium, page);
+            if (start.count > 0) {
+                point = new Point(start.page.toPage(0, 0, page.w, page.h, 0, point.x, point.y));
+                int index = start.text.getIndex(point.x, point.y);
+                if (index == -1) {
+                    start.close();
+                    return;
+                }
+                start.index = index;
+                this.start = start;
+                return;
+            }
+            start.close();
+        }
+
+        @Override
+        public void setEnd(Page page, Point point) {
+            SelectionPage end = new SelectionPage(pdfium, page);
+            if (end.count > 0) {
+                point = new Point(end.page.toPage(0, 0, page.w, page.h, 0, point.x, point.y));
+                int index = end.text.getIndex(point.x, point.y);
+                if (index == -1) {
+                    end.close();
+                    return;
+                }
+                end.index = index;
+                this.end = end;
+                return;
+            }
+            end.close();
+        }
+
+        @Override
+        public String getText() {
+            if (start.page == end.page)
+                return start.text.getText(start.index, end.index - start.index + 1);
+            else
+                return null;
+        }
+
+        @Override
+        public Rect[] getBounds(Page p) {
+            if (start.page == end.page) {
+                Rect[] rr = start.text.getBounds(start.index, end.index - start.index + 1);
+                for (int i = 0; i < rr.length; i++) {
+                    Rect r = rr[i];
+                    r = start.page.toDevice(0, 0, start.w, start.h, 0, r);
+                    rr[i] = r;
+                }
+                return rr;
+            } else {
+                return null;
+            }
+        }
+
+        @Override
+        public void close() {
+            if (start != null)
+                start.close();
+            start = null;
+            if (end != null)
+                end.close();
+            end = null;
+        }
     }
 
     @TargetApi(21)
@@ -242,11 +387,25 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             canvas.drawBitmap(bm, render.toRect(bm.getWidth(), bm.getHeight()), render.dst, paint);
             bm.recycle();
         }
+
+        @Override
+        public Selection select(Selection.Page page, Selection.Point point) {
+            SelectionPage start = new SelectionPage(doc, page);
+            if (start.count > 0) {
+                PDFPlugin.Selection s = new PDFPlugin.Selection(doc, start, point);
+                if (s.isEmpty()) {
+                    s.close();
+                    return null;
+                }
+                return s;
+            }
+            start.close();
+            return null;
+        }
+
     }
 
     public static class PDFTextModel extends PdfiumView implements ZLTextModel {
-        public ArrayList<ZLTextParagraph> pars = new ArrayList<>();
-
         public PDFTextModel(ZLFile f) {
             super(f);
         }

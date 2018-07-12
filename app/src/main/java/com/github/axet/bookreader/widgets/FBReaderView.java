@@ -141,6 +141,7 @@ public class FBReaderView extends RelativeLayout {
     public PluginView pluginview;
     public PageTurningListener pageTurningListener;
     PinchView pinch;
+    SelectionView selection;
 
     public interface PageTurningListener {
         void onScrollingFinished(ZLViewEnums.PageIndex index);
@@ -583,6 +584,7 @@ public class FBReaderView extends RelativeLayout {
                 PageCursor cache;
                 Paint paint = new Paint();
                 ZLTextElementAreaVector p;
+                Reflow.Info info;
 
                 public PageView(ViewGroup parent) {
                     super(parent.getContext());
@@ -692,6 +694,7 @@ public class FBReaderView extends RelativeLayout {
                                                 Reflow reflower = new Reflow(getContext(), w, h, page, (CustomView) app.BookTextView, book.info);
                                                 Bitmap bm = pluginview.render(reflower.w, reflower.h, page);
                                                 reflower.load(bm);
+                                                info = new Reflow.Info(reflower, bm);
                                                 if (reflower.count() > 0)
                                                     bm.recycle();
                                                 if (i < 0) {
@@ -796,6 +799,7 @@ public class FBReaderView extends RelativeLayout {
                         bm = null;
                     }
                     p = null;
+                    info = null;
                     if (time != null) {
                         time.cancel();
                         time = null;
@@ -1065,7 +1069,7 @@ public class FBReaderView extends RelativeLayout {
                 return true;
             }
 
-            void close() {
+            void closeText() {
                 app.BookTextView.myCurrentPage.TextElementMap = new ZLTextElementAreaVector();
             }
 
@@ -1077,7 +1081,7 @@ public class FBReaderView extends RelativeLayout {
                     return false;
                 app.BookTextView.onFingerPress(x, y);
                 v.invalidate();
-                close();
+                closeText();
                 return true;
             }
 
@@ -1094,7 +1098,7 @@ public class FBReaderView extends RelativeLayout {
                 app.BookTextView.onFingerSingleTap(x, y);
                 v.invalidate();
                 adapter.invalidates.add(v.holder);
-                close();
+                closeText();
                 return true;
             }
 
@@ -1107,20 +1111,30 @@ public class FBReaderView extends RelativeLayout {
                 app.BookTextView.onFingerMove(x, y);
                 v.invalidate();
                 adapter.invalidates.add(v.holder);
-                close();
+                closeText();
                 return true;
             }
 
             @Override
             public void onLongPress(MotionEvent e) {
-                if (!open(e))
+                if (!openCursor(e))
+                    return;
+                if (pluginview != null) {
+                    Rect rect = null;
+                    PluginView.Selection s = pluginview.select(c.start, v.info, v.getWidth(), v.getHeight(), x, y);
+                    if (s != null) {
+                        selectionOpen(rect, s);
+                        return;
+                    }
+                }
+                if (!openText(e))
                     return;
                 app.BookTextView.onFingerLongPress(x, y);
                 app.BookTextView.onFingerReleaseAfterLongPress(x, y);
                 v.invalidate();
                 app.BookTextView.myCurrentPage.TextElementMap = new ZLTextElementAreaVector();
                 adapter.invalidates.add(v.holder);
-                close();
+                closeText();
             }
 
             @Override
@@ -1136,7 +1150,7 @@ public class FBReaderView extends RelativeLayout {
                         return false;
                     app.BookTextView.onFingerRelease(x, y);
                     v.invalidate();
-                    close();
+                    closeText();
                     return true;
                 }
                 return false;
@@ -2290,6 +2304,12 @@ public class FBReaderView extends RelativeLayout {
             pinch.close();
             pinch = null;
         }
+    }
+
+    public void selectionOpen(Rect rect, PluginView.Selection s) {
+    }
+
+    public void selectionClose() {
     }
 
 }
