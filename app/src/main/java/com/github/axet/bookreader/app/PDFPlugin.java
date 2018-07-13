@@ -273,25 +273,15 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 ss = s.index;
                 ee = s.count;
                 cc = ee - ss + 1;
-                if (bounds.reverse) {
-                    bounds.start = false;
-                    bounds.end = true;
-                } else {
-                    bounds.start = true;
-                    bounds.end = false;
-                }
+                bounds.start = true;
+                bounds.end = false;
             } else if (e.page == p.page) {
                 s = e;
                 ss = s.findFirstSymbol();
                 ee = s.index;
                 cc = ee - ss + 1;
-                if (bounds.reverse) {
-                    bounds.start = true;
-                    bounds.end = false;
-                } else {
-                    bounds.start = false;
-                    bounds.end = true;
-                }
+                bounds.start = false;
+                bounds.end = true;
             } else {
                 s = open(p);
                 ss = s.findFirstSymbol();

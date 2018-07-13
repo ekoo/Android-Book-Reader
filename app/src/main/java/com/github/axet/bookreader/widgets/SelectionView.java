@@ -5,12 +5,10 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
-import android.widget.RelativeLayout;
 
 import com.github.axet.bookreader.app.PDFPlugin;
 
@@ -22,7 +20,12 @@ import java.util.ArrayList;
 public class SelectionView extends FrameLayout {
     public PluginView.Selection selection;
     PageView touch;
-    HotPoint lostTouch;
+    HandleRect startRect = new HandleRect();
+    HandleRect startRectDraw;
+    HandleRect endRect = new HandleRect();
+    HandleRect endRectDraw;
+    Paint handles;
+    Rect rect;
 
     public static HotRect rectHandle(SelectionCursor.Which which, int x, int y) {
         final int dpi = ZLibrary.Instance().getDisplayDPI();
@@ -112,8 +115,8 @@ public class SelectionView extends FrameLayout {
 
         public void relativeTo(Rect rect) { // make child of rect, abs coords == rect.x + this.x
             left -= rect.left;
-            top -= rect.top;
             right -= rect.left;
+            top -= rect.top;
             bottom -= rect.top;
         }
 
@@ -122,6 +125,17 @@ public class SelectionView extends FrameLayout {
             right += p.x;
             top += p.y;
             bottom += p.y;
+        }
+
+        public void absTo(Rect rect) {
+            left += rect.left;
+            right += rect.left;
+            top += rect.top;
+            bottom += rect.top;
+        }
+
+        public String toString() {
+            return left + " " + top + " " + right + " " + bottom;
         }
     }
 
@@ -134,6 +148,12 @@ public class SelectionView extends FrameLayout {
     public static class HotRect extends Rect {
         public int hotx;
         public int hoty;
+
+        public HotRect(HotRect r) {
+            super(r);
+            hotx = r.hotx;
+            hoty = r.hoty;
+        }
 
         public HotRect(int left, int top, int right, int bottom, int x, int y) {
             super(left, top, right, bottom);
@@ -156,9 +176,14 @@ public class SelectionView extends FrameLayout {
     public static class TouchRect {
         public HotRect rect;
         public HotPoint touch;
-        public HotPoint abs;
 
         public TouchRect() {
+        }
+
+        public TouchRect(TouchRect r) {
+            rect = new HotRect(r.rect);
+            if (r.touch != null)
+                touch = new HotPoint(r.touch);
         }
 
         public void relativeTo(Rect rect) {
@@ -167,10 +192,8 @@ public class SelectionView extends FrameLayout {
                 touch.relativeTo(rect);
         }
 
-        public boolean onTouchEvent(MotionEvent event) {
-            int x = (int) event.getX();
-            int y = (int) event.getY();
-            if (event.getAction() == MotionEvent.ACTION_DOWN && rect.contains(x, y) || touch != null) {
+        public boolean onTouchEvent(int a, int x, int y) {
+            if (a == MotionEvent.ACTION_DOWN && rect.contains(x, y) || touch != null) {
                 if (touch == null)
                     touch = rect.makePoint(x, y);
                 else
@@ -183,12 +206,6 @@ public class SelectionView extends FrameLayout {
         public void onTouchRelease(MotionEvent event) {
             if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL)
                 touch = null;
-        }
-
-        public void absTo(Rect rect, Rect coords) {
-            abs = new HotPoint(touch);
-            abs.absTo(coords);
-            touch.absTo(rect);
         }
     }
 
@@ -227,11 +244,33 @@ public class SelectionView extends FrameLayout {
 
     public static class HandleRect extends TouchRect {
         public SelectionCursor.Which which;
+        public PageView page;
+        public Point draw;
+
+        public HandleRect() {
+        }
+
+        public HandleRect(HandleRect r, Rect re) {
+            super(r);
+            which = r.which;
+            page = r.page;
+            relativeTo(re);
+        }
 
         public void makeUnion(Rect rect) {
             rect.union(this.rect);
             if (touch != null)
                 rect.union(rectHandle(which, touch.x, touch.y));
+        }
+
+        public void drawRect(Rect rect) {
+            if (touch != null) {
+                draw = new HotPoint(touch);
+            } else {
+                draw = new Point(this.rect.hotx, this.rect.hoty);
+            }
+            draw.x -= rect.left;
+            draw.y -= rect.top;
         }
     }
 
@@ -240,16 +279,11 @@ public class SelectionView extends FrameLayout {
         Rect coords = new Rect(); // absolute coords (parent of SelectionView coords)
         PluginView.Selection.Bounds bounds;
 
-        HandleRect startRect = new HandleRect();
         ArrayList<Rect> lines = new ArrayList<>();
-        HandleRect endRect = new HandleRect();
 
         PDFPlugin.Selection.Setter setter;
 
         Paint paint;
-        Paint handles;
-
-        HotPoint lostTouch;
 
         public PageView(Context context, FBReaderView.CustomView custom, PDFPlugin.Selection.Setter setter) {
             super(context);
@@ -257,13 +291,7 @@ public class SelectionView extends FrameLayout {
             this.paint.setStyle(Paint.Style.FILL);
             this.paint.setColor(0x99 << 24 | custom.getSelectionBackgroundColor().intValue());
 
-            this.handles = new Paint();
-            this.handles.setStyle(Paint.Style.FILL);
-            this.handles.setColor(0xff << 24 | custom.getSelectionBackgroundColor().intValue());
-
             this.setter = setter;
-
-            setEnabled(false);
 
             setBackgroundColor(0x33 << 24 | (0xffffff & Color.BLUE));
             setLayoutParams(new MarginLayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -285,7 +313,7 @@ public class SelectionView extends FrameLayout {
 
             lines.clear();
             int i = 0;
-            Rect rect = new Rect(bounds.rr[i++]);
+            rect = new Rect(bounds.rr[i++]);
             Rect line = new Rect(rect);
             for (; i < bounds.rr.length; i++) {
                 Rect r = new Rect(bounds.rr[i]);
@@ -299,112 +327,25 @@ public class SelectionView extends FrameLayout {
             }
             lines.add(line);
 
-            Rect first = lines.get(0);
-            HotRect left = rectHandle(SelectionCursor.Which.Left, first.left, first.top + first.height() / 2);
-            Rect last = lines.get(lines.size() - 1);
-            HotRect right = rectHandle(SelectionCursor.Which.Right, last.right, last.top + last.height() / 2);
-
-            if (bounds.reverse) {
-                startRect.rect = right;
-                startRect.which = SelectionCursor.Which.Right;
-                endRect.rect = left;
-                endRect.which = SelectionCursor.Which.Left;
-            } else {
-                startRect.rect = left;
-                startRect.which = SelectionCursor.Which.Left;
-                endRect.rect = right;
-                endRect.which = SelectionCursor.Which.Right;
-            }
-
-            if (bounds.start)
-                startRect.makeUnion(rect);
-            else
-                lostTouch = getLostTouch(startRect);
-
-            if (bounds.end)
-                endRect.makeUnion(rect);
-            else
-                lostTouch = getLostTouch(endRect);
-
             for (Rect r : lines)
                 r.relativeTo(rect);
-            startRect.relativeTo(rect);
-            endRect.relativeTo(rect);
-
-            this.rect = rect; // prevent getLostTouch confused
         }
 
         @Override
         protected void onDraw(Canvas canvas) {
             for (Rect r : lines)
                 canvas.drawRect(r.toRect(), paint);
-            if (bounds.start)
-                drawHandle(canvas, startRect.which, startRect);
-            if (bounds.end)
-                drawHandle(canvas, endRect.which, endRect);
-        }
-
-        public void drawHandle(Canvas canvas, SelectionCursor.Which which, TouchRect rect) { // SelectionCursor.draw
-            if (rect.touch != null)
-                SelectionView.drawHandle(canvas, which, rect.touch.x, rect.touch.y, handles);
-            else
-                SelectionView.drawHandle(canvas, which, rect.rect.hotx, rect.rect.hoty, handles);
-        }
-
-        @Override
-        public boolean onFilterTouchEventForSecurity(MotionEvent event) {
-            return isEnabled(); // disable onTouchEvent
-        }
-
-        @Override
-        public boolean onTouchEvent(MotionEvent event) {
-            int x = (int) event.getX();
-            int y = (int) event.getY();
-            if (bounds.start && startRect.onTouchEvent(event)) {
-                x += startRect.touch.offx;
-                y += startRect.touch.offy;
-                startRect.absTo(rect, coords);
-                startRect.onTouchRelease(event);
-                setter.setStart(x, y);
-                return true;
-            }
-            if (bounds.end && endRect.onTouchEvent(event)) {
-                x += endRect.touch.offx;
-                y += endRect.touch.offy;
-                endRect.absTo(rect, coords);
-                endRect.onTouchRelease(event);
-                setter.setEnd(x, y);
-                return true;
-            }
-            return super.onTouchEvent(event);
-        }
-
-        public HotPoint getLostTouch() {
-            HotPoint e = null;
-            if (startRect.touch != null) {
-                e = getLostTouch(startRect);
-            }
-            if (endRect.touch != null) {
-                e = getLostTouch(endRect);
-            }
-            return e;
-        }
-
-        public HotPoint getLostTouch(TouchRect rect) {
-            HotPoint e = null;
-            if (rect.touch != null) {
-                e = rect.abs;
-                rect.abs = null;
-                rect.touch = null;
-            }
-            return e;
         }
     }
 
-    public SelectionView(Context context, PluginView.Selection s) {
+    public SelectionView(Context context, FBReaderView.CustomView custom, PluginView.Selection s) {
         super(context);
 
         this.selection = s;
+
+        this.handles = new Paint();
+        this.handles.setStyle(Paint.Style.FILL);
+        this.handles.setColor(0xff << 24 | custom.getSelectionBackgroundColor().intValue());
 
         setLayoutParams(new MarginLayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
@@ -420,29 +361,12 @@ public class SelectionView extends FrameLayout {
         return null;
     }
 
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        int x = (int) event.getX();
-        int y = (int) event.getY();
-        if (touch == null)
-            touch = findView(x, y);
-        if (touch != null) {
-            MotionEvent e = MotionEvent.obtain(event);
-            e.offsetLocation(-touch.getLeft(), -touch.getTop());
-            if (touch.onTouchEvent(e))
-                return true;
-            touch = null;
-        }
-        return super.onTouchEvent(event);
-    }
-
     public void add(PageView page) {
         addView(page);
     }
 
     public void remove(PageView page) {
         if (touch == page) {
-            lostTouch = touch.getLostTouch();
             touch = null;
         }
         removeView(page);
@@ -451,44 +375,76 @@ public class SelectionView extends FrameLayout {
 
     public void update(PageView page, int x, int y) {
         page.update(x, y);
-        if (page.lostTouch != null) {
-            lostTouch = page.lostTouch;
-            page.lostTouch = null;
-        }
-        if (lostTouch != null) {
-            int lx = lostTouch.x;
-            int ly = lostTouch.y;
-            if (page.coords.contains(lx, ly)) {
-                lx -= page.coords.left + lostTouch.offx;
-                ly -= page.coords.top + lostTouch.offy;
-                lostTouch = null;
-                page.onTouchEvent(MotionEvent.obtain(0, 0, MotionEvent.ACTION_DOWN, lx, ly, 0));
-            }
-        }
         update();
     }
 
     public void update() {
-        MarginLayoutParams lp = (MarginLayoutParams) getLayoutParams();
         Rect rect = null;
+
+        boolean reverse = false;
+        Rect first = null;
+        PageView firstSetter = null;
+        Rect last = null;
+        PageView lastSetter = null;
+
         for (int i = 0; i < getChildCount(); i++) {
             PageView v = (PageView) getChildAt(i);
+
             if (rect == null)
                 rect = new Rect(v.coords);
             else
                 rect.union(v.coords);
+
+            reverse = v.bounds.reverse;
+
+            if (v.bounds.start) {
+                first = new Rect(v.lines.get(0));
+                first.absTo(v.coords);
+                firstSetter = v;
+            }
+            if (v.bounds.end) {
+                last = new Rect(v.lines.get(v.lines.size() - 1));
+                last.absTo(v.coords);
+                lastSetter = v;
+            }
         }
-        if (rect == null) {
-            lp.leftMargin = 0;
-            lp.topMargin = 0;
-            lp.width = 0;
-            lp.height = 0;
+
+        if (rect == null || first == null || last == null)
+            return; // closing selection view
+
+        HotRect left = rectHandle(SelectionCursor.Which.Left, first.left, first.top + first.height() / 2);
+        HotRect right = rectHandle(SelectionCursor.Which.Right, last.right, last.top + last.height() / 2);
+
+        if (reverse) {
+            startRect.rect = right;
+            startRect.which = SelectionCursor.Which.Right;
+            startRect.page = lastSetter;
+            endRect.rect = left;
+            endRect.which = SelectionCursor.Which.Left;
+            endRect.page = firstSetter;
         } else {
-            lp.leftMargin = rect.left;
-            lp.topMargin = rect.top;
-            lp.width = rect.width();
-            lp.height = rect.height();
+            startRect.rect = left;
+            startRect.which = SelectionCursor.Which.Left;
+            startRect.page = firstSetter;
+            endRect.rect = right;
+            endRect.which = SelectionCursor.Which.Right;
+            endRect.page = lastSetter;
         }
+
+        startRect.makeUnion(rect);
+        endRect.makeUnion(rect);
+
+        startRect.drawRect(rect);
+        endRect.drawRect(rect);
+
+        this.rect = rect;
+
+        MarginLayoutParams lp = (MarginLayoutParams) getLayoutParams();
+        lp.leftMargin = rect.left;
+        lp.topMargin = rect.top;
+        lp.width = rect.width();
+        lp.height = rect.height();
+
         for (int i = 0; i < getChildCount(); i++) {
             PageView v = (PageView) getChildAt(i);
             MarginLayoutParams vlp = (MarginLayoutParams) v.getLayoutParams();
@@ -499,6 +455,38 @@ public class SelectionView extends FrameLayout {
             v.requestLayout();
         }
         requestLayout();
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        drawHandle(canvas, startRect.which, startRect);
+        drawHandle(canvas, endRect.which, endRect);
+    }
+
+    public void drawHandle(Canvas canvas, SelectionCursor.Which which, HandleRect rect) { // SelectionCursor.draw
+        SelectionView.drawHandle(canvas, which, rect.draw.x, rect.draw.y, handles);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        int x = (int) event.getX() + getLeft();
+        int y = (int) event.getY() + getTop();
+        if (startRect.onTouchEvent(event.getAction(), x, y)) {
+            x += startRect.touch.offx - startRect.page.getLeft() - getLeft();
+            y += startRect.touch.offy - startRect.page.getTop() - getTop();
+            startRect.onTouchRelease(event);
+            startRect.page.setter.setStart(x, y);
+            return true;
+        }
+        if (endRect.onTouchEvent(event.getAction(), x, y)) {
+            x += endRect.touch.offx - endRect.page.getLeft() - getLeft();
+            y += endRect.touch.offy - endRect.page.getTop() - getTop();
+            endRect.onTouchRelease(event);
+            endRect.page.setter.setEnd(x, y);
+            return true;
+        }
+        return super.onTouchEvent(event);
     }
 
     public void close() {

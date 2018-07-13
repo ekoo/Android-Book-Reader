@@ -2418,7 +2418,7 @@ public class FBReaderView extends RelativeLayout {
 
     public void selectionOpen(PluginView.Selection s) {
         selectionClose();
-        selection = new SelectionView(getContext(), s);
+        selection = new SelectionView(getContext(), (CustomView) app.BookTextView, s);
         addView(selection);
         if (widget instanceof ScrollView)
             ((ScrollView) widget).updateSelection();
