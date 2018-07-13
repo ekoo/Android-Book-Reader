@@ -30,7 +30,6 @@ public class PluginView {
     public boolean reflow = false;
     public boolean reflowDebug;
     public Reflow reflower;
-    public Selection selection;
 
     public static class Selection { // plugin coords (render bm size's)
         public interface Setter {
@@ -501,8 +500,7 @@ public class PluginView {
     }
 
     public Selection select(ZLTextPosition start, Reflow.Info info, int w, int h, int x, int y) {
-        selection = select(selectPage(start, info, w, h), selectPoint(start, info, x, y));
-        return selection;
+        return select(selectPage(start, info, w, h), selectPoint(start, info, x, y));
     }
 
 }
