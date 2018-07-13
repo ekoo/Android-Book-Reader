@@ -3,11 +3,9 @@ package com.github.axet.bookreader.app;
 import android.annotation.TargetApi;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.pdf.PdfRenderer;
 import android.os.ParcelFileDescriptor;
-import android.support.annotation.NonNull;
 import android.util.SparseArray;
 
 import com.github.axet.androidlibrary.app.Natives;
@@ -39,9 +37,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 
 public class PDFPlugin extends BuiltinFormatPlugin {
@@ -129,7 +125,6 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             text.close();
             ppage.close();
         }
-
     }
 
     public static class Selection extends PluginView.Selection {
@@ -137,6 +132,70 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         SelectionPage start;
         SelectionPage end;
         SparseArray<SelectionPage> map = new SparseArray<>();
+
+        public class SelectionBounds {
+            SelectionPage page;
+            int ss;
+            int ee;
+            int cc;
+            boolean first;
+            boolean last;
+            boolean reverse;
+
+            public SelectionBounds(Page p) {
+                SelectionPage s;
+                SelectionPage e;
+
+                if (start.page > end.page) {
+                    reverse = true;
+                    s = end;
+                    e = start;
+                } else {
+                    if (start.page == end.page) {
+                        if (start.index > end.index) {
+                            reverse = true;
+                            s = end;
+                            e = start;
+                        } else {
+                            s = start;
+                            e = end;
+                        }
+                    } else {
+                        s = start;
+                        e = end;
+                    }
+                }
+                if (s.page == e.page) {
+                    ss = s.index;
+                    ee = e.index;
+                    cc = ee - ss + 1;
+                    first = true;
+                    last = true;
+                } else if (s.page == p.page) {
+                    ss = s.index;
+                    ee = s.count;
+                    cc = ee - ss + 1;
+                    first = true;
+                    last = false;
+                } else if (e.page == p.page) {
+                    s = e;
+                    ss = s.findFirstSymbol();
+                    ee = s.index;
+                    cc = ee - ss + 1;
+                    first = false;
+                    last = true;
+                } else {
+                    s = open(p);
+                    ss = s.findFirstSymbol();
+                    ee = s.count;
+                    cc = ee - ss + 1;
+                    first = false;
+                    last = false;
+                }
+                page = s;
+            }
+        }
+
 
         public Selection(Pdfium pdfium, SelectionPage page, Point point) {
             this.pdfium = pdfium;
@@ -239,64 +298,43 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         @Override
         public Bounds getBounds(Page p) {
             Bounds bounds = new Bounds();
-            SelectionPage s;
-            SelectionPage e;
-            if (start.page > end.page) {
-                bounds.reverse = true;
-                s = end;
-                e = start;
-            } else {
-                if (start.page == end.page) {
-                    if (start.index > end.index) {
-                        bounds.reverse = true;
-                        s = end;
-                        e = start;
-                    } else {
-                        s = start;
-                        e = end;
-                    }
-                } else {
-                    s = start;
-                    e = end;
-                }
-            }
-            int ss;
-            int ee;
-            int cc;
-            if (s.page == e.page) {
-                ss = s.index;
-                ee = e.index;
-                cc = ee - ss + 1;
-                bounds.start = true;
-                bounds.end = true;
-            } else if (s.page == p.page) {
-                ss = s.index;
-                ee = s.count;
-                cc = ee - ss + 1;
-                bounds.start = true;
-                bounds.end = false;
-            } else if (e.page == p.page) {
-                s = e;
-                ss = s.findFirstSymbol();
-                ee = s.index;
-                cc = ee - ss + 1;
-                bounds.start = false;
-                bounds.end = true;
-            } else {
-                s = open(p);
-                ss = s.findFirstSymbol();
-                ee = s.count;
-                cc = ee - ss + 1;
-                bounds.start = false;
-                bounds.end = false;
-            }
-            bounds.rr = s.text.getBounds(ss, cc);
+            SelectionBounds b = new SelectionBounds(p);
+            bounds.reverse = b.reverse;
+            bounds.start = b.first;
+            bounds.end = b.last;
+            bounds.rr = b.page.text.getBounds(b.ss, b.cc);
             for (int i = 0; i < bounds.rr.length; i++) {
                 Rect r = bounds.rr[i];
-                r = s.ppage.toDevice(0, 0, s.w, s.h, 0, r);
+                r = b.page.ppage.toDevice(0, 0, b.page.w, b.page.h, 0, r);
                 bounds.rr[i] = r;
             }
             return bounds;
+        }
+
+        @Override
+        public Boolean isAbove(Page page, Point point) {
+            SelectionBounds b = new SelectionBounds(page);
+            if (b.page.count > 0) {
+                point = new Point(b.page.ppage.toPage(0, 0, page.w, page.h, 0, point.x, point.y));
+                int index = b.page.text.getIndex(point.x, point.y);
+                if (index == -1)
+                    return null;
+                return index >= b.ss || index >= b.ee;
+            }
+            return null;
+        }
+
+        @Override
+        public Boolean isBelow(Page page, Point point) {
+            SelectionBounds b = new SelectionBounds(page);
+            if (b.page.count > 0) {
+                point = new Point(b.page.ppage.toPage(0, 0, page.w, page.h, 0, point.x, point.y));
+                int index = b.page.text.getIndex(point.x, point.y);
+                if (index == -1)
+                    return null;
+                return index <= b.ss || index <= b.ee;
+            }
+            return null;
         }
 
         @Override

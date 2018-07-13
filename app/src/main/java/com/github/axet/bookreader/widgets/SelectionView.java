@@ -473,15 +473,15 @@ public class SelectionView extends FrameLayout {
         int x = (int) event.getX() + getLeft();
         int y = (int) event.getY() + getTop();
         if (startRect.onTouchEvent(event.getAction(), x, y)) {
-            x += startRect.touch.offx - startRect.page.getLeft() - getLeft();
-            y += startRect.touch.offy - startRect.page.getTop() - getTop();
+            x += startRect.touch.offx;
+            y += startRect.touch.offy;
             startRect.onTouchRelease(event);
             startRect.page.setter.setStart(x, y);
             return true;
         }
         if (endRect.onTouchEvent(event.getAction(), x, y)) {
-            x += endRect.touch.offx - endRect.page.getLeft() - getLeft();
-            y += endRect.touch.offy - endRect.page.getTop() - getTop();
+            x += endRect.touch.offx;
+            y += endRect.touch.offy;
             endRect.onTouchRelease(event);
             endRect.page.setter.setEnd(x, y);
             return true;

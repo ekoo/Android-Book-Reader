@@ -110,6 +110,14 @@ public class PluginView {
             return null;
         }
 
+        public Boolean isAbove(Page page, Point point) {
+            return null;
+        }
+
+        public Boolean isBelow(Page page, Point point) {
+            return null;
+        }
+
         public void close() {
         }
     }

@@ -116,6 +116,7 @@ import org.geometerplus.zlibrary.ui.android.view.ZLAndroidPaintContext;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -1519,20 +1520,34 @@ public class FBReaderView extends RelativeLayout {
                     p = c.end.getParagraphIndex() - 1;
                 else
                     p = c.start.getParagraphIndex();
+
                 final PluginView.Selection.Page page = new PluginView.Selection.Page(p, view.getWidth(), view.getHeight());
+
                 int s = selection.selection.getStart();
                 int e = selection.selection.getEnd();
                 if (s > e) {
                     s = selection.selection.getEnd();
                     e = selection.selection.getStart();
                 }
-                if (s <= page.page && page.page <= e) {
+
+                boolean selected = (s <= page.page && page.page <= e);
+
+                if (pluginview.reflow) {
+                    Map<Rect, Rect> src = view.info.src.get(c.start.getElementIndex());
+                    Rect[] all = src.keySet().toArray(new Rect[]{});
+                    Arrays.sort(all, new PDFPlugin.UL());
+                    Rect first = all[0];
+                    Rect last = all[all.length - 1];
+                    Boolean b = selection.selection.isBelow(page, new PluginView.Selection.Point(first.left, first.top));
+                    if (b == null)
+                        b = selection.selection.isBelow(page, new PluginView.Selection.Point(first.left + 1, first.top + 1));
+                    Boolean a = selection.selection.isAbove(page, new PluginView.Selection.Point(last.left, last.top));
+                }
+                if (selected) {
                     if (view.selection == null) {
                         PluginView.Selection.Setter setter = new PDFPlugin.Selection.Setter() {
                             @Override
                             public void setStart(int x, int y) {
-                                x += view.selection.getLeft() + selection.getLeft();
-                                y += view.selection.getTop() + selection.getTop();
                                 ScrollAdapter.PageView v = findView(x, y);
                                 if (v != null) {
                                     int pos = v.holder.getAdapterPosition();
@@ -1550,8 +1565,6 @@ public class FBReaderView extends RelativeLayout {
 
                             @Override
                             public void setEnd(int x, int y) {
-                                x += view.selection.getLeft() + selection.getLeft();
-                                y += view.selection.getTop() + selection.getTop();
                                 ScrollAdapter.PageView v = findView(x, y);
                                 if (v != null) {
                                     int pos = v.holder.getAdapterPosition();
