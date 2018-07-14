@@ -47,6 +47,7 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.services.FileProvider;
 import com.github.axet.androidlibrary.services.StorageProvider;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
@@ -272,6 +273,20 @@ public class FBReaderView extends RelativeLayout {
         @Override
         public synchronized void paint(ZLPaintContext context, PageIndex pageIndex) {
             super.paint(context, pageIndex);
+        }
+
+        @Override
+        public int getSelectionStartY() {
+            if (selection != null)
+                return selection.getSelectionStartY();
+            return super.getSelectionStartY();
+        }
+
+        @Override
+        public int getSelectionEndY() {
+            if (selection != null)
+                return selection.getSelectionEndY();
+            return super.getSelectionEndY();
         }
     }
 
@@ -2176,21 +2191,24 @@ public class FBReaderView extends RelativeLayout {
             @Override
             protected void run(Object... params) {
                 final FBView fbview = Reader.getTextView();
-                final TextSnippet snippet = fbview.getSelectedSnippet();
-                if (snippet == null) {
-                    return;
+
+                String text;
+
+                if (selection != null) {
+                    text = selection.selection.getText();
+                } else {
+                    TextSnippet snippet = fbview.getSelectedSnippet();
+                    if (snippet == null)
+                        return;
+                    text = snippet.getText();
                 }
 
-                final String text = snippet.getText();
                 fbview.clearSelection();
+                selectionClose();
 
-                final ClipboardManager clipboard =
-                        (ClipboardManager) getContext().getApplicationContext().getSystemService(Application.CLIPBOARD_SERVICE);
+                final ClipboardManager clipboard = (ClipboardManager) getContext().getApplicationContext().getSystemService(Application.CLIPBOARD_SERVICE);
                 clipboard.setText(text);
-                UIMessageUtil.showMessageText(
-                        a,
-                        ZLResource.resource("selection").getResource("textInBuffer").getValue().replace("%s", clipboard.getText())
-                );
+                UIMessageUtil.showMessageText(a, clipboard.getText().toString());
 
                 if (widget instanceof ScrollView) {
                     ((ScrollView) widget).adapter.processInvalidate();
@@ -2202,20 +2220,25 @@ public class FBReaderView extends RelativeLayout {
             @Override
             protected void run(Object... params) {
                 final FBView fbview = Reader.getTextView();
-                final TextSnippet snippet = fbview.getSelectedSnippet();
-                if (snippet == null) {
-                    return;
+
+                String text;
+
+                if (selection != null) {
+                    text = selection.selection.getText();
+                } else {
+                    TextSnippet snippet = fbview.getSelectedSnippet();
+                    if (snippet == null)
+                        return;
+                    text = snippet.getText();
                 }
 
-                final String text = snippet.getText();
                 final String title = Reader.getCurrentBook().getTitle();
                 fbview.clearSelection();
+                selectionClose();
 
                 final Intent intent = new Intent(android.content.Intent.ACTION_SEND);
-                intent.setType("text/plain");
-                intent.putExtra(android.content.Intent.EXTRA_SUBJECT,
-                        ZLResource.resource("selection").getResource("quoteFrom").getValue().replace("%s", title)
-                );
+                intent.setType(HttpClient.CONTENTTYPE_TEXT);
+                intent.putExtra(android.content.Intent.EXTRA_SUBJECT, title);
                 intent.putExtra(android.content.Intent.EXTRA_TEXT, text);
                 a.startActivity(Intent.createChooser(intent, null));
 
@@ -2230,15 +2253,25 @@ public class FBReaderView extends RelativeLayout {
             protected void run(Object... params) {
                 final FBView fbview = Reader.getTextView();
                 final DictionaryHighlighting dictionaryHilite = DictionaryHighlighting.get(fbview);
-                final TextSnippet snippet = fbview.getSelectedSnippet();
 
-                if (dictionaryHilite == null || snippet == null) {
+                String text;
+
+                if (selection != null) {
+                    text = selection.selection.getText();
+                } else {
+                    TextSnippet snippet = fbview.getSelectedSnippet();
+                    if (snippet == null)
+                        return;
+                    text = snippet.getText();
+                }
+
+                if (dictionaryHilite == null) {
                     return;
                 }
 
                 DictionaryUtil.openTextInDictionary(
                         a,
-                        snippet.getText(),
+                        text,
                         fbview.getCountOfSelectedWords() == 1,
                         fbview.getSelectionStartY(),
                         fbview.getSelectionEndY(),
@@ -2250,6 +2283,7 @@ public class FBReaderView extends RelativeLayout {
                         }
                 );
                 fbview.clearSelection();
+                selectionClose();
             }
         });
         app.addAction(ActionCode.SELECTION_BOOKMARK, new FBAction(app) {
@@ -2289,6 +2323,7 @@ public class FBReaderView extends RelativeLayout {
             @Override
             protected void run(Object... params) {
                 app.BookTextView.clearSelection();
+                selectionClose();
                 if (widget instanceof ScrollView) {
                     ((ScrollView) widget).adapter.processInvalidate();
                     ((ScrollView) widget).adapter.processClear();
@@ -2514,11 +2549,13 @@ public class FBReaderView extends RelativeLayout {
             @Override
             public void onTouchLock() {
                 drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+                app.runAction(ActionCode.SELECTION_HIDE_PANEL);
             }
 
             @Override
             public void onTouchUnlock() {
                 drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+                app.runAction(ActionCode.SELECTION_SHOW_PANEL);
             }
         };
         addView(selection);
@@ -2528,6 +2565,7 @@ public class FBReaderView extends RelativeLayout {
         } else {
             selection.setClipHeight(((ZLAndroidWidget) widget).getMainAreaHeight());
         }
+        app.runAction(ActionCode.SELECTION_SHOW_PANEL);
     }
 
     public void selectionClose() {
@@ -2538,6 +2576,7 @@ public class FBReaderView extends RelativeLayout {
             removeView(selection);
             selection = null;
         }
+        app.runAction(ActionCode.SELECTION_HIDE_PANEL);
     }
 
 }

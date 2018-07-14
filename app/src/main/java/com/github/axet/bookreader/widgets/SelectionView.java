@@ -304,7 +304,8 @@ public class SelectionView extends FrameLayout {
 
             this.setter = setter;
 
-            setBackgroundColor(0x33 << 24 | (0xffffff & Color.BLUE));
+            // setBackgroundColor(0x33 << 24 | (0xffffff & Color.BLUE));
+
             setLayoutParams(new MarginLayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         }
 
@@ -353,7 +354,7 @@ public class SelectionView extends FrameLayout {
 
         setLayoutParams(new MarginLayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        setBackgroundColor(0x33 << 24 | (0xffffff & Color.GREEN));
+        // setBackgroundColor(0x33 << 24 | (0xffffff & Color.GREEN));
     }
 
     public void setClipHeight(int h) {
@@ -502,6 +503,7 @@ public class SelectionView extends FrameLayout {
                 return true;
             }
             if (endRect.onTouchEvent(event.getAction(), x, y)) {
+                onTouchLock();
                 x += endRect.touch.offx;
                 y += endRect.touch.offy;
                 endRect.onTouchRelease(event);
@@ -525,5 +527,13 @@ public class SelectionView extends FrameLayout {
     }
 
     public void onTouchUnlock() {
+    }
+
+    public int getSelectionStartY() {
+        return startRect.rect.rect.top;
+    }
+
+    public int getSelectionEndY() {
+        return endRect.rect.rect.bottom;
     }
 }
