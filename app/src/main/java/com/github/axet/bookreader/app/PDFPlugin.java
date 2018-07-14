@@ -369,6 +369,18 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
+        public Rect[] getBoundsAll(Page page) {
+            SelectionPage p = open(page);
+            Rect[] rr = p.text.getBounds(0, p.count);
+            for (int i = 0; i < rr.length; i++) {
+                Rect r = rr[i];
+                r = p.ppage.toDevice(0, 0, p.w, p.h, 0, r);
+                rr[i] = r;
+            }
+            return rr;
+        }
+
+        @Override
         public Bounds getBounds(Page p) {
             Bounds bounds = new Bounds();
             SelectionBounds b = new SelectionBounds(p);

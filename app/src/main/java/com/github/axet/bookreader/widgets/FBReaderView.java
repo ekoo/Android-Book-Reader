@@ -118,7 +118,7 @@ import org.geometerplus.zlibrary.ui.android.view.ZLAndroidPaintContext;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -1538,24 +1538,33 @@ public class FBReaderView extends RelativeLayout {
                     page = pluginview.selectPage(c.start, view.info, view.getWidth(), view.getHeight());
                 }
 
-                int s = selection.selection.getStart();
-                int e = selection.selection.getEnd();
-                if (s > e) {
-                    s = selection.selection.getEnd();
-                    e = selection.selection.getStart();
+                int ss = selection.selection.getStart();
+                int ee = selection.selection.getEnd();
+                if (ss > ee) {
+                    ss = selection.selection.getEnd();
+                    ee = selection.selection.getStart();
                 }
 
                 if (selected)
-                    selected = (s <= page.page && page.page <= e);
+                    selected = (ss <= page.page && page.page <= ee);
 
                 final Rect first;
                 final Rect last;
 
                 if (selected && pluginview.reflow && pluginview.reflower != null) {
-                    Rect[] all = view.info.src.keySet().toArray(new Rect[0]);
-                    Arrays.sort(all, new SelectionView.LinesUL(all));
-                    first = all[0];
-                    last = all[all.length - 1];
+                    Rect[] bounds = selection.selection.getBoundsAll(page);
+                    ArrayList<Rect> ii = new ArrayList<>();
+                    for (Rect b : bounds) {
+                        for (Rect s : view.info.src.keySet()) {
+                            Rect i = new Rect(b);
+                            if (i.intersect(s) && (i.height() * 100 / s.height() > SelectionView.ARTIFACT_PERCENTS)) {
+                                ii.add(i);
+                            }
+                        }
+                    }
+                    Collections.sort(ii, new SelectionView.LinesUL(ii));
+                    first = ii.get(0);
+                    last = ii.get(ii.size() - 1);
 
                     Boolean b = selection.selection.isBelow(page, new PluginView.Selection.Point(first.left, first.top));
                     if (b == null)
@@ -1575,6 +1584,7 @@ public class FBReaderView extends RelativeLayout {
 
                     selected = b != null && b && a != null && a;
                 } else {
+                    selected = false;
                     first = null;
                     last = null;
                 }
@@ -1630,13 +1640,13 @@ public class FBReaderView extends RelativeLayout {
                                     for (Rect r : bounds.rr) {
                                         for (Rect s : view.info.src.keySet()) {
                                             Rect i = new Rect(r);
-                                            if (i.intersect(s) && (i.height() * 100 / s.height() > 10)) { // ignore artifacts height less then 10%
+                                            if (i.intersect(s) && (i.height() * 100 / s.height() > SelectionView.ARTIFACT_PERCENTS)) { // ignore artifacts height less then 10%
                                                 Rect d = view.info.fromSrc(s, i);
                                                 list.add(d);
                                             }
                                         }
                                     }
-                                    ArrayList<Rect> copy = new ArrayList<Rect>(list);
+                                    ArrayList<Rect> copy = new ArrayList<>(list);
                                     for (Rect r : list) {
                                         for (Rect k : list) {
                                             if (r != k && r.intersects(k.left, k.top, k.right, k.bottom)) {

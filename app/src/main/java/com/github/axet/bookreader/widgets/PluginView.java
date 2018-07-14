@@ -107,6 +107,10 @@ public class PluginView {
             return null;
         }
 
+        public Rect[] getBoundsAll(Page page) {
+            return null;
+        }
+
         public Bounds getBounds(Page page) {
             return null;
         }
