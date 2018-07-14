@@ -6,6 +6,7 @@ import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.graphics.pdf.PdfRenderer;
 import android.os.ParcelFileDescriptor;
+import android.util.SparseArray;
 
 import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.bookreader.widgets.FBReaderView;
@@ -35,6 +36,8 @@ import org.geometerplus.zlibrary.ui.android.image.ZLBitmapImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 public class PDFPlugin extends BuiltinFormatPlugin {
@@ -52,12 +55,22 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         return new PDFPlugin(info);
     }
 
+    public static class UL implements Comparator<Rect> {
+        @Override
+        public int compare(Rect o1, Rect o2) {
+            int r = Integer.valueOf(o2.top).compareTo(Integer.valueOf(o1.top));
+            if (r != 0)
+                return r;
+            return Integer.valueOf(o1.left).compareTo(Integer.valueOf(o2.left));
+        }
+    }
+
     public static class SelectionPage {
         int page;
         Pdfium.Page ppage;
         Pdfium.Text text;
         int index; // char index
-        long count; // total symbols
+        int count; // total symbols
         int w;
         int h;
 
@@ -75,32 +88,129 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             this(page.page, pdfium.openPage(page.page), page.w, page.h);
         }
 
+        public SelectionPage(Pdfium pdfium, int page) {
+            this(page, pdfium.openPage(page), 0, 0);
+        }
+
         public SelectionPage(int p, Pdfium.Page page, int w, int h) {
             this.page = p;
             this.ppage = page;
             this.text = page.open();
-            this.count = text.getCount();
+            this.count = (int) text.getCount();
             this.w = w;
             this.h = h;
             this.index = -1;
+        }
+
+        public int findFirstSymbol() {
+            Rect[] rr = text.getBounds(0, count);
+            Arrays.sort(rr, new UL());
+            for (Rect r : rr) {
+                int index = text.getIndex(r.left, r.top);
+                if (index != -1)
+                    return index;
+                index = text.getIndex(r.left + 1, r.top + 1);
+                if (index != -1)
+                    return index;
+                index = text.getIndex(r.left, r.centerY());
+                if (index != -1)
+                    return index;
+                index = text.getIndex(r.left + 1, r.centerY());
+                if (index != -1)
+                    return index;
+                index = text.getIndex(r.centerX(), r.centerY());
+                if (index != -1)
+                    return index;
+            }
+            return 0;
         }
 
         public void close() {
             text.close();
             ppage.close();
         }
-
     }
 
     public static class Selection extends PluginView.Selection {
         Pdfium pdfium;
         SelectionPage start;
         SelectionPage end;
+        SparseArray<SelectionPage> map = new SparseArray<>();
 
-        public Selection(Pdfium pdfium, SelectionPage sp, Point point) {
+        public class SelectionBounds {
+            SelectionPage page;
+            int ss;
+            int ee;
+            int cc;
+            boolean first;
+            boolean last;
+            boolean reverse;
+
+            public SelectionBounds(Page p) {
+                start.w = p.w;
+                start.h = p.h;
+                end.w = p.w;
+                end.h = p.h;
+
+                SelectionPage s;
+                SelectionPage e;
+
+                if (start.page > end.page) {
+                    reverse = true;
+                    s = end;
+                    e = start;
+                } else {
+                    if (start.page == end.page) {
+                        if (start.index > end.index) {
+                            reverse = true;
+                            s = end;
+                            e = start;
+                        } else {
+                            s = start;
+                            e = end;
+                        }
+                    } else {
+                        s = start;
+                        e = end;
+                    }
+                }
+                if (s.page == e.page) {
+                    ss = s.index;
+                    ee = e.index;
+                    cc = ee - ss + 1;
+                    first = true;
+                    last = true;
+                } else if (s.page == p.page) {
+                    ss = s.index;
+                    ee = s.count;
+                    cc = ee - ss + 1;
+                    first = true;
+                    last = false;
+                } else if (e.page == p.page) {
+                    s = e;
+                    ss = s.findFirstSymbol();
+                    ee = s.index;
+                    cc = ee - ss + 1;
+                    first = false;
+                    last = true;
+                } else {
+                    s = open(p);
+                    ss = s.findFirstSymbol();
+                    ee = s.count;
+                    cc = ee - ss + 1;
+                    first = false;
+                    last = false;
+                }
+                page = s;
+            }
+        }
+
+
+        public Selection(Pdfium pdfium, SelectionPage page, Point point) {
             this.pdfium = pdfium;
-            point = new Point(sp.ppage.toPage(0, 0, sp.w, sp.h, 0, point.x, point.y));
-            selectWord(sp, point);
+            map.put(page.page, page);
+            point = new Point(page.ppage.toPage(0, 0, page.w, page.h, 0, point.x, point.y));
+            selectWord(page, point);
         }
 
         public boolean isEmpty() {
@@ -114,6 +224,28 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             if (s == null || s.length() != 1)
                 return false;
             return isWord(s.toCharArray()[0]);
+        }
+
+        SelectionPage open(Page page) {
+            SelectionPage p = map.get(page.page);
+            if (p != null) {
+                p.w = page.w;
+                p.h = page.h;
+            }
+            if (p == null) {
+                p = new SelectionPage(pdfium, page);
+                map.put(p.page, p);
+            }
+            return new SelectionPage(p);
+        }
+
+        SelectionPage open(int page) {
+            SelectionPage p = map.get(page);
+            if (p == null) {
+                p = new SelectionPage(pdfium, page);
+                map.put(p.page, p);
+            }
+            return new SelectionPage(p);
         }
 
         void selectWord(SelectionPage page, Point point) {
@@ -136,19 +268,17 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         @Override
         public void setStart(Page page, Point point) {
-            SelectionPage start = new SelectionPage(pdfium, page);
+            SelectionPage start = open(page);
             if (start.count > 0) {
                 point = new Point(start.ppage.toPage(0, 0, page.w, page.h, 0, point.x, point.y));
                 int index = start.text.getIndex(point.x, point.y);
                 if (index == -1) {
-                    start.close();
                     return;
                 }
                 start.index = index;
                 this.start = start;
                 return;
             }
-            start.close();
         }
 
         @Override
@@ -158,19 +288,17 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         @Override
         public void setEnd(Page page, Point point) {
-            SelectionPage end = new SelectionPage(pdfium, page);
+            SelectionPage end = open(page);
             if (end.count > 0) {
                 point = new Point(end.ppage.toPage(0, 0, page.w, page.h, 0, point.x, point.y));
                 int index = end.text.getIndex(point.x, point.y);
                 if (index == -1) {
-                    end.close();
                     return;
                 }
                 end.index = index;
                 this.end = end;
                 return;
             }
-            end.close();
         }
 
         @Override
@@ -180,29 +308,106 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         @Override
         public String getText() {
-            int s = Math.min(start.index, end.index);
-            int e = Math.max(start.index, end.index);
-            if (start.page == end.page)
-                return start.text.getText(s, e - s + 1);
-            else
-                return null;
+            int s;
+            int e;
+            if (start.page > end.page) {
+                s = end.page;
+                e = start.page;
+            } else {
+                s = start.page;
+                e = end.page;
+            }
+            String text = "";
+            for (int i = s; i <= e; i++) {
+                text += getText(i);
+            }
+            return text;
+        }
+
+        String getText(int i) {
+            if (start.page == end.page) {
+                int s;
+                int e;
+                if (start.index > end.index) {
+                    s = end.index;
+                    e = start.index;
+                } else {
+                    s = start.index;
+                    e = end.index;
+                }
+                int c = e - s + 1;
+                return start.text.getText(s, c);
+            }
+            if (i == start.page) {
+                int s;
+                int e;
+                if (start.page > end.page) {
+                    s = 0;
+                    e = start.index;
+                } else {
+                    s = start.index;
+                    e = start.count;
+                }
+                int c = e - s + 1;
+                return start.text.getText(s, c);
+            }
+            if (i == end.page) {
+                int s;
+                int e;
+                if (start.page > end.page) {
+                    s = end.index;
+                    e = end.count;
+                } else {
+                    s = 0;
+                    e = end.index;
+                }
+                int c = e - s + 1;
+                return end.text.getText(s, c);
+            }
+            SelectionPage p = open(i);
+            return p.text.getText(0, p.count);
         }
 
         @Override
-        public Rect[] getBounds(Page p) {
-            int s = Math.min(start.index, end.index);
-            int e = Math.max(start.index, end.index);
-            if (start.page == end.page) {
-                Rect[] rr = start.text.getBounds(s, e - s + 1);
-                for (int i = 0; i < rr.length; i++) {
-                    Rect r = rr[i];
-                    r = start.ppage.toDevice(0, 0, start.w, start.h, 0, r);
-                    rr[i] = r;
-                }
-                return rr;
-            } else {
-                return null;
+        public Bounds getBounds(Page p) {
+            Bounds bounds = new Bounds();
+            SelectionBounds b = new SelectionBounds(p);
+            bounds.reverse = b.reverse;
+            bounds.start = b.first;
+            bounds.end = b.last;
+            bounds.rr = b.page.text.getBounds(b.ss, b.cc);
+            for (int i = 0; i < bounds.rr.length; i++) {
+                Rect r = bounds.rr[i];
+                r = b.page.ppage.toDevice(0, 0, b.page.w, b.page.h, 0, r);
+                bounds.rr[i] = r;
             }
+            return bounds;
+        }
+
+        @Override
+        public Boolean isAbove(Page page, Point point) {
+            SelectionBounds b = new SelectionBounds(page);
+            if (b.page.count > 0) {
+                point = new Point(b.page.ppage.toPage(0, 0, page.w, page.h, 0, point.x, point.y));
+                int index = b.page.text.getIndex(point.x, point.y);
+                if (index == -1)
+                    return null;
+                return index >= b.ss || index >= b.ee;
+            }
+            return null;
+        }
+
+        @Override
+        public Boolean isBelow(Page page, Point point) {
+            SelectionBounds b = new SelectionBounds(page);
+            if (b.page.count > 0) {
+                point = new Point(b.page.ppage.toPage(0, 0, page.w, page.h, 0, point.x, point.y));
+                int index = b.page.text.getIndex(point.x, point.y);
+                if (index == -1)
+                    return null;
+                return index <= b.ss || index <= b.ee;
+            }
+            return null;
         }
 
         @Override
@@ -215,6 +420,11 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 end.close();
                 end = null;
             }
+            for (int i = 0; i < map.size(); i++) {
+                SelectionPage page = map.valueAt(i);
+                page.close();
+            }
+            map.clear();
         }
     }
 

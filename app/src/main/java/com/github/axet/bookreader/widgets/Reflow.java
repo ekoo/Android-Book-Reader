@@ -3,19 +3,23 @@ package com.github.axet.bookreader.widgets;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.util.DisplayMetrics;
-import android.util.SparseArray;
 
+import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.k2pdfopt.K2PdfOpt;
 
-import org.geometerplus.fbreader.fbreader.FBView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class Reflow {
     public K2PdfOpt k2;
@@ -27,26 +31,22 @@ public class Reflow {
     Context context;
     public Bitmap bm; // source bm, in case or errors, recycled otherwise
     public Storage.RecentInfo info;
-    FBReaderView.CustomView custom;
+    FBReaderView.CustomView custom; // font size
 
     public static class Info {
         public Rect bm; // source bitmap size
         public Rect margin; // page margins
-        public SparseArray<Map<Rect, Rect>> src = new SparseArray<>();
-        public SparseArray<Map<Rect, Rect>> dst = new SparseArray<>();
+        public Map<Rect, Rect> src;
+        public Map<Rect, Rect> dst;
 
-        public Info(Reflow reflow, Bitmap bm) {
-            this.bm = new Rect(0, 0, bm.getWidth(), bm.getHeight());
-            margin = new Rect(reflow.getLeftMargin(), 0, reflow.getRightMargin(), 0);
-            for (int i = 0; i < reflow.count(); i++) {
-                Map<Rect, Rect> s = reflow.k2.getRectMaps(i);
-                Map<Rect, Rect> d = new HashMap<>();
-                for (Rect k : s.keySet()) {
-                    Rect v = s.get(k);
-                    d.put(v, k);
-                }
-                src.put(i, s);
-                dst.put(i, d);
+        public Info(Reflow reflower, int page) {
+            bm = new Rect(0, 0, reflower.bm.getWidth(), reflower.bm.getHeight());
+            margin = new Rect(reflower.getLeftMargin(), 0, reflower.getRightMargin(), 0);
+            src = reflower.k2.getRectMaps(page);
+            dst = new HashMap<>();
+            for (Rect k : src.keySet()) {
+                Rect v = src.get(k);
+                dst.put(v, k);
             }
         }
     }
@@ -162,6 +162,112 @@ public class Reflow {
         if (bm != null) {
             bm.recycle();
             bm = null;
+        }
+    }
+
+    public Bitmap drawSrc(PluginView pluginview, Info info, Rect r) {
+        Bitmap bm = drawSrc(pluginview, info);
+        Canvas c = new Canvas(bm);
+        Paint paint = new Paint();
+        paint.setColor(Color.MAGENTA);
+        paint.setStyle(Paint.Style.STROKE);
+        int dp1 = ThemeUtils.dp2px(context, 1);
+        paint.setStrokeWidth(dp1);
+        c.drawRect(r, paint);
+        return bm;
+    }
+
+    public Bitmap drawSrc(PluginView pluginview, Info info, Point p) {
+        Bitmap bm = drawSrc(pluginview, info);
+        Canvas c = new Canvas(bm);
+        Paint paint = new Paint();
+        paint.setColor(Color.MAGENTA);
+        paint.setStyle(Paint.Style.STROKE);
+        int dp1 = ThemeUtils.dp2px(context, 2);
+        paint.setStrokeWidth(dp1);
+        c.drawPoint(p.x, p.y, paint);
+        return bm;
+    }
+
+    public Bitmap drawSrc(PluginView pluginview, Info info) {
+        Bitmap b = pluginview.render(w, h, Reflow.this.page);
+        Canvas canvas = new Canvas(b);
+        draw(canvas, info.src.keySet());
+        return b;
+    }
+
+    public Bitmap drawDst(Info info, Rect r) {
+        Bitmap bm = drawDst(info);
+        if (bm == null)
+            return null;
+        Canvas c = new Canvas(bm);
+        Paint paint = new Paint();
+        paint.setColor(Color.MAGENTA);
+        paint.setStyle(Paint.Style.STROKE);
+        int dp1 = ThemeUtils.dp2px(context, 1);
+        paint.setStrokeWidth(dp1);
+        c.drawRect(r, paint);
+        return bm;
+    }
+
+    public Bitmap drawDst(Info info, Point p) {
+        Bitmap bm = drawDst(info);
+        if (bm == null)
+            return null;
+        Canvas c = new Canvas(bm);
+        Paint paint = new Paint();
+        paint.setColor(Color.MAGENTA);
+        paint.setStyle(Paint.Style.STROKE);
+        int dp1 = ThemeUtils.dp2px(context, 2);
+        paint.setStrokeWidth(dp1);
+        c.drawPoint(p.x, p.y, paint);
+        return bm;
+    }
+
+    int findPage(Info info) {
+        for (int i = 0; i < count(); i++) {
+            if (info.src.equals(k2.getRectMaps(i)))
+                return i;
+        }
+        return -1;
+    }
+
+    public Bitmap drawDst(Info info) {
+        int page = findPage(info);
+        if (page == -1)
+            return null;
+        Bitmap b = render(page);
+        Canvas canvas = new Canvas(b);
+        draw(canvas, info.dst.keySet());
+        return b;
+    }
+
+    public void draw(Canvas canvas, Set<Rect> keys) {
+        Rect[] kk = keys.toArray(new Rect[0]);
+        Paint paint = new Paint();
+        paint.setColor(Color.BLUE);
+        paint.setStyle(Paint.Style.STROKE);
+        int dp1 = ThemeUtils.dp2px(context, 1);
+        paint.setStrokeWidth(dp1);
+        Paint text = new Paint();
+        for (int i = 0; i < kk.length; i++) {
+            Rect k = kk[i];
+            canvas.drawRect(k, paint);
+
+            String t = "" + i;
+            text.setColor(Color.RED);
+
+            int size = dp1;
+            Rect bounds = new Rect();
+            do {
+                text.setTextSize(size);
+                text.getTextBounds(t, 0, t.length(), bounds);
+                size++;
+            } while (bounds.height() < (k.height()));
+
+            float m = text.
+                    measureText(t);
+            canvas.drawText(t, k.centerX() - m / 2, k.top + k.height(), text);
         }
     }
 
