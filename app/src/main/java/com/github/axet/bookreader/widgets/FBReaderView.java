@@ -1627,24 +1627,25 @@ public class FBReaderView extends RelativeLayout {
                                 PluginView.Selection.Bounds bounds = selection.selection.getBounds(page);
                                 if (pluginview.reflow) {
                                     ArrayList<Rect> list = new ArrayList<>();
-                                    for (int i = 0; i < bounds.rr.length; i++) {
-                                        Rect r = bounds.rr[i];
-                                        int area = 0;
-                                        Rect s = null;
-                                        for (Rect k : view.info.src.keySet()) {
-                                            int a = SelectionView.area(r, k);
-                                            if (a > area) {
-                                                area = a;
-                                                s = k;
+                                    for (Rect r : bounds.rr) {
+                                        for (Rect s : view.info.src.keySet()) {
+                                            Rect i = new Rect(r);
+                                            if (i.intersect(s) && (i.height() * 100 / s.height() > 10)) { // ignore artifacts height less then 10%
+                                                Rect d = view.info.fromSrc(s, i);
+                                                list.add(d);
                                             }
                                         }
-                                        if (s != null) {
-                                            r.intersect(s);
-                                            Rect d = view.info.fromSrc(s, r);
-                                            list.add(d);
+                                    }
+                                    ArrayList<Rect> copy = new ArrayList<Rect>(list);
+                                    for (Rect r : list) {
+                                        for (Rect k : list) {
+                                            if (r != k && r.intersects(k.left, k.top, k.right, k.bottom)) {
+                                                r.union(k);
+                                                copy.remove(k);
+                                            }
                                         }
                                     }
-                                    bounds.rr = list.toArray(new Rect[0]);
+                                    bounds.rr = copy.toArray(new Rect[0]);
 
                                     Boolean a = selection.selection.isAbove(page, new PluginView.Selection.Point(first.left, first.top));
                                     if (a == null)
