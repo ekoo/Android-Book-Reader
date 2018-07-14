@@ -392,7 +392,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 int index = b.page.text.getIndex(point.x, point.y);
                 if (index == -1)
                     return null;
-                return index >= b.ss || index >= b.ee;
+                return b.ss < index || b.ee < index;
             }
             return null;
         }
@@ -405,7 +405,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 int index = b.page.text.getIndex(point.x, point.y);
                 if (index == -1)
                     return null;
-                return index <= b.ss || index <= b.ee;
+                return index < b.ss || index < b.ee;
             }
             return null;
         }
