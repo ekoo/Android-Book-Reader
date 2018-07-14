@@ -486,7 +486,7 @@ public class PluginView {
     }
 
     Selection.Page selectPage(ZLTextPosition start, Reflow.Info info, int w, int h) {
-        if (reflow && reflower != null)
+        if (reflow && reflower != null && info != null)
             return new PluginView.Selection.Page(start.getParagraphIndex(), info.bm.width(), info.bm.height());
         else
             return new PluginView.Selection.Page(start.getParagraphIndex(), w, h);

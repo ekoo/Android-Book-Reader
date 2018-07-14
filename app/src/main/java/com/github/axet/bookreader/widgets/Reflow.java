@@ -185,8 +185,7 @@ public class Reflow {
         Paint paint = new Paint();
         paint.setColor(Color.MAGENTA);
         paint.setStyle(Paint.Style.STROKE);
-        int dp1 = ThemeUtils.dp2px(context, 1);
-        paint.setStrokeWidth(dp1);
+        paint.setStrokeWidth(0);
         c.drawRect(r, paint);
         return bm;
     }
@@ -197,8 +196,7 @@ public class Reflow {
         Paint paint = new Paint();
         paint.setColor(Color.MAGENTA);
         paint.setStyle(Paint.Style.STROKE);
-        int dp1 = ThemeUtils.dp2px(context, 2);
-        paint.setStrokeWidth(dp1);
+        paint.setStrokeWidth(0);
         c.drawPoint(p.x, p.y, paint);
         return bm;
     }
@@ -218,8 +216,7 @@ public class Reflow {
         Paint paint = new Paint();
         paint.setColor(Color.MAGENTA);
         paint.setStyle(Paint.Style.STROKE);
-        int dp1 = ThemeUtils.dp2px(context, 1);
-        paint.setStrokeWidth(dp1);
+        paint.setStrokeWidth(0);
         c.drawRect(r, paint);
         return bm;
     }
@@ -232,8 +229,7 @@ public class Reflow {
         Paint paint = new Paint();
         paint.setColor(Color.MAGENTA);
         paint.setStyle(Paint.Style.STROKE);
-        int dp1 = ThemeUtils.dp2px(context, 2);
-        paint.setStrokeWidth(dp1);
+        paint.setStrokeWidth(0);
         c.drawPoint(p.x, p.y, paint);
         return bm;
     }
@@ -261,8 +257,7 @@ public class Reflow {
         Paint paint = new Paint();
         paint.setColor(Color.BLUE);
         paint.setStyle(Paint.Style.STROKE);
-        int dp1 = ThemeUtils.dp2px(context, 1);
-        paint.setStrokeWidth(dp1);
+        paint.setStrokeWidth(0);
         Paint text = new Paint();
         for (int i = 0; i < kk.length; i++) {
             Rect k = kk[i];
@@ -271,7 +266,7 @@ public class Reflow {
             String t = "" + i;
             text.setColor(Color.RED);
 
-            int size = dp1;
+            int size = 0;
             Rect bounds = new Rect();
             do {
                 text.setTextSize(size);
