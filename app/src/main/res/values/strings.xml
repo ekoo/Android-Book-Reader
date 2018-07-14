@@ -40,7 +40,7 @@
     <string name="search_book">Book Search&#8230;</string>
     <string name="pref_theme_title">Theme</string>
     <string name="more_books">Get more Books Catalogs from \'About\' menu</string>
-    <string name="pref_rotate_title">Roate</string>
+    <string name="pref_rotate_title">Rotate</string>
     <string name="pref_rotate_summary">Allow screen rotate</string>
     <string name="from_local_folder">... from local folder</string>
     <string name="from_json_file">... from (.json) file</string>
