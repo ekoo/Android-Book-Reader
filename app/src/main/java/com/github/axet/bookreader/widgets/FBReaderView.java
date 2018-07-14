@@ -586,6 +586,7 @@ public class FBReaderView extends RelativeLayout {
                 Paint paint = new Paint(); // cache paint
 
                 ZLTextElementAreaVector text;
+                Reflow.Info info;
                 SelectionView.PageView selection;
 
                 public PageView(ViewGroup parent) {
@@ -731,25 +732,22 @@ public class FBReaderView extends RelativeLayout {
                                     time.cancel();
                                     time = null;
                                 }
-                                if (page == pluginview.reflower.page) {
-                                    Canvas canvas = getCanvas(draw, c);
-                                    pluginview.current.pageNumber = page;
-                                    pluginview.reflower.current = c.start.getElementIndex();
-                                    if (pluginview.reflower.count() > 0) { // empty source page?
-                                        Bitmap bm = pluginview.reflower.render(c.start.getElementIndex());
-                                        Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
-                                        Rect dst = new Rect(app.BookTextView.getLeftMargin(), 0, app.BookTextView.getLeftMargin() + pluginview.reflower.rw, pluginview.reflower.h);
-                                        canvas.drawColor(Color.WHITE);
-                                        canvas.drawBitmap(bm, src, dst, pluginview.paint);
-                                    } else {
-                                        pluginview.drawWallpaper(canvas);
-                                        pluginview.drawPage(canvas, getWidth(), getHeight(), pluginview.reflower.bm);
-                                    }
-                                    update();
-                                    drawCache(draw);
+                                Canvas canvas = getCanvas(draw, c);
+                                pluginview.current.pageNumber = page;
+                                pluginview.reflower.current = c.start.getElementIndex();
+                                if (pluginview.reflower.count() > 0) { // empty source page?
+                                    Bitmap bm = pluginview.reflower.render(c.start.getElementIndex());
+                                    Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
+                                    Rect dst = new Rect(app.BookTextView.getLeftMargin(), 0, app.BookTextView.getLeftMargin() + pluginview.reflower.rw, pluginview.reflower.h);
+                                    canvas.drawColor(Color.WHITE);
+                                    canvas.drawBitmap(bm, src, dst, pluginview.paint);
+                                    info = new Reflow.Info(pluginview.reflower, c.start.getElementIndex());
                                 } else {
-                                    invalidate();
+                                    pluginview.drawWallpaper(canvas);
+                                    pluginview.drawPage(canvas, getWidth(), getHeight(), pluginview.reflower.bm);
                                 }
+                                update();
+                                drawCache(draw);
                             }
                             return;
                         }
@@ -799,6 +797,7 @@ public class FBReaderView extends RelativeLayout {
                         bm.recycle();
                         bm = null;
                     }
+                    info = null;
                     text = null;
                     if (time != null) {
                         time.cancel();
@@ -1120,7 +1119,7 @@ public class FBReaderView extends RelativeLayout {
                 if (!openCursor(e))
                     return;
                 if (pluginview != null) {
-                    PluginView.Selection s = pluginview.select(c.start, v.getWidth(), v.getHeight(), x, y);
+                    PluginView.Selection s = pluginview.select(c.start, v.info, v.getWidth(), v.getHeight(), x, y);
                     if (s != null) {
                         selectionOpen(s);
                         return;
@@ -1518,7 +1517,7 @@ public class FBReaderView extends RelativeLayout {
                     selected = false;
                     page = null;
                 } else {
-                    page = pluginview.selectPage(c.start, view.getWidth(), view.getHeight());
+                    page = pluginview.selectPage(c.start, view.info, view.getWidth(), view.getHeight());
                 }
 
                 int s = selection.selection.getStart();
@@ -1534,8 +1533,8 @@ public class FBReaderView extends RelativeLayout {
                 final Boolean above;
                 final Boolean below;
 
-                if (selected && pluginview.reflow) {
-                    Map<Rect, Rect> src = pluginview.reflower.info.src.get(c.start.getElementIndex());
+                if (selected && pluginview.reflow && pluginview.reflower != null) {
+                    Map<Rect, Rect> src = view.info.src;
                     Rect[] all = src.keySet().toArray(new Rect[0]);
                     Arrays.sort(all, new SelectionView.LinesUL(all));
                     Rect first = all[0];
@@ -1594,9 +1593,15 @@ public class FBReaderView extends RelativeLayout {
                                         ScrollAdapter.PageCursor c = adapter.pages.get(pos);
                                         x = x - v.getLeft();
                                         y = y - v.getTop();
-                                        PluginView.Selection.Point point = pluginview.selectPoint(c.start, x, y);
-                                        if (point != null)
-                                            selection.selection.setStart(pluginview.selectPage(c.start, v.getWidth(), v.getHeight()), point);
+                                        PluginView.Selection.Page page = pluginview.selectPage(c.start, v.info, v.getWidth(), v.getHeight());
+                                        if (pluginview.reflow) { // full word selection in reflow mode
+                                            Rect rect = pluginview.selectRect(v.info, x, y);
+                                            if (rect != null)
+                                                selection.selection.setStart(page, new PluginView.Selection.Point(rect.left, rect.centerY()));
+                                        } else {
+                                            PluginView.Selection.Point point = pluginview.selectPoint(v.info, x, y);
+                                            selection.selection.setStart(page, point);
+                                        }
                                     }
                                 }
                                 selectionUpdate(view);
@@ -1613,9 +1618,15 @@ public class FBReaderView extends RelativeLayout {
                                         ScrollAdapter.PageCursor c = adapter.pages.get(pos);
                                         x = x - v.getLeft();
                                         y = y - v.getTop();
-                                        PluginView.Selection.Point point = pluginview.selectPoint(c.start, x, y);
-                                        if (point != null)
-                                            selection.selection.setEnd(pluginview.selectPage(c.start, v.getWidth(), v.getHeight()), point);
+                                        PluginView.Selection.Page page = pluginview.selectPage(c.start, v.info, v.getWidth(), v.getHeight());
+                                        if (pluginview.reflow) { // full word selection in reflow mode
+                                            Rect rect = pluginview.selectRect(v.info, x, y);
+                                            if (rect != null)
+                                                selection.selection.setEnd(page, new PluginView.Selection.Point(rect.right, rect.centerY()));
+                                        } else {
+                                            PluginView.Selection.Point point = pluginview.selectPoint(v.info, x, y);
+                                            selection.selection.setEnd(page, point);
+                                        }
                                     }
                                 }
                                 selectionUpdate(view);
@@ -1628,7 +1639,7 @@ public class FBReaderView extends RelativeLayout {
                                 PluginView.Selection.Bounds bounds = selection.selection.getBounds(page);
                                 if (pluginview.reflow) {
                                     ArrayList<Rect> list = new ArrayList<>();
-                                    Map<Rect, Rect> src = pluginview.reflower.info.src.get(c.start.getElementIndex());
+                                    Map<Rect, Rect> src = view.info.src;
                                     for (int i = 0; i < bounds.rr.length; i++) {
                                         Rect r = bounds.rr[i];
                                         int area = 0;
@@ -1655,7 +1666,7 @@ public class FBReaderView extends RelativeLayout {
                     int x = view.getLeft();
                     int y = view.getTop();
                     if (pluginview.reflow)
-                        x += pluginview.reflower.info.margin.left;
+                        x += view.info.margin.left;
                     selection.update(view.selection, x, y);
                 } else {
                     selectionRemove(view);

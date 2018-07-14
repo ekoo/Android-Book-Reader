@@ -481,20 +481,30 @@ public class PluginView {
         return null;
     }
 
-    Selection.Page selectPage(ZLTextPosition start, int w, int h) {
-        if (reflow)
-            return new PluginView.Selection.Page(start.getParagraphIndex(), reflower.info.bm.width(), reflower.info.bm.height());
+    Selection.Page selectPage(ZLTextPosition start, Reflow.Info info, int w, int h) {
+        if (reflow && reflower != null)
+            return new PluginView.Selection.Page(start.getParagraphIndex(), info.bm.width(), info.bm.height());
         else
             return new PluginView.Selection.Page(start.getParagraphIndex(), w, h);
     }
 
-    Selection.Point selectPoint(ZLTextPosition start, int x, int y) {
+    public Rect selectRect(Reflow.Info info, int x, int y) {
+        x = x - info.margin.left;
+        Map<Rect, Rect> dst = info.dst;
+        for (Rect d : dst.keySet()) {
+            if (d.contains(x, y)) {
+                return dst.get(d);
+            }
+        }
+        return null;
+    }
+
+    Selection.Point selectPoint(Reflow.Info info, int x, int y) {
         if (reflow) {
-            x = x - reflower.info.margin.left;
-            Map<Rect, Rect> dst = reflower.info.dst.get(start.getElementIndex());
-            for (Rect d : dst.keySet()) {
+            x = x - info.margin.left;
+            for (Rect d : info.dst.keySet()) {
                 if (d.contains(x, y)) {
-                    Rect s = dst.get(d);
+                    Rect s = info.dst.get(d);
                     double kx = s.width() / (double) d.width();
                     double ky = s.height() / (double) d.height();
                     return new Selection.Point(s.left + (int) ((x - d.left) * kx), s.top + (int) ((y - d.top) * ky));
@@ -506,10 +516,10 @@ public class PluginView {
         }
     }
 
-    public Selection select(ZLTextPosition start, int w, int h, int x, int y) {
-        Selection.Point p = selectPoint(start, x, y);
+    public Selection select(ZLTextPosition start, Reflow.Info info, int w, int h, int x, int y) {
+        Selection.Point p = selectPoint(info, x, y);
         if (p != null)
-            return select(selectPage(start, w, h), p);
+            return select(selectPage(start, info, w, h), p);
         return null;
     }
 

@@ -477,10 +477,10 @@ public class SelectionView extends FrameLayout {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        if (this.rect == null)
-            return;
-        drawHandle(canvas, startRect.which, startRect);
-        drawHandle(canvas, endRect.which, endRect);
+        if (this.rect != null) { // selection window with empty selection
+            drawHandle(canvas, startRect.which, startRect);
+            drawHandle(canvas, endRect.which, endRect);
+        }
     }
 
     public void drawHandle(Canvas canvas, SelectionCursor.Which which, HandleRect rect) { // SelectionCursor.draw
@@ -489,21 +489,23 @@ public class SelectionView extends FrameLayout {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        int x = (int) event.getX() + getLeft();
-        int y = (int) event.getY() + getTop();
-        if (startRect.onTouchEvent(event.getAction(), x, y)) {
-            x += startRect.touch.offx;
-            y += startRect.touch.offy;
-            startRect.onTouchRelease(event);
-            startRect.page.setter.setStart(x, y);
-            return true;
-        }
-        if (endRect.onTouchEvent(event.getAction(), x, y)) {
-            x += endRect.touch.offx;
-            y += endRect.touch.offy;
-            endRect.onTouchRelease(event);
-            endRect.page.setter.setEnd(x, y);
-            return true;
+        if (this.rect != null) { // selection window with empty selection
+            int x = (int) event.getX() + getLeft();
+            int y = (int) event.getY() + getTop();
+            if (startRect.onTouchEvent(event.getAction(), x, y)) {
+                x += startRect.touch.offx;
+                y += startRect.touch.offy;
+                startRect.onTouchRelease(event);
+                startRect.page.setter.setStart(x, y);
+                return true;
+            }
+            if (endRect.onTouchEvent(event.getAction(), x, y)) {
+                x += endRect.touch.offx;
+                y += endRect.touch.offy;
+                endRect.onTouchRelease(event);
+                endRect.page.setter.setEnd(x, y);
+                return true;
+            }
         }
         return super.onTouchEvent(event);
     }
