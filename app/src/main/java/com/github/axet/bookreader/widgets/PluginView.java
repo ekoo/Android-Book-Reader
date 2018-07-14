@@ -20,6 +20,7 @@ import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.Map;
 
 public class PluginView {
@@ -480,25 +481,23 @@ public class PluginView {
         return null;
     }
 
-    Selection.Page selectPage(ZLTextPosition start, Reflow.Info info, int w, int h) {
+    Selection.Page selectPage(ZLTextPosition start, int w, int h) {
         if (reflow)
-            return new PluginView.Selection.Page(start.getParagraphIndex(), info.bm.width(), info.bm.height());
+            return new PluginView.Selection.Page(start.getParagraphIndex(), reflower.info.bm.width(), reflower.info.bm.height());
         else
             return new PluginView.Selection.Page(start.getParagraphIndex(), w, h);
     }
 
-    Selection.Point selectPoint(ZLTextPosition start, Reflow.Info info, int x, int y) {
+    Selection.Point selectPoint(ZLTextPosition start, int x, int y) {
         if (reflow) {
-            x = x - info.margin.left;
-            Map<Rect, Rect> dst = info.dst.get(start.getElementIndex());
-            for (Rect k : dst.keySet()) {
-                if (k.contains(x, y)) {
-                    Rect v = dst.get(k);
-
-                    double kx = v.width() / (double) k.width();
-                    double ky = v.height() / (double) k.height();
-
-                    return new Selection.Point(v.left + (int) ((x - k.left) * kx), v.top + (int) ((y - k.top) * ky));
+            x = x - reflower.info.margin.left;
+            Map<Rect, Rect> dst = reflower.info.dst.get(start.getElementIndex());
+            for (Rect d : dst.keySet()) {
+                if (d.contains(x, y)) {
+                    Rect s = dst.get(d);
+                    double kx = s.width() / (double) d.width();
+                    double ky = s.height() / (double) d.height();
+                    return new Selection.Point(s.left + (int) ((x - d.left) * kx), s.top + (int) ((y - d.top) * ky));
                 }
             }
             return null;
@@ -507,8 +506,11 @@ public class PluginView {
         }
     }
 
-    public Selection select(ZLTextPosition start, Reflow.Info info, int w, int h, int x, int y) {
-        return select(selectPage(start, info, w, h), selectPoint(start, info, x, y));
+    public Selection select(ZLTextPosition start, int w, int h, int x, int y) {
+        Selection.Point p = selectPoint(start, x, y);
+        if (p != null)
+            return select(selectPage(start, w, h), p);
+        return null;
     }
 
 }

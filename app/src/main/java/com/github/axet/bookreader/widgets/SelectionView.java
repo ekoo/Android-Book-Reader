@@ -17,17 +17,55 @@ import org.geometerplus.zlibrary.core.library.ZLibrary;
 import org.geometerplus.zlibrary.core.view.SelectionCursor;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
 
 public class SelectionView extends FrameLayout {
     public PluginView.Selection selection;
     PageView touch;
     HandleRect startRect = new HandleRect();
-    HandleRect startRectDraw;
     HandleRect endRect = new HandleRect();
-    HandleRect endRectDraw;
     Paint handles;
     Rect rect;
     int clip;
+
+    public static int area(Rect r, Rect r2) {
+        Rect a = new Rect();
+        if (a.setIntersect(r, r2))
+            return area(a);
+        return 0;
+    }
+
+    public static int area(Rect r) {
+        return r.width() * r.height();
+    }
+
+    public static void relativeTo(Rect thiz, Rect rect) { // make child of rect, abs coords == rect.x + this.x
+        thiz.left -= rect.left;
+        thiz.right -= rect.left;
+        thiz.top -= rect.top;
+        thiz.bottom -= rect.top;
+    }
+
+    public static void absTo(Rect thiz, Point p) {
+        thiz.left += p.x;
+        thiz.right += p.x;
+        thiz.top += p.y;
+        thiz.bottom += p.y;
+    }
+
+    public static void absTo(Rect thiz, Rect rect) {
+        thiz.left += rect.left;
+        thiz.right += rect.left;
+        thiz.top += rect.top;
+        thiz.bottom += rect.top;
+    }
+
+    public static Rect circleRect(int x, int y, int r) {
+        return new Rect(x - r, y - r, x + r, y + r);
+    }
 
     public static HotRect rectHandle(SelectionCursor.Which which, int x, int y) {
         final int dpi = ZLibrary.Instance().getDisplayDPI();
@@ -35,9 +73,9 @@ public class SelectionView extends FrameLayout {
         final int xCenter = which == SelectionCursor.Which.Left ? x - unit - 1 : x + unit + 1;
         HotRect rect = new HotRect(xCenter - unit, y - dpi / 8, xCenter + unit, y + dpi / 8, x, y);
         if (which == SelectionCursor.Which.Left) {
-            rect.union(new CircleRect(xCenter, y - dpi / 8, unit * 6));
+            rect.rect.union(circleRect(xCenter, y - dpi / 8, unit * 6));
         } else {
-            rect.union(new CircleRect(xCenter, y + dpi / 8, unit * 6));
+            rect.rect.union(circleRect(xCenter, y + dpi / 8, unit * 6));
         }
         return rect;
     }
@@ -54,118 +92,90 @@ public class SelectionView extends FrameLayout {
         }
     }
 
-    public static class Rect {
-        public int left;
-        public int top;
-        public int right;
-        public int bottom;
+    public static boolean lineIntersects(Rect r1, Rect r2) {
+        return r1.top < r2.bottom && r2.top < r1.bottom;
+    }
 
-        public Rect() {
-        }
-
-        public Rect(android.graphics.Rect rect) {
-            this(rect.left, rect.top, rect.right, rect.bottom);
-        }
-
-        public Rect(Rect rect) {
-            this(rect.left, rect.top, rect.right, rect.bottom);
-        }
-
-        public Rect(int left, int top, int right, int bottom) {
-            this.left = left;
-            this.right = right;
-            this.top = top;
-            this.bottom = bottom;
-        }
-
-        public void union(Rect rect) {
-            union(rect.left, rect.top, rect.right, rect.bottom);
-        }
-
-        public void union(int left, int top, int right, int bottom) { // Rect.union
-            if ((left < right) && (top < bottom)) {
-                if ((this.left < this.right) && (this.top < this.bottom)) {
-                    if (this.left > left) this.left = left;
-                    if (this.top > top) this.top = top;
-                    if (this.right < right) this.right = right;
-                    if (this.bottom < bottom) this.bottom = bottom;
-                } else {
-                    this.left = left;
-                    this.top = top;
-                    this.right = right;
-                    this.bottom = bottom;
+    public static List<Rect> lines(Rect[] rr) {
+        ArrayList<Rect> lines = new ArrayList<>();
+        for (Rect r : rr) {
+            for (Rect l : lines) {
+                if (lineIntersects(l, r)) {
+                    l.union(r);
+                    r = null;
+                    break;
+                }
+            }
+            if (r != null)
+                lines.add(new Rect(r));
+            for (Rect l : new ArrayList<>(lines)) { // merge lines
+                for (Rect ll : lines) {
+                    if (l != ll && lineIntersects(ll, l)) {
+                        ll.union(l);
+                        lines.remove(l);
+                        break;
+                    }
                 }
             }
         }
+        Collections.sort(lines, new UL());
+        return lines;
+    }
 
-        public boolean contains(int x, int y) {
-            return left < right && top < bottom  // check for empty first
-                    && x >= left && x < right && y >= top && y < bottom;
+    public static class LinesUL implements Comparator<Rect> {
+        List<Rect> lines;
+
+        public LinesUL(Rect[] rr) {
+            lines = lines(rr);
         }
 
-        public int width() {
-            return right - left;
+        Integer getLine(Rect r) {
+            for (int i = 0; i < lines.size(); i++) {
+                Rect l = lines.get(i);
+                if (r.intersect(l))
+                    return i;
+            }
+            return -1;
         }
 
-        public int height() {
-            return bottom - top;
-        }
-
-        public android.graphics.Rect toRect() {
-            return new android.graphics.Rect(left, top, right, bottom);
-        }
-
-        public void relativeTo(Rect rect) { // make child of rect, abs coords == rect.x + this.x
-            left -= rect.left;
-            right -= rect.left;
-            top -= rect.top;
-            bottom -= rect.top;
-        }
-
-        public void absTo(Point p) {
-            left += p.x;
-            right += p.x;
-            top += p.y;
-            bottom += p.y;
-        }
-
-        public void absTo(Rect rect) {
-            left += rect.left;
-            right += rect.left;
-            top += rect.top;
-            bottom += rect.top;
-        }
-
-        public String toString() {
-            return left + " " + top + " " + right + " " + bottom;
+        @Override
+        public int compare(Rect o1, Rect o2) {
+            int r = getLine(o1).compareTo(getLine(o2));
+            if (r != 0)
+                return r;
+            return Integer.valueOf(o1.left).compareTo(Integer.valueOf(o2.left));
         }
     }
 
-    public static class CircleRect extends Rect {
-        public CircleRect(int x, int y, int r) {
-            super(x - r, y - r, x + r, y + r);
+    public static class UL implements Comparator<Rect> {
+        @Override
+        public int compare(Rect o1, Rect o2) {
+            int r = Integer.valueOf(o1.top).compareTo(Integer.valueOf(o2.top));
+            if (r != 0)
+                return r;
+            return Integer.valueOf(o1.left).compareTo(Integer.valueOf(o2.left));
         }
     }
 
-    public static class HotRect extends Rect {
+    public static class HotRect {
+        Rect rect;
         public int hotx;
         public int hoty;
 
         public HotRect(HotRect r) {
-            super(r);
+            this.rect = new Rect(r.rect);
             hotx = r.hotx;
             hoty = r.hoty;
         }
 
         public HotRect(int left, int top, int right, int bottom, int x, int y) {
-            super(left, top, right, bottom);
+            this.rect = new Rect(left, top, right, bottom);
             this.hotx = x;
             this.hoty = y;
         }
 
-        @Override
         public void relativeTo(Rect rect) { // make child of rect, abs coords == rect.x + this.x
-            super.relativeTo(rect);
+            SelectionView.relativeTo(this.rect, rect);
             hotx = hotx - rect.left;
             hoty = hoty - rect.top;
         }
@@ -195,7 +205,7 @@ public class SelectionView extends FrameLayout {
         }
 
         public boolean onTouchEvent(int a, int x, int y) {
-            if (a == MotionEvent.ACTION_DOWN && rect.contains(x, y) || touch != null) {
+            if (a == MotionEvent.ACTION_DOWN && rect.rect.contains(x, y) || touch != null) {
                 if (touch == null)
                     touch = rect.makePoint(x, y);
                 else
@@ -260,9 +270,9 @@ public class SelectionView extends FrameLayout {
         }
 
         public void makeUnion(Rect rect) {
-            rect.union(this.rect);
+            rect.union(this.rect.rect);
             if (touch != null)
-                rect.union(rectHandle(which, touch.x, touch.y));
+                rect.union(rectHandle(which, touch.x, touch.y).rect);
         }
 
         public void drawRect(Rect rect) {
@@ -281,7 +291,7 @@ public class SelectionView extends FrameLayout {
         Rect coords = new Rect(); // absolute coords (parent of SelectionView coords)
         PluginView.Selection.Bounds bounds;
 
-        ArrayList<Rect> lines = new ArrayList<>();
+        List<Rect> lines;
 
         PDFPlugin.Selection.Setter setter;
 
@@ -313,30 +323,23 @@ public class SelectionView extends FrameLayout {
             if (bounds.rr == null || bounds.rr.length == 0)
                 return;
 
-            lines.clear();
+            lines = lines(bounds.rr);
+
             int i = 0;
-            rect = new Rect(bounds.rr[i++]);
-            Rect line = new Rect(rect);
-            for (; i < bounds.rr.length; i++) {
-                Rect r = new Rect(bounds.rr[i]);
+            rect = new Rect(lines.get(i++));
+            for (; i < lines.size(); i++) {
+                Rect r = lines.get(i);
                 rect.union(r);
-                if (line.bottom < r.top) {
-                    lines.add(line);
-                    line = new Rect(r);
-                } else {
-                    line.union(r);
-                }
             }
-            lines.add(line);
 
             for (Rect r : lines)
-                r.relativeTo(rect);
+                relativeTo(r, rect);
         }
 
         @Override
         protected void onDraw(Canvas canvas) {
             for (Rect r : lines)
-                canvas.drawRect(r.toRect(), paint);
+                canvas.drawRect(r, paint);
         }
     }
 
@@ -405,12 +408,12 @@ public class SelectionView extends FrameLayout {
 
             if (v.bounds.start) {
                 first = new Rect(v.lines.get(0));
-                first.absTo(v.coords);
+                absTo(first, v.coords);
                 firstSetter = v;
             }
             if (v.bounds.end) {
                 last = new Rect(v.lines.get(v.lines.size() - 1));
-                last.absTo(v.coords);
+                absTo(last, v.coords);
                 lastSetter = v;
             }
         }
@@ -474,6 +477,8 @@ public class SelectionView extends FrameLayout {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+        if (this.rect == null)
+            return;
         drawHandle(canvas, startRect.which, startRect);
         drawHandle(canvas, endRect.which, endRect);
     }

@@ -143,6 +143,11 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             boolean reverse;
 
             public SelectionBounds(Page p) {
+                start.w = p.w;
+                start.h = p.h;
+                end.w = p.w;
+                end.h = p.h;
+
                 SelectionPage s;
                 SelectionPage e;
 
@@ -219,6 +224,10 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         SelectionPage open(Page page) {
             SelectionPage p = map.get(page.page);
+            if (p != null) {
+                p.w = page.w;
+                p.h = page.h;
+            }
             if (p == null) {
                 p = new SelectionPage(pdfium, page);
                 map.put(p.page, p);
