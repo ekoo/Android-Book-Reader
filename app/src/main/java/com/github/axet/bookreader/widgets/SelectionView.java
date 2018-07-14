@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 
 public class SelectionView extends FrameLayout {
     public PluginView.Selection selection;
@@ -28,7 +27,7 @@ public class SelectionView extends FrameLayout {
     HandleRect startRect = new HandleRect();
     HandleRect endRect = new HandleRect();
     Paint handles;
-    Rect rect;
+    Rect margin; // absolut coords
     int clip;
 
     public static int area(Rect r, Rect r2) {
@@ -287,9 +286,9 @@ public class SelectionView extends FrameLayout {
     }
 
     public static class PageView extends View {
-        Rect rect = new Rect(); // view size
-        Rect coords = new Rect(); // absolute coords (parent of SelectionView coords)
-        PluginView.Selection.Bounds bounds;
+        Rect bounds = new Rect(); // view size
+        Rect margin = new Rect(); // absolute coords (parent of SelectionView coords)
+        PluginView.Selection.Bounds selection;
 
         List<Rect> lines;
 
@@ -311,29 +310,29 @@ public class SelectionView extends FrameLayout {
 
         public void update(int x, int y) {
             update();
-            coords.left = rect.left + x;
-            coords.right = rect.right + x;
-            coords.top = rect.top + y;
-            coords.bottom = rect.bottom + y;
+            margin.left = bounds.left + x;
+            margin.right = bounds.right + x;
+            margin.top = bounds.top + y;
+            margin.bottom = bounds.bottom + y;
         }
 
         public void update() {
-            bounds = setter.getBounds();
+            selection = setter.getBounds();
 
-            if (bounds.rr == null || bounds.rr.length == 0)
+            if (selection.rr == null || selection.rr.length == 0)
                 return;
 
-            lines = lines(bounds.rr);
+            lines = lines(selection.rr);
 
             int i = 0;
-            rect = new Rect(lines.get(i++));
+            bounds = new Rect(lines.get(i++));
             for (; i < lines.size(); i++) {
                 Rect r = lines.get(i);
-                rect.union(r);
+                bounds.union(r);
             }
 
             for (Rect r : lines)
-                relativeTo(r, rect);
+                relativeTo(r, bounds);
         }
 
         @Override
@@ -388,7 +387,7 @@ public class SelectionView extends FrameLayout {
     }
 
     public void update() {
-        Rect rect = null;
+        Rect margin = null;
 
         boolean reverse = false;
         Rect first = null;
@@ -399,26 +398,26 @@ public class SelectionView extends FrameLayout {
         for (int i = 0; i < getChildCount(); i++) {
             PageView v = (PageView) getChildAt(i);
 
-            if (rect == null)
-                rect = new Rect(v.coords);
+            if (margin == null)
+                margin = new Rect(v.margin);
             else
-                rect.union(v.coords);
+                margin.union(v.margin);
 
-            reverse = v.bounds.reverse;
+            reverse = v.selection.reverse;
 
-            if (v.bounds.start) {
+            if (v.selection.start) {
                 first = new Rect(v.lines.get(0));
-                absTo(first, v.coords);
+                absTo(first, v.margin);
                 firstSetter = v;
             }
-            if (v.bounds.end) {
+            if (v.selection.end) {
                 last = new Rect(v.lines.get(v.lines.size() - 1));
-                absTo(last, v.coords);
+                absTo(last, v.margin);
                 lastSetter = v;
             }
         }
 
-        if (rect == null || first == null || last == null)
+        if (margin == null || first == null || last == null)
             return; // closing selection view
 
         HotRect left = rectHandle(SelectionCursor.Which.Left, first.left, first.top + first.height() / 2);
@@ -440,27 +439,27 @@ public class SelectionView extends FrameLayout {
             endRect.page = lastSetter;
         }
 
-        startRect.makeUnion(rect);
-        endRect.makeUnion(rect);
+        startRect.makeUnion(margin);
+        endRect.makeUnion(margin);
 
-        startRect.drawRect(rect);
-        endRect.drawRect(rect);
+        startRect.drawRect(margin);
+        endRect.drawRect(margin);
 
-        this.rect = rect;
+        this.margin = margin;
 
         MarginLayoutParams lp = (MarginLayoutParams) getLayoutParams();
-        lp.leftMargin = rect.left;
-        lp.topMargin = rect.top;
-        lp.width = rect.width();
-        lp.height = rect.height();
+        lp.leftMargin = margin.left;
+        lp.topMargin = margin.top;
+        lp.width = margin.width();
+        lp.height = margin.height();
 
         for (int i = 0; i < getChildCount(); i++) {
             PageView v = (PageView) getChildAt(i);
             MarginLayoutParams vlp = (MarginLayoutParams) v.getLayoutParams();
-            vlp.leftMargin = v.coords.left - lp.leftMargin;
-            vlp.topMargin = v.coords.top - lp.topMargin;
-            vlp.width = v.coords.width();
-            vlp.height = v.coords.height();
+            vlp.leftMargin = v.margin.left - lp.leftMargin;
+            vlp.topMargin = v.margin.top - lp.topMargin;
+            vlp.width = v.margin.width();
+            vlp.height = v.margin.height();
             v.requestLayout();
         }
         requestLayout();
@@ -477,7 +476,7 @@ public class SelectionView extends FrameLayout {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        if (this.rect != null) { // selection window with empty selection
+        if (this.margin != null) { // selection window with empty selection
             drawHandle(canvas, startRect.which, startRect);
             drawHandle(canvas, endRect.which, endRect);
         }
@@ -489,14 +488,17 @@ public class SelectionView extends FrameLayout {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (this.rect != null) { // selection window with empty selection
+        if (this.margin != null) { // selection window with empty selection
             int x = (int) event.getX() + getLeft();
             int y = (int) event.getY() + getTop();
             if (startRect.onTouchEvent(event.getAction(), x, y)) {
+                onTouchLock();
                 x += startRect.touch.offx;
                 y += startRect.touch.offy;
                 startRect.onTouchRelease(event);
                 startRect.page.setter.setStart(x, y);
+                if (startRect.touch == null)
+                    onTouchUnlock();
                 return true;
             }
             if (endRect.onTouchEvent(event.getAction(), x, y)) {
@@ -504,6 +506,8 @@ public class SelectionView extends FrameLayout {
                 y += endRect.touch.offy;
                 endRect.onTouchRelease(event);
                 endRect.page.setter.setEnd(x, y);
+                if (endRect.touch == null)
+                    onTouchUnlock();
                 return true;
             }
         }
@@ -515,5 +519,11 @@ public class SelectionView extends FrameLayout {
             selection.close();
             selection = null;
         }
+    }
+
+    public void onTouchLock() {
+    }
+
+    public void onTouchUnlock() {
     }
 }

@@ -21,6 +21,7 @@ import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.ScaleGestureDetectorCompat;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
@@ -143,6 +144,7 @@ public class FBReaderView extends RelativeLayout {
     public PageTurningListener pageTurningListener;
     PinchView pinch;
     SelectionView selection;
+    DrawerLayout drawer;
 
     public interface PageTurningListener {
         void onScrollingFinished(ZLViewEnums.PageIndex index);
@@ -1564,7 +1566,7 @@ public class FBReaderView extends RelativeLayout {
                     if (a == null)
                         a = selection.selection.isAbove(page, new PluginView.Selection.Point(first.left, first.centerY()));
                     if (a == null)
-                        a = selection.selection.isAbove(page, new PluginView.Selection.Point(last.centerX(), first.centerY()));
+                        a = selection.selection.isAbove(page, new PluginView.Selection.Point(first.centerX(), first.centerY()));
 
                     b = selection.selection.isBelow(page, new PluginView.Selection.Point(last.right, last.bottom));
                     if (b == null)
@@ -1639,19 +1641,18 @@ public class FBReaderView extends RelativeLayout {
                                 PluginView.Selection.Bounds bounds = selection.selection.getBounds(page);
                                 if (pluginview.reflow) {
                                     ArrayList<Rect> list = new ArrayList<>();
-                                    Map<Rect, Rect> src = view.info.src;
                                     for (int i = 0; i < bounds.rr.length; i++) {
                                         Rect r = bounds.rr[i];
                                         int area = 0;
                                         Rect b = null;
-                                        for (Rect s : src.keySet()) {
+                                        for (Rect s : view.info.src.keySet()) {
                                             if (SelectionView.area(r, s) > area) {
                                                 area = SelectionView.area(r, s);
                                                 b = s;
                                             }
                                         }
                                         if (b != null)
-                                            list.add(src.get(b));
+                                            list.add(view.info.src.get(b));
                                     }
                                     bounds.rr = list.toArray(new Rect[0]);
                                     bounds.start = above != null && above == false;
@@ -2349,6 +2350,10 @@ public class FBReaderView extends RelativeLayout {
         ((PopupPanel) app.getPopupById(SelectionPopup.ID)).setPanelInfo(a, this);
     }
 
+    public void setDrawer(DrawerLayout drawer) {
+        this.drawer = drawer;
+    }
+
     void showPopup(final ZLTextHyperlink hyperlink) {
         Context context = getContext();
 
@@ -2507,7 +2512,17 @@ public class FBReaderView extends RelativeLayout {
 
     public void selectionOpen(PluginView.Selection s) {
         selectionClose();
-        selection = new SelectionView(getContext(), (CustomView) app.BookTextView, s);
+        selection = new SelectionView(getContext(), (CustomView) app.BookTextView, s) {
+            @Override
+            public void onTouchLock() {
+                drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+            }
+
+            @Override
+            public void onTouchUnlock() {
+                drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+            }
+        };
         addView(selection);
         if (widget instanceof ScrollView) {
             ((ScrollView) widget).updateSelection();

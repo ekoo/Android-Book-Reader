@@ -528,6 +528,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         view.setWindow(getActivity().getWindow());
         view.setActivity(getActivity());
+        view.setDrawer(main.drawer);
 
         Uri uri = getArguments().getParcelable("uri");
 

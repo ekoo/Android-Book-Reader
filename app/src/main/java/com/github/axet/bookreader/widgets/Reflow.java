@@ -165,8 +165,8 @@ public class Reflow {
         }
     }
 
-    public Bitmap drawSrc(PluginView pluginview, Info info, int page, Rect r) {
-        Bitmap bm = drawSrc(pluginview, info, page);
+    public Bitmap drawSrc(PluginView pluginview, Info info, Rect r) {
+        Bitmap bm = drawSrc(pluginview, info);
         Canvas c = new Canvas(bm);
         Paint paint = new Paint();
         paint.setColor(Color.MAGENTA);
@@ -177,8 +177,8 @@ public class Reflow {
         return bm;
     }
 
-    public Bitmap drawSrc(PluginView pluginview, Info info, int page, Point p) {
-        Bitmap bm = drawSrc(pluginview, info, page);
+    public Bitmap drawSrc(PluginView pluginview, Info info, Point p) {
+        Bitmap bm = drawSrc(pluginview, info);
         Canvas c = new Canvas(bm);
         Paint paint = new Paint();
         paint.setColor(Color.MAGENTA);
@@ -189,7 +189,7 @@ public class Reflow {
         return bm;
     }
 
-    public Bitmap drawSrc(PluginView pluginview, Info info, int page) {
+    public Bitmap drawSrc(PluginView pluginview, Info info) {
         Bitmap b = pluginview.render(w, h, Reflow.this.page);
         Canvas canvas = new Canvas(b);
         draw(canvas, info.src.keySet());
@@ -198,6 +198,8 @@ public class Reflow {
 
     public Bitmap drawDst(Info info, Rect r) {
         Bitmap bm = drawDst(info);
+        if (bm == null)
+            return null;
         Canvas c = new Canvas(bm);
         Paint paint = new Paint();
         paint.setColor(Color.MAGENTA);
@@ -210,6 +212,8 @@ public class Reflow {
 
     public Bitmap drawDst(Info info, Point p) {
         Bitmap bm = drawDst(info);
+        if (bm == null)
+            return null;
         Canvas c = new Canvas(bm);
         Paint paint = new Paint();
         paint.setColor(Color.MAGENTA);
@@ -220,7 +224,18 @@ public class Reflow {
         return bm;
     }
 
+    int findPage(Info info) {
+        for (int i = 0; i < count(); i++) {
+            if (info.src.equals(k2.getRectMaps(i)))
+                return i;
+        }
+        return -1;
+    }
+
     public Bitmap drawDst(Info info) {
+        int page = findPage(info);
+        if (page == -1)
+            return null;
         Bitmap b = render(page);
         Canvas canvas = new Canvas(b);
         draw(canvas, info.dst.keySet());
