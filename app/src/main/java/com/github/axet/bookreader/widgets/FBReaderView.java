@@ -1567,15 +1567,15 @@ public class FBReaderView extends RelativeLayout {
                     last = ii.get(ii.size() - 1);
 
                     Boolean b = null;
-                    while (b == null)
+                    while (b == null && first.left < first.right)
                         b = selection.selection.isBelow(page, new PluginView.Selection.Point(first.left++, first.centerY()));
 
                     Boolean a = null;
-                    while (a == null) {
+                    while (a == null && last.right > last.left) {
                         a = selection.selection.isAbove(page, new PluginView.Selection.Point(last.right--, last.centerY()));
                     }
 
-                    selected = b && a;
+                    selected = b != null && b && a != null && a;
                 } else {
                     selected = false;
                     first = null;
@@ -1651,15 +1651,15 @@ public class FBReaderView extends RelativeLayout {
                                     bounds.rr = copy.toArray(new Rect[0]);
 
                                     Boolean a = null;
-                                    while (a == null)
+                                    while (a == null && first.left < first.right)
                                         a = selection.selection.isAbove(page, new PluginView.Selection.Point(first.left++, first.centerY()));
 
                                     Boolean b = null;
-                                    while (b == null)
+                                    while (b == null && last.right > last.left)
                                         b = selection.selection.isBelow(page, new PluginView.Selection.Point(last.right--, last.centerY()));
 
-                                    bounds.start = !a;
-                                    bounds.end = !b;
+                                    bounds.start = a != null & !a;
+                                    bounds.end = b != null && !b;
                                 }
                                 return bounds;
                             }
