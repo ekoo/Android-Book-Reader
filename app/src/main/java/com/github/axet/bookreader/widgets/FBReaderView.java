@@ -1532,15 +1532,15 @@ public class FBReaderView extends RelativeLayout {
                 if (selected)
                     selected = (s <= page.page && page.page <= e);
 
-                final Boolean above;
-                final Boolean below;
+                final Rect first;
+                final Rect last;
 
                 if (selected && pluginview.reflow && pluginview.reflower != null) {
                     Map<Rect, Rect> src = view.info.src;
                     Rect[] all = src.keySet().toArray(new Rect[0]);
                     Arrays.sort(all, new SelectionView.LinesUL(all));
-                    Rect first = all[0];
-                    Rect last = all[all.length - 1];
+                    first = all[0];
+                    last = all[all.length - 1];
 
                     Boolean b = selection.selection.isBelow(page, new PluginView.Selection.Point(first.left, first.top));
                     if (b == null)
@@ -1559,28 +1559,9 @@ public class FBReaderView extends RelativeLayout {
                         a = selection.selection.isAbove(page, new PluginView.Selection.Point(last.centerX(), last.centerY()));
 
                     selected = b != null && b && a != null && a;
-
-                    a = selection.selection.isAbove(page, new PluginView.Selection.Point(first.left, first.top));
-                    if (a == null)
-                        a = selection.selection.isAbove(page, new PluginView.Selection.Point(first.left + 1, first.top + 1));
-                    if (a == null)
-                        a = selection.selection.isAbove(page, new PluginView.Selection.Point(first.left, first.centerY()));
-                    if (a == null)
-                        a = selection.selection.isAbove(page, new PluginView.Selection.Point(first.centerX(), first.centerY()));
-
-                    b = selection.selection.isBelow(page, new PluginView.Selection.Point(last.right, last.bottom));
-                    if (b == null)
-                        b = selection.selection.isBelow(page, new PluginView.Selection.Point(last.right - 1, last.bottom - 1));
-                    if (b == null)
-                        b = selection.selection.isBelow(page, new PluginView.Selection.Point(last.right, last.centerY()));
-                    if (b == null)
-                        b = selection.selection.isBelow(page, new PluginView.Selection.Point(last.centerX(), last.centerY()));
-
-                    above = a;
-                    below = b;
                 } else {
-                    below = null;
-                    above = null;
+                    first = null;
+                    last = null;
                 }
 
                 if (selected) {
@@ -1599,7 +1580,7 @@ public class FBReaderView extends RelativeLayout {
                                         if (pluginview.reflow) { // full word selection in reflow mode
                                             Rect rect = pluginview.selectRect(v.info, x, y);
                                             if (rect != null)
-                                                selection.selection.setStart(page, new PluginView.Selection.Point(rect.left, rect.centerY()));
+                                                selection.selection.setStart(page, new PluginView.Selection.Point(rect.left + 1, rect.centerY()));
                                         } else {
                                             PluginView.Selection.Point point = pluginview.selectPoint(v.info, x, y);
                                             selection.selection.setStart(page, point);
@@ -1624,7 +1605,7 @@ public class FBReaderView extends RelativeLayout {
                                         if (pluginview.reflow) { // full word selection in reflow mode
                                             Rect rect = pluginview.selectRect(v.info, x, y);
                                             if (rect != null)
-                                                selection.selection.setEnd(page, new PluginView.Selection.Point(rect.right, rect.centerY()));
+                                                selection.selection.setEnd(page, new PluginView.Selection.Point(rect.right - 1, rect.centerY()));
                                         } else {
                                             PluginView.Selection.Point point = pluginview.selectPoint(v.info, x, y);
                                             selection.selection.setEnd(page, point);
@@ -1655,8 +1636,25 @@ public class FBReaderView extends RelativeLayout {
                                             list.add(view.info.src.get(b));
                                     }
                                     bounds.rr = list.toArray(new Rect[0]);
-                                    bounds.start = above != null && above == false;
-                                    bounds.end = below != null && below == false;
+
+                                    Boolean a = selection.selection.isAbove(page, new PluginView.Selection.Point(first.left, first.top));
+                                    if (a == null)
+                                        a = selection.selection.isAbove(page, new PluginView.Selection.Point(first.left + 1, first.top + 1));
+                                    if (a == null)
+                                        a = selection.selection.isAbove(page, new PluginView.Selection.Point(first.left, first.centerY()));
+                                    if (a == null)
+                                        a = selection.selection.isAbove(page, new PluginView.Selection.Point(first.centerX(), first.centerY()));
+
+                                    Boolean b = selection.selection.isBelow(page, new PluginView.Selection.Point(last.right, last.bottom));
+                                    if (b == null)
+                                        b = selection.selection.isBelow(page, new PluginView.Selection.Point(last.right - 1, last.bottom - 1));
+                                    if (b == null)
+                                        b = selection.selection.isBelow(page, new PluginView.Selection.Point(last.right, last.centerY()));
+                                    if (b == null)
+                                        b = selection.selection.isBelow(page, new PluginView.Selection.Point(last.centerX(), last.centerY()));
+
+                                    bounds.start = a != null && a == false;
+                                    bounds.end = b != null && b == false;
                                 }
                                 return bounds;
                             }
