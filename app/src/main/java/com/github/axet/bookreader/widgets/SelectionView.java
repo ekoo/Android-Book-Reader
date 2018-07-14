@@ -7,8 +7,6 @@ import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.graphics.drawable.DrawableCompat;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,11 +18,14 @@ import org.geometerplus.zlibrary.core.library.ZLibrary;
 import org.geometerplus.zlibrary.core.view.SelectionCursor;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
 public class SelectionView extends FrameLayout {
+    public static final int ARTIFACT_PERCENTS = 10;
+
     public PluginView.Selection selection;
     PageView touch;
     HandleRect startRect = new HandleRect();
@@ -99,6 +100,10 @@ public class SelectionView extends FrameLayout {
     }
 
     public static List<Rect> lines(Rect[] rr) {
+        return lines(Arrays.asList(rr));
+    }
+
+    public static List<Rect> lines(List<Rect> rr) {
         ArrayList<Rect> lines = new ArrayList<>();
         for (Rect r : rr) {
             for (Rect l : lines) {
@@ -128,6 +133,10 @@ public class SelectionView extends FrameLayout {
         List<Rect> lines;
 
         public LinesUL(Rect[] rr) {
+            lines = lines(rr);
+        }
+
+        public LinesUL(List<Rect> rr) {
             lines = lines(rr);
         }
 
