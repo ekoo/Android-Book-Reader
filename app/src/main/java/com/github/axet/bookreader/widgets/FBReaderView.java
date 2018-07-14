@@ -2433,8 +2433,12 @@ public class FBReaderView extends RelativeLayout {
         selectionClose();
         selection = new SelectionView(getContext(), (CustomView) app.BookTextView, s);
         addView(selection);
-        if (widget instanceof ScrollView)
+        if (widget instanceof ScrollView) {
             ((ScrollView) widget).updateSelection();
+            selection.setClipHeight(((ScrollView) widget).getMainAreaHeight());
+        } else {
+            selection.setClipHeight(((ZLAndroidWidget) widget).getMainAreaHeight());
+        }
     }
 
     public void selectionClose() {

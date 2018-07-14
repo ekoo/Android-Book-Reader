@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -26,6 +27,7 @@ public class SelectionView extends FrameLayout {
     HandleRect endRectDraw;
     Paint handles;
     Rect rect;
+    int clip;
 
     public static HotRect rectHandle(SelectionCursor.Which which, int x, int y) {
         final int dpi = ZLibrary.Instance().getDisplayDPI();
@@ -352,6 +354,10 @@ public class SelectionView extends FrameLayout {
         setBackgroundColor(0x33 << 24 | (0xffffff & Color.GREEN));
     }
 
+    public void setClipHeight(int h) {
+        clip = h;
+    }
+
     PageView findView(int x, int y) {
         for (int i = 0; i < getChildCount(); i++) {
             PageView view = (PageView) getChildAt(i);
@@ -455,6 +461,14 @@ public class SelectionView extends FrameLayout {
             v.requestLayout();
         }
         requestLayout();
+    }
+
+    @Override
+    public void draw(Canvas canvas) {
+        android.graphics.Rect c = canvas.getClipBounds();
+        c.bottom = clip - getTop();
+        canvas.clipRect(c);
+        super.draw(canvas);
     }
 
     @Override
