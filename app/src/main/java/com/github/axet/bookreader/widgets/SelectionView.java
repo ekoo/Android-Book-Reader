@@ -393,13 +393,13 @@ public class SelectionView extends FrameLayout {
     }
 
     public void update() {
-        Rect margin = null;
+        Rect margin = this.margin = null;
 
         boolean reverse = false;
         Rect first = null;
-        PageView firstSetter = null;
+        PageView firstPage = null;
         Rect last = null;
-        PageView lastSetter = null;
+        PageView lastPage = null;
 
         for (int i = 0; i < getChildCount(); i++) {
             PageView v = (PageView) getChildAt(i);
@@ -414,17 +414,17 @@ public class SelectionView extends FrameLayout {
             if (v.selection.start) {
                 first = new Rect(v.lines.get(0));
                 absTo(first, v.margin);
-                firstSetter = v;
+                firstPage = v;
             }
             if (v.selection.end) {
                 last = new Rect(v.lines.get(v.lines.size() - 1));
                 absTo(last, v.margin);
-                lastSetter = v;
+                lastPage = v;
             }
         }
 
         if (margin == null || first == null || last == null)
-            return; // closing selection view
+            return; // broken
 
         HotRect left = rectHandle(SelectionCursor.Which.Left, first.left, first.top + first.height() / 2);
         HotRect right = rectHandle(SelectionCursor.Which.Right, last.right, last.top + last.height() / 2);
@@ -432,17 +432,17 @@ public class SelectionView extends FrameLayout {
         if (reverse) {
             startRect.rect = right;
             startRect.which = SelectionCursor.Which.Right;
-            startRect.page = lastSetter;
+            startRect.page = lastPage;
             endRect.rect = left;
             endRect.which = SelectionCursor.Which.Left;
-            endRect.page = firstSetter;
+            endRect.page = firstPage;
         } else {
             startRect.rect = left;
             startRect.which = SelectionCursor.Which.Left;
-            startRect.page = firstSetter;
+            startRect.page = firstPage;
             endRect.rect = right;
             endRect.which = SelectionCursor.Which.Right;
-            endRect.page = lastSetter;
+            endRect.page = lastPage;
         }
 
         startRect.makeUnion(margin);
@@ -453,21 +453,21 @@ public class SelectionView extends FrameLayout {
 
         this.margin = margin;
 
+        for (int i = 0; i < getChildCount(); i++) {
+            PageView v = (PageView) getChildAt(i);
+            MarginLayoutParams vlp = (MarginLayoutParams) v.getLayoutParams();
+            vlp.leftMargin = v.margin.left - margin.left;
+            vlp.topMargin = v.margin.top - margin.top;
+            vlp.width = v.margin.width();
+            vlp.height = v.margin.height();
+            v.requestLayout();
+        }
+
         MarginLayoutParams lp = (MarginLayoutParams) getLayoutParams();
         lp.leftMargin = margin.left;
         lp.topMargin = margin.top;
         lp.width = margin.width();
         lp.height = margin.height();
-
-        for (int i = 0; i < getChildCount(); i++) {
-            PageView v = (PageView) getChildAt(i);
-            MarginLayoutParams vlp = (MarginLayoutParams) v.getLayoutParams();
-            vlp.leftMargin = v.margin.left - lp.leftMargin;
-            vlp.topMargin = v.margin.top - lp.topMargin;
-            vlp.width = v.margin.width();
-            vlp.height = v.margin.height();
-            v.requestLayout();
-        }
         requestLayout();
     }
 
@@ -482,7 +482,7 @@ public class SelectionView extends FrameLayout {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        if (this.margin != null) { // selection window with empty selection
+        if (this.margin != null) { // // broken / empty window
             drawHandle(canvas, startRect.which, startRect);
             drawHandle(canvas, endRect.which, endRect);
         }
@@ -494,7 +494,7 @@ public class SelectionView extends FrameLayout {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (this.margin != null) { // selection window with empty selection
+        if (this.margin != null) { // broken / empty window
             int x = (int) event.getX() + getLeft();
             int y = (int) event.getY() + getTop();
             if (startRect.onTouchEvent(event.getAction(), x, y)) {
@@ -535,10 +535,14 @@ public class SelectionView extends FrameLayout {
     }
 
     public int getSelectionStartY() {
+        if (this.margin == null) // broken / empty window
+            return 0;
         return startRect.rect.rect.top;
     }
 
     public int getSelectionEndY() {
+        if (this.margin == null) // broken / empty window
+            return 0;
         return endRect.rect.rect.bottom;
     }
 }

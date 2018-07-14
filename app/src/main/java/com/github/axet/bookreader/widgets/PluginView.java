@@ -504,10 +504,7 @@ public class PluginView {
             x = x - info.margin.left;
             for (Rect d : info.dst.keySet()) {
                 if (d.contains(x, y)) {
-                    Rect s = info.dst.get(d);
-                    double kx = s.width() / (double) d.width();
-                    double ky = s.height() / (double) d.height();
-                    return new Selection.Point(s.left + (int) ((x - d.left) * kx), s.top + (int) ((y - d.top) * ky));
+                    return new Selection.Point(info.fromDst(d, x, y));
                 }
             }
             return null;

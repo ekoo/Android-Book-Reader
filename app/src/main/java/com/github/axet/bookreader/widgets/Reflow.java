@@ -49,6 +49,20 @@ public class Reflow {
                 dst.put(v, k);
             }
         }
+
+        public Point fromDst(Rect d, int x, int y) {
+            Rect s = dst.get(d);
+            double kx = s.width() / (double) d.width();
+            double ky = s.height() / (double) d.height();
+            return new Point(s.left + (int) ((x - d.left) * kx), s.top + (int) ((y - d.top) * ky));
+        }
+
+        public Rect fromSrc(Rect s, Rect r) {
+            Rect d = src.get(s);
+            double kx = d.width() / (double) s.width();
+            double ky = d.height() / (double) s.height();
+            return new Rect(d.left + (int) ((r.left - s.left) * kx), d.top + (int) ((r.top - s.top) * ky), d.right + (int) ((r.right - s.right) * kx), d.bottom + (int) ((r.bottom - s.bottom) * ky));
+        }
     }
 
     public Reflow(Context context, int w, int h, int page, FBReaderView.CustomView custom, Storage.RecentInfo info) {
