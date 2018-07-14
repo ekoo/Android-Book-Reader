@@ -816,6 +816,7 @@ public class FBReaderView extends RelativeLayout {
                     }
                     info = null;
                     text = null;
+                    selection = null;
                     if (time != null) {
                         time.cancel();
                         time = null;

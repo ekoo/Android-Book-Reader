@@ -88,6 +88,10 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             this(page.page, pdfium.openPage(page.page), page.w, page.h);
         }
 
+        public SelectionPage(Pdfium pdfium, int page) {
+            this(page, pdfium.openPage(page), 0, 0);
+        }
+
         public SelectionPage(int p, Pdfium.Page page, int w, int h) {
             this.page = p;
             this.ppage = page;
@@ -235,6 +239,15 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             return new SelectionPage(p);
         }
 
+        SelectionPage open(int page) {
+            SelectionPage p = map.get(page);
+            if (p == null) {
+                p = new SelectionPage(pdfium, page);
+                map.put(p.page, p);
+            }
+            return new SelectionPage(p);
+        }
+
         void selectWord(SelectionPage page, Point point) {
             start = page;
             int index = start.text.getIndex(point.x, point.y);
@@ -295,13 +308,64 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         @Override
         public String getText() {
-            int s = Math.min(start.index, end.index);
-            int e = Math.max(start.index, end.index);
-            int c = e - s + 1;
-            if (start.page == end.page)
+            int s;
+            int e;
+            if (start.page > end.page) {
+                s = end.page;
+                e = start.page;
+            } else {
+                s = start.page;
+                e = end.page;
+            }
+            String text = "";
+            for (int i = s; i <= e; i++) {
+                text += getText(i);
+            }
+            return text;
+        }
+
+        String getText(int i) {
+            if (start.page == end.page) {
+                int s;
+                int e;
+                if (start.index > end.index) {
+                    s = end.index;
+                    e = start.index;
+                } else {
+                    s = start.index;
+                    e = end.index;
+                }
+                int c = e - s + 1;
                 return start.text.getText(s, c);
-            else
-                return null;
+            }
+            if (i == start.page) {
+                int s;
+                int e;
+                if (start.page > end.page) {
+                    s = 0;
+                    e = start.index;
+                } else {
+                    s = start.index;
+                    e = start.count;
+                }
+                int c = e - s + 1;
+                return start.text.getText(s, c);
+            }
+            if (i == end.page) {
+                int s;
+                int e;
+                if (start.page > end.page) {
+                    s = end.index;
+                    e = end.count;
+                } else {
+                    s = 0;
+                    e = end.index;
+                }
+                int c = e - s + 1;
+                return end.text.getText(s, c);
+            }
+            SelectionPage p = open(i);
+            return p.text.getText(0, p.count);
         }
 
         @Override

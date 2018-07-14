@@ -6,6 +6,9 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.drawable.ColorDrawable;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.graphics.drawable.DrawableCompat;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -353,6 +356,8 @@ public class SelectionView extends FrameLayout {
         this.handles.setColor(0xff << 24 | custom.getSelectionBackgroundColor().intValue());
 
         setLayoutParams(new MarginLayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
 
         // setBackgroundColor(0x33 << 24 | (0xffffff & Color.GREEN));
     }
