@@ -35,10 +35,12 @@ import org.geometerplus.zlibrary.ui.android.image.ZLBitmapImage;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 public class PDFPlugin extends BuiltinFormatPlugin {
 
@@ -223,6 +225,8 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             String s = p.text.getText(i, 1);
             if (s == null || s.length() != 1)
                 return false;
+            s = Normalizer.normalize(s, Normalizer.Form.NFC).toLowerCase(Locale.US); // й composed as two chars sometimes.
+            s = Normalizer.normalize(s, Normalizer.Form.NFC).toLowerCase(Locale.US);
             return isWord(s.toCharArray()[0]);
         }
 
@@ -254,7 +258,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             if (index < 0 || index >= start.count)
                 return;
             int start = index;
-            while (start > 1 && isWord(this.start, start)) {
+            while (start >= 0 && isWord(this.start, start)) {
                 this.start.index = start;
                 start--;
             }
