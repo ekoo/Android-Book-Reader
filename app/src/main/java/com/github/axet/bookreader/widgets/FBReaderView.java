@@ -296,7 +296,19 @@ public class FBReaderView extends RelativeLayout {
         int x;
         int y;
 
-        Reflow.Info info;
+        public class ReflowerInfo {
+            public int page;
+            public int current;
+            public Reflow.Info info;
+
+            public ReflowerInfo(Reflow.Info info, int page, int c) {
+                this.info = info;
+                this.page = page;
+                this.current = c;
+            }
+        }
+
+        ArrayList<ReflowerInfo> infos = new ArrayList<>();
 
         public FBAndroidWidget() {
             super(FBReaderView.this.getContext());
@@ -396,8 +408,20 @@ public class FBReaderView extends RelativeLayout {
         public void drawOnBitmap(Bitmap bitmap, ZLViewEnums.PageIndex index) {
             if (pluginview != null) {
                 pluginview.drawOnBitmap(getContext(), bitmap, getWidth(), getMainAreaHeight(), index, (CustomView) app.BookTextView, book.info);
-                if (pluginview.reflow)
-                    info = new Reflow.Info(pluginview.reflower, pluginview.reflower.current);
+                if (pluginview.reflow) {
+                    int p = pluginview.reflower.page;
+                    int c = pluginview.reflower.current;
+                    switch(index) {
+                        case previous:
+                            c--;
+                            break;
+                        case next:
+                            c++;
+                    }
+                    infos.add(new ReflowerInfo(new Reflow.Info(pluginview.reflower, c), p, c));
+                    while (infos.size() > 2)
+                        infos.remove(0);
+                }
             } else {
                 super.drawOnBitmap(bitmap, index);
             }
@@ -429,28 +453,36 @@ public class FBReaderView extends RelativeLayout {
             return super.onTouchEvent(event);
         }
 
+        Reflow.Info getInfo() {
+            for (ReflowerInfo i : infos) {
+                if (i.page == pluginview.reflower.page && i.current == pluginview.reflower.current)
+                    return i.info;
+            }
+            return null;
+        }
+
         @Override
         public boolean onLongClick(View v) {
             if (pluginview != null) {
                 final Rect dst = getPageRect();
-                final PluginView.Selection s = pluginview.select(getPosition(), info, dst.width(), dst.height(), x - dst.left, y - dst.top);
+                final PluginView.Selection s = pluginview.select(getPosition(), getInfo(), dst.width(), dst.height(), x - dst.left, y - dst.top);
                 if (s != null) {
                     selectionOpen(s);
-                    final PluginView.Selection.Page page = pluginview.selectPage(getPosition(), info, dst.width(), dst.height());
+                    final PluginView.Selection.Page page = pluginview.selectPage(getPosition(), getInfo(), dst.width(), dst.height());
                     final Runnable run = new Runnable() {
                         @Override
                         public void run() {
                             int x = dst.left;
                             int y = dst.top;
                             if (pluginview.reflow)
-                                x += info.margin.left;
+                                x += getInfo().margin.left;
                             selection.update((SelectionView.PageView) selection.getChildAt(0), x, y);
                         }
                     };
                     PluginView.Selection.Setter setter = new PluginView.Selection.Setter() {
                         @Override
                         public void setStart(int x, int y) {
-                            PluginView.Selection.Point point = pluginview.selectPoint(info, x - dst.left, y - dst.top);
+                            PluginView.Selection.Point point = pluginview.selectPoint(getInfo(), x - dst.left, y - dst.top);
                             if (point != null)
                                 s.setStart(page, point);
                             run.run();
@@ -458,7 +490,7 @@ public class FBReaderView extends RelativeLayout {
 
                         @Override
                         public void setEnd(int x, int y) {
-                            PluginView.Selection.Point point = pluginview.selectPoint(info, x - dst.left, y - dst.top);
+                            PluginView.Selection.Point point = pluginview.selectPoint(getInfo(), x - dst.left, y - dst.top);
                             if (point != null)
                                 s.setEnd(page, point);
                             run.run();
@@ -468,7 +500,7 @@ public class FBReaderView extends RelativeLayout {
                         public PluginView.Selection.Bounds getBounds() {
                             PluginView.Selection.Bounds bounds = s.getBounds(page);
                             if (pluginview.reflow) {
-                                pluginview.selectBounds(bounds, info);
+                                pluginview.selectBounds(bounds, getInfo());
                                 bounds.start = true;
                                 bounds.end = true;
                             }
