@@ -916,6 +916,7 @@ public class FBReaderView extends RelativeLayout {
                 }
 
                 void recycle() {
+                    holder = null;
                     if (bm != null) {
                         bm.recycle();
                         bm = null;

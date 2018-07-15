@@ -279,8 +279,7 @@ public class Reflow {
                 size++;
             } while (bounds.height() < (k.height()));
 
-            float m = text.
-                    measureText(t);
+            float m = text.measureText(t);
             canvas.drawText(t, k.centerX() - m / 2, k.top + k.height(), text);
         }
     }
