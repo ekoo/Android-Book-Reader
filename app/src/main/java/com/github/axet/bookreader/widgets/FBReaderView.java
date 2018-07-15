@@ -314,24 +314,28 @@ public class FBReaderView extends RelativeLayout {
                 pinch = new PinchGesture(FBReaderView.this.getContext()) {
                     @Override
                     public void onScaleBegin(float x, float y) {
-                        pinchOpen(pluginview.current.pageNumber, getRect());
+                        pinchOpen(pluginview.current.pageNumber, getPageRect());
                     }
                 };
             }
         }
 
-        Rect getRect() {
+        public Rect getPageRect() {
             Rect dst;
-            PluginPage p = pluginview.current; // current.renderRect() show partial page
-            if (p.pageOffset < 0) { // show empty space at beginig
-                int t = (int) (-p.pageOffset / p.ratio);
-                dst = new Rect(0, t, p.w, t + (int) (p.pageBox.h / p.ratio));
-            } else if (p.pageOffset == 0 && p.hh > p.pageBox.h) {  // show middle vertically
-                int t = (int) ((p.hh - p.pageBox.h) / p.ratio / 2);
-                dst = new Rect(0, t, p.w, p.h - t);
+            if (pluginview.reflow) {
+                dst = new Rect(0, 0, getWidth(), getHeight());
             } else {
-                int t = (int) (-p.pageOffset / p.ratio);
-                dst = new Rect(0, t, p.w, t + (int) (p.pageBox.h / p.ratio));
+                PluginPage p = pluginview.current; // current.renderRect() show partial page
+                if (p.pageOffset < 0) { // show empty space at beginig
+                    int t = (int) (-p.pageOffset / p.ratio);
+                    dst = new Rect(0, t, p.w, t + (int) (p.pageBox.h / p.ratio));
+                } else if (p.pageOffset == 0 && p.hh > p.pageBox.h) {  // show middle vertically
+                    int t = (int) ((p.hh - p.pageBox.h) / p.ratio / 2);
+                    dst = new Rect(0, t, p.w, p.h - t);
+                } else {
+                    int t = (int) (-p.pageOffset / p.ratio);
+                    dst = new Rect(0, t, p.w, t + (int) (p.pageBox.h / p.ratio));
+                }
             }
             return dst;
         }
@@ -393,7 +397,7 @@ public class FBReaderView extends RelativeLayout {
             if (pluginview != null) {
                 pluginview.drawOnBitmap(getContext(), bitmap, getWidth(), getMainAreaHeight(), index, (CustomView) app.BookTextView, book.info);
                 if (pluginview.reflow)
-                    info = new Reflow.Info(pluginview.reflower, pluginview.current.pageNumber);
+                    info = new Reflow.Info(pluginview.reflower, pluginview.reflower.current);
             } else {
                 super.drawOnBitmap(bitmap, index);
             }
@@ -428,7 +432,7 @@ public class FBReaderView extends RelativeLayout {
         @Override
         public boolean onLongClick(View v) {
             if (pluginview != null) {
-                final Rect dst = getRect();
+                final Rect dst = getPageRect();
                 final PluginView.Selection s = pluginview.select(getPosition(), info, dst.width(), dst.height(), x - dst.left, y - dst.top);
                 if (s != null) {
                     selectionOpen(s);
@@ -436,25 +440,39 @@ public class FBReaderView extends RelativeLayout {
                     final Runnable run = new Runnable() {
                         @Override
                         public void run() {
-                            selection.update((SelectionView.PageView) selection.getChildAt(0), dst.left, dst.top);
+                            int x = dst.left;
+                            int y = dst.top;
+                            if (pluginview.reflow)
+                                x += info.margin.left;
+                            selection.update((SelectionView.PageView) selection.getChildAt(0), x, y);
                         }
                     };
                     PluginView.Selection.Setter setter = new PluginView.Selection.Setter() {
                         @Override
                         public void setStart(int x, int y) {
-                            s.setStart(page, pluginview.selectPoint(info, x - dst.left, y - dst.top));
+                            PluginView.Selection.Point point = pluginview.selectPoint(info, x - dst.left, y - dst.top);
+                            if (point != null)
+                                s.setStart(page, point);
                             run.run();
                         }
 
                         @Override
                         public void setEnd(int x, int y) {
-                            s.setEnd(page, pluginview.selectPoint(info, x - dst.left, y - dst.top));
+                            PluginView.Selection.Point point = pluginview.selectPoint(info, x - dst.left, y - dst.top);
+                            if (point != null)
+                                s.setEnd(page, point);
                             run.run();
                         }
 
                         @Override
                         public PluginView.Selection.Bounds getBounds() {
-                            return s.getBounds(page);
+                            PluginView.Selection.Bounds bounds = s.getBounds(page);
+                            if (pluginview.reflow) {
+                                pluginview.selectBounds(bounds, info);
+                                bounds.start = true;
+                                bounds.end = true;
+                            }
+                            return bounds;
                         }
                     };
                     SelectionView.PageView view = new SelectionView.PageView(getContext(), (CustomView) app.BookTextView, setter);
@@ -1685,26 +1703,7 @@ public class FBReaderView extends RelativeLayout {
                             public PluginView.Selection.Bounds getBounds() {
                                 PluginView.Selection.Bounds bounds = selection.selection.getBounds(page);
                                 if (pluginview.reflow) {
-                                    ArrayList<Rect> list = new ArrayList<>();
-                                    for (Rect r : bounds.rr) {
-                                        for (Rect s : view.info.src.keySet()) {
-                                            Rect i = new Rect(r);
-                                            if (i.intersect(s) && (i.height() * 100 / s.height() > SelectionView.ARTIFACT_PERCENTS)) { // ignore artifacts height less then 10%
-                                                Rect d = view.info.fromSrc(s, i);
-                                                list.add(d);
-                                            }
-                                        }
-                                    }
-                                    ArrayList<Rect> copy = new ArrayList<>(list);
-                                    for (Rect r : list) {
-                                        for (Rect k : list) {
-                                            if (r != k && r.intersects(k.left, k.top, k.right, k.bottom)) {
-                                                r.union(k);
-                                                copy.remove(k);
-                                            }
-                                        }
-                                    }
-                                    bounds.rr = copy.toArray(new Rect[0]);
+                                    pluginview.selectBounds(bounds, view.info);
 
                                     Boolean a = null;
                                     while (a == null && first.left < first.right)

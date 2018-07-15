@@ -20,6 +20,7 @@ import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Map;
 
@@ -522,6 +523,29 @@ public class PluginView {
         if (p != null)
             return select(selectPage(start, info, w, h), p);
         return null;
+    }
+
+    public void selectBounds(Selection.Bounds bounds, Reflow.Info info) {
+        ArrayList<Rect> list = new ArrayList<>();
+        for (Rect r : bounds.rr) {
+            for (Rect s : info.src.keySet()) {
+                Rect i = new Rect(r);
+                if (i.intersect(s) && (i.height() * 100 / s.height() > SelectionView.ARTIFACT_PERCENTS)) { // ignore artifacts height less then 10%
+                    Rect d = info.fromSrc(s, i);
+                    list.add(d);
+                }
+            }
+        }
+        ArrayList<Rect> copy = new ArrayList<>(list);
+        for (Rect r : list) {
+            for (Rect k : list) {
+                if (r != k && r.intersects(k.left, k.top, k.right, k.bottom)) {
+                    r.union(k);
+                    copy.remove(k);
+                }
+            }
+        }
+        bounds.rr = copy.toArray(new Rect[0]);
     }
 
 }
