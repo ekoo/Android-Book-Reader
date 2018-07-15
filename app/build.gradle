@@ -10,8 +10,8 @@ android {
         applicationId "com.github.axet.bookreader"
         minSdkVersion 9
         targetSdkVersion 25
-        versionCode 260
-        versionName "1.7.11"
+        versionCode 261
+        versionName "1.7.12"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
         multiDexEnabled true
