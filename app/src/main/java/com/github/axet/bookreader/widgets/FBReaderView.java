@@ -293,6 +293,11 @@ public class FBReaderView extends RelativeLayout {
     public class FBAndroidWidget extends ZLAndroidWidget {
         PinchGesture pinch;
 
+        int x;
+        int y;
+
+        Reflow.Info info;
+
         public FBAndroidWidget() {
             super(FBReaderView.this.getContext());
 
@@ -309,22 +314,26 @@ public class FBReaderView extends RelativeLayout {
                 pinch = new PinchGesture(FBReaderView.this.getContext()) {
                     @Override
                     public void onScaleBegin(float x, float y) {
-                        Rect dst;
-                        PluginPage p = pluginview.current; // current.renderRect() show partial page
-                        if (p.pageOffset < 0) { // show empty space at beginig
-                            int t = (int) (-p.pageOffset / p.ratio);
-                            dst = new Rect(0, t, p.w, t + (int) (p.pageBox.h / p.ratio));
-                        } else if (p.pageOffset == 0 && p.hh > p.pageBox.h) {  // show middle vertically
-                            int t = (int) ((p.hh - p.pageBox.h) / p.ratio / 2);
-                            dst = new Rect(0, t, p.w, p.h - t);
-                        } else {
-                            int t = (int) (-p.pageOffset / p.ratio);
-                            dst = new Rect(0, t, p.w, t + (int) (p.pageBox.h / p.ratio));
-                        }
-                        pinchOpen(pluginview.current.pageNumber, dst);
+                        pinchOpen(pluginview.current.pageNumber, getRect());
                     }
                 };
             }
+        }
+
+        Rect getRect() {
+            Rect dst;
+            PluginPage p = pluginview.current; // current.renderRect() show partial page
+            if (p.pageOffset < 0) { // show empty space at beginig
+                int t = (int) (-p.pageOffset / p.ratio);
+                dst = new Rect(0, t, p.w, t + (int) (p.pageBox.h / p.ratio));
+            } else if (p.pageOffset == 0 && p.hh > p.pageBox.h) {  // show middle vertically
+                int t = (int) ((p.hh - p.pageBox.h) / p.ratio / 2);
+                dst = new Rect(0, t, p.w, p.h - t);
+            } else {
+                int t = (int) (-p.pageOffset / p.ratio);
+                dst = new Rect(0, t, p.w, t + (int) (p.pageBox.h / p.ratio));
+            }
+            return dst;
         }
 
         @Override
@@ -381,10 +390,13 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public void drawOnBitmap(Bitmap bitmap, ZLViewEnums.PageIndex index) {
-            if (pluginview != null)
+            if (pluginview != null) {
                 pluginview.drawOnBitmap(getContext(), bitmap, getWidth(), getMainAreaHeight(), index, (CustomView) app.BookTextView, book.info);
-            else
+                if (pluginview.reflow)
+                    info = new Reflow.Info(pluginview.reflower, pluginview.current.pageNumber);
+            } else {
                 super.drawOnBitmap(bitmap, index);
+            }
         }
 
         @Override
@@ -404,11 +416,55 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public boolean onTouchEvent(MotionEvent event) {
+            x = (int) event.getX();
+            y = (int) event.getY();
             if (pluginview != null && !pluginview.reflow) {
                 if (pinch.onTouchEvent(event))
                     return true;
             }
             return super.onTouchEvent(event);
+        }
+
+        @Override
+        public boolean onLongClick(View v) {
+            if (pluginview != null) {
+                final Rect dst = getRect();
+                final PluginView.Selection s = pluginview.select(getPosition(), info, dst.width(), dst.height(), x - dst.left, y - dst.top);
+                if (s != null) {
+                    selectionOpen(s);
+                    final PluginView.Selection.Page page = pluginview.selectPage(getPosition(), info, dst.width(), dst.height());
+                    final Runnable run = new Runnable() {
+                        @Override
+                        public void run() {
+                            selection.update((SelectionView.PageView) selection.getChildAt(0), dst.left, dst.top);
+                        }
+                    };
+                    PluginView.Selection.Setter setter = new PluginView.Selection.Setter() {
+                        @Override
+                        public void setStart(int x, int y) {
+                            s.setStart(page, pluginview.selectPoint(info, x - dst.left, y - dst.top));
+                            run.run();
+                        }
+
+                        @Override
+                        public void setEnd(int x, int y) {
+                            s.setEnd(page, pluginview.selectPoint(info, x - dst.left, y - dst.top));
+                            run.run();
+                        }
+
+                        @Override
+                        public PluginView.Selection.Bounds getBounds() {
+                            return s.getBounds(page);
+                        }
+                    };
+                    SelectionView.PageView view = new SelectionView.PageView(getContext(), (CustomView) app.BookTextView, setter);
+                    selection.add(view);
+                    run.run();
+                    return true;
+                }
+                selectionClose();
+            }
+            return super.onLongClick(v);
         }
     }
 
