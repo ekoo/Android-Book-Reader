@@ -398,6 +398,8 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         @Override
         public Boolean isAbove(Page page, Point point) {
+            if (start.page < page.page)
+                return true;
             SelectionBounds b = new SelectionBounds(page);
             if (b.page.count > 0) {
                 point = new Point(b.page.ppage.toPage(0, 0, page.w, page.h, 0, point.x, point.y));
@@ -411,6 +413,8 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         @Override
         public Boolean isBelow(Page page, Point point) {
+            if (end.page > page.page)
+                return true;
             SelectionBounds b = new SelectionBounds(page);
             if (b.page.count > 0) {
                 point = new Point(b.page.ppage.toPage(0, 0, page.w, page.h, 0, point.x, point.y));

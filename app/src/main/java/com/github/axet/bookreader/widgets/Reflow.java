@@ -184,6 +184,7 @@ public class Reflow {
         Canvas c = new Canvas(bm);
         Paint paint = new Paint();
         paint.setColor(Color.MAGENTA);
+        paint.setAntiAlias(true);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(0);
         c.drawRect(r, paint);
@@ -194,6 +195,7 @@ public class Reflow {
         Bitmap bm = drawSrc(pluginview, info);
         Canvas c = new Canvas(bm);
         Paint paint = new Paint();
+        paint.setAntiAlias(true);
         paint.setColor(Color.MAGENTA);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(0);
@@ -214,6 +216,7 @@ public class Reflow {
             return null;
         Canvas c = new Canvas(bm);
         Paint paint = new Paint();
+        paint.setAntiAlias(true);
         paint.setColor(Color.MAGENTA);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(0);
@@ -228,6 +231,7 @@ public class Reflow {
         Canvas c = new Canvas(bm);
         Paint paint = new Paint();
         paint.setColor(Color.MAGENTA);
+        paint.setAntiAlias(true);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(0);
         c.drawPoint(p.x, p.y, paint);
@@ -256,6 +260,7 @@ public class Reflow {
         Rect[] kk = keys.toArray(new Rect[0]);
         Paint paint = new Paint();
         paint.setColor(Color.BLUE);
+        paint.setAntiAlias(true);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(0);
         Paint text = new Paint();
