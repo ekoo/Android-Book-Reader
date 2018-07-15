@@ -141,11 +141,11 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         public class SelectionBounds {
             SelectionPage page;
-            int s;
-            int e;
-            int ss;
-            int ee;
-            int cc;
+            int s; // start page
+            int e; // last page
+            int ss; // start index
+            int ee; // end index
+            int cc; // count
             boolean first;
             boolean last;
             boolean reverse;
@@ -292,11 +292,6 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public int getStart() {
-            return start.page;
-        }
-
-        @Override
         public void setEnd(Page page, Point point) {
             SelectionPage end = open(page);
             if (end.count > 0) {
@@ -309,11 +304,6 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 this.end = end;
                 return;
             }
-        }
-
-        @Override
-        public int getEnd() {
-            return end.page;
         }
 
         @Override
@@ -420,7 +410,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 int i2 = b.page.text.getIndex(p2.x, p2.y);
                 if (i2 == -1)
                     return null;
-                return i1 <= b.ss && b.ss <= i2 || i1 <= b.ee && b.ee <= i2;
+                return i1 <= b.ss && b.ss <= i2 || i1 < b.ee && b.ee < i2;
             }
             return null;
         }
@@ -436,6 +426,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 return true;
             }
             return false;
+        }
+
+        @Override
+        public boolean isSelected(Page page) {
+            SelectionBounds b = new SelectionBounds(page);
+            return b.s <= page.page && page.page <= b.e;
         }
 
         @Override
