@@ -178,8 +178,10 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                         e = end;
                     }
                 }
+
                 this.s = s.page;
                 this.e = e.page;
+
                 if (s.page == e.page) {
                     ss = s.index;
                     ee = e.index;
@@ -402,6 +404,38 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 bounds.rr[i] = r;
             }
             return bounds;
+        }
+
+        @Override
+        public Boolean inBetween(Page page, Point start, Point end) {
+            SelectionBounds b = new SelectionBounds(page);
+            if (b.s < page.page && page.page < b.e)
+                return true;
+            if (b.page.count > 0) {
+                Point p1 = new Point(b.page.ppage.toPage(0, 0, page.w, page.h, 0, start.x, start.y));
+                int i1 = b.page.text.getIndex(p1.x, p1.y);
+                if (i1 == -1)
+                    return null;
+                Point p2 = new Point(b.page.ppage.toPage(0, 0, page.w, page.h, 0, end.x, end.y));
+                int i2 = b.page.text.getIndex(p2.x, p2.y);
+                if (i2 == -1)
+                    return null;
+                return i1 <= b.ss && b.ss <= i2 || i1 <= b.ee && b.ee <= i2;
+            }
+            return null;
+        }
+
+        @Override
+        public boolean isValid(Page page, Point point) {
+            SelectionBounds b = new SelectionBounds(page);
+            if (b.page.count > 0) {
+                point = new Point(b.page.ppage.toPage(0, 0, page.w, page.h, 0, point.x, point.y));
+                int index = b.page.text.getIndex(point.x, point.y);
+                if (index == -1)
+                    return false;
+                return true;
+            }
+            return false;
         }
 
         @Override
