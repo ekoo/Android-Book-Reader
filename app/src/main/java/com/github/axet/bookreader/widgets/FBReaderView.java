@@ -1710,7 +1710,7 @@ public class FBReaderView extends RelativeLayout {
                                     }
                                 }
                                 selectionUpdate(holder);
-                                if (pos != holder.getAdapterPosition())
+                                if (pos != -1 && pos != holder.getAdapterPosition())
                                     selectionUpdate(v.holder);
                             }
 
@@ -1731,7 +1731,7 @@ public class FBReaderView extends RelativeLayout {
                                     }
                                 }
                                 selectionUpdate(holder);
-                                if (pos != holder.getAdapterPosition())
+                                if (pos != -1 && pos != holder.getAdapterPosition())
                                     selectionUpdate(v.holder);
                             }
 
