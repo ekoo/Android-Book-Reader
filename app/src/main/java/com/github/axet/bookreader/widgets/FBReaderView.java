@@ -1673,17 +1673,19 @@ public class FBReaderView extends RelativeLayout {
                     first = ii.get(0);
                     last = ii.get(ii.size() - 1);
 
-                    Boolean b;
-                    do {
-                        b = selection.selection.isBelow(page, new PluginView.Selection.Point(first.left, first.centerY()));
-                    } while (b == null && ++first.left < first.right);
-
                     Boolean a;
                     do {
-                        a = selection.selection.isAbove(page, new PluginView.Selection.Point(last.right, last.centerY()));
-                    } while (a == null && --last.right > last.left);
+                        a = selection.selection.isValid(page, new PluginView.Selection.Point(first.left, first.centerY()));
+                    } while (!a && ++first.left < first.right);
 
-                    selected = b != null && b && a != null && a;
+                    Boolean b;
+                    do {
+                        b = selection.selection.isValid(page, new PluginView.Selection.Point(last.right, last.centerY()));
+                    } while (!b && --last.right > last.left);
+
+                    Boolean r = selection.selection.inBetween(page, new PluginView.Selection.Point(first.left, first.centerY()), new PluginView.Selection.Point(last.right, last.centerY()));
+
+                    selected = r != null && r;
                 } else {
                     selected = false;
                     first = null;

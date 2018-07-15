@@ -124,6 +124,14 @@ public class PluginView {
             return null;
         }
 
+        public Boolean inBetween(Page page, Point start, Point end) {
+            return null;
+        }
+
+        public boolean isValid(Page page, Point point) {
+            return false;
+        }
+
         public void close() {
         }
     }
