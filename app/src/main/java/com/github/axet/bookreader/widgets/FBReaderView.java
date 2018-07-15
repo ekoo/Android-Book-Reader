@@ -411,7 +411,7 @@ public class FBReaderView extends RelativeLayout {
                 if (pluginview.reflow) {
                     int p = pluginview.reflower.page;
                     int c = pluginview.reflower.current;
-                    switch(index) {
+                    switch (index) {
                         case previous:
                             c--;
                             break;
@@ -1657,7 +1657,7 @@ public class FBReaderView extends RelativeLayout {
                 final Rect first;
                 final Rect last;
 
-                if (selected && pluginview.reflow && pluginview.reflower != null) {
+                if (selected && view.info != null) {
                     Rect[] bounds = selection.selection.getBoundsAll(page);
                     ArrayList<Rect> ii = new ArrayList<>();
                     for (Rect b : bounds) {
@@ -1672,14 +1672,15 @@ public class FBReaderView extends RelativeLayout {
                     first = ii.get(0);
                     last = ii.get(ii.size() - 1);
 
-                    Boolean b = null;
-                    while (b == null && first.left < first.right)
-                        b = selection.selection.isBelow(page, new PluginView.Selection.Point(first.left++, first.centerY()));
+                    Boolean b;
+                    do {
+                        b = selection.selection.isBelow(page, new PluginView.Selection.Point(first.left, first.centerY()));
+                    } while (b == null && ++first.left < first.right);
 
-                    Boolean a = null;
-                    while (a == null && last.right > last.left) {
-                        a = selection.selection.isAbove(page, new PluginView.Selection.Point(last.right--, last.centerY()));
-                    }
+                    Boolean a;
+                    do {
+                        a = selection.selection.isAbove(page, new PluginView.Selection.Point(last.right, last.centerY()));
+                    } while (a == null && --last.right > last.left);
 
                     selected = b != null && b && a != null && a;
                 } else {
@@ -1737,15 +1738,17 @@ public class FBReaderView extends RelativeLayout {
                                 if (pluginview.reflow) {
                                     pluginview.selectBounds(bounds, view.info);
 
-                                    Boolean a = null;
-                                    while (a == null && first.left < first.right)
-                                        a = selection.selection.isAbove(page, new PluginView.Selection.Point(first.left++, first.centerY()));
+                                    Boolean a;
+                                    do {
+                                        a = selection.selection.isAbove(page, new PluginView.Selection.Point(first.left, first.centerY()));
+                                    } while (a == null && ++first.left < first.right);
 
-                                    Boolean b = null;
-                                    while (b == null && last.right > last.left)
-                                        b = selection.selection.isBelow(page, new PluginView.Selection.Point(last.right--, last.centerY()));
+                                    Boolean b;
+                                    do {
+                                        b = selection.selection.isBelow(page, new PluginView.Selection.Point(last.right, last.centerY()));
+                                    } while (b == null && --last.right > last.left);
 
-                                    bounds.start = a != null & !a;
+                                    bounds.start = a != null && !a;
                                     bounds.end = b != null && !b;
                                 }
                                 return bounds;
@@ -1756,7 +1759,7 @@ public class FBReaderView extends RelativeLayout {
                     }
                     int x = view.getLeft();
                     int y = view.getTop();
-                    if (pluginview.reflow)
+                    if (view.info != null)
                         x += view.info.margin.left;
                     selection.update(view.selection, x, y);
                 } else {
