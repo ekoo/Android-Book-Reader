@@ -10,8 +10,8 @@ android {
         applicationId "com.github.axet.bookreader"
         minSdkVersion 9
         targetSdkVersion 25
-        versionCode 265
-        versionName "1.7.16"
+        versionCode 266
+        versionName "1.7.17"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
         multiDexEnabled true
@@ -60,7 +60,7 @@ dependencies {
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
     implementation 'com.android.support:support-vector-drawable:25.3.1'
     testImplementation 'junit:junit:4.12'
-    implementation 'com.github.axet:android-library:1.24.33' // implementation project(':android-library')
+    implementation 'com.github.axet:android-library:1.24.34' // implementation project(':android-library')
     implementation 'com.github.axet.fbreader:library:0.1.9'
     implementation 'com.github.axet:djvulibre:0.0.12'
     implementation 'com.github.axet:pdfium:2.0.6'

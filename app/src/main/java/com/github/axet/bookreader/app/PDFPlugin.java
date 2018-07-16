@@ -440,6 +440,10 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
     }
 
+    public class PdfSearch extends PluginView.Search {
+
+    }
+
     @TargetApi(21)
     public static class NativePage extends PluginPage {
         public PdfRenderer doc;
@@ -644,6 +648,18 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             }
             start.close();
             return null;
+        }
+
+        @Override
+        public Link[] getLinks(Selection.Page page) {
+            Pdfium.Page p = doc.openPage(page.page);
+            Pdfium.Link[] ll = p.getLinks();
+            Link[] rr = new Link[ll.length];
+            for (int i = 0; i < ll.length; i++) {
+                Pdfium.Link l = ll[i];
+                rr[i] = new Link(l.uri, l.index, p.toDevice(0, 0, page.w, page.h, 0, l.bounds));
+            }
+            return rr;
         }
 
     }

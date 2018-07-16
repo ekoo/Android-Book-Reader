@@ -49,6 +49,7 @@ public class NetworkBooksCatalog extends BooksCatalog {
     public NetworkBooksCatalog() {
     }
 
+    @SuppressWarnings("unchecked")
     public void load(JSONObject json) {
         super.load(json);
         try {
@@ -86,6 +87,7 @@ public class NetworkBooksCatalog extends BooksCatalog {
         load();
     }
 
+    @SuppressWarnings("unchecked")
     void load() {
         home = (Map<String, String>) map.get("home");
         if (map.get("opds") instanceof Map)
