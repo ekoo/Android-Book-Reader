@@ -435,12 +435,12 @@ public class SelectionView extends FrameLayout {
         if (margin == null || first == null && last == null)
             return; // broken
 
-        if (first == null) {
+        if (first == null) { // reflow selection can has artifacts / small symbols in between pages, ignore it
             first = new Rect(lastPage.lines.get(0));
             absTo(first, lastPage.margin);
             firstPage = lastPage;
         }
-        if (last == null) {
+        if (last == null) { // reflow selection can has artifacts / small symbols in between pages, ignore it
             last = new Rect(firstPage.lines.get(firstPage.lines.size() - 1));
             absTo(last, firstPage.margin);
             lastPage = firstPage;
