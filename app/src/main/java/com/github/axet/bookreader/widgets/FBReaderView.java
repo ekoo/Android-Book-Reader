@@ -118,6 +118,7 @@ import org.geometerplus.zlibrary.ui.android.view.ZLAndroidPaintContext;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -473,6 +474,10 @@ public class FBReaderView extends RelativeLayout {
             for (LinksView l : links.values())
                 l.close();
             links.clear();
+        }
+
+        public void searchClose() {
+            ;
         }
 
         @Override
@@ -1690,7 +1695,8 @@ public class FBReaderView extends RelativeLayout {
             if (selection != null)
                 selectionUpdate(view);
             linksUpdate(view);
-            searchUpdate(view);
+            if (search != null)
+                searchUpdate(view);
         }
 
         public void linksClose() {
@@ -2054,6 +2060,7 @@ public class FBReaderView extends RelativeLayout {
         public ArrayList<View> links = new ArrayList<>();
 
         public SearchView(PluginView.Search.Bounds bb) {
+            Arrays.sort(bb.rr, new SelectionView.LinesUL(bb.rr));
             for (int i = 0; i < bb.rr.length; i++) {
                 final Rect l = bb.rr[i];
                 MarginLayoutParams lp = new MarginLayoutParams(l.width(), l.height());
@@ -2937,10 +2944,18 @@ public class FBReaderView extends RelativeLayout {
             ((FBAndroidWidget) widget).linksClose();
     }
 
+    public void searchClose() {
+        if (widget instanceof ScrollView)
+            ((ScrollView) widget).searchClose();
+        if (widget instanceof FBAndroidWidget)
+            ((FBAndroidWidget) widget).searchClose();
+    }
+
     public void overlaysClose() {
         pinchClose();
         selectionClose();
         linksClose();
+        searchClose();
     }
 
 }
