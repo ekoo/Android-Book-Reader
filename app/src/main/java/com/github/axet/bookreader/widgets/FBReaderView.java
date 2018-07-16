@@ -119,6 +119,7 @@ import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -146,6 +147,7 @@ public class FBReaderView extends RelativeLayout {
     PinchView pinch;
     SelectionView selection;
     DrawerLayout drawer;
+    PluginView.Search search;
 
     public interface PageTurningListener {
         void onScrollingFinished(ZLViewEnums.PageIndex index);
@@ -242,6 +244,8 @@ public class FBReaderView extends RelativeLayout {
             }
             if (pageTurningListener != null)
                 pageTurningListener.onScrollingFinished(pageIndex);
+            if (widget instanceof ZLAndroidWidget)
+                ((FBAndroidWidget) widget).onScrollingFinished();
         }
 
         @Override
@@ -296,19 +300,25 @@ public class FBReaderView extends RelativeLayout {
         int x;
         int y;
 
-        public class ReflowerInfo {
-            public int page;
-            public int current;
-            public Reflow.Info info;
+        public class RecentMap<K, V> extends HashMap<K, V> {
+            ArrayList<K> last = new ArrayList<>();
 
-            public ReflowerInfo(Reflow.Info info, int page, int c) {
-                this.info = info;
-                this.page = page;
-                this.current = c;
+            @Override
+            public V put(K key, V value) {
+                V v = super.put(key, value);
+                if (v != null)
+                    return v;
+                last.add(key);
+                if (last.size() > 2) {
+                    K k = last.remove(0);
+                    return remove(k);
+                }
+                return null;
             }
         }
 
-        ArrayList<ReflowerInfo> infos = new ArrayList<>();
+        RecentMap<ZLTextPosition, Reflow.Info> infos = new RecentMap<>();
+        RecentMap<ZLTextPosition, LinksView> links = new RecentMap<>();
 
         public FBAndroidWidget() {
             super(FBReaderView.this.getContext());
@@ -418,13 +428,51 @@ public class FBReaderView extends RelativeLayout {
                         case next:
                             c++;
                     }
-                    infos.add(new ReflowerInfo(new Reflow.Info(pluginview.reflower, c), p, c));
-                    while (infos.size() > 2)
-                        infos.remove(0);
+                    infos.put(new ZLTextFixedPosition(p, c, 0), new Reflow.Info(pluginview.reflower, c));
                 }
+                Rect dst = getPageRect();
+                ZLTextPosition position;
+                if (pluginview.reflow)
+                    position = new ZLTextFixedPosition(pluginview.reflower.page, pluginview.reflower.current, 0);
+                else
+                    position = new ZLTextFixedPosition(pluginview.current.pageNumber, 0, 0);
+                PluginView.Selection.Page page = pluginview.selectPage(position, getInfo(), dst.width(), dst.height());
+                LinksView l = new LinksView(pluginview.getLinks(page));
+                LinksView old = links.put(position, l);
+                if (old != null)
+                    old.close();
             } else {
                 super.drawOnBitmap(bitmap, index);
             }
+        }
+
+        public void onScrollingFinished() {
+            if (pluginview != null) {
+                final Rect dst = getPageRect();
+                int x = dst.left;
+                int y = dst.top;
+                if (pluginview.reflow)
+                    x += getInfo().margin.left;
+                for (LinksView l : links.values()) {
+                    l.hide();
+                }
+                ZLTextPosition position;
+                if (pluginview.reflow)
+                    position = new ZLTextFixedPosition(pluginview.reflower.page, pluginview.reflower.current, 0);
+                else
+                    position = new ZLTextFixedPosition(pluginview.current.pageNumber, 0, 0);
+                LinksView l = links.get(position);
+                if (l != null) {
+                    l.show();
+                    l.update(x, y);
+                }
+            }
+        }
+
+        public void linksClose() {
+            for (LinksView l : links.values())
+                l.close();
+            links.clear();
         }
 
         @Override
@@ -454,11 +502,9 @@ public class FBReaderView extends RelativeLayout {
         }
 
         Reflow.Info getInfo() {
-            for (ReflowerInfo i : infos) {
-                if (i.page == pluginview.reflower.page && i.current == pluginview.reflower.current)
-                    return i.info;
-            }
-            return null;
+            if (pluginview.reflower == null)
+                return null;
+            return infos.get(new ZLTextFixedPosition(pluginview.reflower.page, pluginview.reflower.current, 0));
         }
 
         @Override
@@ -543,6 +589,8 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public void refresh() {
+            if (widget instanceof FBAndroidWidget)
+                ((FBAndroidWidget) widget).onScrollingFinished();
         }
 
         @Override
@@ -711,7 +759,7 @@ public class FBReaderView extends RelativeLayout {
                 ZLTextElementAreaVector text;
                 Reflow.Info info;
                 SelectionView.PageView selection;
-                ArrayList<View> links;
+                LinksView links;
 
                 public PageView(ViewGroup parent) {
                     super(parent.getContext());
@@ -1620,6 +1668,20 @@ public class FBReaderView extends RelativeLayout {
             linksRemove(view);
         }
 
+        public void overlaysClose() {
+            for (int i = 0; i < lm.getChildCount(); i++) {
+                ScrollView.ScrollAdapter.PageView view = (ScrollView.ScrollAdapter.PageView) lm.getChildAt(i);
+                overlayRemove(view);
+            }
+        }
+
+        public void linksClose() {
+            for (int i = 0; i < lm.getChildCount(); i++) {
+                ScrollView.ScrollAdapter.PageView view = (ScrollView.ScrollAdapter.PageView) lm.getChildAt(i);
+                linksRemove(view);
+            }
+        }
+
         public void updateOverlays() {
             for (int i = 0; i < lm.getChildCount(); i++) {
                 final ScrollAdapter.PageView view = (ScrollAdapter.PageView) lm.getChildAt(i);
@@ -1636,10 +1698,7 @@ public class FBReaderView extends RelativeLayout {
         public void linksRemove(ScrollAdapter.PageView view) {
             if (view.links == null)
                 return;
-            for (View v : view.links) {
-                FBReaderView.this.removeView(v);
-            }
-            view.links.clear();
+            view.links.close();
         }
 
         public void linksUpdate(ScrollAdapter.PageView view) {
@@ -1658,42 +1717,14 @@ public class FBReaderView extends RelativeLayout {
                 }
 
                 if (page != null) {
-                    if (view.links == null) {
-                        view.links = new ArrayList<>();
-                        PluginView.Link[] ll = pluginview.getLinks(page);
-                        for (int i = 0; i < ll.length; i++) {
-                            final PluginView.Link l = ll[i];
-                            MarginLayoutParams lp = new MarginLayoutParams(l.rect.width(), l.rect.height());
-                            View v = new View(getContext());
-                            v.setLayoutParams(lp);
-                            v.setTag(l);
-                            v.setOnClickListener(new OnClickListener() {
-                                @Override
-                                public void onClick(View v) {
-                                    if (l.index != -1)
-                                        gotoPluginPosition(new ZLTextFixedPosition(l.index, 0, 0));
-                                    else
-                                        AboutPreferenceCompat.openUrlDialog(getContext(), l.url);
-                                }
-                            });
-                            view.links.add(v);
-                            FBReaderView.this.addView(v);
-                        }
-                    }
+                    if (view.links == null)
+                        view.links = new LinksView(pluginview.getLinks(page));
 
                     int x = view.getLeft();
                     int y = view.getTop();
                     if (view.info != null)
                         x += view.info.margin.left;
-                    for (View v : view.links) {
-                        PluginView.Link l = (PluginView.Link) v.getTag();
-                        MarginLayoutParams lp = (MarginLayoutParams) v.getLayoutParams();
-                        lp.leftMargin = x + l.rect.left;
-                        lp.topMargin = y + l.rect.top;
-                        lp.width = l.rect.width();
-                        lp.height = l.rect.height();
-                        v.requestLayout();
-                    }
+                    view.links.update(x, y);
                 } else {
                     linksRemove(view);
                 }
@@ -1703,7 +1734,7 @@ public class FBReaderView extends RelativeLayout {
         public void selectionClose() {
             for (int i = 0; i < lm.getChildCount(); i++) {
                 ScrollView.ScrollAdapter.PageView view = (ScrollView.ScrollAdapter.PageView) lm.getChildAt(i);
-                selectionRemove(view);
+                overlayRemove(view);
             }
         }
 
@@ -1917,6 +1948,61 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
+    public class LinksView {
+        public ArrayList<View> links = new ArrayList<>();
+
+        public LinksView(PluginView.Link[] ll) {
+            for (int i = 0; i < ll.length; i++) {
+                final PluginView.Link l = ll[i];
+                MarginLayoutParams lp = new MarginLayoutParams(l.rect.width(), l.rect.height());
+                View v = new View(getContext());
+                v.setLayoutParams(lp);
+                v.setTag(l);
+                v.setBackgroundColor(0x330000ff);
+                v.setOnClickListener(new OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if (l.index != -1)
+                            gotoPluginPosition(new ZLTextFixedPosition(l.index, 0, 0));
+                        else
+                            AboutPreferenceCompat.openUrlDialog(getContext(), l.url);
+                    }
+                });
+                links.add(v);
+                FBReaderView.this.addView(v);
+            }
+        }
+
+        public void update(int x, int y) {
+            for (View v : links) {
+                PluginView.Link l = (PluginView.Link) v.getTag();
+                MarginLayoutParams lp = (MarginLayoutParams) v.getLayoutParams();
+                lp.leftMargin = x + l.rect.left;
+                lp.topMargin = y + l.rect.top;
+                lp.width = l.rect.width();
+                lp.height = l.rect.height();
+                v.requestLayout();
+            }
+        }
+
+        public void hide() {
+            for (View v : links)
+                v.setVisibility(GONE);
+        }
+
+        public void show() {
+            for (View v : links)
+                v.setVisibility(VISIBLE);
+        }
+
+        public void close() {
+            for (View v : links) {
+                FBReaderView.this.removeView(v);
+            }
+            links.clear();
+        }
+    }
+
     public FBReaderView(Context context) { // create child view
         super(context);
         create();
@@ -2017,7 +2103,7 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void setWidget(ZLViewWidget v) {
-        pinchClose();
+        overlaysClose();
         if (widget != null)
             removeView((View) widget);
         widget = v;
@@ -2083,7 +2169,7 @@ public class FBReaderView extends RelativeLayout {
         book = null;
     }
 
-    public ZLTextFixedPosition getPosition() {
+    public ZLTextPosition getPosition() {
         if (pluginview != null)
             return pluginview.getPosition();
         else
@@ -2109,6 +2195,15 @@ public class FBReaderView extends RelativeLayout {
                         final TextSearchPopup popup = (TextSearchPopup) app.getPopupById(TextSearchPopup.ID);
                         popup.initPosition();
                         config.setValue(app.MiscOptions.TextSearchPattern, pattern);
+                        if (pluginview != null) {
+                            search = pluginview.search(pattern);
+                            if (widget instanceof ScrollView) {
+                                ((ScrollView) widget).updateOverlays();
+                            } else {
+                                ;
+                            }
+                            return;
+                        }
                         if (app.getTextView().search(pattern, true, false, false, false) != 0) {
                             a.runOnUiThread(new Runnable() {
                                 public void run() {
@@ -2485,14 +2580,20 @@ public class FBReaderView extends RelativeLayout {
         app.addAction(ActionCode.FIND_PREVIOUS, new FBAction(app) {
             @Override
             protected void run(Object... params) {
-                app.BookTextView.findPrevious();
+                if (search != null)
+                    search.prev();
+                else
+                    app.BookTextView.findPrevious();
                 resetNewPosition();
             }
         });
         app.addAction(ActionCode.FIND_NEXT, new FBAction(app) {
             @Override
             protected void run(Object... params) {
-                app.BookTextView.findNext();
+                if (search != null)
+                    search.next();
+                else
+                    app.BookTextView.findNext();
                 resetNewPosition();
             }
         });
@@ -2728,6 +2829,19 @@ public class FBReaderView extends RelativeLayout {
             selection = null;
         }
         app.runAction(ActionCode.SELECTION_HIDE_PANEL);
+    }
+
+    public void linksClose() {
+        if (widget instanceof ScrollView)
+            ((ScrollView) widget).linksClose();
+        if (widget instanceof FBAndroidWidget)
+            ((FBAndroidWidget) widget).linksClose();
+    }
+
+    public void overlaysClose() {
+        pinchClose();
+        selectionClose();
+        linksClose();
     }
 
 }
