@@ -93,15 +93,7 @@ public class PluginView {
         public void setStart(Page page, Point point) {
         }
 
-        public int getStart() {
-            return -1;
-        }
-
         public void setEnd(Page page, Point point) {
-        }
-
-        public int getEnd() {
-            return -1;
         }
 
         public String getText() {
@@ -129,6 +121,10 @@ public class PluginView {
         }
 
         public boolean isValid(Page page, Point point) {
+            return false;
+        }
+
+        public boolean isSelected(int page) {
             return false;
         }
 

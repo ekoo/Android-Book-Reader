@@ -1645,15 +1645,8 @@ public class FBReaderView extends RelativeLayout {
                     page = pluginview.selectPage(c.start, holder.page.info, holder.page.getWidth(), holder.page.getHeight());
                 }
 
-                int ss = selection.selection.getStart();
-                int ee = selection.selection.getEnd();
-                if (ss > ee) {
-                    ss = selection.selection.getEnd();
-                    ee = selection.selection.getStart();
-                }
-
                 if (selected)
-                    selected = (ss <= page.page && page.page <= ee);
+                    selected = selection.selection.isSelected(page.page);
 
                 final Rect first;
                 final Rect last;
@@ -1743,15 +1736,8 @@ public class FBReaderView extends RelativeLayout {
                                 if (pluginview.reflow) {
                                     pluginview.selectBounds(bounds, holder.page.info);
 
-                                    Boolean a;
-                                    do {
-                                        a = selection.selection.isAbove(page, new PluginView.Selection.Point(first.left, first.centerY()));
-                                    } while (a == null && ++first.left < first.right);
-
-                                    Boolean b;
-                                    do {
-                                        b = selection.selection.isBelow(page, new PluginView.Selection.Point(last.right, last.centerY()));
-                                    } while (b == null && --last.right > last.left);
+                                    Boolean a = selection.selection.isAbove(page, new PluginView.Selection.Point(first.left, first.centerY()));
+                                    Boolean b = selection.selection.isBelow(page, new PluginView.Selection.Point(last.right, last.centerY()));
 
                                     bounds.start = a != null && !a;
                                     bounds.end = b != null && !b;
