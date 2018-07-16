@@ -124,7 +124,7 @@ public class PluginView {
             return false;
         }
 
-        public boolean isSelected(Page page) {
+        public boolean isSelected(int page) {
             return false;
         }
 

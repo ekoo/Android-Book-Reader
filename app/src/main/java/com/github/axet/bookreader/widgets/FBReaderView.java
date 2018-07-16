@@ -1646,7 +1646,7 @@ public class FBReaderView extends RelativeLayout {
                 }
 
                 if (selected)
-                    selected = selection.selection.isSelected(page);
+                    selected = selection.selection.isSelected(page.page);
 
                 final Rect first;
                 final Rect last;
