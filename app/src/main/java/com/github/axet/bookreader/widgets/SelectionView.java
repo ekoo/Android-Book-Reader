@@ -34,36 +34,12 @@ public class SelectionView extends FrameLayout {
     Rect margin; // absolut coords
     int clip;
 
-    public static int area(Rect r, Rect r2) {
-        Rect a = new Rect();
-        if (a.setIntersect(r, r2))
-            return area(a);
-        return 0;
-    }
-
-    public static int area(Rect r) {
-        return r.width() * r.height();
-    }
-
     public static void relativeTo(Rect thiz, Rect rect) { // make child of rect, abs coords == rect.x + this.x
-        thiz.left -= rect.left;
-        thiz.right -= rect.left;
-        thiz.top -= rect.top;
-        thiz.bottom -= rect.top;
-    }
-
-    public static void absTo(Rect thiz, Point p) {
-        thiz.left += p.x;
-        thiz.right += p.x;
-        thiz.top += p.y;
-        thiz.bottom += p.y;
+        thiz.offset(-rect.left, -rect.top);
     }
 
     public static void absTo(Rect thiz, Rect rect) {
-        thiz.left += rect.left;
-        thiz.right += rect.left;
-        thiz.top += rect.top;
-        thiz.bottom += rect.top;
+        thiz.offset(rect.left, rect.top);
     }
 
     public static Rect circleRect(int x, int y, int r) {

@@ -867,13 +867,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         if (view.pluginview == null) {
             search = true;
         } else {
-            PluginView.Search s = view.pluginview.search("");
-            if (s == null) {
-                search = false;
-            } else {
-                s.close();
-                search = true;
-            }
+            search = false;
         }
 
         grid.setVisible(false);

@@ -47,9 +47,6 @@ public class PluginView {
             public boolean reverse;
             public boolean start;
             public boolean end;
-
-            public Bounds() {
-            }
         }
 
         public static class Page {
@@ -143,7 +140,10 @@ public class PluginView {
     }
 
     public static class Search {
-        public void gotoPage(Selection.Page page) {
+
+        public static class Bounds {
+            public Rect[] rr;
+            public Rect[] highlight;
         }
 
         public boolean next() {
@@ -154,7 +154,11 @@ public class PluginView {
             return false;
         }
 
-        public Rect[] getBounds() {
+        public int getCount() {
+            return -1;
+        }
+
+        public Bounds getBounds(Selection.Page page) {
             return null;
         }
 

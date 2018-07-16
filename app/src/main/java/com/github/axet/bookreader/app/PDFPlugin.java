@@ -440,8 +440,102 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public class PdfSearch extends PluginView.Search {
+    public static class SearchResult {
+        public int page;
+        public int start;
+        public int end;
 
+        public SearchResult(int p, Pdfium.TextResult t) {
+            page = p;
+            start = t.start;
+            end = t.start + t.count;
+        }
+
+        public int count() {
+            return end - start;
+        }
+    }
+
+    public static class PdfSearch extends PluginView.Search {
+        Pdfium pdfium;
+        ArrayList<SearchResult> all = new ArrayList<>();
+        SparseArray<ArrayList<SearchResult>> pages = new SparseArray<>();
+        int index;
+        String str;
+
+        public PdfSearch(Pdfium pdfium, String str) {
+            this.pdfium = pdfium;
+            this.index = -1;
+            this.str = str;
+            if (str == null || str.isEmpty())
+                return;
+            for (int i = 0; i < pdfium.getPagesCount(); i++) {
+                search(i);
+            }
+        }
+
+        void search(int i) {
+            Pdfium.Page page = pdfium.openPage(i);
+            Pdfium.Text text = page.open();
+            Pdfium.Search s = text.search(str, 0, 0);
+            ArrayList<SearchResult> rr = new ArrayList<>();
+            while (s.next()) {
+                Pdfium.TextResult r = s.result();
+                SearchResult ss = new SearchResult(i, r);
+                rr.add(ss);
+                all.add(ss);
+            }
+            pages.put(i, rr);
+            s.close();
+            text.close();
+            page.close();
+        }
+
+        @Override
+        public Bounds getBounds(PluginView.Selection.Page page) {
+            Bounds bounds = new Bounds();
+            ArrayList<SearchResult> list = pages.get(page.page);
+            Pdfium.Page p = pdfium.openPage(page.page);
+            Pdfium.Text t = p.open();
+            for (int i = 0; i < list.size(); i++) {
+                SearchResult r = list.get(i);
+                Rect[] bb = t.getBounds(r.start, r.count());
+                ArrayList<Rect> rr = new ArrayList<>();
+                for (Rect b : bb) {
+                    b = p.toDevice(0, 0, page.w, page.h, 0, b);
+                    rr.add(b);
+                }
+                Rect[] k = rr.toArray(new Rect[0]);
+                if (i == index)
+                    bounds.highlight = k;
+                bounds.rr = rr.toArray(new Rect[0]);
+            }
+            t.close();
+            p.close();
+            return bounds;
+        }
+
+        @Override
+        public boolean next() {
+            if (all.size() == 0)
+                return false;
+            if (index > all.size())
+                index = 0;
+            return true;
+        }
+
+        @Override
+        public boolean prev() {
+            if (all.size() == 0)
+                return false;
+            if (index < 0)
+                index = all.size() - 1;
+            return true;
+        }
+
+        @Override
+        public void close() {
+        }
     }
 
     @TargetApi(21)
@@ -660,6 +754,11 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 rr[i] = new Link(l.uri, l.index, p.toDevice(0, 0, page.w, page.h, 0, l.bounds));
             }
             return rr;
+        }
+
+        @Override
+        public Search search(String text) {
+            return new PdfSearch(doc, text);
         }
 
     }
