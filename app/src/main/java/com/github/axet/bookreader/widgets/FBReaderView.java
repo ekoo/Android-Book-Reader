@@ -2844,7 +2844,8 @@ public class FBReaderView extends RelativeLayout {
         if (widget instanceof ScrollView) {
             ((ScrollView) widget).updatePosition();
             ((ScrollView) widget).adapter.reset();
-            ((ScrollView) widget).updateOverlays();
+            if (pluginview != null)
+                ((ScrollView) widget).updateOverlays();
         } else {
             widget.reset();
             widget.repaint();
