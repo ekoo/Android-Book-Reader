@@ -563,9 +563,9 @@ public class PluginView {
         return null;
     }
 
-    public void boundsUpdate(Selection.Bounds bounds, Reflow.Info info) {
+    public Rect[] boundsUpdate(Rect[] rr, Reflow.Info info) {
         ArrayList<Rect> list = new ArrayList<>();
-        for (Rect r : bounds.rr) {
+        for (Rect r : rr) {
             for (Rect s : info.src.keySet()) {
                 Rect i = new Rect(r);
                 if (i.intersect(s) && (i.height() * 100 / s.height() > SelectionView.ARTIFACT_PERCENTS)) { // ignore artifacts height less then 10%
@@ -574,16 +574,17 @@ public class PluginView {
                 }
             }
         }
-        ArrayList<Rect> copy = new ArrayList<>(list);
-        for (Rect r : list) {
-            for (Rect k : list) {
-                if (r != k && r.intersects(k.left, k.top, k.right, k.bottom)) {
-                    r.union(k);
-                    copy.remove(k);
+        for (int i = list.size() - 1; i >= 0; i--) {
+            for (int j = i - 1; j >= 0; j--) {
+                Rect r = list.get(i);
+                Rect k = list.get(j);
+                if (r.intersects(k.left, k.top, k.right, k.bottom)) {
+                    k.union(k);
+                    list.remove(i);
                 }
             }
         }
-        bounds.rr = copy.toArray(new Rect[0]);
+        return list.toArray(new Rect[0]);
     }
 
     public Link[] getLinks(Selection.Page page) {

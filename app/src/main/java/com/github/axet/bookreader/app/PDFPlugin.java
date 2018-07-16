@@ -368,6 +368,8 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 int i2 = b.page.text.getIndex(p2.x, p2.y);
                 if (i2 == -1)
                     return null;
+                if (i2 < i1)
+                    return null; // document incorrectly marked (last symbol appears at the end of page)
                 return i1 <= b.ss && b.ss <= i2 || i1 <= b.ll && b.ll <= i2;
             }
             return null;
