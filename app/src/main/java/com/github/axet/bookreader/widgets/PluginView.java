@@ -50,11 +50,6 @@ public class PluginView {
 
             public Bounds() {
             }
-
-            public Bounds(Rect[] r, boolean b) {
-                rr = r;
-                reverse = b;
-            }
         }
 
         public static class Page {
@@ -126,6 +121,41 @@ public class PluginView {
 
         public boolean isSelected(int page) {
             return false;
+        }
+
+        public void close() {
+        }
+    }
+
+    public static class Link {
+        public String url;
+        public int index;
+        public Rect rect;
+
+        public Link() {
+        }
+
+        public Link(String url, int index, Rect rect) {
+            this.url = url;
+            this.index = index;
+            this.rect = rect;
+        }
+    }
+
+    public static class Search {
+        public void gotoPage(Selection.Page page) {
+        }
+
+        public boolean next() {
+            return false;
+        }
+
+        public boolean prev() {
+            return false;
+        }
+
+        public Rect[] getBounds() {
+            return null;
         }
 
         public void close() {
@@ -529,7 +559,7 @@ public class PluginView {
         return null;
     }
 
-    public void selectBounds(Selection.Bounds bounds, Reflow.Info info) {
+    public void boundsUpdate(Selection.Bounds bounds, Reflow.Info info) {
         ArrayList<Rect> list = new ArrayList<>();
         for (Rect r : bounds.rr) {
             for (Rect s : info.src.keySet()) {
@@ -552,4 +582,11 @@ public class PluginView {
         bounds.rr = copy.toArray(new Rect[0]);
     }
 
+    public Link[] getLinks(Selection.Page page) {
+        return null;
+    }
+
+    public Search search(String text) {
+        return null;
+    }
 }

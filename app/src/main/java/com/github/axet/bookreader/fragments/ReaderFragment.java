@@ -50,6 +50,7 @@ import com.github.axet.bookreader.app.ComicsPlugin;
 import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.FBReaderView;
+import com.github.axet.bookreader.widgets.PluginView;
 import com.github.axet.bookreader.widgets.ToolbarButtonView;
 
 import org.geometerplus.fbreader.bookmodel.TOCTree;
@@ -861,10 +862,24 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         MenuItem grid = menu.findItem(R.id.action_grid);
         MenuItem mode = menu.findItem(R.id.action_mode);
 
+        boolean search;
+
+        if (view.pluginview == null) {
+            search = true;
+        } else {
+            PluginView.Search s = view.pluginview.search("");
+            if (s == null) {
+                search = false;
+            } else {
+                s.close();
+                search = true;
+            }
+        }
+
         grid.setVisible(false);
         homeMenu.setVisible(false);
         tocMenu.setVisible(view.app.Model.TOCTree != null && view.app.Model.TOCTree.hasChildren());
-        searchMenu.setVisible(view.pluginview == null); // pdf and djvu do not support search
+        searchMenu.setVisible(search);
         reflow.setVisible(view.pluginview != null && !(view.pluginview instanceof ComicsPlugin.ComicsView));
 
         if (BuildConfig.DEBUG && view.pluginview != null && !(view.pluginview instanceof ComicsPlugin.ComicsView)) {

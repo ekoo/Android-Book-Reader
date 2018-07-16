@@ -500,7 +500,7 @@ public class FBReaderView extends RelativeLayout {
                         public PluginView.Selection.Bounds getBounds() {
                             PluginView.Selection.Bounds bounds = s.getBounds(page);
                             if (pluginview.reflow) {
-                                pluginview.selectBounds(bounds, getInfo());
+                                pluginview.boundsUpdate(bounds, getInfo());
                                 bounds.start = true;
                                 bounds.end = true;
                             }
@@ -711,6 +711,7 @@ public class FBReaderView extends RelativeLayout {
                 ZLTextElementAreaVector text;
                 Reflow.Info info;
                 SelectionView.PageView selection;
+                ArrayList<View> links;
 
                 public PageView(ViewGroup parent) {
                     super(parent.getContext());
@@ -923,6 +924,7 @@ public class FBReaderView extends RelativeLayout {
                     }
                     info = null;
                     text = null;
+                    links = null;
                     selection = null;
                     if (time != null) {
                         time.cancel();
@@ -1379,8 +1381,7 @@ public class FBReaderView extends RelativeLayout {
                 @Override
                 public int scrollVerticallyBy(int dy, Recycler recycler, State state) {
                     int off = super.scrollVerticallyBy(dy, recycler, state);
-                    if (selection != null)
-                        updateSelection();
+                    updateOverlays();
                     return off;
                 }
 
@@ -1389,6 +1390,12 @@ public class FBReaderView extends RelativeLayout {
                     RecyclerView.SmoothScroller smoothScroller = new TopAlwaysSmoothScroller(recyclerView.getContext());
                     smoothScroller.setTargetPosition(position);
                     startSmoothScroll(smoothScroller);
+                }
+
+                @Override
+                public void onLayoutCompleted(State state) {
+                    super.onLayoutCompleted(state);
+                    updateOverlays();
                 }
             };
 
@@ -1608,33 +1615,112 @@ public class FBReaderView extends RelativeLayout {
             return footer != null ? getHeight() - footer.getHeight() : getHeight();
         }
 
+        public void overlayRemove(ScrollAdapter.PageView view) {
+            selectionRemove(view);
+            linksRemove(view);
+        }
+
+        public void updateOverlays() {
+            for (int i = 0; i < lm.getChildCount(); i++) {
+                final ScrollAdapter.PageView view = (ScrollAdapter.PageView) lm.getChildAt(i);
+                overlayUpdate(view);
+            }
+        }
+
+        public void overlayUpdate(ScrollAdapter.PageView view) {
+            if (selection != null)
+                selectionUpdate(view);
+            linksUpdate(view);
+        }
+
+        public void linksRemove(ScrollAdapter.PageView view) {
+            if (view.links == null)
+                return;
+            for (View v : view.links) {
+                FBReaderView.this.removeView(v);
+            }
+            view.links.clear();
+        }
+
+        public void linksUpdate(ScrollAdapter.PageView view) {
+            int pos = view.holder.getAdapterPosition();
+            if (pos == -1) {
+                linksRemove(view);
+            } else {
+                ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+
+                final PluginView.Selection.Page page;
+
+                if (c.start == null || c.end == null) {
+                    page = null;
+                } else {
+                    page = pluginview.selectPage(c.start, view.info, view.getWidth(), view.getHeight());
+                }
+
+                if (page != null) {
+                    if (view.links == null) {
+                        view.links = new ArrayList<>();
+                        PluginView.Link[] ll = pluginview.getLinks(page);
+                        for (int i = 0; i < ll.length; i++) {
+                            final PluginView.Link l = ll[i];
+                            MarginLayoutParams lp = new MarginLayoutParams(l.rect.width(), l.rect.height());
+                            View v = new View(getContext());
+                            v.setLayoutParams(lp);
+                            v.setTag(l);
+                            v.setOnClickListener(new OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    if (l.index != -1)
+                                        gotoPluginPosition(new ZLTextFixedPosition(l.index, 0, 0));
+                                    else
+                                        AboutPreferenceCompat.openUrlDialog(getContext(), l.url);
+                                }
+                            });
+                            view.links.add(v);
+                            FBReaderView.this.addView(v);
+                        }
+                    }
+
+                    int x = view.getLeft();
+                    int y = view.getTop();
+                    if (view.info != null)
+                        x += view.info.margin.left;
+                    for (View v : view.links) {
+                        PluginView.Link l = (PluginView.Link) v.getTag();
+                        MarginLayoutParams lp = (MarginLayoutParams) v.getLayoutParams();
+                        lp.leftMargin = x + l.rect.left;
+                        lp.topMargin = y + l.rect.top;
+                        lp.width = l.rect.width();
+                        lp.height = l.rect.height();
+                        v.requestLayout();
+                    }
+                } else {
+                    linksRemove(view);
+                }
+            }
+        }
+
         public void selectionClose() {
             for (int i = 0; i < lm.getChildCount(); i++) {
                 ScrollView.ScrollAdapter.PageView view = (ScrollView.ScrollAdapter.PageView) lm.getChildAt(i);
-                selectionRemove(view.holder);
+                selectionRemove(view);
             }
         }
 
-        public void selectionRemove(ScrollAdapter.PageHolder holder) {
-            if (holder.page.selection != null) {
-                selection.remove(holder.page.selection);
-                holder.page.selection = null;
+        public void selectionRemove(ScrollAdapter.PageView view) {
+            if (view.selection != null) {
+                selection.remove(view.selection);
+                view.selection = null;
             }
         }
 
-        public void updateSelection() {
-            for (int i = 0; i < lm.getChildCount(); i++) {
-                final ScrollAdapter.PageView view = (ScrollAdapter.PageView) lm.getChildAt(i);
-                selectionUpdate(view.holder);
-            }
-        }
-
-        public void selectionUpdate(final ScrollAdapter.PageHolder holder) {
-            int pos = holder.getAdapterPosition();
+        void selectionUpdate(final ScrollAdapter.PageView view) {
+            int pos = view.holder.getAdapterPosition();
             if (pos == -1) {
-                selectionRemove(holder);
+                selectionRemove(view);
             } else {
                 ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+
                 boolean selected = true;
                 final PluginView.Selection.Page page;
 
@@ -1642,7 +1728,7 @@ public class FBReaderView extends RelativeLayout {
                     selected = false;
                     page = null;
                 } else {
-                    page = pluginview.selectPage(c.start, holder.page.info, holder.page.getWidth(), holder.page.getHeight());
+                    page = pluginview.selectPage(c.start, view.info, view.getWidth(), view.getHeight());
                 }
 
                 if (selected)
@@ -1651,11 +1737,11 @@ public class FBReaderView extends RelativeLayout {
                 final Rect first;
                 final Rect last;
 
-                if (selected && holder.page.info != null) {
+                if (pluginview.reflow && selected && view.info != null) {
                     Rect[] bounds = selection.selection.getBoundsAll(page);
                     ArrayList<Rect> ii = new ArrayList<>();
                     for (Rect b : bounds) {
-                        for (Rect s : holder.page.info.src.keySet()) {
+                        for (Rect s : view.info.src.keySet()) {
                             Rect i = new Rect(b);
                             if (i.intersect(s) && (i.height() * 100 / s.height() > SelectionView.ARTIFACT_PERCENTS)) {
                                 ii.add(i);
@@ -1680,13 +1766,14 @@ public class FBReaderView extends RelativeLayout {
 
                     selected = r != null && r;
                 } else {
-                    selected = false;
+                    if (pluginview.reflow)
+                        selected = false;
                     first = null;
                     last = null;
                 }
 
                 if (selected) {
-                    if (holder.page.selection == null) {
+                    if (view.selection == null) {
                         PluginView.Selection.Setter setter = new PDFPlugin.Selection.Setter() {
                             @Override
                             public void setStart(int x, int y) {
@@ -1704,9 +1791,9 @@ public class FBReaderView extends RelativeLayout {
                                             selection.selection.setStart(page, point);
                                     }
                                 }
-                                selectionUpdate(holder);
-                                if (pos != -1 && pos != holder.getAdapterPosition())
-                                    selectionUpdate(v.holder);
+                                selectionUpdate(view);
+                                if (pos != -1 && pos != view.holder.getAdapterPosition())
+                                    selectionUpdate(v);
                             }
 
                             @Override
@@ -1725,16 +1812,16 @@ public class FBReaderView extends RelativeLayout {
                                             selection.selection.setEnd(page, point);
                                     }
                                 }
-                                selectionUpdate(holder);
-                                if (pos != -1 && pos != holder.getAdapterPosition())
-                                    selectionUpdate(v.holder);
+                                selectionUpdate(view);
+                                if (pos != -1 && pos != view.holder.getAdapterPosition())
+                                    selectionUpdate(v);
                             }
 
                             @Override
                             public PluginView.Selection.Bounds getBounds() {
                                 PluginView.Selection.Bounds bounds = selection.selection.getBounds(page);
                                 if (pluginview.reflow) {
-                                    pluginview.selectBounds(bounds, holder.page.info);
+                                    pluginview.boundsUpdate(bounds, view.info);
 
                                     Boolean a = selection.selection.isAbove(page, new PluginView.Selection.Point(first.left, first.centerY()));
                                     Boolean b = selection.selection.isBelow(page, new PluginView.Selection.Point(last.right, last.centerY()));
@@ -1745,16 +1832,16 @@ public class FBReaderView extends RelativeLayout {
                                 return bounds;
                             }
                         };
-                        holder.page.selection = new SelectionView.PageView(getContext(), (CustomView) app.BookTextView, setter);
-                        selection.add(holder.page.selection);
+                        view.selection = new SelectionView.PageView(getContext(), (CustomView) app.BookTextView, setter);
+                        selection.add(view.selection);
                     }
-                    int x = holder.page.getLeft();
-                    int y = holder.page.getTop();
-                    if (holder.page.info != null)
-                        x += holder.page.info.margin.left;
-                    selection.update(holder.page.selection, x, y);
+                    int x = view.getLeft();
+                    int y = view.getTop();
+                    if (view.info != null)
+                        x += view.info.margin.left;
+                    selection.update(view.selection, x, y);
                 } else {
-                    selectionRemove(holder);
+                    selectionRemove(view);
                 }
             }
         }
@@ -2558,7 +2645,7 @@ public class FBReaderView extends RelativeLayout {
         if (widget instanceof ScrollView) {
             ((ScrollView) widget).updatePosition();
             ((ScrollView) widget).adapter.reset();
-            ((ScrollView) widget).updateSelection();
+            ((ScrollView) widget).updateOverlays();
         } else {
             widget.reset();
             widget.repaint();
@@ -2624,7 +2711,7 @@ public class FBReaderView extends RelativeLayout {
         };
         addView(selection);
         if (widget instanceof ScrollView) {
-            ((ScrollView) widget).updateSelection();
+            ((ScrollView) widget).updateOverlays();
             selection.setClipHeight(((ScrollView) widget).getMainAreaHeight());
         } else {
             selection.setClipHeight(((ZLAndroidWidget) widget).getMainAreaHeight());
@@ -2634,7 +2721,7 @@ public class FBReaderView extends RelativeLayout {
 
     public void selectionClose() {
         if (widget instanceof ScrollView)
-            ((ScrollView) widget).selectionClose(); // TODO selection.remove(view.selection) crash, half recycled view?
+            ((ScrollView) widget).selectionClose();
         if (selection != null) {
             selection.close();
             removeView(selection);
