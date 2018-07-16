@@ -1430,7 +1430,8 @@ public class FBReaderView extends RelativeLayout {
                 @Override
                 public int scrollVerticallyBy(int dy, Recycler recycler, State state) {
                     int off = super.scrollVerticallyBy(dy, recycler, state);
-                    updateOverlays();
+                    if (pluginview != null)
+                        updateOverlays();
                     return off;
                 }
 
