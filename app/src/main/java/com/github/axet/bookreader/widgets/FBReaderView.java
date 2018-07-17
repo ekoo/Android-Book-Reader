@@ -2311,6 +2311,8 @@ public class FBReaderView extends RelativeLayout {
         public ArrayList<View> links = new ArrayList<>();
 
         public LinksView(PluginView.Link[] ll, Reflow.Info info) {
+            if (ll == null)
+                return;
             for (int i = 0; i < ll.length; i++) {
                 final PluginView.Link l = ll[i];
                 Rect[] rr;
