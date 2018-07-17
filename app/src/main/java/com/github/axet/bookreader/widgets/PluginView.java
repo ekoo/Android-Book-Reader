@@ -591,6 +591,7 @@ public class PluginView {
                 if (r.intersects(k.left, k.top, k.right, k.bottom)) {
                     k.union(k);
                     list.remove(i);
+                    break;
                 }
             }
         }
