@@ -146,16 +146,19 @@ public class PluginView {
             public Rect[] highlight;
         }
 
-        public boolean next() {
-            return false;
-        }
-
-        public boolean prev() {
-            return false;
-        }
-
         public int getCount() {
+            return 0;
+        }
+
+        public int next() {
             return -1;
+        }
+
+        public int prev() {
+            return -1;
+        }
+
+        public void setPage(int page) {
         }
 
         public Bounds getBounds(Selection.Page page) {
@@ -202,7 +205,7 @@ public class PluginView {
                 reflower.reset();
                 reflower.page = current.pageNumber;
             }
-            reflower.current = p.getElementIndex();
+            reflower.index = p.getElementIndex();
         }
     }
 
@@ -229,12 +232,12 @@ public class PluginView {
                 current.pageOffset = 0;
                 current.load();
             }
-            if (reflower.current == -1) {
+            if (reflower.index == -1) {
                 current.pageNumber = reflower.page - 1;
                 current.pageOffset = 0;
                 current.load();
             }
-            if (reflower.current >= reflower.emptyCount()) { // current points to next page +1
+            if (reflower.index >= reflower.emptyCount()) { // current points to next page +1
                 current.pageNumber = reflower.page + 1;
                 current.pageOffset = 0;
                 current.load();
@@ -284,11 +287,11 @@ public class PluginView {
         return !old.equals(r.pageNumber, r.pageOffset); // need reset cache true/false?
     }
 
-    public ZLTextFixedPosition getPosition() {
+    public ZLTextPosition getPosition() {
         return new ZLTextFixedPosition(current.pageNumber, current.pageOffset, 0);
     }
 
-    public ZLTextFixedPosition getNextPosition() {
+    public ZLTextPosition getNextPosition() {
         if (current.w == 0 || current.h == 0)
             return null; // after reset() we do not know display size
         PluginPage next = new PluginPage(current, ZLViewEnums.PageIndex.next) {
@@ -318,13 +321,13 @@ public class PluginView {
                     if (current.pageNumber > 0)
                         return true;
                     if (current.pageNumber != reflower.page) { // only happens to 0 page of document, we need to know it reflow count
-                        int render = reflower.current;
+                        int render = reflower.index;
                         Bitmap bm = render(reflower.rw, reflower.h, current.pageNumber); // 0 page
                         reflower.load(bm, current.pageNumber, 0);
                         bm.recycle();
                         int count = reflower.count();
                         count += render;
-                        reflower.current = count;
+                        reflower.index = count;
                         return count > 0;
                     }
                     return false;
@@ -332,11 +335,11 @@ public class PluginView {
                     if (current.pageNumber + 1 < current.getPagesCount())
                         return true;
                     if (current.pageNumber != reflower.page) { // only happens to last page of document, we need to know it reflow count
-                        int render = reflower.current - reflower.count();
+                        int render = reflower.index - reflower.count();
                         Bitmap bm = render(reflower.rw, reflower.h, current.pageNumber); // last page
                         reflower.load(bm, current.pageNumber, 0);
                         bm.recycle();
-                        reflower.current = render;
+                        reflower.index = render;
                         return render + 1 < reflower.count();
                     }
                     return false;
@@ -380,13 +383,16 @@ public class PluginView {
 
     public void drawOnCanvas(Context context, Canvas canvas, int w, int h, ZLView.PageIndex index, FBReaderView.CustomView custom, Storage.RecentInfo info) {
         if (reflow) {
+            if (reflower != null && reflower.page != current.pageNumber) {
+                reflower.close();
+                reflower = null;
+            }
             if (reflower == null) {
-                int page = current.pageNumber;
-                reflower = new Reflow(context, w, h, page, custom, info);
+                reflower = new Reflow(context, w, h, current.pageNumber, custom, info);
             }
             Bitmap bm = null;
             reflower.reset(w, h);
-            int render = reflower.current; // render reflow page index
+            int render = reflower.index; // render reflow page index
             int page = reflower.page; // render pageNumber
             if (reflowDebug) {
                 switch (index) {
@@ -413,7 +419,7 @@ public class PluginView {
                         reflower.load(bm);
                         render = render + reflower.emptyCount();
                         reflower.page = page;
-                        reflower.current = render + 1; // onScrollingFinished - 1
+                        reflower.index = render + 1; // onScrollingFinished - 1
                     }
                     if (reflower.count() > render) {
                         if (bm != null)
@@ -422,20 +428,24 @@ public class PluginView {
                     }
                     break;
                 case current:
-                    bm = render(reflower.rw, reflower.h, page);
-                    if (reflowDebug) {
-                        reflower.k2.setVerbose(true);
-                        reflower.k2.setShowMarkedSource(true);
-                    }
-                    reflower.load(bm, page, render);
-                    if (reflowDebug) {
-                        reflower.bm = null; // do not recycle
-                        reflower.close();
-                        reflower = null;
+                    if (reflower.count() > 0) {
+                        bm = reflower.render(render);
                     } else {
-                        if (reflower.count() > render) { // empty source page
-                            bm.recycle();
-                            bm = reflower.render(render);
+                        bm = render(reflower.rw, reflower.h, page);
+                        if (reflowDebug) {
+                            reflower.k2.setVerbose(true);
+                            reflower.k2.setShowMarkedSource(true);
+                        }
+                        reflower.load(bm, page, render);
+                        if (reflowDebug) {
+                            reflower.bm = null; // do not recycle
+                            reflower.close();
+                            reflower = null;
+                        } else {
+                            if (reflower.count() > render) { // empty source page
+                                bm.recycle();
+                                bm = reflower.render(render);
+                            }
                         }
                     }
                     break;
@@ -563,9 +573,9 @@ public class PluginView {
         return null;
     }
 
-    public void boundsUpdate(Selection.Bounds bounds, Reflow.Info info) {
+    public Rect[] boundsUpdate(Rect[] rr, Reflow.Info info) {
         ArrayList<Rect> list = new ArrayList<>();
-        for (Rect r : bounds.rr) {
+        for (Rect r : rr) {
             for (Rect s : info.src.keySet()) {
                 Rect i = new Rect(r);
                 if (i.intersect(s) && (i.height() * 100 / s.height() > SelectionView.ARTIFACT_PERCENTS)) { // ignore artifacts height less then 10%
@@ -574,16 +584,17 @@ public class PluginView {
                 }
             }
         }
-        ArrayList<Rect> copy = new ArrayList<>(list);
-        for (Rect r : list) {
-            for (Rect k : list) {
-                if (r != k && r.intersects(k.left, k.top, k.right, k.bottom)) {
-                    r.union(k);
-                    copy.remove(k);
+        for (int i = list.size() - 1; i >= 0; i--) {
+            for (int j = i - 1; j >= 0; j--) {
+                Rect r = list.get(i);
+                Rect k = list.get(j);
+                if (r.intersects(k.left, k.top, k.right, k.bottom)) {
+                    k.union(k);
+                    list.remove(i);
                 }
             }
         }
-        bounds.rr = copy.toArray(new Rect[0]);
+        return list.toArray(new Rect[0]);
     }
 
     public Link[] getLinks(Selection.Page page) {
