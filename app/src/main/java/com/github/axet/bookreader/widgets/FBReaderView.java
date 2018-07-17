@@ -982,6 +982,10 @@ public class FBReaderView extends RelativeLayout {
                         links.close();
                         links = null;
                     }
+                    if (search != null) {
+                        search.close();
+                        search = null;
+                    }
                     selection = null;
                     if (time != null) {
                         time.cancel();
@@ -1099,6 +1103,14 @@ public class FBReaderView extends RelativeLayout {
             public void onViewRecycled(PageHolder holder) {
                 super.onViewRecycled(holder);
                 holder.page.recycle();
+            }
+
+            @Override
+            public void onViewDetachedFromWindow(PageHolder holder) {
+                super.onViewDetachedFromWindow(holder);
+                linksRemove(holder.page);
+                searchRemove(holder.page);
+                selectionRemove(holder.page);
             }
 
             @Override
@@ -2988,6 +3000,7 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void searchClose() {
+        app.hideActivePopup();
         if (widget instanceof ScrollView)
             ((ScrollView) widget).searchClose();
         if (widget instanceof FBAndroidWidget)

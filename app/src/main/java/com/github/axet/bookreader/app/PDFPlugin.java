@@ -453,6 +453,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             end = t.start + t.count;
         }
 
+        public SearchResult(int p, int i, int c) {
+            page = p;
+            start = i;
+            end = i + c;
+        }
+
         public int count() {
             return end - start;
         }
@@ -479,16 +485,20 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         void search(int i) {
             Pdfium.Page page = pdfium.openPage(i);
             Pdfium.Text text = page.open();
-            Pdfium.Search s = text.search(str, 0, 0);
+            String pattern = str.toLowerCase(Locale.US);
+            if (text.getCount() == 0)
+                return;
+            String str = text.getText(0, (int) text.getCount());
+            str = str.toLowerCase(Locale.US);
+            int index = str.indexOf(pattern);
             ArrayList<SearchResult> rr = new ArrayList<>();
-            while (s.next()) {
-                Pdfium.TextResult r = s.result();
-                SearchResult ss = new SearchResult(i, r);
+            while (index != -1) {
+                SearchResult ss = new SearchResult(i, index, pattern.length());
                 rr.add(ss);
                 all.add(ss);
+                index = str.indexOf(pattern, index + 1);
             }
             pages.put(i, rr);
-            s.close();
             text.close();
             page.close();
         }
@@ -499,19 +509,16 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             ArrayList<SearchResult> list = pages.get(page.page);
             Pdfium.Page p = pdfium.openPage(page.page);
             Pdfium.Text t = p.open();
+            ArrayList<Rect> rr = new ArrayList<>();
             for (int i = 0; i < list.size(); i++) {
                 SearchResult r = list.get(i);
                 Rect[] bb = t.getBounds(r.start, r.count());
-                ArrayList<Rect> rr = new ArrayList<>();
                 for (Rect b : bb) {
                     b = p.toDevice(0, 0, page.w, page.h, 0, b);
                     rr.add(b);
                 }
-                Rect[] k = rr.toArray(new Rect[0]);
-                if (i == index)
-                    bounds.highlight = k;
-                bounds.rr = rr.toArray(new Rect[0]);
             }
+            bounds.rr = rr.toArray(new Rect[0]);
             t.close();
             p.close();
             return bounds;

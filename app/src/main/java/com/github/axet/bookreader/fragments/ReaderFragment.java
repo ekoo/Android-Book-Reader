@@ -945,7 +945,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public void searchClose() {
-        view.app.hideActivePopup();
+        view.searchClose();
     }
 
     @Override
