@@ -12,6 +12,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
+import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.app.PDFPlugin;
 
 import org.geometerplus.zlibrary.core.library.ZLibrary;
@@ -24,7 +25,9 @@ import java.util.Comparator;
 import java.util.List;
 
 public class SelectionView extends FrameLayout {
-    public static final int ARTIFACT_PERCENTS = 10;
+    public static final int ARTIFACT_PERCENTS = 5;
+    public static final int SELECTION_ALPHA = 0x99;
+    public static final int SELECTION_PADDING = 1; // dp
 
     public PluginView.Selection selection;
     PageView touch;
@@ -69,6 +72,16 @@ public class SelectionView extends FrameLayout {
         } else {
             canvas.drawCircle(xCenter, y + dpi / 8, unit * 6, handles);
         }
+    }
+
+    public static Rect union(List<Rect> rr) {
+        int i = 0;
+        Rect bounds = new Rect(rr.get(i++));
+        for (; i < rr.size(); i++) {
+            Rect r = rr.get(i);
+            bounds.union(r);
+        }
+        return bounds;
     }
 
     public static boolean lineIntersects(Rect r1, Rect r2) {
@@ -283,14 +296,17 @@ public class SelectionView extends FrameLayout {
         PDFPlugin.Selection.Setter setter;
 
         Paint paint;
+        int padding;
 
         public PageView(Context context, FBReaderView.CustomView custom, PDFPlugin.Selection.Setter setter) {
             super(context);
             this.paint = new Paint();
             this.paint.setStyle(Paint.Style.FILL);
-            this.paint.setColor(0x99 << 24 | custom.getSelectionBackgroundColor().intValue());
+            this.paint.setColor(SELECTION_ALPHA << 24 | custom.getSelectionBackgroundColor().intValue());
 
             this.setter = setter;
+
+            padding = ThemeUtils.dp2px(getContext(), SELECTION_PADDING);
 
             // setBackgroundColor(0x33 << 24 | (0xffffff & Color.BLUE));
 
@@ -313,15 +329,14 @@ public class SelectionView extends FrameLayout {
 
             lines = lines(selection.rr);
 
-            int i = 0;
-            bounds = new Rect(lines.get(i++));
-            for (; i < lines.size(); i++) {
-                Rect r = lines.get(i);
-                bounds.union(r);
-            }
+            bounds = union(lines);
 
-            for (Rect r : lines)
+            bounds.inset(-padding, -padding);
+
+            for (Rect r : lines) {
+                r.inset(-padding, -padding);
                 relativeTo(r, bounds);
+            }
         }
 
         @Override
@@ -342,9 +357,7 @@ public class SelectionView extends FrameLayout {
 
         setLayoutParams(new MarginLayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-
-        // setBackgroundColor(0x33 << 24 | (0xffffff & Color.GREEN));
+        setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT)); // setBackgroundColor(0x33 << 24 | (0xffffff & Color.GREEN));
     }
 
     public void setClipHeight(int h) {

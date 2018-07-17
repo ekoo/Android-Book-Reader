@@ -39,6 +39,7 @@ import android.widget.TextView;
 
 import com.github.axet.androidlibrary.widgets.PopupWindowCompat;
 import com.github.axet.androidlibrary.widgets.ScreenlockPreference;
+import com.github.axet.androidlibrary.widgets.SearchView;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.androidlibrary.widgets.TreeListView;
 import com.github.axet.androidlibrary.widgets.TreeRecyclerView;
@@ -97,6 +98,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             updateTime();
         }
     };
+    MenuItem searchMenu;
 
     BroadcastReceiver battery = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -518,6 +520,11 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                     popupWindow.dismiss();
                 updateToolbar();
             }
+
+            @Override
+            public void onSearchClose() {
+                MenuItemCompat.collapseActionView(searchMenu);
+            }
         };
 
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
@@ -854,7 +861,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         MenuItem homeMenu = menu.findItem(R.id.action_home);
         MenuItem tocMenu = menu.findItem(R.id.action_toc);
-        MenuItem searchMenu = menu.findItem(R.id.action_search);
+        searchMenu = menu.findItem(R.id.action_search);
         MenuItem reflow = menu.findItem(R.id.action_reflow);
         MenuItem debug = menu.findItem(R.id.action_debug);
         final MenuItem fontsize = menu.findItem(R.id.action_fontsize);
@@ -867,7 +874,13 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         if (view.pluginview == null) {
             search = true;
         } else {
-            search = false;
+            PluginView.Search s = view.pluginview.search("");
+            if (s == null) {
+                search = false;
+            } else {
+                s.close();
+                search = true;
+            }
         }
 
         grid.setVisible(false);

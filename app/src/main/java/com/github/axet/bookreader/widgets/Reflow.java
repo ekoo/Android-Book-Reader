@@ -23,8 +23,8 @@ import java.util.Set;
 
 public class Reflow {
     public K2PdfOpt k2;
-    public int current = 0; // current view position
-    public int page = 0; // document page
+    public int page; // document page
+    public int index = 0; // current view position
     int w;
     int h;
     int rw;
@@ -108,7 +108,7 @@ public class Reflow {
             this.w = w;
             this.h = h;
             this.rw = rw;
-            this.current = 0; // size changed, reflow page can overflow total pages
+            this.index = 0; // size changed, reflow page can overflow total pages
         }
     }
 
@@ -116,16 +116,16 @@ public class Reflow {
         if (this.bm != null)
             this.bm.recycle();
         this.bm = bm;
-        current = 0;
+        index = 0;
         k2.load(bm);
     }
 
-    public void load(Bitmap bm, int page, int current) {
+    public void load(Bitmap bm, int page, int index) {
         if (this.bm != null)
             this.bm.recycle();
         this.bm = bm;
         this.page = page;
-        this.current = current;
+        this.index = index;
         k2.load(bm);
     }
 
@@ -146,24 +146,24 @@ public class Reflow {
         return k2.renderPage(page);
     }
 
-    public boolean canScroll(ZLViewEnums.PageIndex index) {
-        switch (index) {
+    public boolean canScroll(ZLViewEnums.PageIndex pos) {
+        switch (pos) {
             case previous:
-                return current > 0;
+                return index > 0;
             case next:
-                return current + 1 < count();
+                return index + 1 < count();
             default:
                 return true; // current???
         }
     }
 
-    public void onScrollingFinished(ZLViewEnums.PageIndex index) {
-        switch (index) {
+    public void onScrollingFinished(ZLViewEnums.PageIndex pos) {
+        switch (pos) {
             case next:
-                current++;
+                index++;
                 break;
             case previous:
-                current--;
+                index--;
                 break;
         }
     }

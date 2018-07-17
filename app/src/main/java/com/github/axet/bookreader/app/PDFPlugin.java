@@ -470,10 +470,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         SparseArray<ArrayList<SearchResult>> pages = new SparseArray<>();
         int index;
         String str;
+        int page; // inital page to show
 
         public PdfSearch(Pdfium pdfium, String str) {
             this.pdfium = pdfium;
             this.index = -1;
+            this.page = -1;
             this.str = str;
             if (str == null || str.isEmpty())
                 return;
@@ -486,17 +488,17 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             Pdfium.Page page = pdfium.openPage(i);
             Pdfium.Text text = page.open();
             String pattern = str.toLowerCase(Locale.US);
-            if (text.getCount() == 0)
-                return;
-            String str = text.getText(0, (int) text.getCount());
-            str = str.toLowerCase(Locale.US);
-            int index = str.indexOf(pattern);
             ArrayList<SearchResult> rr = new ArrayList<>();
-            while (index != -1) {
-                SearchResult ss = new SearchResult(i, index, pattern.length());
-                rr.add(ss);
-                all.add(ss);
-                index = str.indexOf(pattern, index + 1);
+            if (text.getCount() > 0) {
+                String str = text.getText(0, (int) text.getCount());
+                str = str.toLowerCase(Locale.US);
+                int index = str.indexOf(pattern);
+                while (index != -1) {
+                    SearchResult ss = new SearchResult(i, index, pattern.length());
+                    rr.add(ss);
+                    all.add(ss);
+                    index = str.indexOf(pattern, index + 1);
+                }
             }
             pages.put(i, rr);
             text.close();
@@ -512,10 +514,15 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             ArrayList<Rect> rr = new ArrayList<>();
             for (int i = 0; i < list.size(); i++) {
                 SearchResult r = list.get(i);
+                ArrayList<Rect> hh = new ArrayList<>();
                 Rect[] bb = t.getBounds(r.start, r.count());
                 for (Rect b : bb) {
                     b = p.toDevice(0, 0, page.w, page.h, 0, b);
                     rr.add(b);
+                    hh.add(b);
+                }
+                if (index >= 0 && r == all.get(index)) {
+                    bounds.highlight = hh.toArray(new Rect[0]);
                 }
             }
             bounds.rr = rr.toArray(new Rect[0]);
@@ -525,21 +532,51 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public boolean next() {
-            if (all.size() == 0)
-                return false;
-            if (index > all.size())
-                index = 0;
-            return true;
+        public int getCount() {
+            return all.size();
         }
 
         @Override
-        public boolean prev() {
+        public int next() {
             if (all.size() == 0)
-                return false;
-            if (index < 0)
+                return -1;
+            if (index == -1 && page != -1) {
+                for (int i = 0; i < all.size(); i++) {
+                    if (all.get(i).page >= page) {
+                        index = i;
+                        return all.get(i).page;
+                    }
+                }
+            }
+            index++;
+            if (index >= all.size()) {
                 index = all.size() - 1;
-            return true;
+            }
+            return all.get(index).page;
+        }
+
+        @Override
+        public int prev() {
+            if (all.size() == 0)
+                return -1;
+            if (index == -1 && page != -1) {
+                for (int i = all.size() - 1; i >= 0; i--) {
+                    if (all.get(i).page <= page) {
+                        index = i;
+                        return all.get(i).page;
+                    }
+                }
+            }
+            index--;
+            if (index < 0) {
+                index = 0;
+            }
+            return all.get(index).page;
+        }
+
+        @Override
+        public void setPage(int page) {
+            this.page = page;
         }
 
         @Override
