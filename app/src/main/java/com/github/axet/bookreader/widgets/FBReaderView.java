@@ -474,7 +474,7 @@ public class FBReaderView extends RelativeLayout {
                 final Rect dst = getPageRect();
                 int x = dst.left;
                 int y = dst.top;
-                if (pluginview.reflow)
+                if (pluginview.reflow && getInfo() != null)
                     x += getInfo().margin.left;
                 for (LinksView l : links.values()) {
                     l.hide();
@@ -623,7 +623,7 @@ public class FBReaderView extends RelativeLayout {
                         public void run() {
                             int x = dst.left;
                             int y = dst.top;
-                            if (pluginview.reflow)
+                            if (pluginview.reflow && getInfo() != null)
                                 x += getInfo().margin.left;
                             selection.update((SelectionView.PageView) selection.getChildAt(0), x, y);
                         }
