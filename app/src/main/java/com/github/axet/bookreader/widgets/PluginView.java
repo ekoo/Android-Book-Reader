@@ -383,10 +383,6 @@ public class PluginView {
 
     public void drawOnCanvas(Context context, Canvas canvas, int w, int h, ZLView.PageIndex index, FBReaderView.CustomView custom, Storage.RecentInfo info) {
         if (reflow) {
-            if (reflower != null && reflower.page != current.pageNumber) {
-                reflower.close();
-                reflower = null;
-            }
             if (reflower == null) {
                 reflower = new Reflow(context, w, h, current.pageNumber, custom, info);
             }
