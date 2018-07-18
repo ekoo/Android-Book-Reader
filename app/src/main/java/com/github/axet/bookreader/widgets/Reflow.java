@@ -25,6 +25,7 @@ public class Reflow {
     public K2PdfOpt k2;
     public int page; // document page
     public int index = 0; // current view position
+    public int pending = 0; // pending action, so we can cancel it
     int w;
     int h;
     int rw;
@@ -92,24 +93,30 @@ public class Reflow {
 
     public void reset(int w, int h) {
         if (this.w != w || this.h != h) {
-            SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(context);
-            Float old = shared.getFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, MainApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
-            if (info.fontsize != null)
-                old = info.fontsize / 100f;
-            if (k2 != null) {
-                old = k2.getFontSize();
-                k2.close();
-            }
             int rw = w - getLeftMargin() - getRightMargin();
-            k2 = new K2PdfOpt();
-            DisplayMetrics d = context.getResources().getDisplayMetrics();
-            k2.create(rw, h, d.densityDpi);
-            k2.setFontSize(old);
             this.w = w;
             this.h = h;
             this.rw = rw;
             this.index = 0; // size changed, reflow page can overflow total pages
+            create();
         }
+        if (k2 == null)
+            create();
+    }
+
+    void create() {
+        SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(context);
+        Float old = shared.getFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, MainApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
+        if (info.fontsize != null)
+            old = info.fontsize / 100f;
+        if (k2 != null) {
+            old = k2.getFontSize();
+            k2.close();
+        }
+        k2 = new K2PdfOpt();
+        DisplayMetrics d = context.getResources().getDisplayMetrics();
+        k2.create(rw, h, d.densityDpi);
+        k2.setFontSize(old);
     }
 
     public void load(Bitmap bm) {
@@ -131,6 +138,8 @@ public class Reflow {
 
     public int count() {
         if (k2 == null)
+            return -1;
+        if (bm == null)
             return -1;
         return k2.getCount();
     }
@@ -161,14 +170,33 @@ public class Reflow {
         switch (pos) {
             case next:
                 index++;
+                pending = 0;
+                break;
+            case current:
+                index += -pending; // cancel
+                pending = 0;
+                if (count() == -1)
+                    return;
+                if (index < 0) {
+                    index = -1;
+                    recycle();
+                    return;
+                }
+                if (index >= count()) { // current points to next page +1
+                    page += 1;
+                    index = 0;
+                    recycle();
+                    return;
+                }
                 break;
             case previous:
                 index--;
+                pending = 0;
                 break;
         }
     }
 
-    public void close() {
+    public void recycle() {
         if (k2 != null) {
             k2.close();
             k2 = null;
@@ -177,6 +205,10 @@ public class Reflow {
             bm.recycle();
             bm = null;
         }
+    }
+
+    public void close() {
+        recycle();
     }
 
     public Bitmap drawSrc(PluginView pluginview, Info info, Rect r) {

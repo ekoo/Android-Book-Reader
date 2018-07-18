@@ -429,6 +429,7 @@ public class FBReaderView extends RelativeLayout {
         public void drawOnBitmap(Bitmap bitmap, ZLViewEnums.PageIndex index) {
             if (pluginview != null) {
                 pluginview.drawOnBitmap(getContext(), bitmap, getWidth(), getMainAreaHeight(), index, (CustomView) app.BookTextView, book.info);
+                Reflow.Info info = null;
                 if (pluginview.reflow) {
                     int p = pluginview.reflower.page;
                     int c = pluginview.reflower.index;
@@ -439,7 +440,8 @@ public class FBReaderView extends RelativeLayout {
                         case next:
                             c++;
                     }
-                    infos.put(new ZLTextFixedPosition(p, c, 0), new Reflow.Info(pluginview.reflower, c));
+                    info = new Reflow.Info(pluginview.reflower, c);
+                    infos.put(new ZLTextFixedPosition(p, c, 0), info);
                 }
                 Rect dst = getPageRect();
                 ZLTextPosition position;
@@ -447,13 +449,13 @@ public class FBReaderView extends RelativeLayout {
                     position = new ZLTextFixedPosition(pluginview.reflower.page, pluginview.reflower.index, 0);
                 else
                     position = new ZLTextFixedPosition(pluginview.current.pageNumber, 0, 0);
-                PluginView.Selection.Page page = pluginview.selectPage(position, getInfo(), dst.width(), dst.height());
-                LinksView l = new LinksView(pluginview.getLinks(page), getInfo());
+                PluginView.Selection.Page page = pluginview.selectPage(position, info, dst.width(), dst.height());
+                LinksView l = new LinksView(pluginview.getLinks(page), info);
                 LinksView old = links.put(position, l);
                 if (old != null)
                     old.close();
                 if (search != null) {
-                    SearchView s = new SearchView(search.getBounds(page), getInfo());
+                    SearchView s = new SearchView(search.getBounds(page), info);
                     SearchView sold = searchs.put(position, s);
                     if (sold != null)
                         sold.close();
@@ -471,11 +473,12 @@ public class FBReaderView extends RelativeLayout {
 
         public void updateOverlays() {
             if (pluginview != null) {
+                Reflow.Info info = getInfo();
                 final Rect dst = getPageRect();
                 int x = dst.left;
                 int y = dst.top;
-                if (pluginview.reflow && getInfo() != null)
-                    x += getInfo().margin.left;
+                if (pluginview.reflow && info != null)
+                    x += info.margin.left;
                 for (LinksView l : links.values()) {
                     l.hide();
                 }
@@ -623,7 +626,7 @@ public class FBReaderView extends RelativeLayout {
                         public void run() {
                             int x = dst.left;
                             int y = dst.top;
-                            if (pluginview.reflow && getInfo() != null)
+                            if (pluginview.reflow)
                                 x += getInfo().margin.left;
                             selection.update((SelectionView.PageView) selection.getChildAt(0), x, y);
                         }
@@ -1972,12 +1975,15 @@ public class FBReaderView extends RelativeLayout {
                                             smoothScrollToPosition(pp);
                                             searchClose(); // remove all SearchView
                                             updateOverlays();
+                                            return;
                                         }
                                     }
                                 }
                             }
                         }
                     }
+                    searchClose(); // remove all SearchView
+                    updateOverlays();
                     return; // reflow missing for symbol (treated as image)
                 }
                 searchPagePending = page;
@@ -2125,7 +2131,7 @@ public class FBReaderView extends RelativeLayout {
                     for (Rect b : bounds) {
                         for (Rect s : view.info.src.keySet()) {
                             Rect i = new Rect(b);
-                            if (i.intersect(s) && (i.height() * 100 / s.height() > SelectionView.ARTIFACT_PERCENTS)) {
+                            if (i.intersect(s) && (i.height() * 100 / s.height() > SelectionView.ARTIFACT_PERCENTS || b.height() > 0 && i.height() * 100 / b.height() > SelectionView.ARTIFACT_PERCENTS)) {
                                 ii.add(i);
                             }
                         }
