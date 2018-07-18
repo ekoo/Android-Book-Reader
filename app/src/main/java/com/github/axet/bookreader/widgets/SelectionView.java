@@ -25,7 +25,7 @@ import java.util.Comparator;
 import java.util.List;
 
 public class SelectionView extends FrameLayout {
-    public static final int ARTIFACT_PERCENTS = 10;
+    public static final int ARTIFACT_PERCENTS = 15;
     public static final int SELECTION_ALPHA = 0x99;
     public static final int SELECTION_PADDING = 1; // dp
 
