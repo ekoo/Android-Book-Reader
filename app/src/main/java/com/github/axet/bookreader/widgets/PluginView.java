@@ -7,6 +7,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.util.Log;
 
 import com.github.axet.bookreader.app.Storage;
 
@@ -25,6 +26,8 @@ import java.util.Comparator;
 import java.util.Map;
 
 public class PluginView {
+    public static final String TAG = PluginView.class.getSimpleName();
+
     public Bitmap wallpaper;
     public int wallpaperColor;
     public Paint paint = new Paint();
@@ -227,20 +230,26 @@ public class PluginView {
         }
         if (reflower != null) {
             reflower.onScrollingFinished(index);
+            Log.d(TAG, "Reflow position: " + reflower.page + "." + reflower.index);
+            if (index == ZLViewEnums.PageIndex.current)
+                return false;
             if (reflower.page != current.pageNumber) {
                 current.pageNumber = reflower.page;
                 current.pageOffset = 0;
                 current.load();
+                return false;
             }
             if (reflower.index == -1) {
                 current.pageNumber = reflower.page - 1;
                 current.pageOffset = 0;
                 current.load();
+                return false;
             }
             if (reflower.index >= reflower.emptyCount()) { // current points to next page +1
                 current.pageNumber = reflower.page + 1;
                 current.pageOffset = 0;
                 current.load();
+                return false;
             }
             return false;
         }
@@ -406,6 +415,10 @@ public class PluginView {
             }
             switch (index) {
                 case previous: // prev can point to many (no more then 2) pages behind, we need to walk every page manually
+                    if (reflower.count() == -1 && render > 0) { // walking on reset reflower, reload
+                        bm = render(reflower.rw, reflower.h, page);
+                        reflower.load(bm);
+                    }
                     render -= 1;
                     while (render < 0) {
                         page--;
@@ -416,6 +429,7 @@ public class PluginView {
                         render = render + reflower.emptyCount();
                         reflower.page = page;
                         reflower.index = render + 1; // onScrollingFinished - 1
+                        reflower.pending = -1;
                     }
                     if (reflower.count() > render) {
                         if (bm != null)
@@ -446,6 +460,10 @@ public class PluginView {
                     }
                     break;
                 case next: // next can point to many (no more then 2) pages ahead, we need to walk every page manually
+                    if (reflower.count() == -1) { // walking on reset reflower, reload
+                        bm = render(reflower.rw, reflower.h, page);
+                        reflower.load(bm);
+                    }
                     render += 1;
                     while (reflower.emptyCount() - render <= 0) {
                         page++;
@@ -454,6 +472,7 @@ public class PluginView {
                             bm.recycle();
                         bm = render(reflower.rw, reflower.h, page);
                         reflower.load(bm, page, render - 1); // onScrollingFinished + 1
+                        reflower.pending = 1;
                     }
                     if (reflower.count() > render) {
                         if (bm != null)
@@ -574,7 +593,7 @@ public class PluginView {
         for (Rect r : rr) {
             for (Rect s : info.src.keySet()) {
                 Rect i = new Rect(r);
-                if (i.intersect(s) && (i.height() * 100 / s.height() > SelectionView.ARTIFACT_PERCENTS)) { // ignore artifacts height less then 10%
+                if (i.intersect(s) && (i.height() * 100 / s.height() > SelectionView.ARTIFACT_PERCENTS || r.height() > 0 && i.height() * 100 / r.height() > SelectionView.ARTIFACT_PERCENTS)) { // ignore artifacts height less then 10%
                     Rect d = info.fromSrc(s, i);
                     list.add(d);
                 }
