@@ -3243,6 +3243,17 @@ public class FBReaderView extends RelativeLayout {
             public void onDismiss(DialogInterface dialog) {
             }
         });
+        builder.setNeutralButton(R.string.keep_reading_position, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                gotoPosition(r.getPosition());
+            }
+        });
+        builder.setPositiveButton(R.string.close, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+            }
+        });
         final AlertDialog dialog = builder.create();
         dialog.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
