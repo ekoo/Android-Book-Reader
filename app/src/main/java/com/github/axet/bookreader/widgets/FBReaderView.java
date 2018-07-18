@@ -322,9 +322,15 @@ public class FBReaderView extends RelativeLayout {
                         last.add(n); // (3,-1,0) == (2,2,0) when reflow.count()==2
                         ZLTextPosition k = new ZLTextFixedPosition(key.getParagraphIndex(), l + 1, 0);
                         V kv = get(new ZLTextFixedPosition(key.getParagraphIndex() + 1, 0, 0));
-                        if (kv != null) {
-                            put(k, kv); // ignore result, duplicate key for same value
-                            last.add(k); // (2,3,0) == (3,0,0) when reflow.count()==2
+                        put(k, kv); // ignore result, duplicate key for same value
+                        last.add(k); // (2,3,0) == (3,0,0) when reflow.count()==2
+                    }
+                    if (key.getElementIndex() == 0) {
+                        int p = key.getParagraphIndex() - 1;
+                        for (ZLTextPosition k : keySet()) {
+                            if (k.getParagraphIndex() == p && get(k) == null) {
+                                put(k, value); // update (2,3,0) == (3,0,0)
+                            }
                         }
                     }
                 }
@@ -495,7 +501,8 @@ public class FBReaderView extends RelativeLayout {
                 ZLTextPosition position = getPosition();
 
                 for (LinksView l : links.values()) {
-                    l.hide();
+                    if (l != null)
+                        l.hide();
                 }
                 LinksView l = links.get(position);
                 if (l != null) {
@@ -504,7 +511,8 @@ public class FBReaderView extends RelativeLayout {
                 }
 
                 for (SearchView s : searchs.values()) {
-                    s.hide();
+                    if (s != null)
+                        s.hide();
                 }
                 SearchView s = searchs.get(position);
                 if (s != null) {
