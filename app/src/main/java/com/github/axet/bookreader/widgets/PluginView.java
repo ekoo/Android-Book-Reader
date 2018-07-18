@@ -429,13 +429,13 @@ public class PluginView {
                         render = render + reflower.emptyCount();
                         reflower.page = page;
                         reflower.index = render + 1; // onScrollingFinished - 1
-                        reflower.pending = -1;
                     }
                     if (reflower.count() > render) {
                         if (bm != null)
                             bm.recycle();
                         bm = reflower.render(render);
                     }
+                    reflower.pending = -1;
                     break;
                 case current:
                     if (reflower.count() > 0) {
@@ -472,13 +472,13 @@ public class PluginView {
                             bm.recycle();
                         bm = render(reflower.rw, reflower.h, page);
                         reflower.load(bm, page, render - 1); // onScrollingFinished + 1
-                        reflower.pending = 1;
                     }
                     if (reflower.count() > render) {
                         if (bm != null)
                             bm.recycle();
                         bm = reflower.render(render);
                     }
+                    reflower.pending = 1;
                     break;
             }
             if (bm != null) {

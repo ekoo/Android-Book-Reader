@@ -304,17 +304,30 @@ public class FBReaderView extends RelativeLayout {
         int x;
         int y;
 
-        public class RecentMap<K, V> extends HashMap<K, V> {
-            ArrayList<K> last = new ArrayList<>();
+        ZLTextPosition selectionPage;
+
+        public class ReflowMap<V> extends HashMap<ZLTextPosition, V> {
+            ArrayList<ZLTextPosition> last = new ArrayList<>();
 
             @Override
-            public V put(K key, V value) {
+            public V put(ZLTextPosition key, V value) {
                 V v = super.put(key, value);
                 if (v != null)
                     return v;
+                if (pluginview.reflower != null) {
+                    int l = pluginview.reflower.count() - 1;
+                    if (key.getElementIndex() == l) {
+                        ZLTextFixedPosition n = new ZLTextFixedPosition(key.getParagraphIndex() + 1, -1, 0);
+                        put(n, value); // ignore result, duplicate key for same value
+                        last.add(n); // (3,-1,0) == (2,2,0) when reflow.count()==2
+                        ZLTextPosition k = new ZLTextFixedPosition(key.getParagraphIndex(), l + 1, 0);
+                        put(k, get(new ZLTextFixedPosition(key.getParagraphIndex() + 1, 0, 0))); // ignore result, duplicate key for same value
+                        last.add(k); // (2,3,0) == (3,0,0) when reflow.count()==2
+                    }
+                }
                 last.add(key);
-                if (last.size() > 2) {
-                    K k = last.remove(0);
+                if (last.size() > 9) { // number of possible old values + dups
+                    ZLTextPosition k = last.remove(0);
                     return remove(k);
                 }
                 return null;
@@ -327,9 +340,9 @@ public class FBReaderView extends RelativeLayout {
             }
         }
 
-        RecentMap<ZLTextPosition, Reflow.Info> infos = new RecentMap<>();
-        RecentMap<ZLTextPosition, LinksView> links = new RecentMap<>();
-        RecentMap<ZLTextPosition, SearchView> searchs = new RecentMap<>();
+        ReflowMap<Reflow.Info> infos = new ReflowMap<>();
+        ReflowMap<LinksView> links = new ReflowMap<>();
+        ReflowMap<SearchView> searchs = new ReflowMap<>();
 
         public FBAndroidWidget() {
             super(FBReaderView.this.getContext());
@@ -430,25 +443,15 @@ public class FBReaderView extends RelativeLayout {
             if (pluginview != null) {
                 pluginview.drawOnBitmap(getContext(), bitmap, getWidth(), getMainAreaHeight(), index, (CustomView) app.BookTextView, book.info);
                 Reflow.Info info = null;
+                ZLTextPosition position;
                 if (pluginview.reflow) {
-                    int p = pluginview.reflower.page;
-                    int c = pluginview.reflower.index;
-                    switch (index) {
-                        case previous:
-                            c--;
-                            break;
-                        case next:
-                            c++;
-                    }
-                    info = new Reflow.Info(pluginview.reflower, c);
-                    infos.put(new ZLTextFixedPosition(p, c, 0), info);
+                    position = new ZLTextFixedPosition(pluginview.reflower.page, pluginview.reflower.index + pluginview.reflower.pending, 0);
+                    info = new Reflow.Info(pluginview.reflower, position.getElementIndex());
+                    infos.put(position, info);
+                } else {
+                    position = new ZLTextFixedPosition(pluginview.current.pageNumber, 0, 0);
                 }
                 Rect dst = getPageRect();
-                ZLTextPosition position;
-                if (pluginview.reflow)
-                    position = new ZLTextFixedPosition(pluginview.reflower.page, pluginview.reflower.index, 0);
-                else
-                    position = new ZLTextFixedPosition(pluginview.current.pageNumber, 0, 0);
                 PluginView.Selection.Page page = pluginview.selectPage(position, info, dst.width(), dst.height());
                 LinksView l = new LinksView(pluginview.getLinks(page), info);
                 LinksView old = links.put(position, l);
@@ -471,27 +474,32 @@ public class FBReaderView extends RelativeLayout {
             repaint(); // need to drawonbitmap
         }
 
+        ZLTextFixedPosition getPosition() {
+            if (pluginview.reflow)
+                return new ZLTextFixedPosition(pluginview.reflower.page, pluginview.reflower.index, 0);
+            else
+                return new ZLTextFixedPosition(pluginview.current.pageNumber, 0, 0);
+        }
+
         public void updateOverlays() {
             if (pluginview != null) {
-                Reflow.Info info = getInfo();
                 final Rect dst = getPageRect();
                 int x = dst.left;
                 int y = dst.top;
-                if (pluginview.reflow && info != null)
-                    x += info.margin.left;
+                if (pluginview.reflow)
+                    x += getInfo().margin.left;
+
+                ZLTextPosition position = getPosition();
+
                 for (LinksView l : links.values()) {
                     l.hide();
                 }
-                ZLTextPosition position;
-                if (pluginview.reflow)
-                    position = new ZLTextFixedPosition(pluginview.reflower.page, pluginview.reflower.index, 0);
-                else
-                    position = new ZLTextFixedPosition(pluginview.current.pageNumber, 0, 0);
                 LinksView l = links.get(position);
                 if (l != null) {
                     l.show();
                     l.update(x, y);
                 }
+
                 for (SearchView s : searchs.values()) {
                     s.hide();
                 }
@@ -499,6 +507,16 @@ public class FBReaderView extends RelativeLayout {
                 if (s != null) {
                     s.show();
                     s.update(x, y);
+                }
+
+                if (selectionPage != null && !selectionPage.samePositionAs(position)) {
+                    post(new Runnable() {
+                        @Override
+                        public void run() {
+                            selectionClose();
+                        }
+                    });
+                    selectionPage = null;
                 }
             }
         }
@@ -617,10 +635,12 @@ public class FBReaderView extends RelativeLayout {
         public boolean onLongClick(View v) {
             if (pluginview != null) {
                 final Rect dst = getPageRect();
-                final PluginView.Selection s = pluginview.select(getPosition(), getInfo(), dst.width(), dst.height(), x - dst.left, y - dst.top);
+                ZLTextPosition pos = getPosition();
+                final PluginView.Selection s = pluginview.select(pos, getInfo(), dst.width(), dst.height(), x - dst.left, y - dst.top);
                 if (s != null) {
+                    selectionPage = pos;
                     selectionOpen(s);
-                    final PluginView.Selection.Page page = pluginview.selectPage(getPosition(), getInfo(), dst.width(), dst.height());
+                    final PluginView.Selection.Page page = pluginview.selectPage(pos, getInfo(), dst.width(), dst.height());
                     final Runnable run = new Runnable() {
                         @Override
                         public void run() {
