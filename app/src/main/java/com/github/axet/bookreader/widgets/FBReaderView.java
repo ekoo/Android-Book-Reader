@@ -321,8 +321,11 @@ public class FBReaderView extends RelativeLayout {
                         put(n, value); // ignore result, duplicate key for same value
                         last.add(n); // (3,-1,0) == (2,2,0) when reflow.count()==2
                         ZLTextPosition k = new ZLTextFixedPosition(key.getParagraphIndex(), l + 1, 0);
-                        put(k, get(new ZLTextFixedPosition(key.getParagraphIndex() + 1, 0, 0))); // ignore result, duplicate key for same value
-                        last.add(k); // (2,3,0) == (3,0,0) when reflow.count()==2
+                        V kv = get(new ZLTextFixedPosition(key.getParagraphIndex() + 1, 0, 0));
+                        if (kv != null) {
+                            put(k, kv); // ignore result, duplicate key for same value
+                            last.add(k); // (2,3,0) == (3,0,0) when reflow.count()==2
+                        }
                     }
                 }
                 last.add(key);
