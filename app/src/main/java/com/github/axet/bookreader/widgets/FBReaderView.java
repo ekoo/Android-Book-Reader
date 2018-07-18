@@ -312,28 +312,28 @@ public class FBReaderView extends RelativeLayout {
             @Override
             public V put(ZLTextPosition key, V value) {
                 V v = super.put(key, value);
-                if (v != null)
-                    return v;
                 if (pluginview.reflower != null) {
                     int l = pluginview.reflower.count() - 1;
                     if (key.getElementIndex() == l) {
                         ZLTextFixedPosition n = new ZLTextFixedPosition(key.getParagraphIndex() + 1, -1, 0);
-                        put(n, value); // ignore result, duplicate key for same value
+                        super.put(n, value); // ignore result, duplicate key for same value
                         last.add(n); // (3,-1,0) == (2,2,0) when reflow.count()==2
                         ZLTextPosition k = new ZLTextFixedPosition(key.getParagraphIndex(), l + 1, 0);
                         V kv = get(new ZLTextFixedPosition(key.getParagraphIndex() + 1, 0, 0));
-                        put(k, kv); // ignore result, duplicate key for same value
+                        super.put(k, kv); // ignore result, duplicate key for same value
                         last.add(k); // (2,3,0) == (3,0,0) when reflow.count()==2
                     }
                     if (key.getElementIndex() == 0) {
                         int p = key.getParagraphIndex() - 1;
                         for (ZLTextPosition k : keySet()) {
                             if (k.getParagraphIndex() == p && get(k) == null) {
-                                put(k, value); // update (2,3,0) == (3,0,0)
+                                super.put(k, value); // update (2,3,0) == (3,0,0)
                             }
                         }
                     }
                 }
+                if (v != null)
+                    return v;
                 last.add(key);
                 if (last.size() > 9) { // number of possible old values + dups
                     ZLTextPosition k = last.remove(0);
@@ -479,8 +479,7 @@ public class FBReaderView extends RelativeLayout {
 
         public void updateOverlaysReset() {
             updateOverlays();
-            super.reset();
-            repaint(); // need to drawonbitmap
+            resetCache(); // need to drawonbitmap
         }
 
         ZLTextFixedPosition getPosition() {
@@ -582,8 +581,7 @@ public class FBReaderView extends RelativeLayout {
                         }
                     }
                 }
-                super.reset();
-                repaint();
+                resetCache();
             } else {
                 ZLTextPosition pos = new ZLTextFixedPosition(page, 0, 0);
                 PluginView.Selection.Page p = pluginview.selectPage(pos, getInfo(), dst.width(), dst.height());
@@ -600,8 +598,7 @@ public class FBReaderView extends RelativeLayout {
                                     offset += pluginview.current.pageStep;
                                 }
                                 pluginview.gotoPosition(new ZLTextFixedPosition(page, offset, 0));
-                                reset();
-                                repaint();
+                                resetCache();
                                 return;
                             }
                         }
@@ -610,9 +607,9 @@ public class FBReaderView extends RelativeLayout {
             }
         }
 
-        @Override
-        public void repaint() {
-            super.repaint();
+        public void resetCache() { // do not reset reflower
+            super.reset();
+            repaint();
         }
 
         @Override
@@ -623,6 +620,9 @@ public class FBReaderView extends RelativeLayout {
                     pluginview.reflower.reset();
                 }
             }
+            infos.clear();
+            links.clear();
+            searchs.clear();
         }
 
         @Override
