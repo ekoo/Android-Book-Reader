@@ -317,11 +317,12 @@ public class FBReaderView extends RelativeLayout {
                     if (key.getElementIndex() == l) {
                         ZLTextFixedPosition n = new ZLTextFixedPosition(key.getParagraphIndex() + 1, -1, 0);
                         super.put(n, value); // ignore result, duplicate key for same value
-                        last.add(n); // (3,-1,0) == (2,2,0) when reflow.count()==2
+                        last.add(n); // (3,-1,0) == (2,2,0) when (2,1,0) is last
+
                         ZLTextPosition k = new ZLTextFixedPosition(key.getParagraphIndex(), l + 1, 0);
                         V kv = get(new ZLTextFixedPosition(key.getParagraphIndex() + 1, 0, 0));
                         super.put(k, kv); // ignore result, duplicate key for same value
-                        last.add(k); // (2,3,0) == (3,0,0) when reflow.count()==2
+                        last.add(k); // (2,2,0) == (3,0,0) when (2,1,0) is last
                     }
                     if (key.getElementIndex() == 0) {
                         int p = key.getParagraphIndex() - 1;
@@ -1104,7 +1105,6 @@ public class FBReaderView extends RelativeLayout {
                 }
 
                 void recycle() {
-                    holder = null;
                     if (bm != null) {
                         bm.recycle();
                         bm = null;
@@ -1311,6 +1311,7 @@ public class FBReaderView extends RelativeLayout {
             public void onViewRecycled(PageHolder holder) {
                 super.onViewRecycled(holder);
                 holder.page.recycle();
+                holder.page.holder = null;
             }
 
             @Override
@@ -2753,7 +2754,6 @@ public class FBReaderView extends RelativeLayout {
                 if (region == null) {
                     return;
                 }
-
                 final ZLTextRegion.Soul soul = region.getSoul();
                 if (soul instanceof ZLTextHyperlinkRegionSoul) {
                     app.BookTextView.hideOutline();
@@ -2801,7 +2801,7 @@ public class FBReaderView extends RelativeLayout {
                                     toast.setOnClickWrapper(new OnClickWrapper("ftnt", new SuperToast.OnClickListener() {
                                         @Override
                                         public void onClick(View view, Parcelable token) {
-                                            showPopup(hyperlink);
+                                            showHyperlink(hyperlink);
                                         }
                                     }));
                                 }
@@ -2817,7 +2817,7 @@ public class FBReaderView extends RelativeLayout {
                                 showToast(toast);
                             } else {
                                 book.info.position = getPosition();
-                                showPopup(hyperlink);
+                                showHyperlink(hyperlink);
                             }
                             break;
                         }
@@ -3179,7 +3179,7 @@ public class FBReaderView extends RelativeLayout {
         this.drawer = drawer;
     }
 
-    void showPopup(final ZLTextHyperlink hyperlink) {
+    void showHyperlink(final ZLTextHyperlink hyperlink) {
         Context context = getContext();
 
         LinearLayout ll = new LinearLayout(context);
@@ -3200,6 +3200,33 @@ public class FBReaderView extends RelativeLayout {
                 config.setValue(app.ImageOptions.TapAction, ImageOptions.TapActionEnum.doNothing);
             }
         };
+
+        r.app.addAction(ActionCode.PROCESS_HYPERLINK, new FBAction(r.app) {
+            @Override
+            protected void run(Object... params) {
+                final ZLTextRegion region = r.app.BookTextView.getOutlinedRegion();
+                if (region == null) {
+                    return;
+                }
+                final ZLTextRegion.Soul soul = region.getSoul();
+                if (soul instanceof ZLTextHyperlinkRegionSoul) {
+                    r.app.BookTextView.hideOutline();
+                    r.widget.repaint();
+                    final ZLTextHyperlink hyperlink = ((ZLTextHyperlinkRegionSoul) soul).Hyperlink;
+                    switch (hyperlink.Type) {
+                        case FBHyperlinkType.EXTERNAL:
+                            AboutPreferenceCompat.openUrlDialog(getContext(), hyperlink.Id);
+                            break;
+                        case FBHyperlinkType.INTERNAL:
+                        case FBHyperlinkType.FOOTNOTE: {
+                            final BookModel.Label label = r.app.Model.getLabel(hyperlink.Id);
+                            r.app.BookTextView.gotoPosition(label.ParagraphIndex, 0, 0);
+                            r.resetNewPosition();
+                        }
+                    }
+                }
+            }
+        });
 
         SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(getContext());
         r.configWidget(shared);
