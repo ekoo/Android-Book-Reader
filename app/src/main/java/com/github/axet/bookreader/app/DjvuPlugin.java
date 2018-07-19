@@ -3,6 +3,8 @@ package com.github.axet.bookreader.app;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Rect;
+import android.util.SparseArray;
 
 import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.bookreader.widgets.FBReaderView;
@@ -31,8 +33,11 @@ import org.geometerplus.zlibrary.ui.android.image.ZLBitmapImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 public class DjvuPlugin extends BuiltinFormatPlugin {
 
@@ -47,6 +52,390 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
         Storage.K2PdfOptInit(info.context);
         return new DjvuPlugin(info);
+    }
+
+    public static class SelectionPage {
+        public int page;
+        public int w;
+        public int h;
+        public DjvuLibre.Bounds index;
+        public DjvuLibre.Text text;
+
+        String getText(DjvuLibre.Bounds b) {
+            return text.text.substring(b.start, b.end);
+        }
+
+        String getText(DjvuLibre.Bounds b1, DjvuLibre.Bounds b2) {
+            int s;
+            int e;
+            if (b1.start > b2.start) {
+                s = b2.start;
+                e = b1.end;
+            } else {
+                s = b1.start;
+                e = b2.end;
+            }
+            return text.text.substring(s, e);
+        }
+
+        DjvuLibre.Bounds prev(DjvuLibre.Bounds b) {
+            List<DjvuLibre.Bounds> bb = Arrays.asList(text.bounds);
+            int i = bb.indexOf(b);
+            i--;
+            if (i < 0)
+                return null;
+            return bb.get(i);
+        }
+
+        DjvuLibre.Bounds next(DjvuLibre.Bounds b) {
+            List<DjvuLibre.Bounds> bb = Arrays.asList(text.bounds);
+            int i = bb.indexOf(b);
+            i++;
+            if (i >= bb.size())
+                return null;
+            return bb.get(i);
+        }
+
+        DjvuLibre.Bounds find(PluginView.Selection.Point point) {
+            for (DjvuLibre.Bounds b : text.bounds) {
+                if (b.rect.contains(point.x, point.y)) {
+                    return b;
+                }
+            }
+            return null;
+        }
+
+        DjvuLibre.Bounds first() {
+            return text.bounds[0];
+        }
+
+        DjvuLibre.Bounds last() {
+            return text.bounds[text.bounds.length - 1];
+        }
+
+        int index(DjvuLibre.Bounds b) {
+            List<DjvuLibre.Bounds> bb = Arrays.asList(text.bounds);
+            return bb.indexOf(b);
+        }
+
+        int index() {
+            return index(index);
+        }
+    }
+
+    public static class DjvuSelection extends PluginView.Selection {
+        DjvuLibre doc;
+
+        SelectionPage start;
+        SelectionPage end;
+
+        SparseArray<SelectionPage> map = new SparseArray<>();
+
+        public class SelectionBounds {
+            SelectionPage page; // current
+
+            SelectionPage s;
+            SelectionPage e;
+
+            DjvuLibre.Bounds ss; // start index
+            DjvuLibre.Bounds ee; // end index
+            DjvuLibre.Bounds ll; // last index
+
+            boolean first;
+            boolean last;
+
+            boolean reverse;
+
+            public SelectionBounds(PluginView.Selection.Page p) {
+                this(p.page);
+                start.w = p.w;
+                start.h = p.h;
+                end.w = p.w;
+                end.h = p.h;
+                page.w = p.w; // page can be opened by open
+                page.h = p.h;
+            }
+
+            public SelectionBounds(int p) {
+                this();
+                if (s.page == e.page) {
+                    page = s;
+                    ss = s.index;
+                    ee = e.index;
+                    first = true;
+                    last = true;
+                    if (reverse)
+                        ss = s.next(ss);
+                } else if (s.page == p) {
+                    page = s;
+                    ss = s.index;
+                    ee = s.last();
+                    first = true;
+                    last = false;
+                    if (reverse)
+                        ss = s.next(ss);
+                } else if (e.page == p) {
+                    page = e;
+                    ss = e.first();
+                    ee = e.index;
+                    first = false;
+                    last = true;
+                } else {
+                    page = open(p);
+                    ss = page.first();
+                    ee = page.last();
+                    first = false;
+                    last = false;
+                }
+                ll = ee;
+                ee = page.next(ee);
+            }
+
+            public SelectionBounds() {
+                if (start.page > end.page) {
+                    reverse = true;
+                    s = end;
+                    e = start;
+                } else {
+                    if (start.page == end.page) {
+                        if (start.index() > end.index()) {
+                            reverse = true;
+                            s = end;
+                            e = start;
+                        } else {
+                            s = start;
+                            e = end;
+                        }
+                    } else {
+                        s = start;
+                        e = end;
+                    }
+                }
+            }
+
+            String getText() {
+                StringBuilder bb = new StringBuilder();
+                for (DjvuLibre.Bounds b = ss; b != ee; b = page.next(b)) {
+                    bb.append(page.getText(b));
+                }
+                return bb.toString();
+            }
+        }
+
+        public DjvuSelection(DjvuLibre doc, Page page, Point point) {
+            this.doc = doc;
+            point = toPage(page.page, page.w, page.h, point);
+            selectWord(open(page), point);
+        }
+
+        SelectionPage open(Page page) {
+            SelectionPage pp = open(page.page);
+            pp.w = page.w;
+            pp.h = page.h;
+            return pp;
+        }
+
+        SelectionPage open(int page) {
+            SelectionPage pp = map.get(page);
+            if (pp == null) {
+                pp = new SelectionPage();
+                map.put(page, pp);
+
+                pp.page = page;
+
+                int[] ii = new int[]{DjvuLibre.ZONE_CHARACTER, DjvuLibre.ZONE_WORD, DjvuLibre.ZONE_LINE,
+                        DjvuLibre.ZONE_PARAGRAPH, DjvuLibre.ZONE_REGION, DjvuLibre.ZONE_COLUMN,
+                        DjvuLibre.ZONE_PAGE};
+                for (int i : ii) {
+                    pp.text = doc.getText(1, i);
+                    if (pp.text != null && pp.text.bounds.length != 0)
+                        break;
+                }
+            }
+            return pp;
+        }
+
+        public Point toPage(int page, int w, int h, Point point) {
+            DjvuLibre.Page p = doc.getPageInfo(page);
+            return new Point(point.x * p.width / w, p.height - point.y * p.height / h);
+        }
+
+        public Point toDevice(int page, int w, int h, Point point) {
+            DjvuLibre.Page p = doc.getPageInfo(page);
+            return new Point(point.x * w / p.width, p.height - point.y * h / p.height);
+        }
+
+        public Rect toDevice(int page, int w, int h, Rect rect) {
+            Point p1 = toDevice(page, w, h, new Point(rect.left, rect.top));
+            Point p2 = toDevice(page, w, h, new Point(rect.left, rect.top));
+            return new Rect(p1.x, p1.y, p2.x, p2.y);
+        }
+
+        public boolean isEmpty() {
+            return start == null || end == null;
+        }
+
+        boolean isWord(SelectionPage pp, DjvuLibre.Bounds start, DjvuLibre.Bounds b) {
+            if (start == null) {
+                String s = pp.getText(b);
+                s = Normalizer.normalize(s, Normalizer.Form.NFC).toLowerCase(Locale.US); // й composed as two chars sometimes.
+                s = Normalizer.normalize(s, Normalizer.Form.NFC).toLowerCase(Locale.US);
+                for (char c : s.toCharArray()) {
+                    if (isWord(c))
+                        return true;
+                }
+            } else {
+                String s = pp.getText(b);
+                s = Normalizer.normalize(s, Normalizer.Form.NFC).toLowerCase(Locale.US); // й composed as two chars sometimes.
+                s = Normalizer.normalize(s, Normalizer.Form.NFC).toLowerCase(Locale.US);
+                for (char c : s.toCharArray()) {
+                    if (!isWord(c))
+                        return false;
+                }
+            }
+            return false;
+        }
+
+        void selectWord(SelectionPage pp, Point point) {
+            DjvuLibre.Bounds b = pp.find(point);
+            if (b == null)
+                return;
+            SelectionPage start = pp;
+            DjvuLibre.Bounds s = b;
+            while (s != null && isWord(start, start.index, s)) {
+                start.index = s;
+                s = pp.prev(s);
+            }
+            SelectionPage end = start;
+            DjvuLibre.Bounds e = b;
+            while (e != null && isWord(end, end.index, e)) {
+                end.index = e;
+                e = pp.next(e);
+            }
+            if (start.index == null || end.index == null)
+                return;
+            this.start = start;
+            this.end = end;
+        }
+
+        @Override
+        public void setStart(Page page, Point point) {
+            SelectionPage pp = open(page);
+            point = toPage(page.page, page.w, page.h, point);
+            DjvuLibre.Bounds b = pp.find(point);
+            if (b == null)
+                return;
+            start.index = b;
+        }
+
+        @Override
+        public void setEnd(Page page, Point point) {
+            SelectionPage pp = open(page);
+            point = toPage(page.page, page.w, page.h, point);
+            DjvuLibre.Bounds b = pp.find(point);
+            if (b == null)
+                return;
+            end.index = b;
+        }
+
+        @Override
+        public String getText() {
+            SelectionBounds b = new SelectionBounds();
+            StringBuilder text = new StringBuilder();
+            for (int i = b.s.page; i <= b.e.page; i++) {
+                text.append(getText(i));
+            }
+            return text.toString();
+        }
+
+        String getText(int i) {
+            SelectionBounds b = new SelectionBounds(i);
+            return b.getText();
+        }
+
+        @Override
+        public Rect[] getBoundsAll(Page page) {
+            SelectionPage pp = open(page);
+            Rect[] rr = new Rect[pp.text.bounds.length];
+            for (int i = 0; i < rr.length; i++) {
+                rr[i] = toDevice(page.page, page.w, page.h, pp.text.bounds[i].rect);
+            }
+            return rr;
+        }
+
+        @Override
+        public Bounds getBounds(Page p) {
+            Bounds bounds = new Bounds();
+            SelectionBounds b = new SelectionBounds(p);
+            bounds.reverse = b.reverse;
+            bounds.start = b.first;
+            bounds.end = b.last;
+            ArrayList<Rect> rr = new ArrayList<>();
+            for (DjvuLibre.Bounds i = b.ss; i != b.ee; i = b.page.next(i)) {
+                rr.add(toDevice(b.page.page, b.page.w, b.page.h, i.rect));
+            }
+            bounds.rr = rr.toArray(new Rect[0]);
+            return bounds;
+        }
+
+        @Override
+        public Boolean inBetween(Page page, Point start, Point end) {
+            SelectionBounds b = new SelectionBounds(page);
+            if (b.s.page < page.page && page.page < b.e.page)
+                return true;
+            Point p1 = toPage(page.page, page.w, page.h, start);
+            DjvuLibre.Bounds i1 = b.page.find(p1);
+            if (i1 == null)
+                return null;
+            Point p2 = toPage(page.page, page.w, page.h, end);
+            DjvuLibre.Bounds i2 = b.page.find(p2);
+            if (i2 == null)
+                return null;
+            if (b.page.index(i2) < b.page.index(i1))
+                return null; // document incorrectly marked (last symbol appears at the end of page)
+            return b.page.index(i1) <= b.page.index(b.ss) && b.page.index(b.ss) <= b.page.index(i2) || b.page.index(i1) <= b.page.index(b.ll) && b.page.index(b.ll) <= b.page.index(i2);
+        }
+
+        @Override
+        public boolean isValid(Page page, Point point) {
+            SelectionPage pp = open(page);
+            point = toPage(page.page, page.w, page.h, point);
+            return pp.find(point) != null;
+        }
+
+        @Override
+        public boolean isSelected(int page) {
+            SelectionBounds b = new SelectionBounds(page);
+            return b.s.page <= page && page <= b.e.page;
+        }
+
+        @Override
+        public Boolean isAbove(Page page, Point point) {
+            SelectionBounds b = new SelectionBounds(page);
+            if (b.s.page < page.page)
+                return true;
+            point = toPage(page.page, page.w, page.h, point);
+            DjvuLibre.Bounds index = b.page.find(point);
+            if (index == null)
+                return null;
+            return b.page.index(b.ss) < b.page.index(index) || b.page.index(b.ll) < b.page.index(index);
+        }
+
+        @Override
+        public Boolean isBelow(Page page, Point point) {
+            SelectionBounds b = new SelectionBounds(page);
+            if (b.e.page > page.page)
+                return true;
+            point = toPage(page.page, page.w, page.h, point);
+            DjvuLibre.Bounds index = b.page.find(point);
+            if (index == null)
+                return null;
+            return b.page.index(index) < b.page.index(b.ss) || b.page.index(index) < b.page.index(b.ll);
+        }
+
+        @Override
+        public void close() {
+        }
     }
 
     public static class DjvuPage extends com.github.axet.bookreader.widgets.PluginPage {
@@ -145,6 +534,14 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             doc.renderPage(bm, r.pageNumber, 0, 0, r.pageBox.w, r.pageBox.h, render.x, render.y, render.w, render.h);
             canvas.drawBitmap(bm, render.src, render.dst, paint);
             bm.recycle();
+        }
+
+        @Override
+        public Selection select(Selection.Page page, Selection.Point point) {
+            DjvuSelection s = new DjvuSelection(doc, page, point);
+            if (s.isEmpty())
+                return null;
+            return s;
         }
     }
 
@@ -245,8 +642,8 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         try {
             FileInputStream is = new FileInputStream(f.getPath());
             DjvuLibre doc = new DjvuLibre(is.getFD());
-            book.setTitle(doc.getTitle());
-            book.addAuthor(doc.getAuthor());
+            book.setTitle(doc.getMeta(DjvuLibre.META_TITLE));
+            book.addAuthor(doc.getMeta(DjvuLibre.META_AUTHOR));
             doc.close();
             is.close();
         } catch (IOException e) {
