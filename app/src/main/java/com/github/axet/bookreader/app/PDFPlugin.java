@@ -218,7 +218,6 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             }
         }
 
-
         public Selection(Pdfium pdfium, SelectionPage page, Point point) {
             this.pdfium = pdfium;
             map.put(page.page, page);

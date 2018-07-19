@@ -2074,6 +2074,7 @@ public class FBReaderView extends RelativeLayout {
                 }
                 ZLTextPosition pp = new ZLTextFixedPosition(page, 0, 0);
                 gotoPluginPosition(pp);
+                resetNewPosition();
             }
         }
 
