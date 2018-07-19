@@ -11,6 +11,7 @@
 -keep class com.github.axet.djvulibre.DjvuLibre {*;}
 -keep class com.github.axet.djvulibre.DjvuLibre$Page {*;}
 -keep class com.github.axet.djvulibre.DjvuLibre$Bookmark {*;}
+-keep class com.github.axet.djvulibre.DjvuLibre$Text {*;}
 
 -keep class com.github.axet.pdfium.Pdfium {*;}
 -keep class com.github.axet.pdfium.Pdfium$Size {*;}

@@ -3,9 +3,7 @@ package com.github.axet.bookreader.app;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Point;
 import android.graphics.Rect;
-import android.util.Size;
 import android.util.SparseArray;
 
 import com.github.axet.androidlibrary.app.Natives;
@@ -37,7 +35,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.text.Normalizer;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
@@ -54,6 +51,21 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
         Storage.K2PdfOptInit(info.context);
         return new DjvuPlugin(info);
+    }
+
+
+    public static PluginView.Selection.Point toPage(DjvuLibre.Page info, int w, int h, PluginView.Selection.Point point) {
+        return new PluginView.Selection.Point(point.x * info.width / w, info.height - point.y * info.height / h);
+    }
+
+    public static PluginView.Selection.Point toDevice(DjvuLibre.Page info, int w, int h, PluginView.Selection.Point point) {
+        return new PluginView.Selection.Point(point.x * w / info.width, (info.height - point.y) * h / info.height);
+    }
+
+    public static Rect toDevice(DjvuLibre.Page info, int w, int h, Rect rect) {
+        PluginView.Selection.Point p1 = toDevice(info, w, h, new PluginView.Selection.Point(rect.left, rect.top));
+        PluginView.Selection.Point p2 = toDevice(info, w, h, new PluginView.Selection.Point(rect.right, rect.bottom));
+        return new Rect(p1.x, p2.y, p2.x, p1.y);
     }
 
     public static class SelectionPage {
@@ -96,20 +108,6 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
         int last() {
             return text.bounds.length - 1;
-        }
-
-        public PluginView.Selection.Point toPage(int w, int h, PluginView.Selection.Point point) {
-            return new PluginView.Selection.Point(point.x * info.width / w, info.height - point.y * info.height / h);
-        }
-
-        public PluginView.Selection.Point toDevice(int w, int h, PluginView.Selection.Point point) {
-            return new PluginView.Selection.Point(point.x * w / info.width, (info.height - point.y) * h / info.height);
-        }
-
-        public Rect toDevice(int w, int h, Rect rect) {
-            PluginView.Selection.Point p1 = toDevice(w, h, new PluginView.Selection.Point(rect.left, rect.top));
-            PluginView.Selection.Point p2 = toDevice(w, h, new PluginView.Selection.Point(rect.right, rect.bottom));
-            return new Rect(p1.x, p2.y, p2.x, p1.y);
         }
     }
 
@@ -215,7 +213,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         public DjvuSelection(DjvuLibre doc, Page page, Point point) {
             this.doc = doc;
             SelectionPage p = open(page);
-            point = p.toPage(page.w, page.h, point);
+            point = toPage(p.info, page.w, page.h, point);
             selectWord(p, point);
         }
 
@@ -297,7 +295,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         @Override
         public void setStart(Page page, Point point) {
             SelectionPage pp = open(page);
-            point = pp.toPage(page.w, page.h, point);
+            point = toPage(pp.info, page.w, page.h, point);
             int b = pp.find(point);
             if (b == -1)
                 return;
@@ -308,7 +306,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         @Override
         public void setEnd(Page page, Point point) {
             SelectionPage pp = open(page);
-            point = pp.toPage(page.w, page.h, point);
+            point = toPage(pp.info, page.w, page.h, point);
             int b = pp.find(point);
             if (b == -1)
                 return;
@@ -336,7 +334,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             SelectionPage pp = open(page);
             Rect[] rr = new Rect[pp.text.bounds.length];
             for (int i = 0; i < rr.length; i++) {
-                rr[i] = pp.toDevice(page.w, page.h, pp.text.bounds[i]);
+                rr[i] = toDevice(pp.info, page.w, page.h, pp.text.bounds[i]);
             }
             return rr;
         }
@@ -350,7 +348,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             bounds.end = b.last;
             ArrayList<Rect> rr = new ArrayList<>();
             for (int i = b.ss; i != b.ee; i++) {
-                rr.add(b.page.toDevice(b.page.w, b.page.h, b.page.text.bounds[i]));
+                rr.add(toDevice(b.page.info, b.page.w, b.page.h, b.page.text.bounds[i]));
             }
             bounds.rr = rr.toArray(new Rect[0]);
             return bounds;
@@ -361,11 +359,11 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             SelectionBounds b = new SelectionBounds(page);
             if (b.s.page < page.page && page.page < b.e.page)
                 return true;
-            Point p1 = b.page.toPage(page.w, page.h, start);
+            Point p1 = toPage(b.page.info, page.w, page.h, start);
             int i1 = b.page.find(p1);
             if (i1 == -1)
                 return null;
-            Point p2 = b.page.toPage(page.w, page.h, end);
+            Point p2 = toPage(b.page.info, page.w, page.h, end);
             int i2 = b.page.find(p2);
             if (i2 == -1)
                 return null;
@@ -377,7 +375,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         @Override
         public boolean isValid(Page page, Point point) {
             SelectionPage pp = open(page);
-            point = pp.toPage(page.w, page.h, point);
+            point = toPage(pp.info, page.w, page.h, point);
             return pp.find(point) != -1;
         }
 
@@ -392,7 +390,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             SelectionBounds b = new SelectionBounds(page);
             if (b.s.page < page.page)
                 return true;
-            point = b.page.toPage(page.w, page.h, point);
+            point = toPage(b.page.info, page.w, page.h, point);
             int index = b.page.find(point);
             if (index == -1)
                 return null;
@@ -404,7 +402,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             SelectionBounds b = new SelectionBounds(page);
             if (b.e.page > page.page)
                 return true;
-            point = b.page.toPage(page.w, page.h, point);
+            point = toPage(b.page.info, page.w, page.h, point);
             int index = b.page.find(point);
             if (index == -1)
                 return null;
@@ -416,39 +414,53 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
     }
 
-
-    public static class SearchResult {
-        public int page;
-        public int start;
-        public int end;
-
-        public SearchResult(int p, int i, int e) {
-            page = p;
-            start = i;
-            end = e;
-        }
-    }
-
-    public static class SearchMap {
-        int start;
-        int end;
-        int index;
-
-        public SearchMap(int index, int s, int e) {
-            this.index = index;
-            this.start = s;
-            this.end = e;
-        }
-    }
-
     public static class DjvuSearch extends PluginView.Search {
         DjvuLibre doc;
         ArrayList<SearchResult> all = new ArrayList<>();
-        SparseArray<ArrayList<SearchResult>> pages = new SparseArray<>();
         int index;
         String str;
         int page; // inital page to show
-        SparseArray<SelectionPage> map = new SparseArray<>();
+        SparseArray<SearchPage> pages = new SparseArray<>();
+
+        public static class SearchPage {
+            int page;
+            DjvuLibre.Text text;
+            DjvuLibre.Page info;
+            ArrayList<SearchResult> rr = new ArrayList<>();
+            ArrayList<SearchMap> map = new ArrayList<>();
+
+            int find(int i) {
+                for (SearchMap p : map) {
+                    if (i >= p.start && i < p.end)
+                        return p.index;
+                }
+                return -1;
+            }
+        }
+
+        public static class SearchResult {
+            public int page;
+            public int start;
+            public int end;
+
+            public SearchResult(int p, int i, int e) {
+                page = p;
+                start = i;
+                end = e;
+            }
+        }
+
+        public static class SearchMap {
+            int index;
+            int start;
+            int end;
+
+            public SearchMap(int index, int s, int e) {
+                this.index = index;
+                this.start = s;
+                this.end = e;
+            }
+        }
 
         public DjvuSearch(DjvuLibre doc, String str) {
             this.doc = doc;
@@ -462,13 +474,14 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             }
         }
 
-        SelectionPage open(int page) {
-            SelectionPage pp = map.get(page);
+        SearchPage open(int page) {
+            SearchPage pp = pages.get(page);
             if (pp == null) {
-                pp = new SelectionPage();
-                map.put(page, pp);
+                pp = new SearchPage();
+                pages.put(page, pp);
 
                 pp.page = page;
+
                 pp.info = doc.getPageInfo(page);
 
                 int[] types = new int[]{DjvuLibre.ZONE_CHARACTER, DjvuLibre.ZONE_WORD, DjvuLibre.ZONE_LINE,
@@ -484,53 +497,39 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
 
         void search(int page) {
-            SelectionPage pp = open(page);
-            String pattern = str.toLowerCase(Locale.US);
-            ArrayList<SearchResult> rr = new ArrayList<>();
-            if (pp.text != null) {
-                ArrayList<SearchMap> map = new ArrayList<>();
-                StringBuilder b = new StringBuilder();
-                for (int t = 0; t < pp.text.text.length; t++) {
-                    int s = b.length();
-                    b.append(pp.text.text[t]);
-                    int e = s + b.length();
-                    map.add(new SearchMap(t, s, e));
-                }
-
-                String str = b.toString();
-                str = str.toLowerCase(Locale.US);
-                int start = str.indexOf(pattern);
-                while (start != -1) {
-                    int m = 0;
-                    int m2 = 0;
-                    int end = start + pattern.length();
-                    for (SearchMap p : map) {
-                        if (start >= p.start && start < p.end)
-                            m = p.index;
-                        if (end >= p.start && end < p.end)
-                            m2 = p.index;
-                    }
-                    SearchResult ss = new SearchResult(page, m, m2 + 1);
-                    rr.add(ss);
-                    all.add(ss);
-                    start = str.indexOf(pattern, start + 1);
-                }
+            SearchPage pp = open(page);
+            if (pp.text == null)
+                return;
+            String find = str.toLowerCase(Locale.US);
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < pp.text.text.length; i++) {
+                int s = b.length();
+                b.append(pp.text.text[i]);
+                int e = b.length();
+                pp.map.add(new SearchMap(i, s, e));
             }
-            pages.put(page, rr);
+            String str = b.toString();
+            str = str.toLowerCase(Locale.US);
+            int start = str.indexOf(find);
+            while (start != -1) {
+                int end = start + find.length();
+                SearchResult ss = new SearchResult(page, pp.find(start), pp.find(end) + 1);
+                pp.rr.add(ss);
+                all.add(ss);
+                start = str.indexOf(find, start + 1);
+            }
         }
 
         @Override
         public Bounds getBounds(PluginView.Selection.Page page) {
             Bounds bounds = new Bounds();
-            ArrayList<SearchResult> list = pages.get(page.page);
-            SelectionPage pp = open(page.page);
+            SearchPage p = pages.get(page.page);
             ArrayList<Rect> rr = new ArrayList<>();
-            for (int i = 0; i < list.size(); i++) {
-                SearchResult r = list.get(i);
+            for (int i = 0; i < p.rr.size(); i++) {
+                SearchResult r = p.rr.get(i);
                 ArrayList<Rect> hh = new ArrayList<>();
                 for (int k = r.start; k < r.end; k++) {
-                    Rect b = pp.text.bounds[k];
-                    b = pp.toDevice(page.w, page.h, b);
+                    Rect b = toDevice(p.info, page.w, page.h, p.text.bounds[k]);
                     rr.add(b);
                     hh.add(b);
                 }
@@ -579,9 +578,8 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
                 }
             }
             index--;
-            if (index < 0) {
+            if (index < 0)
                 index = 0;
-            }
             return all.get(index).page;
         }
 
