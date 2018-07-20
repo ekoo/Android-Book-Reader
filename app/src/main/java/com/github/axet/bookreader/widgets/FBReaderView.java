@@ -1909,6 +1909,14 @@ public class FBReaderView extends RelativeLayout {
                     searchPagePending = -1;
                 }
             }
+            if (selection != null) {
+                post(new Runnable() {
+                    @Override
+                    public void run() {
+                        updateOverlays();
+                    }
+                });
+            }
         }
 
         public void overlayRemove(ScrollAdapter.PageView view) {
@@ -1919,15 +1927,13 @@ public class FBReaderView extends RelativeLayout {
 
         public void overlaysClose() {
             for (ScrollAdapter.PageHolder h : adapter.holders) {
-                ScrollView.ScrollAdapter.PageView view = h.page;
-                overlayRemove(view);
+                overlayRemove(h.page);
             }
         }
 
         public void updateOverlays() {
             for (ScrollAdapter.PageHolder h : adapter.holders) {
-                final ScrollAdapter.PageView view = h.page;
-                overlayUpdate(view);
+                overlayUpdate(h.page);
             }
         }
 
@@ -1941,8 +1947,7 @@ public class FBReaderView extends RelativeLayout {
 
         public void linksClose() {
             for (ScrollAdapter.PageHolder h : adapter.holders) {
-                ScrollView.ScrollAdapter.PageView view = h.page;
-                linksRemove(view);
+                linksRemove(h.page);
             }
         }
 
