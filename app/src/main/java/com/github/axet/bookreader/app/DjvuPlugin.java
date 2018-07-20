@@ -510,6 +510,8 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         public Bounds getBounds(PluginView.Selection.Page page) {
             Bounds bounds = new Bounds();
             SearchPage p = pages.get(page.page);
+            if (p == null)
+                return null;
             ArrayList<Rect> rr = new ArrayList<>();
             for (int i = 0; i < p.rr.size(); i++) {
                 SearchResult r = p.rr.get(i);
@@ -563,8 +565,9 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             if (index == -1 && page != -1) {
                 for (int i = all.size() - 1; i >= 0; i--) {
                     if (all.get(i).page <= page) {
-                        index = i;
-                        return all.get(i).page;
+                        for (; i >= 0 && all.get(i).page == page; i--)
+                            index = i;
+                        return all.get(index).page;
                     }
                 }
             }

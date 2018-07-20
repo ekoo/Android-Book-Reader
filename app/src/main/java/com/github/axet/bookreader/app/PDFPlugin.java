@@ -497,6 +497,8 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         public Bounds getBounds(PluginView.Selection.Page page) {
             Bounds bounds = new Bounds();
             ArrayList<SearchResult> list = pages.get(page.page);
+            if (list == null)
+                return null;
             Pdfium.Page p = pdfium.openPage(page.page);
             Pdfium.Text t = p.open();
             ArrayList<Rect> rr = new ArrayList<>();
@@ -555,8 +557,9 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             if (index == -1 && page != -1) {
                 for (int i = all.size() - 1; i >= 0; i--) {
                     if (all.get(i).page <= page) {
-                        index = i;
-                        return all.get(i).page;
+                        for (; i >= 0 && all.get(i).page == page; i--)
+                            index = i;
+                        return all.get(index).page;
                     }
                 }
             }
