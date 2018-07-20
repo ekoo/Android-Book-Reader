@@ -446,12 +446,6 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         public int start;
         public int end;
 
-        public SearchResult(int p, Pdfium.TextResult t) {
-            page = p;
-            start = t.start;
-            end = t.start + t.count;
-        }
-
         public SearchResult(int p, int i, int c) {
             page = p;
             start = i;
@@ -476,14 +470,9 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             this.index = -1;
             this.page = -1;
             this.str = str;
-            if (str == null || str.isEmpty())
-                return;
-            for (int i = 0; i < pdfium.getPagesCount(); i++) {
-                search(i);
-            }
         }
 
-        void search(int i) {
+        ArrayList<SearchResult> search(int i) {
             Pdfium.Page page = pdfium.openPage(i);
             Pdfium.Text text = page.open();
             String pattern = str.toLowerCase(Locale.US);
@@ -495,13 +484,13 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 while (index != -1) {
                     SearchResult ss = new SearchResult(i, index, pattern.length());
                     rr.add(ss);
-                    all.add(ss);
                     index = str.indexOf(pattern, index + 1);
                 }
             }
             pages.put(i, rr);
             text.close();
             page.close();
+            return rr;
         }
 
         @Override
@@ -549,6 +538,11 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             }
             index++;
             if (index >= all.size()) {
+                for (int i = all.get(index - 1).page + 1; i < pdfium.getPagesCount(); i++) {
+                    all.addAll(search(i));
+                    if (index < all.size())
+                        return all.get(index).page;
+                }
                 index = all.size() - 1;
             }
             return all.get(index).page;
@@ -568,6 +562,13 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             }
             index--;
             if (index < 0) {
+                SearchResult r = all.get(0);
+                for (int i = r.page - 1; i > 0; i--) {
+                    all.addAll(0, search(i));
+                    index = all.indexOf(r) - 1;
+                    if (index >= 0)
+                        return all.get(index).page;
+                }
                 index = 0;
             }
             return all.get(index).page;
@@ -576,6 +577,13 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         @Override
         public void setPage(int page) {
             this.page = page;
+            if (str == null || str.isEmpty())
+                return;
+            for (int i = 0; i < pdfium.getPagesCount(); i++) {
+                all.addAll(search(PluginView.Selection.odd(page, i, pdfium.getPagesCount())));
+                if (all.size() > 0)
+                    return;
+            }
         }
 
         @Override

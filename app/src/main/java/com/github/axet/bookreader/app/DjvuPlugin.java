@@ -53,7 +53,6 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         return new DjvuPlugin(info);
     }
 
-
     public static PluginView.Selection.Point toPage(DjvuLibre.Page info, int w, int h, PluginView.Selection.Point point) {
         return new PluginView.Selection.Point(point.x * info.width / w, info.height - point.y * info.height / h);
     }
@@ -467,39 +466,26 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             this.index = -1;
             this.page = -1;
             this.str = str;
-            if (str == null || str.isEmpty())
-                return;
-            for (int i = 0; i < doc.getPagesCount(); i++) {
-                search(i);
-            }
         }
 
-        SearchPage open(int page) {
+        SearchPage search(int page) {
             SearchPage pp = pages.get(page);
-            if (pp == null) {
-                pp = new SearchPage();
-                pages.put(page, pp);
-
-                pp.page = page;
-
-                pp.info = doc.getPageInfo(page);
-
-                int[] types = new int[]{DjvuLibre.ZONE_CHARACTER, DjvuLibre.ZONE_WORD, DjvuLibre.ZONE_LINE,
-                        DjvuLibre.ZONE_PARAGRAPH, DjvuLibre.ZONE_REGION, DjvuLibre.ZONE_COLUMN,
-                        DjvuLibre.ZONE_PAGE};
-                for (int type : types) {
-                    pp.text = doc.getText(page, type);
-                    if (pp.text != null && pp.text.bounds.length != 0)
-                        break;
-                }
+            if (pp != null)
+                return pp;
+            pp = new SearchPage();
+            pages.put(page, pp);
+            pp.page = page;
+            pp.info = doc.getPageInfo(page);
+            int[] types = new int[]{DjvuLibre.ZONE_CHARACTER, DjvuLibre.ZONE_WORD, DjvuLibre.ZONE_LINE,
+                    DjvuLibre.ZONE_PARAGRAPH, DjvuLibre.ZONE_REGION, DjvuLibre.ZONE_COLUMN,
+                    DjvuLibre.ZONE_PAGE};
+            for (int type : types) {
+                pp.text = doc.getText(page, type);
+                if (pp.text != null && pp.text.bounds.length != 0)
+                    break;
             }
-            return pp;
-        }
-
-        void search(int page) {
-            SearchPage pp = open(page);
             if (pp.text == null)
-                return;
+                return pp;
             String find = str.toLowerCase(Locale.US);
             StringBuilder b = new StringBuilder();
             for (int i = 0; i < pp.text.text.length; i++) {
@@ -515,9 +501,9 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
                 int end = start + find.length();
                 SearchResult ss = new SearchResult(page, pp.find(start), pp.find(end) + 1);
                 pp.rr.add(ss);
-                all.add(ss);
                 start = str.indexOf(find, start + 1);
             }
+            return pp;
         }
 
         @Override
@@ -560,6 +546,11 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             }
             index++;
             if (index >= all.size()) {
+                for (int i = all.get(index - 1).page + 1; i < doc.getPagesCount(); i++) {
+                    all.addAll(search(i).rr);
+                    if (index < all.size())
+                        return all.get(index).page;
+                }
                 index = all.size() - 1;
             }
             return all.get(index).page;
@@ -578,14 +569,29 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
                 }
             }
             index--;
-            if (index < 0)
+            if (index < 0) {
+                SearchResult r = all.get(0);
+                for (int i = r.page - 1; i > 0; i--) {
+                    all.addAll(0, search(i).rr);
+                    index = all.indexOf(r) - 1;
+                    if (index >= 0)
+                        return all.get(index).page;
+                }
                 index = 0;
+            }
             return all.get(index).page;
         }
 
         @Override
         public void setPage(int page) {
             this.page = page;
+            if (str == null || str.isEmpty())
+                return;
+            for (int i = 0; i < doc.getPagesCount(); i++) {
+                all.addAll(search(PDFPlugin.Selection.odd(page, i, doc.getPagesCount())).rr);
+                if (all.size() != 0)
+                    return;
+            }
         }
 
         @Override

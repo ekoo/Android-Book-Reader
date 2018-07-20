@@ -2702,13 +2702,13 @@ public class FBReaderView extends RelativeLayout {
                         if (pluginview != null) {
                             searchClose();
                             search = pluginview.search(pattern);
+                            search.setPage(getPosition().getParagraphIndex());
                             a.runOnUiThread(new Runnable() {
                                 public void run() {
                                     if (search.getCount() == 0) {
                                         UIMessageUtil.showErrorMessage(a, "textNotFound");
                                         popup.StartPosition = null;
                                     } else {
-                                        search.setPage(getPosition().getParagraphIndex());
                                         if (widget instanceof ScrollView) {
                                             ((ScrollView) widget).updateOverlays();
                                         }
@@ -3099,15 +3099,29 @@ public class FBReaderView extends RelativeLayout {
             @Override
             protected void run(Object... params) {
                 if (search != null) {
-                    int page = search.prev();
-                    if (widget instanceof ScrollView) {
-                        ((ScrollView) widget).searchPage(page);
-                        return;
-                    }
-                    if (widget instanceof FBAndroidWidget) {
-                        ((FBAndroidWidget) widget).searchPage(page);
-                        return;
-                    }
+                    Runnable run = new Runnable() {
+                        @Override
+                        public void run() {
+                            final int page = search.prev();
+                            if (page == -1)
+                                return;
+                            post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (widget instanceof ScrollView) {
+                                        ((ScrollView) widget).searchPage(page);
+                                        return;
+                                    }
+                                    if (widget instanceof FBAndroidWidget) {
+                                        ((FBAndroidWidget) widget).searchPage(page);
+                                        return;
+                                    }
+                                }
+                            });
+                        }
+                    };
+                    UIUtil.wait("search", run, getContext());
+                    return;
                 } else {
                     app.BookTextView.findPrevious();
                 }
@@ -3118,17 +3132,29 @@ public class FBReaderView extends RelativeLayout {
             @Override
             protected void run(Object... params) {
                 if (search != null) {
-                    int page = search.next();
-                    if (page != -1) {
-                        if (widget instanceof ScrollView) {
-                            ((ScrollView) widget).searchPage(page);
-                            return;
+                    Runnable run = new Runnable() {
+                        @Override
+                        public void run() {
+                            final int page = search.next();
+                            if (page == -1)
+                                return;
+                            post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (widget instanceof ScrollView) {
+                                        ((ScrollView) widget).searchPage(page);
+                                        return;
+                                    }
+                                    if (widget instanceof FBAndroidWidget) {
+                                        ((FBAndroidWidget) widget).searchPage(page);
+                                        return;
+                                    }
+                                }
+                            });
                         }
-                        if (widget instanceof FBAndroidWidget) {
-                            ((FBAndroidWidget) widget).searchPage(page);
-                            return;
-                        }
-                    }
+                    };
+                    UIUtil.wait("search", run, getContext());
+                    return;
                 } else {
                     app.BookTextView.findNext();
                 }

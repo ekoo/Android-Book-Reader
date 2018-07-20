@@ -37,6 +37,20 @@ public class PluginView {
     public Reflow reflower;
 
     public static class Selection { // plugin coords (render bm size's)
+
+        public static int odd(int i) {
+            return ((i + 1) / 2) * ((i + 1) % 2 - i % 2);
+        }
+
+        public static int odd(int page, int i, int max) {
+            int p = page + odd(i);
+            if (page <= i / 2)
+                p = i;
+            if (page + i / 2 >= max)
+                p = max - i - 1;
+            return p;
+        }
+
         public interface Setter {
             void setStart(int x, int y);
 
