@@ -883,6 +883,7 @@ public class FBReaderView extends RelativeLayout {
             Thread thread;
             PluginRect size = new PluginRect(); // ScrollView size, after reset
             Set<PageHolder> invalidates = new HashSet<>(); // pending invalidates
+            ArrayList<PageHolder> holders = new ArrayList<>(); // keep all active holders, including Recycler.mCachedViews
 
             public class PageView extends View {
                 public PageHolder holder;
@@ -1305,6 +1306,7 @@ public class FBReaderView extends RelativeLayout {
             @Override
             public void onBindViewHolder(PageHolder holder, int position) {
                 holder.page.holder = holder;
+                holders.add(holder);
             }
 
             @Override
@@ -1312,14 +1314,7 @@ public class FBReaderView extends RelativeLayout {
                 super.onViewRecycled(holder);
                 holder.page.recycle();
                 holder.page.holder = null;
-            }
-
-            @Override
-            public void onViewDetachedFromWindow(PageHolder holder) {
-                super.onViewDetachedFromWindow(holder);
-                linksRemove(holder.page);
-                searchRemove(holder.page);
-                selectionRemove(holder.page);
+                holders.remove(holder);
             }
 
             @Override
@@ -1721,8 +1716,8 @@ public class FBReaderView extends RelativeLayout {
         }
 
         ScrollAdapter.PageView findRegionView(ZLTextRegion.Soul soul) {
-            for (int i = 0; i < lm.getChildCount(); i++) {
-                ScrollAdapter.PageView view = (ScrollAdapter.PageView) lm.getChildAt(i);
+            for (ScrollAdapter.PageHolder h : adapter.holders) {
+                ScrollAdapter.PageView view = h.page;
                 if (view.text != null && view.text.getRegion(soul) != null)
                     return view;
             }
@@ -1923,15 +1918,15 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public void overlaysClose() {
-            for (int i = 0; i < lm.getChildCount(); i++) {
-                ScrollView.ScrollAdapter.PageView view = (ScrollView.ScrollAdapter.PageView) lm.getChildAt(i);
+            for (ScrollAdapter.PageHolder h : adapter.holders) {
+                ScrollView.ScrollAdapter.PageView view = h.page;
                 overlayRemove(view);
             }
         }
 
         public void updateOverlays() {
-            for (int i = 0; i < lm.getChildCount(); i++) {
-                final ScrollAdapter.PageView view = (ScrollAdapter.PageView) lm.getChildAt(i);
+            for (ScrollAdapter.PageHolder h : adapter.holders) {
+                final ScrollAdapter.PageView view = h.page;
                 overlayUpdate(view);
             }
         }
@@ -1945,8 +1940,8 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public void linksClose() {
-            for (int i = 0; i < lm.getChildCount(); i++) {
-                ScrollView.ScrollAdapter.PageView view = (ScrollView.ScrollAdapter.PageView) lm.getChildAt(i);
+            for (ScrollAdapter.PageHolder h : adapter.holders) {
+                ScrollView.ScrollAdapter.PageView view = h.page;
                 linksRemove(view);
             }
         }
@@ -2022,13 +2017,12 @@ public class FBReaderView extends RelativeLayout {
                 pluginview.gotoPosition(new ZLTextFixedPosition(page, 0, 0));
                 resetNewPosition();
             } else {
-                for (int i = 0; i < lm.getChildCount(); i++) {
-                    final ScrollAdapter.PageView view = (ScrollAdapter.PageView) lm.getChildAt(i);
-                    int pos = view.holder.getAdapterPosition();
+                for (ScrollAdapter.PageHolder holder : adapter.holders) {
+                    int pos = holder.getAdapterPosition();
                     if (pos != -1) {
                         ScrollAdapter.PageCursor c = adapter.pages.get(pos);
                         if (c.start != null && c.start.getParagraphIndex() == page) {
-                            PluginView.Selection.Page p = pluginview.selectPage(c.start, view.info, view.getWidth(), view.getHeight());
+                            PluginView.Selection.Page p = pluginview.selectPage(c.start, holder.page.info, holder.page.getWidth(), holder.page.getHeight());
                             PluginView.Search.Bounds bb = search.getBounds(p);
                             if (bb.rr != null) {
                                 if (bb.highlight != null) {
@@ -2037,25 +2031,25 @@ public class FBReaderView extends RelativeLayout {
                                         if (hh.contains(r)) {
                                             int h = getMainAreaHeight();
                                             int bottom = getTop() + h;
-                                            int y = r.top + view.getTop();
+                                            int y = r.top + holder.page.getTop();
                                             if (y > bottom) {
                                                 int dy = y - bottom;
                                                 int pages = dy / getHeight() + 1;
                                                 smoothScrollBy(0, pages * h);
                                             } else {
-                                                y = r.bottom + view.getTop();
+                                                y = r.bottom + holder.page.getTop();
                                                 if (y > bottom) {
                                                     int dy = y - bottom;
                                                     smoothScrollBy(0, dy);
                                                 }
                                             }
-                                            y = r.bottom + view.getTop();
+                                            y = r.bottom + holder.page.getTop();
                                             if (y < getTop()) {
                                                 int dy = y - getTop();
                                                 int pages = dy / getHeight() - 1;
                                                 smoothScrollBy(0, pages * h);
                                             } else {
-                                                y = r.top + view.getTop();
+                                                y = r.top + holder.page.getTop();
                                                 if (y < getTop()) {
                                                     int dy = y - getTop();
                                                     smoothScrollBy(0, dy);
@@ -2079,9 +2073,8 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public void searchClose() {
-            for (int i = 0; i < lm.getChildCount(); i++) {
-                ScrollView.ScrollAdapter.PageView view = (ScrollView.ScrollAdapter.PageView) lm.getChildAt(i);
-                searchRemove(view);
+            for (ScrollAdapter.PageHolder h : adapter.holders) {
+                searchRemove(h.page);
             }
         }
 
@@ -2122,9 +2115,8 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public void selectionClose() {
-            for (int i = 0; i < lm.getChildCount(); i++) {
-                ScrollView.ScrollAdapter.PageView view = (ScrollView.ScrollAdapter.PageView) lm.getChildAt(i);
-                selectionRemove(view);
+            for (ScrollAdapter.PageHolder h : adapter.holders) {
+                selectionRemove(h.page);
             }
         }
 
@@ -2445,7 +2437,7 @@ public class FBReaderView extends RelativeLayout {
             else
                 clip = ((ZLAndroidWidget) widget).getMainAreaHeight();
             padding = ThemeUtils.dp2px(getContext(), SelectionView.SELECTION_PADDING);
-            if (bb.rr == null)
+            if (bb == null || bb.rr == null)
                 return;
             if (pluginview.reflow)
                 bb.rr = pluginview.boundsUpdate(bb.rr, info);
@@ -2702,13 +2694,13 @@ public class FBReaderView extends RelativeLayout {
                         if (pluginview != null) {
                             searchClose();
                             search = pluginview.search(pattern);
+                            search.setPage(getPosition().getParagraphIndex());
                             a.runOnUiThread(new Runnable() {
                                 public void run() {
                                     if (search.getCount() == 0) {
                                         UIMessageUtil.showErrorMessage(a, "textNotFound");
                                         popup.StartPosition = null;
                                     } else {
-                                        search.setPage(getPosition().getParagraphIndex());
                                         if (widget instanceof ScrollView) {
                                             ((ScrollView) widget).updateOverlays();
                                         }
@@ -3099,15 +3091,29 @@ public class FBReaderView extends RelativeLayout {
             @Override
             protected void run(Object... params) {
                 if (search != null) {
-                    int page = search.prev();
-                    if (widget instanceof ScrollView) {
-                        ((ScrollView) widget).searchPage(page);
-                        return;
-                    }
-                    if (widget instanceof FBAndroidWidget) {
-                        ((FBAndroidWidget) widget).searchPage(page);
-                        return;
-                    }
+                    Runnable run = new Runnable() {
+                        @Override
+                        public void run() {
+                            final int page = search.prev();
+                            if (page == -1)
+                                return;
+                            post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (widget instanceof ScrollView) {
+                                        ((ScrollView) widget).searchPage(page);
+                                        return;
+                                    }
+                                    if (widget instanceof FBAndroidWidget) {
+                                        ((FBAndroidWidget) widget).searchPage(page);
+                                        return;
+                                    }
+                                }
+                            });
+                        }
+                    };
+                    UIUtil.wait("search", run, getContext());
+                    return;
                 } else {
                     app.BookTextView.findPrevious();
                 }
@@ -3118,17 +3124,29 @@ public class FBReaderView extends RelativeLayout {
             @Override
             protected void run(Object... params) {
                 if (search != null) {
-                    int page = search.next();
-                    if (page != -1) {
-                        if (widget instanceof ScrollView) {
-                            ((ScrollView) widget).searchPage(page);
-                            return;
+                    Runnable run = new Runnable() {
+                        @Override
+                        public void run() {
+                            final int page = search.next();
+                            if (page == -1)
+                                return;
+                            post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (widget instanceof ScrollView) {
+                                        ((ScrollView) widget).searchPage(page);
+                                        return;
+                                    }
+                                    if (widget instanceof FBAndroidWidget) {
+                                        ((FBAndroidWidget) widget).searchPage(page);
+                                        return;
+                                    }
+                                }
+                            });
                         }
-                        if (widget instanceof FBAndroidWidget) {
-                            ((FBAndroidWidget) widget).searchPage(page);
-                            return;
-                        }
-                    }
+                    };
+                    UIUtil.wait("search", run, getContext());
+                    return;
                 } else {
                     app.BookTextView.findNext();
                 }
