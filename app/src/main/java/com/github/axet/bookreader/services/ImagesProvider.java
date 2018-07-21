@@ -20,6 +20,10 @@ public class ImagesProvider extends StorageProvider {
 
     public static final String EXT = "png";
 
+    public static ImagesProvider getProvider() {
+        return (ImagesProvider) infos.get(ImagesProvider.class);
+    }
+
     @Nullable
     @Override
     public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {

@@ -1909,6 +1909,14 @@ public class FBReaderView extends RelativeLayout {
                     searchPagePending = -1;
                 }
             }
+            if (selection != null) {
+                post(new Runnable() {
+                    @Override
+                    public void run() {
+                        updateOverlays();
+                    }
+                });
+            }
         }
 
         public void overlayRemove(ScrollAdapter.PageView view) {
@@ -1919,15 +1927,13 @@ public class FBReaderView extends RelativeLayout {
 
         public void overlaysClose() {
             for (ScrollAdapter.PageHolder h : adapter.holders) {
-                ScrollView.ScrollAdapter.PageView view = h.page;
-                overlayRemove(view);
+                overlayRemove(h.page);
             }
         }
 
         public void updateOverlays() {
             for (ScrollAdapter.PageHolder h : adapter.holders) {
-                final ScrollAdapter.PageView view = h.page;
-                overlayUpdate(view);
+                overlayUpdate(h.page);
             }
         }
 
@@ -1941,8 +1947,7 @@ public class FBReaderView extends RelativeLayout {
 
         public void linksClose() {
             for (ScrollAdapter.PageHolder h : adapter.holders) {
-                ScrollView.ScrollAdapter.PageView view = h.page;
-                linksRemove(view);
+                linksRemove(h.page);
             }
         }
 
@@ -2836,7 +2841,7 @@ public class FBReaderView extends RelativeLayout {
                                 case R.id.action_open: {
                                     String t = image.ImageElement.Id;
                                     String type = Storage.getTypeByExt(ImagesProvider.EXT);
-                                    Uri uri = ImagesProvider.share(getContext(), Uri.parse(image.ImageElement.URL), t);
+                                    Uri uri = ImagesProvider.getProvider().share(getContext(), Uri.parse(image.ImageElement.URL), t);
                                     Intent intent = new Intent(Intent.ACTION_VIEW);
                                     intent.setDataAndType(uri, type);
                                     FileProvider.grantPermissions(getContext(), intent, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
@@ -2846,7 +2851,7 @@ public class FBReaderView extends RelativeLayout {
                                 case R.id.action_share: {
                                     String t = image.ImageElement.Id;
                                     String type = Storage.getTypeByExt(ImagesProvider.EXT);
-                                    Uri uri = StorageProvider.share(getContext(), Uri.parse(image.ImageElement.URL), t);
+                                    Uri uri = ImagesProvider.getProvider().share(getContext(), Uri.parse(image.ImageElement.URL), t);
                                     Intent intent = new Intent(Intent.ACTION_SEND);
                                     intent.setType(type);
                                     intent.putExtra(Intent.EXTRA_EMAIL, "");
