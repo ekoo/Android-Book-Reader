@@ -2841,7 +2841,7 @@ public class FBReaderView extends RelativeLayout {
                                 case R.id.action_open: {
                                     String t = image.ImageElement.Id;
                                     String type = Storage.getTypeByExt(ImagesProvider.EXT);
-                                    Uri uri = ImagesProvider.share(getContext(), Uri.parse(image.ImageElement.URL), t);
+                                    Uri uri = ImagesProvider.getProvider().share(getContext(), Uri.parse(image.ImageElement.URL), t);
                                     Intent intent = new Intent(Intent.ACTION_VIEW);
                                     intent.setDataAndType(uri, type);
                                     FileProvider.grantPermissions(getContext(), intent, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
@@ -2851,7 +2851,7 @@ public class FBReaderView extends RelativeLayout {
                                 case R.id.action_share: {
                                     String t = image.ImageElement.Id;
                                     String type = Storage.getTypeByExt(ImagesProvider.EXT);
-                                    Uri uri = StorageProvider.share(getContext(), Uri.parse(image.ImageElement.URL), t);
+                                    Uri uri = ImagesProvider.getProvider().share(getContext(), Uri.parse(image.ImageElement.URL), t);
                                     Intent intent = new Intent(Intent.ACTION_SEND);
                                     intent.setType(type);
                                     intent.putExtra(Intent.EXTRA_EMAIL, "");
