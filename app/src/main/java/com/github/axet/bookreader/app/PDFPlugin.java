@@ -75,6 +75,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         int count; // total symbols
         int w;
         int h;
+        Rect[] sorted;
 
         public SelectionPage(SelectionPage s) {
             page = s.page;
@@ -84,6 +85,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             count = s.count;
             w = s.w;
             h = s.h;
+            sorted = s.sorted;
         }
 
         public SelectionPage(Pdfium pdfium, PluginView.Selection.Page page) {
@@ -102,12 +104,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             this.w = w;
             this.h = h;
             this.index = -1;
+            this.sorted = text.getBounds(0, count);
+            Arrays.sort(this.sorted, new UL());
         }
 
-        public int findFirstSymbol() {
-            Rect[] rr = text.getBounds(0, count);
-            Arrays.sort(rr, new UL());
-            for (Rect r : rr) {
+        public int first() {
+            for (Rect r : sorted) {
                 Rect k = new Rect(r);
                 int index;
                 do {
@@ -179,14 +181,14 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                         ss++;
                 } else if (e.page == p) {
                     page = e;
-                    ss = e.findFirstSymbol();
+                    ss = e.first();
                     ee = e.index + 1;
                     cc = ee - ss;
                     first = false;
                     last = true;
                 } else {
                     page = open(p);
-                    ss = page.findFirstSymbol();
+                    ss = page.first();
                     ee = page.count;
                     cc = ee - ss;
                     first = false;

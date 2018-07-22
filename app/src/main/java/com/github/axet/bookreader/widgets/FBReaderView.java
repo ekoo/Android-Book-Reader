@@ -30,6 +30,7 @@ import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -49,7 +50,6 @@ import android.widget.TextView;
 
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.services.FileProvider;
-import com.github.axet.androidlibrary.services.StorageProvider;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
@@ -2368,8 +2368,7 @@ public class FBReaderView extends RelativeLayout {
                         @Override
                         public void onClick(View v) {
                             if (l.index != -1) {
-                                gotoPluginPosition(new ZLTextFixedPosition(l.index, 0, 0));
-                                resetNewPosition();
+                                app.runAction(ActionCode.PROCESS_HYPERLINK, new BookModel.Label(null, l.index));
                             } else {
                                 AboutPreferenceCompat.openUrlDialog(getContext(), l.url);
                             }
@@ -2748,6 +2747,11 @@ public class FBReaderView extends RelativeLayout {
         app.addAction(ActionCode.PROCESS_HYPERLINK, new FBAction(app) {
             @Override
             protected void run(Object... params) {
+                if (pluginview != null) {
+                    BookModel.Label l = (BookModel.Label) params[0];
+                    showHyperlink(l);
+                    return;
+                }
                 final ZLTextRegion region = app.BookTextView.getOutlinedRegion();
                 if (region == null) {
                     return;
@@ -3204,6 +3208,11 @@ public class FBReaderView extends RelativeLayout {
     }
 
     void showHyperlink(final ZLTextHyperlink hyperlink) {
+        final BookModel.Label label = app.Model.getLabel(hyperlink.Id);
+        showHyperlink(label);
+    }
+
+    void showHyperlink(final BookModel.Label label) {
         Context context = getContext();
 
         LinearLayout ll = new LinearLayout(context);
@@ -3228,6 +3237,12 @@ public class FBReaderView extends RelativeLayout {
         r.app.addAction(ActionCode.PROCESS_HYPERLINK, new FBAction(r.app) {
             @Override
             protected void run(Object... params) {
+                if (r.pluginview != null) {
+                    BookModel.Label l = (BookModel.Label) params[0];
+                    r.app.BookTextView.gotoPosition(l.ParagraphIndex, 0, 0);
+                    r.resetNewPosition();
+                    return;
+                }
                 final ZLTextRegion region = r.app.BookTextView.getOutlinedRegion();
                 if (region == null) {
                     return;
@@ -3281,21 +3296,20 @@ public class FBReaderView extends RelativeLayout {
         final AlertDialog dialog = builder.create();
         dialog.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
-            public void onShow(DialogInterface dialog) {
+            public void onShow(DialogInterface d) {
+                Window w = dialog.getWindow();
+                DisplayMetrics dm = getResources().getDisplayMetrics();
+                w.setLayout(ViewGroup.LayoutParams.WRAP_CONTENT, dm.heightPixels);
                 r.loadBook(book);
-                final BookModel.Label label = r.app.Model.getLabel(hyperlink.Id);
-                if (label != null) {
-                    if (label.ModelId == null) {
-                        r.app.BookTextView.gotoPosition(0, 0, 0);
-                        r.app.setView(r.app.BookTextView);
-                    } else {
-                        final ZLTextModel model = r.app.Model.getFootnoteModel(label.ModelId);
-                        r.app.BookTextView.setModel(model);
-                        r.app.setView(r.app.BookTextView);
-                        r.app.BookTextView.gotoPosition(label.ParagraphIndex, 0, 0);
-                    }
+                if (label.ModelId == null) {
+                    r.app.BookTextView.gotoPosition(label.ParagraphIndex, 0, 0);
+                    r.app.setView(r.app.BookTextView);
+                } else {
+                    final ZLTextModel model = r.app.Model.getFootnoteModel(label.ModelId);
+                    r.app.BookTextView.setModel(model);
+                    r.app.setView(r.app.BookTextView);
+                    r.app.BookTextView.gotoPosition(label.ParagraphIndex, 0, 0);
                 }
-                r.app.tryOpenFootnote(hyperlink.Id);
             }
         });
         c.setOnClickListener(new OnClickListener() {
