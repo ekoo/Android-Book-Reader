@@ -1,5 +1,8 @@
 package com.github.axet.bookreader.widgets;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
@@ -15,12 +18,14 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.ScaleGestureDetectorCompat;
+import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.DividerItemDecoration;
@@ -2654,6 +2659,34 @@ public class FBReaderView extends RelativeLayout {
                     config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption, book.info.fontsize);
             }
             widget.repaint();
+            final ActiveAreasView areas = new ActiveAreasView(getContext());
+            areas.create(app);
+            addView(areas);
+            postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (Build.VERSION.SDK_INT >= 11) {
+                        ValueAnimator v = ValueAnimator.ofFloat(1f, 0f);
+                        v.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                            @Override
+                            @TargetApi(11)
+                            public void onAnimationUpdate(ValueAnimator animation) {
+                                ViewCompat.setAlpha(areas, (float) animation.getAnimatedValue());
+                            }
+                        });
+                        v.addListener(new AnimatorListenerAdapter() {
+                            @Override
+                            public void onAnimationEnd(Animator animation) {
+                                removeView(areas);
+                            }
+                        });
+                        v.setDuration(500);
+                        v.start();
+                    } else {
+                        removeView(areas);
+                    }
+                }
+            }, 3000);
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
