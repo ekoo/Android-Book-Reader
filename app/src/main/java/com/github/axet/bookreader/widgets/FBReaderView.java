@@ -1,5 +1,8 @@
 package com.github.axet.bookreader.widgets;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
@@ -15,12 +18,14 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.ScaleGestureDetectorCompat;
+import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.DividerItemDecoration;
@@ -49,7 +54,6 @@ import android.widget.TextView;
 
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.services.FileProvider;
-import com.github.axet.androidlibrary.services.StorageProvider;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
@@ -544,6 +548,7 @@ public class FBReaderView extends RelativeLayout {
             searchs.clear();
         }
 
+        @SuppressWarnings("unchecked")
         public void searchPage(int page) {
             int w = getWidth();
             int h = getMainAreaHeight();
@@ -1987,6 +1992,7 @@ public class FBReaderView extends RelativeLayout {
             }
         }
 
+        @SuppressWarnings("unchecked")
         public void searchPage(int page) {
             if (pluginview.reflow) {
                 if (pluginview.reflower != null && pluginview.reflower.page == page) {
@@ -2368,8 +2374,7 @@ public class FBReaderView extends RelativeLayout {
                         @Override
                         public void onClick(View v) {
                             if (l.index != -1) {
-                                gotoPluginPosition(new ZLTextFixedPosition(l.index, 0, 0));
-                                resetNewPosition();
+                                app.runAction(ActionCode.PROCESS_HYPERLINK, new BookModel.Label(null, l.index));
                             } else {
                                 AboutPreferenceCompat.openUrlDialog(getContext(), l.url);
                             }
@@ -2436,6 +2441,7 @@ public class FBReaderView extends RelativeLayout {
             }
         }
 
+        @SuppressWarnings("unchecked")
         public SearchView(PluginView.Search.Bounds bb, Reflow.Info info) {
             if (widget instanceof ScrollView)
                 clip = ((ScrollView) widget).getMainAreaHeight();
@@ -2653,6 +2659,34 @@ public class FBReaderView extends RelativeLayout {
                     config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption, book.info.fontsize);
             }
             widget.repaint();
+            final ActiveAreasView areas = new ActiveAreasView(getContext());
+            areas.create(app);
+            addView(areas);
+            postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (Build.VERSION.SDK_INT >= 11) {
+                        ValueAnimator v = ValueAnimator.ofFloat(1f, 0f);
+                        v.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                            @Override
+                            @TargetApi(11)
+                            public void onAnimationUpdate(ValueAnimator animation) {
+                                ViewCompat.setAlpha(areas, (float) animation.getAnimatedValue());
+                            }
+                        });
+                        v.addListener(new AnimatorListenerAdapter() {
+                            @Override
+                            public void onAnimationEnd(Animator animation) {
+                                removeView(areas);
+                            }
+                        });
+                        v.setDuration(500);
+                        v.start();
+                    } else {
+                        removeView(areas);
+                    }
+                }
+            }, 3000);
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
@@ -2748,6 +2782,11 @@ public class FBReaderView extends RelativeLayout {
         app.addAction(ActionCode.PROCESS_HYPERLINK, new FBAction(app) {
             @Override
             protected void run(Object... params) {
+                if (pluginview != null) {
+                    BookModel.Label l = (BookModel.Label) params[0];
+                    showHyperlink(l);
+                    return;
+                }
                 final ZLTextRegion region = app.BookTextView.getOutlinedRegion();
                 if (region == null) {
                     return;
@@ -3204,6 +3243,11 @@ public class FBReaderView extends RelativeLayout {
     }
 
     void showHyperlink(final ZLTextHyperlink hyperlink) {
+        final BookModel.Label label = app.Model.getLabel(hyperlink.Id);
+        showHyperlink(label);
+    }
+
+    void showHyperlink(final BookModel.Label label) {
         Context context = getContext();
 
         LinearLayout ll = new LinearLayout(context);
@@ -3228,6 +3272,12 @@ public class FBReaderView extends RelativeLayout {
         r.app.addAction(ActionCode.PROCESS_HYPERLINK, new FBAction(r.app) {
             @Override
             protected void run(Object... params) {
+                if (r.pluginview != null) {
+                    BookModel.Label l = (BookModel.Label) params[0];
+                    r.app.BookTextView.gotoPosition(l.ParagraphIndex, 0, 0);
+                    r.resetNewPosition();
+                    return;
+                }
                 final ZLTextRegion region = r.app.BookTextView.getOutlinedRegion();
                 if (region == null) {
                     return;
@@ -3267,12 +3317,14 @@ public class FBReaderView extends RelativeLayout {
             public void onDismiss(DialogInterface dialog) {
             }
         });
-        builder.setNeutralButton(R.string.keep_reading_position, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                gotoPosition(r.getPosition());
-            }
-        });
+        if (label.ModelId == null) {
+            builder.setNeutralButton(R.string.keep_reading_position, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    gotoPosition(r.getPosition());
+                }
+            });
+        }
         builder.setPositiveButton(R.string.close, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -3281,21 +3333,19 @@ public class FBReaderView extends RelativeLayout {
         final AlertDialog dialog = builder.create();
         dialog.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
-            public void onShow(DialogInterface dialog) {
+            public void onShow(DialogInterface d) {
+                Window w = dialog.getWindow();
+                w.setLayout(getWidth(), getHeight()); // fixed size after creation
                 r.loadBook(book);
-                final BookModel.Label label = r.app.Model.getLabel(hyperlink.Id);
-                if (label != null) {
-                    if (label.ModelId == null) {
-                        r.app.BookTextView.gotoPosition(0, 0, 0);
-                        r.app.setView(r.app.BookTextView);
-                    } else {
-                        final ZLTextModel model = r.app.Model.getFootnoteModel(label.ModelId);
-                        r.app.BookTextView.setModel(model);
-                        r.app.setView(r.app.BookTextView);
-                        r.app.BookTextView.gotoPosition(label.ParagraphIndex, 0, 0);
-                    }
+                if (label.ModelId == null) {
+                    r.app.BookTextView.gotoPosition(label.ParagraphIndex, 0, 0);
+                    r.app.setView(r.app.BookTextView);
+                } else {
+                    final ZLTextModel model = r.app.Model.getFootnoteModel(label.ModelId);
+                    r.app.BookTextView.setModel(model);
+                    r.app.setView(r.app.BookTextView);
+                    r.app.BookTextView.gotoPosition(label.ParagraphIndex, 0, 0);
                 }
-                r.app.tryOpenFootnote(hyperlink.Id);
             }
         });
         c.setOnClickListener(new OnClickListener() {

@@ -41,4 +41,5 @@
     <string name="image_original_size_all_images">Оригинальный размер (все изображения)</string>
     <string name="image_fit_to_screen_all_images">Растянуть на весь экран (все изображения)</string>
     <string name="keep_reading_position">Сохранить позицию</string>
+    <string name="add_more_fonts_to">Дополнительные шрифты загружать в \'%s\'</string>
 </resources>
