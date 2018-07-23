@@ -42,4 +42,9 @@
     <string name="image_fit_to_screen_all_images">Растянуть на весь экран (все изображения)</string>
     <string name="keep_reading_position">Сохранить позицию</string>
     <string name="add_more_fonts_to">Дополнительные шрифты загружать в \'%s\'</string>
+    <string name="controls_fullscreen">Fullscreen</string>
+    <string name="controls_navigate">Navigate</string>
+    <string name="controls_nextpage">Next page</string>
+    <string name="controls_prevpage">Previous page</string>
+    <string name="controls_brightness">Brightness</string>
 </resources>

@@ -15,6 +15,7 @@ import android.widget.FrameLayout;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
+import com.github.axet.bookreader.R;
 
 import org.geometerplus.fbreader.fbreader.TapZoneMap;
 import org.geometerplus.fbreader.fbreader.options.PageTurningOptions;
@@ -30,11 +31,11 @@ public class ActiveAreasView extends FrameLayout {
     HashMap<String, String> names = new HashMap<>();
 
     {
-        names.put("menu", "Fullscreen");
-        names.put("navigate", "Navigate");
-        names.put("nextPage", "Next page");
-        names.put("previousPage", "Previous page");
-        names.put("brightness", "Brightness");
+        names.put("menu", getContext().getString(R.string.controls_fullscreen));
+        names.put("navigate", getContext().getString(R.string.controls_navigate));
+        names.put("nextPage", getContext().getString(R.string.controls_nextpage));
+        names.put("previousPage", getContext().getString(R.string.controls_prevpage));
+        names.put("brightness", getContext().getString(R.string.controls_brightness));
     }
 
     public class ZoneView extends FrameLayout {
