@@ -30,7 +30,6 @@ import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
-import android.util.DisplayMetrics;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -544,6 +543,7 @@ public class FBReaderView extends RelativeLayout {
             searchs.clear();
         }
 
+        @SuppressWarnings("unchecked")
         public void searchPage(int page) {
             int w = getWidth();
             int h = getMainAreaHeight();
@@ -1987,6 +1987,7 @@ public class FBReaderView extends RelativeLayout {
             }
         }
 
+        @SuppressWarnings("unchecked")
         public void searchPage(int page) {
             if (pluginview.reflow) {
                 if (pluginview.reflower != null && pluginview.reflower.page == page) {
@@ -2435,6 +2436,7 @@ public class FBReaderView extends RelativeLayout {
             }
         }
 
+        @SuppressWarnings("unchecked")
         public SearchView(PluginView.Search.Bounds bb, Reflow.Info info) {
             if (widget instanceof ScrollView)
                 clip = ((ScrollView) widget).getMainAreaHeight();
@@ -3282,12 +3284,14 @@ public class FBReaderView extends RelativeLayout {
             public void onDismiss(DialogInterface dialog) {
             }
         });
-        builder.setNeutralButton(R.string.keep_reading_position, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                gotoPosition(r.getPosition());
-            }
-        });
+        if (label.ModelId == null) {
+            builder.setNeutralButton(R.string.keep_reading_position, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    gotoPosition(r.getPosition());
+                }
+            });
+        }
         builder.setPositiveButton(R.string.close, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -3298,8 +3302,7 @@ public class FBReaderView extends RelativeLayout {
             @Override
             public void onShow(DialogInterface d) {
                 Window w = dialog.getWindow();
-                DisplayMetrics dm = getResources().getDisplayMetrics();
-                w.setLayout(ViewGroup.LayoutParams.WRAP_CONTENT, dm.heightPixels);
+                w.setLayout(getWidth(), getHeight()); // fixed size after creation
                 r.loadBook(book);
                 if (label.ModelId == null) {
                     r.app.BookTextView.gotoPosition(label.ParagraphIndex, 0, 0);
