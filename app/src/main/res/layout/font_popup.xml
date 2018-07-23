@@ -6,10 +6,25 @@
     android:clickable="true"
     android:orientation="vertical">
 
-    <ListView
-        android:id="@+id/fonts_list"
+    <LinearLayout
+        android:id="@+id/fonts_frame"
         android:layout_width="match_parent"
-        android:layout_height="200dp" />
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <ListView
+            android:id="@+id/fonts_list"
+            android:layout_width="match_parent"
+            android:layout_height="200dp" />
+
+        <TextView
+            android:id="@+id/fonts_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:text="@string/add_more_fonts_to"
+            android:textSize="12sp" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/fontsize_text"

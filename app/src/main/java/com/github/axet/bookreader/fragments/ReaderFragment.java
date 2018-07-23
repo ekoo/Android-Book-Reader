@@ -13,6 +13,7 @@ import android.net.Uri;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
@@ -72,6 +73,8 @@ import java.util.TreeSet;
 public class ReaderFragment extends Fragment implements MainActivity.SearchListener, SharedPreferences.OnSharedPreferenceChangeListener, FullscreenActivity.FullscreenListener, MainActivity.OnBackPressed {
     public static final String TAG = ReaderFragment.class.getSimpleName();
 
+    public static final File FONTS = new File(Environment.getExternalStorageDirectory(), "Fonts");
+
     public static final int FONT_START = 15;
     public static final int FONT_END = 100;
     public static final int REFLOW_START = 3;
@@ -83,7 +86,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     FBReaderView view;
     AlertDialog tocdialog;
     FontAdapter fonts;
+    View fontsFrame;
     ListView fontsList;
+    TextView fontsText;
     View fontsize_popup;
     TextView fontsizepopup_text;
     SeekBar fontsizepopup_seek;
@@ -428,7 +433,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     }
 
     static public HashMap<String, String> enumerateFonts() {
-        String[] fontdirs = {"/system/fonts", "/system/font", "/data/fonts"};
+        String[] fontdirs = {"/system/fonts", "/system/font", "/data/fonts", FONTS.toString()};
         HashMap<String, String> fonts = new HashMap<>();
         TTFAnalyzer a = new TTFAnalyzer();
 
@@ -502,6 +507,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         fontsizepopup_minus = fontsize_popup.findViewById(R.id.fontsize_minus);
         fontsizepopup_seek = (SeekBar) fontsize_popup.findViewById(R.id.fontsize_seek);
         fonts = new FontAdapter(getContext());
+        fontsFrame = fontsize_popup.findViewById(R.id.fonts_frame);
+        fontsText = (TextView) fontsize_popup.findViewById(R.id.fonts_text);
+        fontsText.setText(getString(R.string.add_more_fonts_to, FONTS.toString()));
         fontsList = (ListView) fontsize_popup.findViewById(R.id.fonts_list);
         fontsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -550,7 +558,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         }
 
         if (view.pluginview == null) {
-            fontsList.setVisibility(View.VISIBLE);
+            fontsFrame.setVisibility(View.VISIBLE);
             fontsList.setAdapter(fonts);
             List<File> files = new ArrayList<>();
             for (String f : enumerateFonts().keySet()) {
@@ -569,7 +577,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 }
             }
         } else {
-            fontsList.setVisibility(View.GONE);
+            fontsFrame.setVisibility(View.GONE);
         }
 
         updateToolbar();
