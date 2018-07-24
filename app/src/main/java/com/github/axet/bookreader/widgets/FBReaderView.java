@@ -1017,7 +1017,7 @@ public class FBReaderView extends RelativeLayout {
                                                 if (reflower.count() > 0)
                                                     bm.recycle();
                                                 if (i < 0) {
-                                                    i = reflower.count() + i;
+                                                    i = reflower.emptyCount() + i;
                                                     c.start = new ZLTextFixedPosition(page, i, 0);
                                                 }
                                                 reflower.index = i;
@@ -2659,34 +2659,6 @@ public class FBReaderView extends RelativeLayout {
                     config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption, book.info.fontsize);
             }
             widget.repaint();
-            final ActiveAreasView areas = new ActiveAreasView(getContext());
-            areas.create(app);
-            addView(areas);
-            postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    if (Build.VERSION.SDK_INT >= 11) {
-                        ValueAnimator v = ValueAnimator.ofFloat(1f, 0f);
-                        v.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                            @Override
-                            @TargetApi(11)
-                            public void onAnimationUpdate(ValueAnimator animation) {
-                                ViewCompat.setAlpha(areas, (float) animation.getAnimatedValue());
-                            }
-                        });
-                        v.addListener(new AnimatorListenerAdapter() {
-                            @Override
-                            public void onAnimationEnd(Animator animation) {
-                                removeView(areas);
-                            }
-                        });
-                        v.setDuration(500);
-                        v.start();
-                    } else {
-                        removeView(areas);
-                    }
-                }
-            }, 3000);
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
@@ -3511,4 +3483,34 @@ public class FBReaderView extends RelativeLayout {
         searchClose();
     }
 
+    public void showControls() {
+        final ActiveAreasView areas = new ActiveAreasView(getContext());
+        areas.create(app);
+        addView(areas);
+        postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (Build.VERSION.SDK_INT >= 11) {
+                    ValueAnimator v = ValueAnimator.ofFloat(1f, 0f);
+                    v.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                        @Override
+                        @TargetApi(11)
+                        public void onAnimationUpdate(ValueAnimator animation) {
+                            ViewCompat.setAlpha(areas, (float) animation.getAnimatedValue());
+                        }
+                    });
+                    v.addListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            removeView(areas);
+                        }
+                    });
+                    v.setDuration(500);
+                    v.start();
+                } else {
+                    removeView(areas);
+                }
+            }
+        }, 3000);
+    }
 }

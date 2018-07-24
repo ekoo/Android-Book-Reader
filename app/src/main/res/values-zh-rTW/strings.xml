@@ -47,4 +47,9 @@
     <string name="image_fit_to_screen_all_images">全部圖像符合螢幕</string>
     <string name="keep_reading_position">Keep Position</string>
     <string name="add_more_fonts_to">Add more fonts to \'%s\'</string>
+    <string name="controls_fullscreen">Fullscreen</string>
+    <string name="controls_navigate">Navigate</string>
+    <string name="controls_nextpage">Next page</string>
+    <string name="controls_prevpage">Previous page</string>
+    <string name="controls_brightness">Brightness</string>
 </resources>
