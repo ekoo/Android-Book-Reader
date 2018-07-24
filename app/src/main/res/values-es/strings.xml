@@ -9,7 +9,7 @@
     <string name="navigation_drawer_open">Abrir panel lateral</string>
     <string name="navigation_drawer_close">Cerrar panel lateral</string>
 
-    <string name="add_catalog">Añadir catálogo</string>
+    <string name="add_catalog">A&#241;adir catálogo</string>
     <string name="books_catalogs">Catálogo</string>
     <string name="loading_book">Cargando libro</string>
     <string name="open_file">Abrir archivo</string>
@@ -24,7 +24,7 @@
     <string name="search_network">Búsqueda de red&#8230;</string>
     <string name="search_book">Búsqueda de libro&#8230;</string>
     <string name="pref_theme_title">Tema</string>
-    <string name="more_books">Obtén más catálogos de libros en el menú \'Acerca\'</string>
+    <string name="more_books">Obtén más catálogos de libros en el menú \'Acerca de\'</string>
     <string name="pref_rotate_title">Rotación</string>
     <string name="pref_rotate_summary">Permitir rotación de pantalla</string>
     <string name="from_local_folder">... desde carpeta local</string>
@@ -41,10 +41,10 @@
     <string name="image_original_size_all_images">Tama&#241;o original (para imágenes)</string>
     <string name="image_fit_to_screen_all_images">Ajustar a la pantalla (para imágenes)</string>
     <string name="keep_reading_position">Mantener posición de lectura</string>
-    <string name="add_more_fonts_to">Add more fonts to \'%s\'</string>
-    <string name="controls_fullscreen">Fullscreen</string>
-    <string name="controls_navigate">Navigate</string>
-    <string name="controls_nextpage">Next page</string>
-    <string name="controls_prevpage">Previous page</string>
-    <string name="controls_brightness">Brightness</string>
+    <string name="add_more_fonts_to">A&#241;ade más fuentes a \'%s\'</string>
+    <string name="controls_fullscreen">Vista completa</string>
+    <string name="controls_navigate">Navegar</string>
+    <string name="controls_nextpage">Página anterior</string>
+    <string name="controls_prevpage">Página siguiente</string>
+    <string name="controls_brightness">Brillo</string>
 </resources>
