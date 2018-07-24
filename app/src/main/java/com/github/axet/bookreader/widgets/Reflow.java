@@ -43,7 +43,10 @@ public class Reflow {
         public Info(Reflow reflower, int page) {
             bm = new Rect(0, 0, reflower.bm.getWidth(), reflower.bm.getHeight());
             margin = new Rect(reflower.getLeftMargin(), 0, reflower.getRightMargin(), 0);
-            src = reflower.k2.getRectMaps(page);
+            if (reflower.k2.getCount() > 0)
+                src = reflower.k2.getRectMaps(page);
+            else // zero pages
+                src = new HashMap<>();
             dst = new HashMap<>();
             for (Rect k : src.keySet()) {
                 Rect v = src.get(k);

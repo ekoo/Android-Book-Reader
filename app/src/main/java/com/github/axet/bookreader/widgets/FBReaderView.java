@@ -317,7 +317,7 @@ public class FBReaderView extends RelativeLayout {
             public V put(ZLTextPosition key, V value) {
                 V v = super.put(key, value);
                 if (pluginview.reflower != null) {
-                    int l = pluginview.reflower.count() - 1;
+                    int l = pluginview.reflower.emptyCount() - 1;
                     if (key.getElementIndex() == l) {
                         ZLTextFixedPosition n = new ZLTextFixedPosition(key.getParagraphIndex() + 1, -1, 0);
                         super.put(n, value); // ignore result, duplicate key for same value
