@@ -591,6 +591,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             }
         });
 
+        view.showControls();
+
         return v;
     }
 
