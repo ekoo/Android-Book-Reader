@@ -29,3 +29,4 @@ If you want to translate 'Book Reader' to your language  please read following:
 
   * nepali translation thanks to @bkb1
   * persian translation thanks to @sabulous
+  * spanish translation thanks to @sguinetti
