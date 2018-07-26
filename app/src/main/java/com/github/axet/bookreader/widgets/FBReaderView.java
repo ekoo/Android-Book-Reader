@@ -2422,7 +2422,7 @@ public class FBReaderView extends RelativeLayout {
             pinch = new PinchView(context, v, bm) {
                 @Override
                 public void pinchClose() {
-                    pinchClose();
+                    PinchGesture.this.pinchClose();
                 }
             };
             FBReaderView.this.addView(pinch);
