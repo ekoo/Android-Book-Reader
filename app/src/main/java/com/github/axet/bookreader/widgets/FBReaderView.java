@@ -2886,7 +2886,7 @@ public class FBReaderView extends RelativeLayout {
                                     Intent intent = new Intent(Intent.ACTION_SEND);
                                     intent.setType(type);
                                     intent.putExtra(Intent.EXTRA_EMAIL, "");
-                                    intent.putExtra(Intent.EXTRA_SUBJECT, Storage.getTitle(book.info) + " - " + t);
+                                    intent.putExtra(Intent.EXTRA_SUBJECT, Storage.getTitle(book.info) + " (" + t + ")");
                                     intent.putExtra(Intent.EXTRA_TEXT, getContext().getString(R.string.shared_via, getContext().getString(R.string.app_name)));
                                     intent.putExtra(Intent.EXTRA_STREAM, uri);
                                     FileProvider.grantPermissions(getContext(), intent, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
