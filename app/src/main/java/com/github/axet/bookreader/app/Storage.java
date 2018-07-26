@@ -189,6 +189,18 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return t;
     }
 
+    public static String getTitle(RecentInfo info) {
+        String s = "";
+        if (info.authors != null && !info.authors.isEmpty())
+            s += info.authors;
+        if (info.title != null && !info.title.isEmpty()) {
+            if (!s.isEmpty())
+                s += " - ";
+            s += info.title;
+        }
+        return s;
+    }
+
     public static File coverFile(Context context, Book book) {
         return CacheImagesAdapter.cacheUri(context, book.url);
     }

@@ -1394,11 +1394,11 @@ public class FBReaderView extends RelativeLayout {
             ScrollAdapter.PageCursor c;
             PinchGesture pinch;
             GestureDetectorCompat gestures;
-            Brightness brightness;
+            BrightnessGesture brightness;
 
             Gestures(Context context) {
                 gestures = new GestureDetectorCompat(context, this);
-                brightness = new Brightness(context);
+                brightness = new BrightnessGesture(context);
 
                 if (Looper.myLooper() != null) {
                     pinch = new PinchGesture(context) {
@@ -2254,14 +2254,14 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
-    public class Brightness {
+    public class BrightnessGesture {
         int myStartY;
         boolean myIsBrightnessAdjustmentInProgress;
         int myStartBrightness;
         int areaWidth;
 
-        public Brightness(Context context) {
-            areaWidth = ThemeUtils.dp2px(context, 24);
+        public BrightnessGesture(Context context) {
+            areaWidth = ThemeUtils.dp2px(context, 30);
         }
 
         public boolean onTouchEvent(MotionEvent e) {
@@ -2886,7 +2886,7 @@ public class FBReaderView extends RelativeLayout {
                                     Intent intent = new Intent(Intent.ACTION_SEND);
                                     intent.setType(type);
                                     intent.putExtra(Intent.EXTRA_EMAIL, "");
-                                    intent.putExtra(Intent.EXTRA_SUBJECT, t);
+                                    intent.putExtra(Intent.EXTRA_SUBJECT, Storage.getTitle(book.info) + " - " + t);
                                     intent.putExtra(Intent.EXTRA_TEXT, getContext().getString(R.string.shared_via, getContext().getString(R.string.app_name)));
                                     intent.putExtra(Intent.EXTRA_STREAM, uri);
                                     FileProvider.grantPermissions(getContext(), intent, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
@@ -3025,13 +3025,12 @@ public class FBReaderView extends RelativeLayout {
                     text = snippet.getText();
                 }
 
-                final String title = app.getCurrentBook().getTitle();
                 app.BookTextView.clearSelection();
                 selectionClose();
 
                 final Intent intent = new Intent(android.content.Intent.ACTION_SEND);
                 intent.setType(HttpClient.CONTENTTYPE_TEXT);
-                intent.putExtra(android.content.Intent.EXTRA_SUBJECT, title);
+                intent.putExtra(android.content.Intent.EXTRA_SUBJECT, Storage.getTitle(book.info));
                 intent.putExtra(android.content.Intent.EXTRA_TEXT, text);
                 a.startActivity(Intent.createChooser(intent, null));
 
