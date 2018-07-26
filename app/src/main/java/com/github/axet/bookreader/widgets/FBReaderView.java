@@ -149,7 +149,6 @@ public class FBReaderView extends RelativeLayout {
     public Storage.FBook book;
     public PluginView pluginview;
     public PageTurningListener pageTurningListener;
-    PinchView pinch;
     SelectionView selection;
     DrawerLayout drawer;
     PluginView.Search search;
@@ -304,11 +303,16 @@ public class FBReaderView extends RelativeLayout {
 
     public class FBAndroidWidget extends ZLAndroidWidget {
         PinchGesture pinch;
+        BrightnessGesture brightness;
 
         int x;
         int y;
 
         ZLTextPosition selectionPage;
+
+        ReflowMap<Reflow.Info> infos = new ReflowMap<>();
+        ReflowMap<LinksView> links = new ReflowMap<>();
+        ReflowMap<SearchView> searchs = new ReflowMap<>();
 
         public class ReflowMap<V> extends HashMap<ZLTextPosition, V> {
             ArrayList<ZLTextPosition> last = new ArrayList<>();
@@ -354,10 +358,6 @@ public class FBReaderView extends RelativeLayout {
             }
         }
 
-        ReflowMap<Reflow.Info> infos = new ReflowMap<>();
-        ReflowMap<LinksView> links = new ReflowMap<>();
-        ReflowMap<SearchView> searchs = new ReflowMap<>();
-
         public FBAndroidWidget() {
             super(FBReaderView.this.getContext());
 
@@ -371,13 +371,15 @@ public class FBReaderView extends RelativeLayout {
             config.setValue(app.PageTurningOptions.FingerScrolling, PageTurningOptions.FingerScrollingType.byTapAndFlick);
 
             if (Looper.myLooper() != null) { // render view only
-                pinch = new PinchGesture(FBReaderView.this.getContext()) {
+                pinch = new PinchGesture(getContext()) {
                     @Override
                     public void onScaleBegin(float x, float y) {
                         pinchOpen(pluginview.current.pageNumber, getPageRect());
                     }
                 };
             }
+
+            brightness = new BrightnessGesture(getContext());
         }
 
         public Rect getPageRect() {
@@ -402,44 +404,14 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public void setScreenBrightness(int percent) {
-            if (percent < 1) {
-                percent = 1;
-            } else if (percent > 100) {
-                percent = 100;
-            }
-
-            final float level;
-            final Integer oldColorLevel = myColorLevel;
-            if (percent >= 25) {
-                // 100 => 1f; 25 => .01f
-                level = .01f + (percent - 25) * .99f / 75;
-                myColorLevel = null;
-            } else {
-                level = .01f;
-                myColorLevel = 0x60 + (0xFF - 0x60) * Math.max(percent, 0) / 25;
-            }
-
-            final WindowManager.LayoutParams attrs = w.getAttributes();
-            attrs.screenBrightness = level;
-            w.setAttributes(attrs);
-
-            if (oldColorLevel != myColorLevel) {
-                updateColorLevel();
-                postInvalidate();
-            }
+            myColorLevel = brightness.setScreenBrightness(percent);
+            postInvalidate();
+            updateColorLevel();
         }
 
         @Override
         public int getScreenBrightness() {
-            if (myColorLevel != null) {
-                return (myColorLevel - 0x60) * 25 / (0xFF - 0x60);
-            }
-
-            float level = w.getAttributes().screenBrightness;
-            level = level >= 0 ? level : .5f;
-
-            // level = .01f + (percent - 25) * .99f / 75;
-            return 25 + (int) ((level - .01f) * 75 / .99f);
+            return brightness.getScreenBrightness();
         }
 
         @Override
@@ -1424,9 +1396,11 @@ public class FBReaderView extends RelativeLayout {
             ScrollAdapter.PageCursor c;
             PinchGesture pinch;
             GestureDetectorCompat gestures;
+            BrightnessGesture brightness;
 
             Gestures(Context context) {
                 gestures = new GestureDetectorCompat(context, this);
+                brightness = new BrightnessGesture(context);
 
                 if (Looper.myLooper() != null) {
                     pinch = new PinchGesture(context) {
@@ -1552,7 +1526,7 @@ public class FBReaderView extends RelativeLayout {
                 return false;
             }
 
-            public boolean onRelease(MotionEvent e) {
+            public boolean onReleaseCheck(MotionEvent e) {
                 if (app.BookTextView.mySelection.isEmpty())
                     return false;
                 if (e.getAction() == MotionEvent.ACTION_UP) {
@@ -1566,7 +1540,7 @@ public class FBReaderView extends RelativeLayout {
                 return false;
             }
 
-            public boolean onCancel(MotionEvent e) {
+            public boolean onCancelCheck(MotionEvent e) {
                 if (app.BookTextView.mySelection.isEmpty())
                     return false;
                 if (e.getAction() == MotionEvent.ACTION_CANCEL) {
@@ -1586,8 +1560,10 @@ public class FBReaderView extends RelativeLayout {
             public boolean onTouchEvent(MotionEvent e) {
                 if (pinch.onTouchEvent(e))
                     return true;
-                onRelease(e);
-                onCancel(e);
+                onReleaseCheck(e);
+                onCancelCheck(e);
+                if (brightness.onTouchEvent(e))
+                    return true;
                 if (gestures.onTouchEvent(e))
                     return true;
                 if (onFilter(e))
@@ -1816,7 +1792,7 @@ public class FBReaderView extends RelativeLayout {
             if (pos < 0 || pos >= adapter.pages.size())
                 return;
             smoothScrollToPosition(pos);
-            pinchClose();
+            gesturesListener.pinch.pinchClose();
         }
 
         @Override
@@ -1825,11 +1801,13 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public void setScreenBrightness(int percent) {
+            gesturesListener.brightness.setScreenBrightness(percent);
+            postInvalidate();
         }
 
         @Override
         public int getScreenBrightness() {
-            return 0;
+            return gesturesListener.brightness.getScreenBrightness();
         }
 
         @Override
@@ -1841,7 +1819,7 @@ public class FBReaderView extends RelativeLayout {
         public void draw(Canvas c) {
             if (adapter.size.w != getWidth() || adapter.size.h != getHeight()) { // reset for textbook and reflow mode only
                 adapter.reset();
-                pinchClose();
+                gesturesListener.pinch.pinchClose();
             }
             super.draw(c);
             updatePosition();
@@ -2279,11 +2257,98 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
+    public class BrightnessGesture {
+        int myStartY;
+        boolean myIsBrightnessAdjustmentInProgress;
+        int myStartBrightness;
+        int areaWidth;
+        Integer myColorLevel;
+
+        public BrightnessGesture(Context context) {
+            areaWidth = ThemeUtils.dp2px(context, 30);
+        }
+
+        public boolean onTouchEvent(MotionEvent e) {
+            int x = (int) e.getX();
+            int y = (int) e.getY();
+            switch (e.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    if (app.MiscOptions.AllowScreenBrightnessAdjustment.getValue() && x < areaWidth) {
+                        myIsBrightnessAdjustmentInProgress = true;
+                        myStartY = y;
+                        myStartBrightness = widget.getScreenBrightness();
+                        return true;
+                    }
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    if (myIsBrightnessAdjustmentInProgress) {
+                        if (x >= areaWidth * 2) {
+                            myIsBrightnessAdjustmentInProgress = false;
+                            return false;
+                        } else {
+                            final int delta = (myStartBrightness + 30) * (myStartY - y) / getHeight();
+                            widget.setScreenBrightness(myStartBrightness + delta);
+                            return true;
+                        }
+                    }
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    if (myIsBrightnessAdjustmentInProgress) {
+                        myIsBrightnessAdjustmentInProgress = false;
+                        return true;
+                    }
+                    break;
+            }
+            return false;
+        }
+
+        public Integer setScreenBrightness(int percent) {
+            if (percent < 1) {
+                percent = 1;
+            } else if (percent > 100) {
+                percent = 100;
+            }
+
+            final float level;
+            final Integer oldColorLevel = myColorLevel;
+            if (percent >= 25) {
+                // 100 => 1f; 25 => .01f
+                level = .01f + (percent - 25) * .99f / 75;
+                myColorLevel = null;
+            } else {
+                level = .01f;
+                myColorLevel = 0x60 + (0xFF - 0x60) * Math.max(percent, 0) / 25;
+            }
+
+            final WindowManager.LayoutParams attrs = w.getAttributes();
+            attrs.screenBrightness = level;
+            w.setAttributes(attrs);
+
+            return myColorLevel;
+        }
+
+        public int getScreenBrightness() {
+            if (myColorLevel != null) {
+                return (myColorLevel - 0x60) * 25 / (0xFF - 0x60);
+            }
+
+            float level = w.getAttributes().screenBrightness;
+            level = level >= 0 ? level : .5f;
+
+            // level = .01f + (percent - 25) * .99f / 75;
+            return 25 + (int) ((level - .01f) * 75 / .99f);
+        }
+    }
+
     public class PinchGesture implements ScaleGestureDetector.OnScaleGestureListener {
         ScaleGestureDetector scale;
         boolean scaleTouch = false;
+        PinchView pinch;
+        Context context;
 
         public PinchGesture(Context context) {
+            this.context = context;
             scale = new ScaleGestureDetector(context, this);
             ScaleGestureDetectorCompat.setQuickScaleEnabled(scale, false);
         }
@@ -2346,6 +2411,29 @@ public class FBReaderView extends RelativeLayout {
             pinch.onScaleEnd();
             if (pinch.end < 0)
                 pinchClose();
+        }
+
+        public boolean isPinch() {
+            return pinch != null;
+        }
+
+        public void pinchOpen(int page, Rect v) {
+            Bitmap bm = pluginview.render(v.width(), v.height(), page);
+            pinch = new PinchView(context, v, bm) {
+                @Override
+                public void pinchClose() {
+                    PinchGesture.this.pinchClose();
+                }
+            };
+            FBReaderView.this.addView(pinch);
+        }
+
+        public void pinchClose() {
+            if (pinch != null) {
+                FBReaderView.this.removeView(pinch);
+                pinch.close();
+                pinch = null;
+            }
         }
     }
 
@@ -2685,8 +2773,7 @@ public class FBReaderView extends RelativeLayout {
 
     public void setWindow(Window w) {
         this.w = w;
-        if (widget instanceof FBAndroidWidget)
-            config.setValue(app.MiscOptions.AllowScreenBrightnessAdjustment, true);
+        config.setValue(app.MiscOptions.AllowScreenBrightnessAdjustment, true);
     }
 
     public void setActivity(final Activity a) {
@@ -2866,7 +2953,7 @@ public class FBReaderView extends RelativeLayout {
                                     Intent intent = new Intent(Intent.ACTION_SEND);
                                     intent.setType(type);
                                     intent.putExtra(Intent.EXTRA_EMAIL, "");
-                                    intent.putExtra(Intent.EXTRA_SUBJECT, t);
+                                    intent.putExtra(Intent.EXTRA_SUBJECT, Storage.getTitle(book.info) + " (" + t + ")");
                                     intent.putExtra(Intent.EXTRA_TEXT, getContext().getString(R.string.shared_via, getContext().getString(R.string.app_name)));
                                     intent.putExtra(Intent.EXTRA_STREAM, uri);
                                     FileProvider.grantPermissions(getContext(), intent, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
@@ -3005,13 +3092,12 @@ public class FBReaderView extends RelativeLayout {
                     text = snippet.getText();
                 }
 
-                final String title = app.getCurrentBook().getTitle();
                 app.BookTextView.clearSelection();
                 selectionClose();
 
                 final Intent intent = new Intent(android.content.Intent.ACTION_SEND);
                 intent.setType(HttpClient.CONTENTTYPE_TEXT);
-                intent.putExtra(android.content.Intent.EXTRA_SUBJECT, title);
+                intent.putExtra(android.content.Intent.EXTRA_SUBJECT, Storage.getTitle(book.info));
                 intent.putExtra(android.content.Intent.EXTRA_TEXT, text);
                 a.startActivity(Intent.createChooser(intent, null));
 
@@ -3397,29 +3483,6 @@ public class FBReaderView extends RelativeLayout {
             pluginview.reflower.index = 0;
     }
 
-    public boolean isPinch() {
-        return pinch != null;
-    }
-
-    public void pinchOpen(int page, Rect v) {
-        Bitmap bm = pluginview.render(v.width(), v.height(), page);
-        pinch = new PinchView(getContext(), v, bm) {
-            @Override
-            public void pinchClose() {
-                FBReaderView.this.pinchClose();
-            }
-        };
-        addView(pinch);
-    }
-
-    public void pinchClose() {
-        if (pinch != null) {
-            removeView(pinch);
-            pinch.close();
-            pinch = null;
-        }
-    }
-
     public void selectionOpen(PluginView.Selection s) {
         selectionClose();
         selection = new SelectionView(getContext(), (CustomView) app.BookTextView, s) {
@@ -3481,6 +3544,21 @@ public class FBReaderView extends RelativeLayout {
         selectionClose();
         linksClose();
         searchClose();
+    }
+
+    public boolean isPinch() {
+        if (widget instanceof ScrollView)
+            return ((ScrollView) widget).gesturesListener.pinch.isPinch();
+        if (widget instanceof FBAndroidWidget)
+            return ((FBAndroidWidget) widget).pinch.isPinch();
+        return false;
+    }
+
+    public void pinchClose() {
+        if (widget instanceof ScrollView)
+            ((ScrollView) widget).gesturesListener.pinch.pinchClose();
+        if (widget instanceof FBAndroidWidget)
+            ((FBAndroidWidget) widget).pinch.pinchClose();
     }
 
     public void showControls() {

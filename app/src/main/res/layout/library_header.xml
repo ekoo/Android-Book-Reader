@@ -47,7 +47,7 @@
                         android:clickable="false"
                         android:gravity="center"
                         android:tint="?attr/colorAccent"
-                        app:srcCompat="@drawable/ic_fiber_new_black_24dp" />
+                        android:src="@drawable/ic_fiber_new_black_24dp" />
 
                     <include layout="@layout/toolbar_icon" />
 
@@ -67,7 +67,7 @@
                             android:clickable="false"
                             android:gravity="center"
                             android:tint="?attr/colorAccent"
-                            app:srcCompat="@drawable/ic_star_black_24dp" />
+                            android:src="@drawable/ic_star_black_24dp" />
 
                         <TextView
                             android:id="@+id/search_header_toolbar_favs_name"
@@ -87,7 +87,7 @@
                         android:clickable="false"
                         android:gravity="center"
                         android:tint="?attr/colorAccent"
-                        app:srcCompat="@drawable/ic_search_black_24dp" />
+                        android:src="@drawable/ic_search_black_24dp" />
                 </com.github.axet.androidlibrary.widgets.EqualLinearLayout>
             </LinearLayout>
         </LinearLayout>

@@ -587,11 +587,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         handler.post(new Runnable() {
             @Override
             public void run() {
-                updateToolbar(); // update toolbar after page been drawen to detect RTL
+                updateToolbar(); // update toolbar after page been drawn to detect RTL
+                view.showControls(); //  update toolbar after page been drawn, getWidth() == 0
             }
         });
-
-        view.showControls();
 
         return v;
     }

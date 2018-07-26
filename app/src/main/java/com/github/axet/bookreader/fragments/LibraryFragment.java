@@ -273,7 +273,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                 clearTasks();
             } else {
                 for (Storage.Book b : all) {
-                    if (SearchView.filter(filter, b.info.title)) {
+                    if (SearchView.filter(filter, Storage.getTitle(b.info))) {
                         list.add(b);
                     }
                 }
@@ -547,7 +547,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                         }
                         if (item.getItemId() == R.id.action_open) {
                             String ext = storage.getExt(b.url);
-                            String t = b.info.title + "." + ext;
+                            String t = Storage.getTitle(b.info) + "." + ext;
                             String type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
                             Uri uri = StorageProvider.getProvider().share(getContext(), b.url, t);
                             Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -557,7 +557,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                         }
                         if (item.getItemId() == R.id.action_share) {
                             String ext = storage.getExt(b.url);
-                            String t = b.info.title + "." + ext;
+                            String t = Storage.getTitle(b.info) + "." + ext;
                             String name = storage.getName(b.url);
                             String type = Storage.getTypeByName(name);
                             Uri uri = StorageProvider.getProvider().share(getContext(), b.url, t);
