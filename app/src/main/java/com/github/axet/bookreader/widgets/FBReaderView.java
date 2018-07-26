@@ -149,12 +149,10 @@ public class FBReaderView extends RelativeLayout {
     public Storage.FBook book;
     public PluginView pluginview;
     public PageTurningListener pageTurningListener;
-    PinchView pinch;
     SelectionView selection;
     DrawerLayout drawer;
     PluginView.Search search;
     int searchPagePending;
-    Integer myColorLevel;
 
     public interface PageTurningListener {
         void onScrollingFinished(ZLViewEnums.PageIndex index);
@@ -305,11 +303,16 @@ public class FBReaderView extends RelativeLayout {
 
     public class FBAndroidWidget extends ZLAndroidWidget {
         PinchGesture pinch;
+        BrightnessGesture brightness;
 
         int x;
         int y;
 
         ZLTextPosition selectionPage;
+
+        ReflowMap<Reflow.Info> infos = new ReflowMap<>();
+        ReflowMap<LinksView> links = new ReflowMap<>();
+        ReflowMap<SearchView> searchs = new ReflowMap<>();
 
         public class ReflowMap<V> extends HashMap<ZLTextPosition, V> {
             ArrayList<ZLTextPosition> last = new ArrayList<>();
@@ -355,10 +358,6 @@ public class FBReaderView extends RelativeLayout {
             }
         }
 
-        ReflowMap<Reflow.Info> infos = new ReflowMap<>();
-        ReflowMap<LinksView> links = new ReflowMap<>();
-        ReflowMap<SearchView> searchs = new ReflowMap<>();
-
         public FBAndroidWidget() {
             super(FBReaderView.this.getContext());
 
@@ -372,13 +371,15 @@ public class FBReaderView extends RelativeLayout {
             config.setValue(app.PageTurningOptions.FingerScrolling, PageTurningOptions.FingerScrollingType.byTapAndFlick);
 
             if (Looper.myLooper() != null) { // render view only
-                pinch = new PinchGesture(FBReaderView.this.getContext()) {
+                pinch = new PinchGesture(getContext()) {
                     @Override
                     public void onScaleBegin(float x, float y) {
                         pinchOpen(pluginview.current.pageNumber, getPageRect());
                     }
                 };
             }
+
+            brightness = new BrightnessGesture(getContext());
         }
 
         public Rect getPageRect() {
@@ -403,13 +404,14 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public void setScreenBrightness(int percent) {
-            myColorLevel = FBReaderView.this.setScreenBrightness(percent);
+            myColorLevel = brightness.setScreenBrightness(percent);
+            postInvalidate();
             updateColorLevel();
         }
 
         @Override
         public int getScreenBrightness() {
-            return FBReaderView.this.getScreenBrightness();
+            return brightness.getScreenBrightness();
         }
 
         @Override
@@ -1790,7 +1792,7 @@ public class FBReaderView extends RelativeLayout {
             if (pos < 0 || pos >= adapter.pages.size())
                 return;
             smoothScrollToPosition(pos);
-            pinchClose();
+            gesturesListener.pinch.pinchClose();
         }
 
         @Override
@@ -1799,12 +1801,13 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public void setScreenBrightness(int percent) {
-            FBReaderView.this.setScreenBrightness(percent);
+            gesturesListener.brightness.setScreenBrightness(percent);
+            postInvalidate();
         }
 
         @Override
         public int getScreenBrightness() {
-            return FBReaderView.this.getScreenBrightness();
+            return gesturesListener.brightness.getScreenBrightness();
         }
 
         @Override
@@ -1816,7 +1819,7 @@ public class FBReaderView extends RelativeLayout {
         public void draw(Canvas c) {
             if (adapter.size.w != getWidth() || adapter.size.h != getHeight()) { // reset for textbook and reflow mode only
                 adapter.reset();
-                pinchClose();
+                gesturesListener.pinch.pinchClose();
             }
             super.draw(c);
             updatePosition();
@@ -2259,6 +2262,7 @@ public class FBReaderView extends RelativeLayout {
         boolean myIsBrightnessAdjustmentInProgress;
         int myStartBrightness;
         int areaWidth;
+        Integer myColorLevel;
 
         public BrightnessGesture(Context context) {
             areaWidth = ThemeUtils.dp2px(context, 30);
@@ -2272,7 +2276,7 @@ public class FBReaderView extends RelativeLayout {
                     if (app.MiscOptions.AllowScreenBrightnessAdjustment.getValue() && x < areaWidth) {
                         myIsBrightnessAdjustmentInProgress = true;
                         myStartY = y;
-                        myStartBrightness = app.getViewWidget().getScreenBrightness();
+                        myStartBrightness = widget.getScreenBrightness();
                         return true;
                     }
                     break;
@@ -2283,7 +2287,7 @@ public class FBReaderView extends RelativeLayout {
                             return false;
                         } else {
                             final int delta = (myStartBrightness + 30) * (myStartY - y) / getHeight();
-                            app.getViewWidget().setScreenBrightness(myStartBrightness + delta);
+                            widget.setScreenBrightness(myStartBrightness + delta);
                             return true;
                         }
                     }
@@ -2298,13 +2302,53 @@ public class FBReaderView extends RelativeLayout {
             }
             return false;
         }
+
+        public Integer setScreenBrightness(int percent) {
+            if (percent < 1) {
+                percent = 1;
+            } else if (percent > 100) {
+                percent = 100;
+            }
+
+            final float level;
+            final Integer oldColorLevel = myColorLevel;
+            if (percent >= 25) {
+                // 100 => 1f; 25 => .01f
+                level = .01f + (percent - 25) * .99f / 75;
+                myColorLevel = null;
+            } else {
+                level = .01f;
+                myColorLevel = 0x60 + (0xFF - 0x60) * Math.max(percent, 0) / 25;
+            }
+
+            final WindowManager.LayoutParams attrs = w.getAttributes();
+            attrs.screenBrightness = level;
+            w.setAttributes(attrs);
+
+            return myColorLevel;
+        }
+
+        public int getScreenBrightness() {
+            if (myColorLevel != null) {
+                return (myColorLevel - 0x60) * 25 / (0xFF - 0x60);
+            }
+
+            float level = w.getAttributes().screenBrightness;
+            level = level >= 0 ? level : .5f;
+
+            // level = .01f + (percent - 25) * .99f / 75;
+            return 25 + (int) ((level - .01f) * 75 / .99f);
+        }
     }
 
     public class PinchGesture implements ScaleGestureDetector.OnScaleGestureListener {
         ScaleGestureDetector scale;
         boolean scaleTouch = false;
+        PinchView pinch;
+        Context context;
 
         public PinchGesture(Context context) {
+            this.context = context;
             scale = new ScaleGestureDetector(context, this);
             ScaleGestureDetectorCompat.setQuickScaleEnabled(scale, false);
         }
@@ -2367,6 +2411,29 @@ public class FBReaderView extends RelativeLayout {
             pinch.onScaleEnd();
             if (pinch.end < 0)
                 pinchClose();
+        }
+
+        public boolean isPinch() {
+            return pinch != null;
+        }
+
+        public void pinchOpen(int page, Rect v) {
+            Bitmap bm = pluginview.render(v.width(), v.height(), page);
+            pinch = new PinchView(context, v, bm) {
+                @Override
+                public void pinchClose() {
+                    pinchClose();
+                }
+            };
+            FBReaderView.this.addView(pinch);
+        }
+
+        public void pinchClose() {
+            if (pinch != null) {
+                FBReaderView.this.removeView(pinch);
+                pinch.close();
+                pinch = null;
+            }
         }
     }
 
@@ -3416,29 +3483,6 @@ public class FBReaderView extends RelativeLayout {
             pluginview.reflower.index = 0;
     }
 
-    public boolean isPinch() {
-        return pinch != null;
-    }
-
-    public void pinchOpen(int page, Rect v) {
-        Bitmap bm = pluginview.render(v.width(), v.height(), page);
-        pinch = new PinchView(getContext(), v, bm) {
-            @Override
-            public void pinchClose() {
-                FBReaderView.this.pinchClose();
-            }
-        };
-        addView(pinch);
-    }
-
-    public void pinchClose() {
-        if (pinch != null) {
-            removeView(pinch);
-            pinch.close();
-            pinch = null;
-        }
-    }
-
     public void selectionOpen(PluginView.Selection s) {
         selectionClose();
         selection = new SelectionView(getContext(), (CustomView) app.BookTextView, s) {
@@ -3502,6 +3546,21 @@ public class FBReaderView extends RelativeLayout {
         searchClose();
     }
 
+    public boolean isPinch() {
+        if (widget instanceof ScrollView)
+            return ((ScrollView) widget).gesturesListener.pinch.isPinch();
+        if (widget instanceof FBAndroidWidget)
+            return ((FBAndroidWidget) widget).pinch.isPinch();
+        return false;
+    }
+
+    public void pinchClose() {
+        if (widget instanceof ScrollView)
+            ((ScrollView) widget).gesturesListener.pinch.pinchClose();
+        if (widget instanceof FBAndroidWidget)
+            ((FBAndroidWidget) widget).pinch.pinchClose();
+    }
+
     public void showControls() {
         final ActiveAreasView areas = new ActiveAreasView(getContext());
         areas.create(app);
@@ -3531,45 +3590,5 @@ public class FBReaderView extends RelativeLayout {
                 }
             }
         }, 3000);
-    }
-
-    public Integer setScreenBrightness(int percent) {
-        if (percent < 1) {
-            percent = 1;
-        } else if (percent > 100) {
-            percent = 100;
-        }
-
-        final float level;
-        final Integer oldColorLevel = myColorLevel;
-        if (percent >= 25) {
-            // 100 => 1f; 25 => .01f
-            level = .01f + (percent - 25) * .99f / 75;
-            myColorLevel = null;
-        } else {
-            level = .01f;
-            myColorLevel = 0x60 + (0xFF - 0x60) * Math.max(percent, 0) / 25;
-        }
-
-        final WindowManager.LayoutParams attrs = w.getAttributes();
-        attrs.screenBrightness = level;
-        w.setAttributes(attrs);
-
-        if (oldColorLevel != myColorLevel) {
-            postInvalidate();
-        }
-        return myColorLevel;
-    }
-
-    public int getScreenBrightness() {
-        if (myColorLevel != null) {
-            return (myColorLevel - 0x60) * 25 / (0xFF - 0x60);
-        }
-
-        float level = w.getAttributes().screenBrightness;
-        level = level >= 0 ? level : .5f;
-
-        // level = .01f + (percent - 25) * .99f / 75;
-        return 25 + (int) ((level - .01f) * 75 / .99f);
     }
 }
