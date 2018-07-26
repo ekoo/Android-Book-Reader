@@ -1386,47 +1386,6 @@ public class FBReaderView extends RelativeLayout {
             }
         }
 
-        public class Brightness {
-            int myStartY;
-            boolean myIsBrightnessAdjustmentInProgress;
-            int myStartBrightness;
-
-            public boolean onTouchEvent(MotionEvent e) {
-                int x = (int) e.getX();
-                int y = (int) e.getY();
-                switch (e.getActionMasked()) {
-                    case MotionEvent.ACTION_DOWN:
-                        if (app.MiscOptions.AllowScreenBrightnessAdjustment.getValue() && x < getWidth() / 10) {
-                            myIsBrightnessAdjustmentInProgress = true;
-                            myStartY = y;
-                            myStartBrightness = app.getViewWidget().getScreenBrightness();
-                            return true;
-                        }
-                        break;
-                    case MotionEvent.ACTION_MOVE:
-                        if (myIsBrightnessAdjustmentInProgress) {
-                            if (x >= getWidth() / 5) {
-                                myIsBrightnessAdjustmentInProgress = false;
-                                return false;
-                            } else {
-                                final int delta = (myStartBrightness + 30) * (myStartY - y) / getHeight();
-                                app.getViewWidget().setScreenBrightness(myStartBrightness + delta);
-                                return true;
-                            }
-                        }
-                        break;
-                    case MotionEvent.ACTION_UP:
-                    case MotionEvent.ACTION_CANCEL:
-                        if (myIsBrightnessAdjustmentInProgress) {
-                            myIsBrightnessAdjustmentInProgress = false;
-                            return true;
-                        }
-                        break;
-                }
-                return false;
-            }
-        }
-
         public class Gestures implements GestureDetector.OnGestureListener {
             MotionEvent e;
             int x;
@@ -1435,10 +1394,11 @@ public class FBReaderView extends RelativeLayout {
             ScrollAdapter.PageCursor c;
             PinchGesture pinch;
             GestureDetectorCompat gestures;
-            Brightness brightness = new Brightness();
+            Brightness brightness;
 
             Gestures(Context context) {
                 gestures = new GestureDetectorCompat(context, this);
+                brightness = new Brightness(context);
 
                 if (Looper.myLooper() != null) {
                     pinch = new PinchGesture(context) {
@@ -2291,6 +2251,52 @@ public class FBReaderView extends RelativeLayout {
                     selectionRemove(view);
                 }
             }
+        }
+    }
+
+    public class Brightness {
+        int myStartY;
+        boolean myIsBrightnessAdjustmentInProgress;
+        int myStartBrightness;
+        int areaWidth;
+
+        public Brightness(Context context) {
+            areaWidth = ThemeUtils.dp2px(context, 24);
+        }
+
+        public boolean onTouchEvent(MotionEvent e) {
+            int x = (int) e.getX();
+            int y = (int) e.getY();
+            switch (e.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    if (app.MiscOptions.AllowScreenBrightnessAdjustment.getValue() && x < areaWidth) {
+                        myIsBrightnessAdjustmentInProgress = true;
+                        myStartY = y;
+                        myStartBrightness = app.getViewWidget().getScreenBrightness();
+                        return true;
+                    }
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    if (myIsBrightnessAdjustmentInProgress) {
+                        if (x >= areaWidth * 2) {
+                            myIsBrightnessAdjustmentInProgress = false;
+                            return false;
+                        } else {
+                            final int delta = (myStartBrightness + 30) * (myStartY - y) / getHeight();
+                            app.getViewWidget().setScreenBrightness(myStartBrightness + delta);
+                            return true;
+                        }
+                    }
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    if (myIsBrightnessAdjustmentInProgress) {
+                        myIsBrightnessAdjustmentInProgress = false;
+                        return true;
+                    }
+                    break;
+            }
+            return false;
         }
     }
 

@@ -157,7 +157,13 @@ public class ActiveAreasView extends FrameLayout {
             }
         }
         if (app.MiscOptions.AllowScreenBrightnessAdjustment.getValue()) {
-            Rect r = new Rect(0, 0, PERC / 10, PERC);
+            int bw;
+            if (app.getViewWidget() instanceof FBReaderView.ScrollView) {
+                bw = ((FBReaderView.ScrollView) app.getViewWidget()).gesturesListener.brightness.areaWidth;
+            } else {
+                bw = PERC / 10; // FBView.onFingerPress
+            }
+            Rect r = new Rect(0, 0, bw, PERC);
             substract(r);
             maps.put("brightness", r);
         }
