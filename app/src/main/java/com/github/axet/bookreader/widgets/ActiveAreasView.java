@@ -27,7 +27,7 @@ import org.geometerplus.fbreader.fbreader.options.PageTurningOptions;
 import java.util.HashMap;
 
 public class ActiveAreasView extends RelativeLayout {
-    public static int PERC = 1000; // precision
+    public static int PERC = 10000; // precision
 
     HashMap<String, Rect> maps = new HashMap<>();
     HashMap<String, ZoneView> views = new HashMap<>();
@@ -148,7 +148,7 @@ public class ActiveAreasView extends RelativeLayout {
         }
     }
 
-    public void create(FBReaderView.FBReaderApp app) {
+    public void create(FBReaderView.FBReaderApp app, int ww) {
         TapZoneMap zz = getZoneMap(app);
         int w = PERC / zz.getWidth();
         int h = PERC / zz.getHeight();
@@ -171,7 +171,7 @@ public class ActiveAreasView extends RelativeLayout {
         if (app.MiscOptions.AllowScreenBrightnessAdjustment.getValue()) {
             int bw;
             if (app.getViewWidget() instanceof FBReaderView.ScrollView) {
-                bw = ((FBReaderView.ScrollView) app.getViewWidget()).gesturesListener.brightness.areaWidth * PERC / ((FBReaderView.ScrollView) app.getViewWidget()).getWidth();
+                bw = ((FBReaderView.ScrollView) app.getViewWidget()).gesturesListener.brightness.areaWidth * PERC / ww;
             } else {
                 bw = PERC / 10; // FBView.onFingerPress
             }

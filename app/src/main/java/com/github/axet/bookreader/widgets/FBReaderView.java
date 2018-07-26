@@ -3563,7 +3563,7 @@ public class FBReaderView extends RelativeLayout {
 
     public void showControls() {
         final ActiveAreasView areas = new ActiveAreasView(getContext());
-        areas.create(app);
+        areas.create(app, getWidth());
         addView(areas);
         postDelayed(new Runnable() {
             @Override
