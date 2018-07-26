@@ -154,6 +154,7 @@ public class FBReaderView extends RelativeLayout {
     DrawerLayout drawer;
     PluginView.Search search;
     int searchPagePending;
+    Integer myColorLevel;
 
     public interface PageTurningListener {
         void onScrollingFinished(ZLViewEnums.PageIndex index);
@@ -402,44 +403,13 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public void setScreenBrightness(int percent) {
-            if (percent < 1) {
-                percent = 1;
-            } else if (percent > 100) {
-                percent = 100;
-            }
-
-            final float level;
-            final Integer oldColorLevel = myColorLevel;
-            if (percent >= 25) {
-                // 100 => 1f; 25 => .01f
-                level = .01f + (percent - 25) * .99f / 75;
-                myColorLevel = null;
-            } else {
-                level = .01f;
-                myColorLevel = 0x60 + (0xFF - 0x60) * Math.max(percent, 0) / 25;
-            }
-
-            final WindowManager.LayoutParams attrs = w.getAttributes();
-            attrs.screenBrightness = level;
-            w.setAttributes(attrs);
-
-            if (oldColorLevel != myColorLevel) {
-                updateColorLevel();
-                postInvalidate();
-            }
+            myColorLevel = FBReaderView.this.setScreenBrightness(percent);
+            updateColorLevel();
         }
 
         @Override
         public int getScreenBrightness() {
-            if (myColorLevel != null) {
-                return (myColorLevel - 0x60) * 25 / (0xFF - 0x60);
-            }
-
-            float level = w.getAttributes().screenBrightness;
-            level = level >= 0 ? level : .5f;
-
-            // level = .01f + (percent - 25) * .99f / 75;
-            return 25 + (int) ((level - .01f) * 75 / .99f);
+            return FBReaderView.this.getScreenBrightness();
         }
 
         @Override
@@ -1416,6 +1386,47 @@ public class FBReaderView extends RelativeLayout {
             }
         }
 
+        public class Brightness {
+            int myStartY;
+            boolean myIsBrightnessAdjustmentInProgress;
+            int myStartBrightness;
+
+            public boolean onTouchEvent(MotionEvent e) {
+                int x = (int) e.getX();
+                int y = (int) e.getY();
+                switch (e.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN:
+                        if (app.MiscOptions.AllowScreenBrightnessAdjustment.getValue() && x < getWidth() / 10) {
+                            myIsBrightnessAdjustmentInProgress = true;
+                            myStartY = y;
+                            myStartBrightness = app.getViewWidget().getScreenBrightness();
+                            return true;
+                        }
+                        break;
+                    case MotionEvent.ACTION_MOVE:
+                        if (myIsBrightnessAdjustmentInProgress) {
+                            if (x >= getWidth() / 5) {
+                                myIsBrightnessAdjustmentInProgress = false;
+                                return false;
+                            } else {
+                                final int delta = (myStartBrightness + 30) * (myStartY - y) / getHeight();
+                                app.getViewWidget().setScreenBrightness(myStartBrightness + delta);
+                                return true;
+                            }
+                        }
+                        break;
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        if (myIsBrightnessAdjustmentInProgress) {
+                            myIsBrightnessAdjustmentInProgress = false;
+                            return true;
+                        }
+                        break;
+                }
+                return false;
+            }
+        }
+
         public class Gestures implements GestureDetector.OnGestureListener {
             MotionEvent e;
             int x;
@@ -1424,6 +1435,7 @@ public class FBReaderView extends RelativeLayout {
             ScrollAdapter.PageCursor c;
             PinchGesture pinch;
             GestureDetectorCompat gestures;
+            Brightness brightness = new Brightness();
 
             Gestures(Context context) {
                 gestures = new GestureDetectorCompat(context, this);
@@ -1552,7 +1564,7 @@ public class FBReaderView extends RelativeLayout {
                 return false;
             }
 
-            public boolean onRelease(MotionEvent e) {
+            public boolean onReleaseCheck(MotionEvent e) {
                 if (app.BookTextView.mySelection.isEmpty())
                     return false;
                 if (e.getAction() == MotionEvent.ACTION_UP) {
@@ -1566,7 +1578,7 @@ public class FBReaderView extends RelativeLayout {
                 return false;
             }
 
-            public boolean onCancel(MotionEvent e) {
+            public boolean onCancelCheck(MotionEvent e) {
                 if (app.BookTextView.mySelection.isEmpty())
                     return false;
                 if (e.getAction() == MotionEvent.ACTION_CANCEL) {
@@ -1586,8 +1598,10 @@ public class FBReaderView extends RelativeLayout {
             public boolean onTouchEvent(MotionEvent e) {
                 if (pinch.onTouchEvent(e))
                     return true;
-                onRelease(e);
-                onCancel(e);
+                onReleaseCheck(e);
+                onCancelCheck(e);
+                if (brightness.onTouchEvent(e))
+                    return true;
                 if (gestures.onTouchEvent(e))
                     return true;
                 if (onFilter(e))
@@ -1825,11 +1839,12 @@ public class FBReaderView extends RelativeLayout {
 
         @Override
         public void setScreenBrightness(int percent) {
+            FBReaderView.this.setScreenBrightness(percent);
         }
 
         @Override
         public int getScreenBrightness() {
-            return 0;
+            return FBReaderView.this.getScreenBrightness();
         }
 
         @Override
@@ -2685,8 +2700,7 @@ public class FBReaderView extends RelativeLayout {
 
     public void setWindow(Window w) {
         this.w = w;
-        if (widget instanceof FBAndroidWidget)
-            config.setValue(app.MiscOptions.AllowScreenBrightnessAdjustment, true);
+        config.setValue(app.MiscOptions.AllowScreenBrightnessAdjustment, true);
     }
 
     public void setActivity(final Activity a) {
@@ -3512,5 +3526,45 @@ public class FBReaderView extends RelativeLayout {
                 }
             }
         }, 3000);
+    }
+
+    public Integer setScreenBrightness(int percent) {
+        if (percent < 1) {
+            percent = 1;
+        } else if (percent > 100) {
+            percent = 100;
+        }
+
+        final float level;
+        final Integer oldColorLevel = myColorLevel;
+        if (percent >= 25) {
+            // 100 => 1f; 25 => .01f
+            level = .01f + (percent - 25) * .99f / 75;
+            myColorLevel = null;
+        } else {
+            level = .01f;
+            myColorLevel = 0x60 + (0xFF - 0x60) * Math.max(percent, 0) / 25;
+        }
+
+        final WindowManager.LayoutParams attrs = w.getAttributes();
+        attrs.screenBrightness = level;
+        w.setAttributes(attrs);
+
+        if (oldColorLevel != myColorLevel) {
+            postInvalidate();
+        }
+        return myColorLevel;
+    }
+
+    public int getScreenBrightness() {
+        if (myColorLevel != null) {
+            return (myColorLevel - 0x60) * 25 / (0xFF - 0x60);
+        }
+
+        float level = w.getAttributes().screenBrightness;
+        level = level >= 0 ? level : .5f;
+
+        // level = .01f + (percent - 25) * .99f / 75;
+        return 25 + (int) ((level - .01f) * 75 / .99f);
     }
 }
