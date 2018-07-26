@@ -5,13 +5,17 @@ import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.support.annotation.NonNull;
-import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewCompat;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.LinearInterpolator;
+import android.view.animation.RotateAnimation;
 import android.widget.FrameLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
@@ -22,7 +26,7 @@ import org.geometerplus.fbreader.fbreader.options.PageTurningOptions;
 
 import java.util.HashMap;
 
-public class ActiveAreasView extends FrameLayout {
+public class ActiveAreasView extends RelativeLayout {
     public static int PERC = 1000; // precision
 
     HashMap<String, Rect> maps = new HashMap<>();
@@ -36,6 +40,18 @@ public class ActiveAreasView extends FrameLayout {
         names.put("nextPage", getContext().getString(R.string.controls_nextpage));
         names.put("previousPage", getContext().getString(R.string.controls_prevpage));
         names.put("brightness", getContext().getString(R.string.controls_brightness));
+    }
+
+    public static void setRotationCompat(View view, int r) {
+        if (Build.VERSION.SDK_INT >= 11) {
+            ViewCompat.setRotation(view, r);
+        } else {
+            RotateAnimation animation = new RotateAnimation(0, r, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+            animation.setInterpolator(new LinearInterpolator());
+            animation.setDuration(1);
+            animation.setFillAfter(true);
+            view.startAnimation(animation);
+        }
     }
 
     public class ZoneView extends FrameLayout {
@@ -56,11 +72,6 @@ public class ActiveAreasView extends FrameLayout {
             MarginLayoutParams lp = new MarginLayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
             setLayoutParams(lp);
             ViewCompat.setAlpha(text, 0.7f);
-        }
-
-        @Override
-        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         }
     }
 
@@ -89,17 +100,18 @@ public class ActiveAreasView extends FrameLayout {
         for (String k : maps.keySet()) {
             Rect r = maps.get(k);
             ZoneView v = views.get(k);
-            int dp5 = ThemeUtils.dp2px(getContext(), 2);
+            int dp2 = ThemeUtils.dp2px(getContext(), 2);
             MarginLayoutParams lp = (MarginLayoutParams) v.getLayoutParams();
-            lp.leftMargin = w * r.left / PERC + dp5;
-            lp.topMargin = h * r.top / PERC + dp5;
-            lp.width = w * r.width() / PERC - dp5 * 2;
-            lp.height = h * r.height() / PERC - dp5 * 2;
+            lp.setMargins(w * r.left / PERC + dp2, h * r.top / PERC + dp2, 0, 0);
+            lp.width = w * r.width() / PERC - dp2 * 2;
+            lp.height = h * r.height() / PERC - dp2 * 2;
+            v.requestLayout();
             if (v.text.getMeasuredWidth() > lp.width) {
-                lp = (LayoutParams) v.text.getLayoutParams();
+                lp = (MarginLayoutParams) v.text.getLayoutParams();
                 lp.width = v.text.getMeasuredWidth();
                 lp.height = v.text.getMeasuredHeight();
-                ViewCompat.setRotation(v.text, 90);
+                setRotationCompat(v.text, 90);
+                v.text.requestLayout();
             }
         }
     }
@@ -159,7 +171,7 @@ public class ActiveAreasView extends FrameLayout {
         if (app.MiscOptions.AllowScreenBrightnessAdjustment.getValue()) {
             int bw;
             if (app.getViewWidget() instanceof FBReaderView.ScrollView) {
-                bw = ((FBReaderView.ScrollView) app.getViewWidget()).gesturesListener.brightness.areaWidth;
+                bw = ((FBReaderView.ScrollView) app.getViewWidget()).gesturesListener.brightness.areaWidth * PERC / ((FBReaderView.ScrollView) app.getViewWidget()).getWidth();
             } else {
                 bw = PERC / 10; // FBView.onFingerPress
             }
