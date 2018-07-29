@@ -2265,7 +2265,7 @@ public class FBReaderView extends RelativeLayout {
         Integer myColorLevel;
 
         public BrightnessGesture(Context context) {
-            areaWidth = ThemeUtils.dp2px(context, 30);
+            areaWidth = ThemeUtils.dp2px(context, 36); // 24dp - icon; 48dp - button
         }
 
         public boolean onTouchEvent(MotionEvent e) {
