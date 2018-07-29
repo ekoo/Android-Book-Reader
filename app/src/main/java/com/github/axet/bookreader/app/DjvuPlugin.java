@@ -239,10 +239,6 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
                     pp.text = doc.getText(page, type);
                     if (pp.text != null && pp.text.bounds.length != 0)
                         break;
-                    for (int i = 0; i < pp.text.text.length; i++) {
-                        pp.text.text[i] = Normalizer.normalize(pp.text.text[i], Normalizer.Form.NFC).toLowerCase(Locale.US); // й composed as two chars sometimes.
-                        pp.text.text[i] = Normalizer.normalize(pp.text.text[i], Normalizer.Form.NFC).toLowerCase(Locale.US);
-                    }
                 }
             }
             return pp;
