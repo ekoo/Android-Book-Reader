@@ -1853,7 +1853,8 @@ public class FBReaderView extends RelativeLayout {
             if (pos == null)
                 pos = c.end;
             if (!pos.equals(adapter.oldTurn)) {
-                pageTurningListener.onScrollingFinished(ZLViewEnums.PageIndex.current);
+                if (pageTurningListener != null)
+                    pageTurningListener.onScrollingFinished(ZLViewEnums.PageIndex.current);
                 adapter.oldTurn = pos;
             }
         }

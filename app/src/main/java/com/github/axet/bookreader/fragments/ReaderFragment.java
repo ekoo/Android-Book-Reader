@@ -107,7 +107,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     BroadcastReceiver battery = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
-            onReceiveBattery(intent);
+            int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+            int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+            view.battery = level * 100 / scale;
+            view.invalidateFooter();
         }
     };
 
@@ -481,13 +484,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         ((MainActivity) getActivity()).clearMenu();
     }
 
-    void onReceiveBattery(Intent intent) {
-        int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-        int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
-        view.battery = level * 100 / scale;
-        view.invalidateFooter();
-    }
-
     void updateTime() {
         long s60 = 60 * 1000;
         long secs = System.currentTimeMillis() % s60;
@@ -540,7 +536,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         view.setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
 
         Context context = getContext();
-        onReceiveBattery(context.registerReceiver(battery, new IntentFilter(Intent.ACTION_BATTERY_CHANGED)));
+        battery.onReceive(context, context.registerReceiver(battery, new IntentFilter(Intent.ACTION_BATTERY_CHANGED)));
 
         view.setWindow(getActivity().getWindow());
         view.setActivity(getActivity());
