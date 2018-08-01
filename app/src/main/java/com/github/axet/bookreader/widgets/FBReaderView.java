@@ -861,6 +861,7 @@ public class FBReaderView extends RelativeLayout {
             PluginRect size = new PluginRect(); // ScrollView size, after reset
             Set<PageHolder> invalidates = new HashSet<>(); // pending invalidates
             ArrayList<PageHolder> holders = new ArrayList<>(); // keep all active holders, including Recycler.mCachedViews
+            ZLTextPosition oldTurn; // last page shown
 
             public class PageView extends View {
                 public PageHolder holder;
@@ -1300,6 +1301,7 @@ public class FBReaderView extends RelativeLayout {
             }
 
             public void reset() { // read current position
+                oldTurn = null;
                 size.w = getWidth();
                 size.h = getHeight();
                 if (pluginview != null) {
@@ -1845,6 +1847,14 @@ public class FBReaderView extends RelativeLayout {
             } else {
                 ScrollView.ScrollAdapter.PageCursor c = adapter.pages.get(first);
                 adapter.open(c);
+            }
+            ScrollView.ScrollAdapter.PageCursor c = adapter.pages.get(first);
+            ZLTextPosition pos = c.start;
+            if (pos == null)
+                pos = c.end;
+            if (!pos.equals(adapter.oldTurn)) {
+                pageTurningListener.onScrollingFinished(ZLViewEnums.PageIndex.current);
+                adapter.oldTurn = pos;
             }
         }
 
