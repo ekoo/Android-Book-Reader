@@ -497,6 +497,7 @@ public class MainActivity extends FullscreenActivity
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        setIntent(intent);
         loadIntent(intent);
     }
 
@@ -515,9 +516,6 @@ public class MainActivity extends FullscreenActivity
     }
 
     public void loadBook(final Uri u, final Runnable success) {
-        FragmentManager fm = getSupportFragmentManager();
-        fm.popBackStack(LibraryFragment.TAG, 0);
-
         int dp10 = ThemeUtils.dp2px(this, 10);
 
         ProgressBar v = new ProgressBar(this);
@@ -610,7 +608,7 @@ public class MainActivity extends FullscreenActivity
                     book.info.position = selected.get(0);
                     storage.save(book);
 
-                    addFragment(ReaderFragment.newInstance(book.url), ReaderFragment.TAG).addToBackStack(null).commit();
+                    openBook(book.url);
                 }
             };
 
@@ -700,19 +698,39 @@ public class MainActivity extends FullscreenActivity
             builder.show();
             return;
         }
-        addFragment(ReaderFragment.newInstance(book.url), ReaderFragment.TAG).addToBackStack(null).commit();
+        openBook(book.url);
+    }
+
+    @SuppressLint("RestrictedApi")
+    public void popBackStack(String tag, int flags) { // only pop existing TAG
+        FragmentManager fm = getSupportFragmentManager();
+        if (tag == null) {
+            fm.popBackStack(null, flags);
+            return;
+        }
+        for (int i = 0; i < fm.getBackStackEntryCount(); i++) {
+            String n = fm.getBackStackEntryAt(i).getName();
+            if (n != null && n.equals(tag)) {
+                fm.popBackStack(tag, flags);
+                return;
+            }
+        }
+    }
+
+    public void openBook(Uri uri) {
+        popBackStack(ReaderFragment.TAG, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+        addFragment(ReaderFragment.newInstance(uri), ReaderFragment.TAG).commit();
     }
 
     public void openLibrary() {
-        FragmentManager fm = getSupportFragmentManager();
-        fm.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+        popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
         openFragment(libraryFragment, LibraryFragment.TAG).commit();
     }
 
     public void openLibrary(BooksCatalog ct) {
         String n = ct.url;
         FragmentManager fm = getSupportFragmentManager();
-        fm.popBackStack(LibraryFragment.TAG, 0);
+        popBackStack(LibraryFragment.TAG, 0);
         if (ct instanceof LocalBooksCatalog) {
             Fragment f = fm.findFragmentByTag(LocalLibraryFragment.TAG);
             if (f != null) {
@@ -753,7 +771,7 @@ public class MainActivity extends FullscreenActivity
     }
 
     public FragmentTransaction addFragment(Fragment f, String tag) {
-        return openFragment(f, tag).addToBackStack(null);
+        return openFragment(f, tag).addToBackStack(tag);
     }
 
     public FragmentTransaction openFragment(Fragment f, String tag) {
