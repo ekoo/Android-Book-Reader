@@ -509,14 +509,18 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public void linksClose() {
-            for (LinksView l : links.values())
-                l.close();
+            for (LinksView l : links.values()) {
+                if (l != null)
+                    l.close();
+            }
             links.clear();
         }
 
         public void searchClose() {
-            for (SearchView l : searchs.values())
-                l.close();
+            for (SearchView l : searchs.values()) {
+                if (l != null)
+                    l.close();
+            }
             searchs.clear();
         }
 
