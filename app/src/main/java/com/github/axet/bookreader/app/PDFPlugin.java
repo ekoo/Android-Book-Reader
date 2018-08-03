@@ -474,6 +474,20 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             this.str = str;
         }
 
+        boolean hasText(int page) {
+            Pdfium.Page p = pdfium.openPage(page);
+            Pdfium.Text t = p.open();
+            try {
+                if (t != null && t.getCount() > 0)
+                    return true;
+                return false;
+            } finally {
+                if (t != null)
+                    t.close();
+                p.close();
+            }
+        }
+
         ArrayList<SearchResult> search(int i) {
             Pdfium.Page page = pdfium.openPage(i);
             Pdfium.Text text = page.open();
@@ -816,7 +830,13 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         @Override
         public Search search(String text) {
-            return new PdfSearch(doc, text);
+            PdfSearch s = new PdfSearch(doc, text);
+            for (int i = 0; i < doc.getPagesCount(); i++) {
+                if (s.hasText(i))
+                    return s;
+            }
+            s.close();
+            return null;
         }
 
     }

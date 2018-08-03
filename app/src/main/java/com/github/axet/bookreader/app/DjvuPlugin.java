@@ -464,6 +464,18 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             this.str = str;
         }
 
+        boolean hasText(int page) {
+            int[] types = new int[]{DjvuLibre.ZONE_CHARACTER, DjvuLibre.ZONE_WORD, DjvuLibre.ZONE_LINE,
+                    DjvuLibre.ZONE_PARAGRAPH, DjvuLibre.ZONE_REGION, DjvuLibre.ZONE_COLUMN,
+                    DjvuLibre.ZONE_PAGE};
+            for (int type : types) {
+                DjvuLibre.Text text = doc.getText(page, type);
+                if (text != null && text.bounds.length != 0)
+                    return true;
+            }
+            return false;
+        }
+
         SearchPage search(int page) {
             SearchPage pp = pages.get(page);
             if (pp != null)
@@ -706,7 +718,13 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
         @Override
         public Search search(String text) {
-            return new DjvuSearch(doc, text);
+            DjvuSearch s = new DjvuSearch(doc, text);
+            for (int i = 0; i < doc.getPagesCount(); i++) {
+                if (s.hasText(i))
+                    return s;
+            }
+            s.close();
+            return null;
         }
     }
 
