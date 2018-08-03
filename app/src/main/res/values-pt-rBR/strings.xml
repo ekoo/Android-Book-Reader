@@ -1,0 +1,50 @@
+<resources>
+    <string name="app_name">Book Reader</string>
+
+    <string-array name="theme_text">
+        <item>Tema Claro</item>
+        <item>Tema Escuro</item>
+    </string-array>
+
+    <string name="navigation_drawer_open">Abrir painel de navegação</string>
+    <string name="navigation_drawer_close">Fechar painel de navegação</string>
+
+    <string name="add_catalog">Adicionar Catálogos de Livros</string>
+    <string name="books_catalogs">Catálogos</string>
+    <string name="loading_book">Carregando Livro</string>
+    <string name="open_file">Abrir arquivo</string>
+    <string name="catalog_home">Início</string>
+    <string name="book_toc">Índice</string>
+    <string name="search">Pesquisar</string>
+    <string name="book_rename">Renomear</string>
+    <string name="book_open">Abrir</string>
+    <string name="book_delete">Excluir</string>
+    <string name="my_readings">Minhas Leituras</string>
+    <string name="search_local">Pesquisa Local&#8230;</string>
+    <string name="search_network">Pesquisa de Rede&#8230;</string>
+    <string name="search_book">Pesquisa de Livro&#8230;</string>
+    <string name="pref_theme_title">Tema</string>
+    <string name="more_books">Obtenha mais Catálogos de Livros no menu \'Sobre\'</string>
+    <string name="pref_rotate_title">Rotacionar</string>
+    <string name="pref_rotate_summary">Permitir rotação de tela</string>
+    <string name="from_local_folder">... de pasta local</string>
+    <string name="from_json_file">... de arquivo (.json)</string>
+    <string name="view_mode_continuous">Visão Contínua</string>
+    <string name="view_mode_paging">Visão Paginada</string>
+    <string name="pref_storagepath_title">Pasta de Sincronização</string>
+    <string name="pref_storagepath_summary">Nenhuma \'Pasta de Sincronização\' selecionada</string>
+    <string name="continue_reading">Continuar lendo de:</string>
+    <string name="sync_conflict">Conflito ao sincronizar</string>
+    <string name="view_mode">Modo de Visualização</string>
+    <string name="image_original_size">Tamanho Original</string>
+    <string name="image_fit_to_screen">Ajustar à Tela</string>
+    <string name="image_original_size_all_images">Tamanho Original Todas as Imagens</string>
+    <string name="image_fit_to_screen_all_images">Ajustar à Tela Todas as Imagens</string>
+    <string name="keep_reading_position">Manter posição de leitura</string>
+    <string name="add_more_fonts_to">Adicione mais fontes em \'%s\'</string>
+    <string name="controls_fullscreen">Tela Cheia</string>
+    <string name="controls_navigate">Navegar</string>
+    <string name="controls_nextpage">Próxima página</string>
+    <string name="controls_prevpage">Página anterior</string>
+    <string name="controls_brightness">Brilho</string>
+</resources>
