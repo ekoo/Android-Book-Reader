@@ -20,6 +20,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AlertDialog;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -761,13 +762,19 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     void savePosition() {
         if (book == null)
             return;
+        if (view.book == null) // when book insn't loaded and view clsosed
+            return;
         Uri u = storage.recentUri(book);
         if (storage.exists(u)) { // file can be changed during sync, check for conflicts
-            Storage.RecentInfo info = new Storage.RecentInfo(getContext(), u);
-            if (info.position != null) {
-                if (book.info.position == null || !info.position.samePositionAs(book.info.position)) {
-                    storage.move(u, storage.getStoragePath());
+            try {
+                Storage.RecentInfo info = new Storage.RecentInfo(getContext(), u);
+                if (info.position != null) {
+                    if (book.info.position == null || !info.position.samePositionAs(book.info.position)) {
+                        storage.move(u, storage.getStoragePath());
+                    }
                 }
+            } catch (RuntimeException e) {
+                Log.d(TAG, "Unable to load JSON", e);
             }
         }
         book.info = new Storage.RecentInfo(view.book.info);
