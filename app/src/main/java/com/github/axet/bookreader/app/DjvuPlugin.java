@@ -92,6 +92,8 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
 
         int find(PluginView.Selection.Point point) {
+            if (text == null)
+                return -1;
             for (int i = 0; i < text.bounds.length; i++) {
                 Rect b = text.bounds[i];
                 if (b.contains(point.x, point.y)) {
