@@ -194,9 +194,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
 
         public void update(long read, long total) {
-            info.step(read);
             long time = System.currentTimeMillis();
             if (last + AlarmManager.SEC1 < time) {
+                info.step(read);
                 last = time;
                 progress(read, total);
             }
@@ -1167,10 +1167,11 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     }
                 }
                 AssetFileDescriptor fd = resolver.openAssetFileDescriptor(uri, "r");
-                AssetFileDescriptor.AutoCloseInputStream is = new AssetFileDescriptor.AutoCloseInputStream(fd);
+                InputStream is = new AssetFileDescriptor.AutoCloseInputStream(fd);
                 long len = fd.getDeclaredLength();
                 if (len == AssetFileDescriptor.UNKNOWN_LENGTH)
                     len = fd.getLength();
+                is = new BufferedInputStream(is);
                 book = load(new ProgresInputstream(is, len, progress), uri);
                 is.close();
             } catch (IOException e) {
@@ -1182,6 +1183,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 if (Build.VERSION.SDK_INT < 11) {
                     HttpURLConnection conn = HttpClient.openConnection(uri, HttpClient.USER_AGENT);
                     is = conn.getInputStream();
+                    is = new BufferedInputStream(is);
                     is = new ProgresInputstream(is, conn.getContentLength(), progress);
                 } else {
                     HttpClient client = new HttpClient();
@@ -1208,6 +1210,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             try {
                 FileInputStream fis = new FileInputStream(f);
                 InputStream is = fis;
+                is = new BufferedInputStream(is);
                 is = new ProgresInputstream(is, fis.getChannel().size(), progress);
                 book = load(is, Uri.fromFile(f));
             } catch (IOException e) {
