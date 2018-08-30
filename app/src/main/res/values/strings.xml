@@ -6,19 +6,9 @@
         <item>Theme Dark</item>
     </string-array>
 
-    <string-array name="theme_value" translatable="false">
-        <item>@string/Theme_Light</item>
-        <item>@string/Theme_Dark</item>
-    </string-array>
-
     <string-array name="viewmode_text">
         <item>@string/view_mode_paging</item>
         <item>@string/view_mode_continuous</item>
-    </string-array>
-
-    <string-array name="viewmode_value" translatable="false">
-        <item>PAGING</item>
-        <item>CONTINUOUS</item>
     </string-array>
 
     <string name="navigation_drawer_open">Open navigation drawer</string>
@@ -62,4 +52,5 @@
     <string name="controls_nextpage">Next page</string>
     <string name="controls_prevpage">Previous page</string>
     <string name="controls_brightness">Brightness</string>
+    <string name="per_second">/s</string>
 </resources>

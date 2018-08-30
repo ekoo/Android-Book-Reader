@@ -24,6 +24,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.axet.androidlibrary.app.AlarmManager;
 import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
@@ -31,6 +32,8 @@ import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.widgets.FBReaderView;
+import com.github.axet.wget.SpeedInfo;
+import com.github.axet.wget.WGet;
 
 import org.apache.commons.io.IOUtils;
 import org.geometerplus.fbreader.book.BookUtil;
@@ -179,6 +182,48 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         @Override
         public String networkCacheDirectory() {
             return context.getCacheDir().getPath();
+        }
+    }
+
+    public static class Progress {
+        public SpeedInfo info = new SpeedInfo();
+        public long last;
+
+        public Progress() {
+            info.start(0);
+        }
+
+        public void update(long read, long total) {
+            info.step(read);
+            long time = System.currentTimeMillis();
+            if (last + AlarmManager.SEC1 < time) {
+                last = time;
+                progress(read, total);
+            }
+        }
+
+        public void progress(long read, long total) {
+        }
+    }
+
+    public static class ProgresInputstream extends InputStream {
+        long read;
+        long total;
+        InputStream is;
+        Progress progress;
+
+        public ProgresInputstream(InputStream is, long total, Progress progress) {
+            this.is = is;
+            this.total = total;
+            this.progress = progress;
+            this.progress.update(0, total);
+        }
+
+        @Override
+        public int read() throws IOException {
+            read++;
+            progress.update(read, total);
+            return is.read();
         }
     }
 
@@ -1100,6 +1145,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public Book load(Uri uri) {
+        return load(uri, null);
+    }
+
+    public Book load(Uri uri, Progress progress) {
         Book book;
         String contentDisposition = null;
         String s = uri.getScheme();
@@ -1119,7 +1168,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
                 AssetFileDescriptor fd = resolver.openAssetFileDescriptor(uri, "r");
                 AssetFileDescriptor.AutoCloseInputStream is = new AssetFileDescriptor.AutoCloseInputStream(fd);
-                book = load(is, uri);
+                long len = fd.getDeclaredLength();
+                if (len == AssetFileDescriptor.UNKNOWN_LENGTH)
+                    len = fd.getLength();
+                book = load(new ProgresInputstream(is, len, progress), uri);
                 is.close();
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -1130,6 +1182,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 if (Build.VERSION.SDK_INT < 11) {
                     HttpURLConnection conn = HttpClient.openConnection(uri, HttpClient.USER_AGENT);
                     is = conn.getInputStream();
+                    is = new ProgresInputstream(is, conn.getContentLength(), progress);
                 } else {
                     HttpClient client = new HttpClient();
                     HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
@@ -1144,6 +1197,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         }
                     }
                     is = new BufferedInputStream(w.getInputStream());
+                    is = new ProgresInputstream(is, w.contentLength, progress);
                 }
                 book = load(is, uri);
             } catch (IOException e) {
@@ -1152,7 +1206,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         } else { // file:// or /path/file
             File f = getFile(uri);
             try {
-                FileInputStream is = new FileInputStream(f);
+                FileInputStream fis = new FileInputStream(f);
+                InputStream is = fis;
+                is = new ProgresInputstream(is, fis.getChannel().size(), progress);
                 book = load(is, Uri.fromFile(f));
             } catch (IOException e) {
                 throw new RuntimeException(e);

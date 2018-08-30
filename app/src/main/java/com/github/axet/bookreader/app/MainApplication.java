@@ -9,7 +9,7 @@ import com.github.axet.bookreader.R;
 
 import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
 
-public class MainApplication extends MultiDexApplication {
+public class MainApplication extends com.github.axet.androidlibrary.app.MainApplication {
 
     public static String PREFERENCE_THEME = "theme";
     public static String PREFERENCE_CATALOGS = "catalogs";
