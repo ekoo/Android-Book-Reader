@@ -531,6 +531,7 @@ public class MainActivity extends FullscreenActivity
         final TextView text = new TextView(this);
         text.setPadding(dp10, dp10, dp10, dp10);
         ll.addView(text);
+        load.setVisibility(View.GONE);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.loading_book);
@@ -570,9 +571,11 @@ public class MainActivity extends FullscreenActivity
                                     if (total > 0) {
                                         str += " / " + MainApplication.formatSize(MainActivity.this, total);
                                         load.setProgress((int) (bytes * 100 / total));
+                                        load.setVisibility(View.VISIBLE);
                                         v.setVisibility(View.GONE);
                                     } else {
                                         load.setVisibility(View.GONE);
+                                        v.setVisibility(View.VISIBLE);
                                     }
                                     str += String.format(" (%s%s)", MainApplication.formatSize(MainActivity.this, info.getCurrentSpeed()), getString(R.string.per_second));
                                     text.setText(str);

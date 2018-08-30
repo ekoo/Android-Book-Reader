@@ -1173,7 +1173,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 if (len == AssetFileDescriptor.UNKNOWN_LENGTH)
                     len = fd.getLength();
                 is = new BufferedInputStream(is);
-                book = load(new ProgresInputstream(is, len, progress), uri);
+                if (progress != null)
+                    is = new ProgresInputstream(is, len, progress);
+                book = load(is, uri);
                 is.close();
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -1185,7 +1187,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     HttpURLConnection conn = HttpClient.openConnection(uri, HttpClient.USER_AGENT);
                     is = conn.getInputStream();
                     is = new BufferedInputStream(is);
-                    is = new ProgresInputstream(is, conn.getContentLength(), progress);
+                    if (progress != null)
+                        is = new ProgresInputstream(is, conn.getContentLength(), progress);
                 } else {
                     HttpClient client = new HttpClient();
                     HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
@@ -1200,7 +1203,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         }
                     }
                     is = new BufferedInputStream(w.getInputStream());
-                    is = new ProgresInputstream(is, w.contentLength, progress);
+                    if (progress != null)
+                        is = new ProgresInputstream(is, w.contentLength, progress);
                 }
                 book = load(is, uri);
             } catch (IOException e) {
@@ -1212,7 +1216,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 FileInputStream fis = new FileInputStream(f);
                 InputStream is = fis;
                 is = new BufferedInputStream(is);
-                is = new ProgresInputstream(is, fis.getChannel().size(), progress);
+                if (progress != null)
+                    is = new ProgresInputstream(is, fis.getChannel().size(), progress);
                 book = load(is, Uri.fromFile(f));
             } catch (IOException e) {
                 throw new RuntimeException(e);
