@@ -60,6 +60,7 @@ import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileDescriptor;
@@ -1273,13 +1274,14 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
         final Book book = new Book();
         try {
-            FileOutputStream os = null;
+            OutputStream os = null;
 
             if (u.getScheme().equals(ContentResolver.SCHEME_FILE)) {
                 file = Storage.getFile(u);
             } else {
                 file = createTempBook("tmp");
                 os = new FileOutputStream(file);
+                os = new BufferedOutputStream(os);
                 tmp = true;
             }
 
@@ -1319,7 +1321,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     final Archive archive = new Archive(new ComicsPlugin.RarStore(fc));
                     if (archive.getMainHeader().isSolid()) {
                         cbz = createTempBook("tmp");
-                        FileOutputStream zos = new FileOutputStream(cbz);
+                        OutputStream zos = new FileOutputStream(cbz);
+                        zos = new BufferedOutputStream(zos);
                         ZipOutputStream out = new ZipOutputStream(zos);
                         List<FileHeader> list = archive.getFileHeaders();
                         for (FileHeader h : list) {
@@ -1371,7 +1374,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
                 FileDescriptor out = fd.getFileDescriptor();
                 FileInputStream fis = new FileInputStream(file);
-                FileOutputStream fos = new FileOutputStream(out);
+                OutputStream fos = new FileOutputStream(out);
+                fos = new BufferedOutputStream(fos);
                 IOUtils.copy(fis, fos);
                 fis.close();
                 fos.close();
@@ -1495,7 +1499,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 Bitmap sbm = Bitmap.createScaledBitmap(bm, (int) (bm.getWidth() * ratio), (int) (bm.getHeight() * ratio), true);
                 if (sbm != bm)
                     bm.recycle();
-                FileOutputStream os = new FileOutputStream(cover);
+                OutputStream os = new FileOutputStream(cover);
+                os = new BufferedOutputStream(os);
                 sbm.compress(Bitmap.CompressFormat.PNG, 100, os);
                 os.close();
                 sbm.recycle();
@@ -1679,6 +1684,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 String ext = getExt(b.url);
                 fbook.tmp = createTempBook(ext);
                 OutputStream os = new FileOutputStream(fbook.tmp);
+                os = new BufferedOutputStream(os);
                 ContentResolver resolver = getContext().getContentResolver();
                 InputStream is = resolver.openInputStream(b.url);
                 IOUtils.copy(is, os);
@@ -1846,6 +1852,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             } else if (s.startsWith(ContentResolver.SCHEME_FILE)) {
                 is = new FileInputStream(Storage.getFile(u));
                 os = new FileOutputStream(Storage.getFile(n));
+                os = new BufferedOutputStream(os);
             } else {
                 throw new UnknownUri();
             }
