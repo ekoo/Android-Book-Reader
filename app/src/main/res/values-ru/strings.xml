@@ -47,4 +47,5 @@
     <string name="controls_nextpage">Следующая страница</string>
     <string name="controls_prevpage">Предыдущая страница</string>
     <string name="controls_brightness">Яркость</string>
+    <string name="per_second">/с</string>
 </resources>

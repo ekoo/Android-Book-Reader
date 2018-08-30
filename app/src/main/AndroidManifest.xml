@@ -56,6 +56,9 @@
                 <data
                     android:host="*"
                     android:scheme="http" />
+                <data
+                    android:host="*"
+                    android:scheme="https" />
                 <data android:pathPattern=".*\\.epub" />
                 <data android:pathPattern=".*\\.oeb" />
                 <data android:pathPattern=".*\\.fb2" />
@@ -82,6 +85,9 @@
                 <data
                     android:host="*"
                     android:scheme="http" />
+                <data
+                    android:host="*"
+                    android:scheme="https" />
                 <data android:pathPattern=".*\\.epub" />
                 <data android:pathPattern=".*\\.oeb" />
                 <data android:pathPattern=".*\\.fb2" />
@@ -90,6 +96,30 @@
                 <data android:pathPattern=".*\\.txt" />
                 <data android:pathPattern=".*\\.rtf" />
                 <data android:pathPattern=".*\\.pdf" />
+                <data android:pathPattern=".*\\.djvu" />
+                <data android:pathPattern=".*\\.cbr" />
+                <data android:pathPattern=".*\\.cbz" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="*"
+                    android:scheme="http" />
+                <data
+                    android:host="*"
+                    android:scheme="https" />
+                <data android:pathPattern=".*\\.epub" />
+                <data android:pathPattern=".*\\.oeb" />
+                <data android:pathPattern=".*\\.fb2" />
+                <data android:pathPattern=".*\\.fb2\\.zip" />
+                <data android:pathPattern=".*\\.mobi" />
+                <data android:pathPattern=".*\\.prc" />
+                <data android:pathPattern=".*\\.txt" />
+                <data android:pathPattern=".*\\.rtf" />
                 <data android:pathPattern=".*\\.djvu" />
                 <data android:pathPattern=".*\\.cbr" />
                 <data android:pathPattern=".*\\.cbz" />
@@ -133,27 +163,9 @@
                 <data
                     android:host="*"
                     android:scheme="http" />
-                <data android:pathPattern=".*\\.epub" />
-                <data android:pathPattern=".*\\.oeb" />
-                <data android:pathPattern=".*\\.fb2" />
-                <data android:pathPattern=".*\\.fb2\\.zip" />
-                <data android:pathPattern=".*\\.mobi" />
-                <data android:pathPattern=".*\\.prc" />
-                <data android:pathPattern=".*\\.txt" />
-                <data android:pathPattern=".*\\.rtf" />
-                <data android:pathPattern=".*\\.djvu" />
-                <data android:pathPattern=".*\\.cbr" />
-                <data android:pathPattern=".*\\.cbz" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
                 <data
                     android:host="*"
-                    android:scheme="http" />
+                    android:scheme="https" />
                 <data android:mimeType="application/zip" />
                 <data android:mimeType="application/epub+zip" />
                 <data android:mimeType="application/x-pilot-prc" />
@@ -213,6 +225,10 @@
                     android:scheme="catalog" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".activities.SettingsActivity"
+            android:label="@string/menu_settings"
+            android:theme="@style/AppThemeLight.NoActionBar" />
 
         <provider
             android:name="com.github.axet.androidlibrary.services.FileProvider"
@@ -229,11 +245,6 @@
             android:authorities="com.github.axet.bookreader.images"
             android:exported="false"
             android:grantUriPermissions="true" />
-
-        <activity
-            android:name=".activities.SettingsActivity"
-            android:label="@string/menu_settings"
-            android:theme="@style/AppThemeLight.NoActionBar"></activity>
     </application>
 
 </manifest>

@@ -518,13 +518,24 @@ public class MainActivity extends FullscreenActivity
     public void loadBook(final Uri u, final Runnable success) {
         int dp10 = ThemeUtils.dp2px(this, 10);
 
-        ProgressBar v = new ProgressBar(this);
+        final LinearLayout ll = new LinearLayout(this);
+        ll.setOrientation(LinearLayout.VERTICAL);
+        final ProgressBar v = new ProgressBar(this);
         v.setIndeterminate(true);
         v.setPadding(dp10, dp10, dp10, dp10);
+        ll.addView(v);
+        final ProgressBar load = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        load.setPadding(dp10, dp10, dp10, dp10);
+        load.setMax(100);
+        ll.addView(load);
+        final TextView text = new TextView(this);
+        text.setPadding(dp10, dp10, dp10, dp10);
+        ll.addView(text);
+        load.setVisibility(View.GONE);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.loading_book);
-        builder.setView(v);
+        builder.setView(ll);
         builder.setCancelable(false);
         final AlertDialog d = builder.create();
         d.show();
@@ -550,7 +561,28 @@ public class MainActivity extends FullscreenActivity
                         });
                         return;
                     }
-                    final Storage.Book book = storage.load(u);
+                    final Storage.Book book = storage.load(u, new Storage.Progress() {
+                        @Override
+                        public void progress(final long bytes, final long total) {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    String str = MainApplication.formatSize(MainActivity.this, bytes);
+                                    if (total > 0) {
+                                        str += " / " + MainApplication.formatSize(MainActivity.this, total);
+                                        load.setProgress((int) (bytes * 100 / total));
+                                        load.setVisibility(View.VISIBLE);
+                                        v.setVisibility(View.GONE);
+                                    } else {
+                                        load.setVisibility(View.GONE);
+                                        v.setVisibility(View.VISIBLE);
+                                    }
+                                    str += String.format(" (%s%s)", MainApplication.formatSize(MainActivity.this, info.getCurrentSpeed()), getString(R.string.per_second));
+                                    text.setText(str);
+                                }
+                            });
+                        }
+                    });
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {

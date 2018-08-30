@@ -47,4 +47,5 @@
     <string name="controls_nextpage">Next page</string>
     <string name="controls_prevpage">Previous page</string>
     <string name="controls_brightness">Brightness</string>
+    <string name="per_second">/s</string>
 </resources>

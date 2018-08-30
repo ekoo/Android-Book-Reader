@@ -47,4 +47,5 @@
     <string name="controls_nextpage">Página anterior</string>
     <string name="controls_prevpage">Página siguiente</string>
     <string name="controls_brightness">Brillo</string>
+    <string name="per_second">/s</string>
 </resources>
