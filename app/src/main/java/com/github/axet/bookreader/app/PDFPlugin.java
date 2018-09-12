@@ -476,6 +476,8 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         boolean hasText(int page) {
             Pdfium.Page p = pdfium.openPage(page);
+            if (p == null)
+                return false;
             Pdfium.Text t = p.open();
             try {
                 if (t != null && t.getCount() > 0)
