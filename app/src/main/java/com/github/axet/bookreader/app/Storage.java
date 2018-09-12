@@ -965,9 +965,19 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public static class Book {
         public Uri url;
         public String ext;
-        public String md5;
+        public String md5; // can be filename if user renamed file
         public RecentInfo info;
         public File cover;
+
+        public Book() {
+        }
+
+        public Book(Uri u) {
+            String name = Storage.getDocumentName(u);
+            url = u;
+            md5 = Storage.getNameNoExt(name);
+            ext = Storage.getExt(name);
+        }
     }
 
     public static class RecentInfo {
@@ -1261,17 +1271,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public Book load(InputStream is, Uri u) {
         Uri storage = getStoragePath();
 
-        if (u.toString().startsWith(storage.toString())) {
-            String name = Storage.getDocumentName(u);
-            String nn = Storage.getNameNoExt(name);
-            String ext = Storage.getExt(name);
-            if (nn.length() == MD5_SIZE) {
-                Book book = new Book();
-                book.url = u;
-                book.md5 = nn;
-                book.ext = ext;
-                return book;
-            }
+        String ss = storage.getScheme();
+        if (Build.VERSION.SDK_INT >= 21 && ss.equals(ContentResolver.SCHEME_CONTENT) && DocumentsContract.getDocumentId(u).startsWith(DocumentsContract.getTreeDocumentId(storage))) {
+            u = DocumentsContract.buildDocumentUriUsingTree(storage, DocumentsContract.getDocumentId(u));
+            return new Book(u);
+        }
+        if (ss.equals(ContentResolver.SCHEME_FILE) && u.getPath().startsWith(storage.getPath())) {
+            return new Book(u);
         }
 
         boolean tmp = false;
@@ -1589,6 +1595,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         long size = childCursor.getLong(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE));
                         if (size > 0) {
                             String n = t.toLowerCase();
+                            if (n.length() != MD5_SIZE)
+                                continue;
                             Detector[] dd = supported();
                             for (Detector d : dd) {
                                 if (n.endsWith("." + d.ext)) {
