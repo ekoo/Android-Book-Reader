@@ -2,6 +2,7 @@ package com.github.axet.bookreader.activities;
 
 import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -443,11 +444,14 @@ public class MainActivity extends FullscreenActivity
             choicer = new OpenChoicer(OpenFileDialog.DIALOG_TYPE.FILE_DIALOG, true) {
                 @Override
                 public void onResult(Uri uri) {
-                    File f = Storage.getFile(uri);
-                    f = f.getParentFile();
-                    SharedPreferences.Editor editor = shared.edit();
-                    editor.putString(MainApplication.PREFERENCE_LAST_PATH, f.toString());
-                    editor.commit();
+                    String s = uri.getScheme();
+                    if (s.equals(ContentResolver.SCHEME_FILE)) {
+                        File f = Storage.getFile(uri);
+                        f = f.getParentFile();
+                        SharedPreferences.Editor editor = shared.edit();
+                        editor.putString(MainApplication.PREFERENCE_LAST_PATH, f.toString());
+                        editor.commit();
+                    }
                     loadBook(uri, null);
                 }
             };
