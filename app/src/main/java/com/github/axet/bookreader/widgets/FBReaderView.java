@@ -2423,9 +2423,11 @@ public class FBReaderView extends RelativeLayout {
         @Override
         public void onScaleEnd(ScaleGestureDetector detector) {
             scaleTouch = true;
-            pinch.onScaleEnd();
-            if (pinch.end < 0)
-                pinchClose();
+            if (isPinch()) { // double end?
+                pinch.onScaleEnd();
+                if (pinch.end < 0)
+                    pinchClose();
+            }
         }
 
         public boolean isPinch() {
