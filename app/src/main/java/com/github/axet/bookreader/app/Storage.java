@@ -1271,14 +1271,15 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public Book load(InputStream is, Uri u) {
         Uri storage = getStoragePath();
 
-        String ss = storage.getScheme();
-        if (Build.VERSION.SDK_INT >= 21 && ss.equals(ContentResolver.SCHEME_CONTENT) && DocumentsContract.getDocumentId(u).startsWith(DocumentsContract.getTreeDocumentId(storage))) {
-            u = DocumentsContract.buildDocumentUriUsingTree(storage, DocumentsContract.getDocumentId(u));
-            return new Book(u);
+        String s = storage.getScheme();
+
+        if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
+            String ss = u.getScheme();
+            if (ss.equals(ContentResolver.SCHEME_CONTENT) && DocumentsContract.getDocumentId(u).startsWith(DocumentsContract.getTreeDocumentId(storage))) // else we can't get from content://storage to real path
+                return new Book(DocumentsContract.buildDocumentUriUsingTree(storage, DocumentsContract.getDocumentId(u)));
         }
-        if (ss.equals(ContentResolver.SCHEME_FILE) && u.getPath().startsWith(storage.getPath())) {
+        if (s.equals(ContentResolver.SCHEME_FILE) && u.getPath().startsWith(storage.getPath()))
             return new Book(u);
-        }
 
         boolean tmp = false;
         File file = null;
@@ -1358,8 +1359,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     throw new RuntimeException("unsupported rar", e);
                 }
             }
-
-            String s = storage.getScheme();
 
             if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
                 ContentResolver contentResolver = context.getContentResolver();
@@ -1594,12 +1593,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         String t = childCursor.getString(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME));
                         long size = childCursor.getLong(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE));
                         if (size > 0) {
-                            String n = t.toLowerCase();
+                            t = t.toLowerCase();
+                            String n = Storage.getNameNoExt(t);
                             if (n.length() != MD5_SIZE)
                                 continue;
                             Detector[] dd = supported();
                             for (Detector d : dd) {
-                                if (n.endsWith("." + d.ext)) {
+                                if (t.endsWith("." + d.ext)) {
                                     Uri k = DocumentsContract.buildDocumentUriUsingTree(uri, id);
                                     Book b = new Book();
                                     b.md5 = getNameNoExt(k);
