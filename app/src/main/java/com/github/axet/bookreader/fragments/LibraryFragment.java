@@ -549,7 +549,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                             String ext = storage.getExt(b.url);
                             String t = Storage.getTitle(b.info) + "." + ext;
                             String type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
-                            Uri uri = StorageProvider.getProvider().share(getContext(), b.url, t);
+                            Uri uri = StorageProvider.getProvider().share(b.url, t);
                             Intent intent = new Intent(Intent.ACTION_VIEW);
                             intent.setDataAndType(uri, type);
                             FileProvider.grantPermissions(getContext(), intent, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
@@ -560,7 +560,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                             String t = Storage.getTitle(b.info) + "." + ext;
                             String name = storage.getName(b.url);
                             String type = Storage.getTypeByName(name);
-                            Uri uri = StorageProvider.getProvider().share(getContext(), b.url, t);
+                            Uri uri = StorageProvider.getProvider().share(b.url, t);
                             Intent intent = new Intent(Intent.ACTION_SEND);
                             intent.setType(type);
                             intent.putExtra(Intent.EXTRA_EMAIL, "");

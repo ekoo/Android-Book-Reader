@@ -1593,12 +1593,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         String t = childCursor.getString(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME));
                         long size = childCursor.getLong(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE));
                         if (size > 0) {
-                            String n = t.toLowerCase();
+                            t = t.toLowerCase();
+                            String n = Storage.getNameNoExt(t);
                             if (n.length() != MD5_SIZE)
                                 continue;
                             Detector[] dd = supported();
                             for (Detector d : dd) {
-                                if (n.endsWith("." + d.ext)) {
+                                if (t.endsWith("." + d.ext)) {
                                     Uri k = DocumentsContract.buildDocumentUriUsingTree(uri, id);
                                     Book b = new Book();
                                     b.md5 = getNameNoExt(k);
