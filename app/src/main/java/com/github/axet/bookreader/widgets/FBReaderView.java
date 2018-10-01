@@ -2753,13 +2753,14 @@ public class FBReaderView extends RelativeLayout {
         overlaysClose();
         ZLTextPosition pos = null;
         if (widget != null) {
-            pos = getPosition();
+            if (pluginview != null)
+                pos = getPosition();
             removeView((View) widget);
         }
         widget = v;
         addView((View) v, 0, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         if (pos != null)
-            gotoPosition(pos);
+            gotoPluginPosition(pos);
     }
 
     public void loadBook(Storage.FBook fbook) {
@@ -3682,7 +3683,8 @@ public class FBReaderView extends RelativeLayout {
     @Override
     protected void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        scrollDelayed = getPosition();
+        if (pluginview != null) // only related to pluginview
+            scrollDelayed = getPosition();
         pinchClose();
     }
 
