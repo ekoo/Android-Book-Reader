@@ -219,10 +219,10 @@ public class Reflow {
         Canvas c = new Canvas(bm);
         Paint paint = new Paint();
         paint.setColor(Color.MAGENTA);
-        paint.setAntiAlias(true);
+        paint.setAntiAlias(false);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(0);
-        c.drawRect(r, paint);
+        drawRect(c, r, paint);
         return bm;
     }
 
@@ -230,11 +230,11 @@ public class Reflow {
         Bitmap bm = drawSrc(pluginview, info);
         Canvas c = new Canvas(bm);
         Paint paint = new Paint();
-        paint.setAntiAlias(true);
+        paint.setAntiAlias(false);
         paint.setColor(Color.MAGENTA);
-        paint.setStyle(Paint.Style.STROKE);
+        paint.setStyle(Paint.Style.FILL_AND_STROKE);
         paint.setStrokeWidth(0);
-        c.drawPoint(p.x, p.y, paint);
+        c.drawCircle(p.x, p.y, 3, paint);
         return bm;
     }
 
@@ -251,11 +251,11 @@ public class Reflow {
             return null;
         Canvas c = new Canvas(bm);
         Paint paint = new Paint();
-        paint.setAntiAlias(true);
+        paint.setAntiAlias(false);
         paint.setColor(Color.MAGENTA);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(0);
-        c.drawRect(r, paint);
+        drawRect(c, r, paint);
         return bm;
     }
 
@@ -266,10 +266,10 @@ public class Reflow {
         Canvas c = new Canvas(bm);
         Paint paint = new Paint();
         paint.setColor(Color.MAGENTA);
-        paint.setAntiAlias(true);
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(0);
-        c.drawPoint(p.x, p.y, paint);
+        paint.setAntiAlias(false);
+        paint.setStyle(Paint.Style.FILL_AND_STROKE);
+        paint.setStrokeWidth(3);
+        c.drawCircle(p.x, p.y, 3, paint);
         return bm;
     }
 
@@ -295,16 +295,17 @@ public class Reflow {
         Rect[] kk = keys.toArray(new Rect[0]);
         Paint paint = new Paint();
         paint.setColor(Color.BLUE);
-        paint.setAntiAlias(true);
+        paint.setAntiAlias(false);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(0);
         Paint text = new Paint();
+        text.setColor(Color.RED);
+        text.setStrokeWidth(0);
         for (int i = 0; i < kk.length; i++) {
             Rect k = kk[i];
-            canvas.drawRect(k, paint);
+            drawRect(canvas, k, paint);
 
             String t = "" + i;
-            text.setColor(Color.RED);
 
             int size = 0;
             Rect bounds = new Rect();
@@ -317,6 +318,13 @@ public class Reflow {
             float m = text.measureText(t);
             canvas.drawText(t, k.centerX() - m / 2, k.top + k.height(), text);
         }
+    }
+
+    public static void drawRect(Canvas canvas, Rect rect, Paint paint) {
+        canvas.drawLine(rect.left, rect.top, rect.right, rect.top, paint);
+        canvas.drawLine(rect.left, rect.bottom, rect.right, rect.bottom, paint);
+        canvas.drawLine(rect.left, rect.top, rect.left, rect.bottom, paint);
+        canvas.drawLine(rect.right, rect.top, rect.right, rect.bottom, paint);
     }
 
 }

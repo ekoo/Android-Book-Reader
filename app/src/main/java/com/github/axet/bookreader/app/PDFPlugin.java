@@ -763,14 +763,13 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public double getPageHeight(int w, FBReaderView.ScrollView.ScrollAdapter.PageCursor c) {
+        public PluginPage getPageInfo(int w, int h, FBReaderView.ScrollView.ScrollAdapter.PageCursor c) {
             int page;
             if (c.start == null)
                 page = c.end.getParagraphIndex() - 1;
             else
                 page = c.start.getParagraphIndex();
-            PdfiumPage r = new PdfiumPage(doc, page, w, 0);
-            return r.pageBox.h / r.ratio;
+            return new PdfiumPage(doc, page, w, h);
         }
 
         @Override

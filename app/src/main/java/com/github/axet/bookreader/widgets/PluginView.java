@@ -407,8 +407,13 @@ public class PluginView {
         drawOnCanvas(context, canvas, w, h, index, custom, info);
     }
 
+    public PluginPage getPageInfo(int w, int h, FBReaderView.ScrollView.ScrollAdapter.PageCursor c) {
+        return null;
+    }
+
     public double getPageHeight(int w, FBReaderView.ScrollView.ScrollAdapter.PageCursor c) {
-        return -1;
+        PluginPage r = getPageInfo(w, 0, c);
+        return r.pageBox.h / r.ratio;
     }
 
     public void drawOnCanvas(Context context, Canvas canvas, int w, int h, ZLView.PageIndex index, FBReaderView.CustomView custom, Storage.RecentInfo info) {
