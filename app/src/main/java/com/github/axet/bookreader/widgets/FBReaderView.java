@@ -2782,10 +2782,30 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public ZLTextPosition getPosition() {
-        if (pluginview != null)
+        if (pluginview != null) {
+            if (pluginview.reflow && widget instanceof ScrollView) {
+                int first = ((ScrollView) widget).findFirstPage();
+                if (first != -1) {
+                    RecyclerView.ViewHolder h = ((ScrollView) widget).findViewHolderForAdapterPosition(first);
+                    ScrollView.ScrollAdapter.PageView p = (ScrollView.ScrollAdapter.PageView) h.itemView;
+                    ArrayList<Rect> rr = new ArrayList<>(p.info.dst.keySet());
+                    Collections.sort(rr, new SelectionView.UL());
+                    int top = -p.getTop();
+                    for (Rect r : rr) {
+                        if (r.top > top || (r.top < top && r.bottom > top)) {
+                            int screen = p.info.dst.get(r).top - top; // offset from top screen to top element
+                            float ratio = p.info.bm.width() / (float) p.getWidth(); // original page to screen width ratio
+                            int offset = p.info.dst.get(r).top - (int) (screen * ratio); // recommended page offset (element - current screen offset)
+                            return new ZLTextFixedPosition(pluginview.current.pageNumber, offset, 0); // no one using this offset position right now
+                        }
+                    }
+                    return new ZLTextFixedPosition(pluginview.current.pageNumber, 0, 0);
+                }
+            }
             return pluginview.getPosition();
-        else
+        } else {
             return new ZLTextFixedPosition(app.BookTextView.getStartCursor());
+        }
     }
 
     public void setWindow(Window w) {
