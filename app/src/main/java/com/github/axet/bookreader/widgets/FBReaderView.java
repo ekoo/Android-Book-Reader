@@ -387,7 +387,7 @@ public class FBReaderView extends RelativeLayout {
             if (pluginview.reflow) {
                 dst = new Rect(0, 0, getWidth(), getHeight());
             } else {
-                PluginPage p = pluginview.current; // current.renderRect() show partial page
+                PluginPage p = pluginview.current; // not using current.renderRect() show partial page
                 if (p.pageOffset < 0) { // show empty space at beginig
                     int t = (int) (-p.pageOffset / p.ratio);
                     dst = new Rect(0, t, p.w, t + (int) (p.pageBox.h / p.ratio));
@@ -2783,23 +2783,34 @@ public class FBReaderView extends RelativeLayout {
 
     public ZLTextPosition getPosition() {
         if (pluginview != null) {
-            if (pluginview.reflow && widget instanceof ScrollView) {
-                int first = ((ScrollView) widget).findFirstPage();
-                if (first != -1) {
-                    RecyclerView.ViewHolder h = ((ScrollView) widget).findViewHolderForAdapterPosition(first);
-                    ScrollView.ScrollAdapter.PageView p = (ScrollView.ScrollAdapter.PageView) h.itemView;
-                    ArrayList<Rect> rr = new ArrayList<>(p.info.dst.keySet());
-                    Collections.sort(rr, new SelectionView.UL());
-                    int top = -p.getTop();
-                    for (Rect r : rr) {
-                        if (r.top > top || (r.top < top && r.bottom > top)) {
-                            int screen = p.info.dst.get(r).top - top; // offset from top screen to top element
-                            float ratio = p.info.bm.width() / (float) p.getWidth(); // original page to screen width ratio
-                            int offset = p.info.dst.get(r).top - (int) (screen * ratio); // recommended page offset (element - current screen offset)
-                            return new ZLTextFixedPosition(pluginview.current.pageNumber, offset, 0); // no one using this offset position right now
+            if (widget instanceof ScrollView) {
+                if (pluginview.reflow) {
+                    int first = ((ScrollView) widget).findFirstPage();
+                    if (first != -1) {
+                        RecyclerView.ViewHolder h = ((ScrollView) widget).findViewHolderForAdapterPosition(first);
+                        ScrollView.ScrollAdapter.PageView p = (ScrollView.ScrollAdapter.PageView) h.itemView;
+                        ArrayList<Rect> rr = new ArrayList<>(p.info.dst.keySet());
+                        Collections.sort(rr, new SelectionView.UL());
+                        int top = -p.getTop();
+                        for (Rect r : rr) {
+                            if (r.top > top || (r.top < top && r.bottom > top)) {
+                                int screen = r.top - top; // offset from top screen to top element
+                                double ratio = p.info.bm.width() / p.getWidth();
+                                int offset = (int) (p.info.dst.get(r).top / ratio - screen); // recommended page offset (element - current screen offset)
+                                return new ZLTextFixedPosition(pluginview.current.pageNumber, offset, 0);
+                            }
                         }
                     }
-                    return new ZLTextFixedPosition(pluginview.current.pageNumber, 0, 0);
+                } else {
+                    int first = ((ScrollView) widget).findFirstPage();
+                    if (first != -1) {
+                        RecyclerView.ViewHolder h = ((ScrollView) widget).findViewHolderForAdapterPosition(first);
+                        ScrollView.ScrollAdapter.PageView p = (ScrollView.ScrollAdapter.PageView) h.itemView;
+                        int top = -p.getTop();
+                        if (top < 0)
+                            top = 0;
+                        return new ZLTextFixedPosition(pluginview.current.pageNumber, top, 0);
+                    }
                 }
             }
             return pluginview.getPosition();
