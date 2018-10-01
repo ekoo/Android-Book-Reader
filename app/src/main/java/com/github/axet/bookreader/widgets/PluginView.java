@@ -28,6 +28,8 @@ import java.util.Map;
 public class PluginView {
     public static final String TAG = PluginView.class.getSimpleName();
 
+    public static final int RENDER_MIN = 512; // mininum screen width
+
     public Bitmap wallpaper;
     public int wallpaperColor;
     public Paint paint = new Paint();
@@ -392,6 +394,11 @@ public class PluginView {
     }
 
     public Bitmap render(int w, int h, int page) {
+        if (w < RENDER_MIN) {
+            float ratio = RENDER_MIN / (float) w;
+            w *= ratio;
+            h *= ratio;
+        }
         return render(w, h, page, Bitmap.Config.RGB_565); // reflower active, always 565
     }
 
