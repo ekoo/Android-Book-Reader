@@ -23,6 +23,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Parcelable;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.ScaleGestureDetectorCompat;
@@ -119,7 +120,6 @@ import org.geometerplus.zlibrary.text.view.ZLTextImageRegionSoul;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextRegion;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
-import org.geometerplus.zlibrary.text.view.ZLTextWordCursor;
 import org.geometerplus.zlibrary.text.view.ZLTextWordRegionSoul;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidPaintContext;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
@@ -1309,7 +1309,6 @@ public class FBReaderView extends RelativeLayout {
             }
 
             public void reset() { // read current position
-                oldTurn = null;
                 size.w = getWidth();
                 size.h = getHeight();
                 if (pluginview != null) {
@@ -1323,6 +1322,7 @@ public class FBReaderView extends RelativeLayout {
                     app.BookTextView.preparePage(((CustomView) app.BookTextView).createContext(new Canvas()), ZLViewEnums.PageIndex.current);
                     PageCursor c = getCurrent();
                     pages.add(c);
+                    oldTurn = c.start;
                 }
                 postInvalidate();
                 notifyDataSetChanged();
@@ -1840,7 +1840,13 @@ public class FBReaderView extends RelativeLayout {
             int first = findFirstPage();
             if (first == -1)
                 return;
+
             ScrollView.ScrollAdapter.PageCursor c = adapter.pages.get(first);
+
+            ZLTextPosition pos = c.start;
+            if (pos == null)
+                pos = c.end;
+
             if (pluginview != null && pluginview.reflow) {
                 if (c.start == null) {
                     int p = c.end.getParagraphIndex();
@@ -1861,19 +1867,18 @@ public class FBReaderView extends RelativeLayout {
                             if (p.start != null && p.start.getParagraphIndex() == scrollDelayed.getParagraphIndex()) {
                                 int offset = (int) (scrollDelayed.getElementIndex() / info.ratio);
                                 scrollBy(0, offset);
+                                adapter.oldTurn = pos;
                                 scrollDelayed = null;
                                 break;
                             }
                         }
                     } else {
                         gotoPosition(scrollDelayed);
+                        adapter.oldTurn = pos;
                         scrollDelayed = null;
                     }
                 }
             }
-            ZLTextPosition pos = c.start;
-            if (pos == null)
-                pos = c.end;
             if (!pos.equals(adapter.oldTurn)) {
                 if (pageTurningListener != null)
                     pageTurningListener.onScrollingFinished(ZLViewEnums.PageIndex.current);
@@ -1950,6 +1955,7 @@ public class FBReaderView extends RelativeLayout {
                                 int screen = (int) ((s.top - offset) / ratio);
                                 int off = info.src.get(s).top - screen;
                                 scrollBy(0, off);
+                                adapter.oldTurn = new ZLTextFixedPosition(c.start);
                                 scrollDelayed = null;
                                 return;
                             }
@@ -3710,6 +3716,51 @@ public class FBReaderView extends RelativeLayout {
 
     public void setReflow(boolean b) {
         pluginview.reflow = b;
+        scrollDelayed = getPosition();
+        resetNewPosition();
+    }
+
+    public int getFontsizeFB() {
+        if (book.info.fontsize != null)
+            return book.info.fontsize;
+        return app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.getValue();
+    }
+
+    public void setFontsizeFB(int p) {
+        book.info.fontsize = p;
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+        SharedPreferences.Editor edit = shared.edit();
+        edit.putInt(MainApplication.PREFERENCE_FONTSIZE_FBREADER, p);
+        edit.apply();
+        config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption, p);
+        resetCaches();
+    }
+
+    public void setFontFB(String f) {
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+        SharedPreferences.Editor edit = shared.edit();
+        edit.putString(MainApplication.PREFERENCE_FONTFAMILY_FBREADER, f);
+        edit.apply();
+        config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption, f);
+        resetCaches();
+    }
+
+    public float getFontsizeReflow() {
+        if (book.info.fontsize != null)
+            return book.info.fontsize / 100f;
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+        return shared.getFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, MainApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
+    }
+
+    public void setFontsizeReflow(float p) {
+        book.info.fontsize = (int) (p * 100f);
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+        SharedPreferences.Editor editor = shared.edit();
+        editor.putFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, p);
+        editor.apply();
+        if (pluginview.reflower != null && pluginview.reflower.k2 != null)
+            pluginview.reflower.k2.setFontSize(p);
+        // view.clearReflowPage(); // font can be reduced and last page may not exits. reset to 0
         scrollDelayed = getPosition();
         resetNewPosition();
     }
