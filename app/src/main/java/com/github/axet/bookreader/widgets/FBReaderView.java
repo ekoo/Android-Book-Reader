@@ -109,6 +109,7 @@ import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.core.view.ZLViewWidget;
 import org.geometerplus.zlibrary.text.hyphenation.ZLTextHyphenator;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
+import org.geometerplus.zlibrary.text.view.ZLTextElementArea;
 import org.geometerplus.zlibrary.text.view.ZLTextElementAreaVector;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextHyperlink;
@@ -118,6 +119,7 @@ import org.geometerplus.zlibrary.text.view.ZLTextImageRegionSoul;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextRegion;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
+import org.geometerplus.zlibrary.text.view.ZLTextWordCursor;
 import org.geometerplus.zlibrary.text.view.ZLTextWordRegionSoul;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidPaintContext;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
@@ -1853,14 +1855,19 @@ public class FBReaderView extends RelativeLayout {
             } else {
                 adapter.open(c);
                 if (scrollDelayed != null) {
-                    PluginPage info = pluginview.getPageInfo(getWidth(), getHeight(), c);
-                    for (ScrollAdapter.PageCursor p : adapter.pages) {
-                        if (p.start != null && p.start.getParagraphIndex() == scrollDelayed.getParagraphIndex()) {
-                            int offset = (int) (scrollDelayed.getElementIndex() / info.ratio);
-                            scrollBy(0, offset);
-                            scrollDelayed = null;
-                            break;
+                    if (pluginview != null) {
+                        PluginPage info = pluginview.getPageInfo(getWidth(), getHeight(), c);
+                        for (ScrollAdapter.PageCursor p : adapter.pages) {
+                            if (p.start != null && p.start.getParagraphIndex() == scrollDelayed.getParagraphIndex()) {
+                                int offset = (int) (scrollDelayed.getElementIndex() / info.ratio);
+                                scrollBy(0, offset);
+                                scrollDelayed = null;
+                                break;
+                            }
                         }
+                    } else {
+                        gotoPosition(scrollDelayed);
+                        scrollDelayed = null;
                     }
                 }
             }
@@ -2753,14 +2760,13 @@ public class FBReaderView extends RelativeLayout {
         overlaysClose();
         ZLTextPosition pos = null;
         if (widget != null) {
-            if (pluginview != null)
-                pos = getPosition();
+            pos = getPosition();
             removeView((View) widget);
         }
         widget = v;
         addView((View) v, 0, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         if (pos != null)
-            gotoPluginPosition(pos);
+            gotoPosition(pos);
     }
 
     public void loadBook(Storage.FBook fbook) {
@@ -2853,6 +2859,18 @@ public class FBReaderView extends RelativeLayout {
             }
             return pluginview.getPosition();
         } else {
+            if (widget instanceof ScrollView) {
+                int first = ((ScrollView) widget).findFirstPage();
+                if (first != -1) {
+                    RecyclerView.ViewHolder h = ((ScrollView) widget).findViewHolderForAdapterPosition(first);
+                    ScrollView.ScrollAdapter.PageView p = (ScrollView.ScrollAdapter.PageView) h.itemView;
+                    int top = -p.getTop();
+                    for (ZLTextElementArea a : p.text.areas()) {
+                        if (a.YStart > top || (a.YStart < top && a.YEnd > top))
+                            return new ZLTextFixedPosition(a);
+                    }
+                }
+            }
             return new ZLTextFixedPosition(app.BookTextView.getStartCursor());
         }
     }
@@ -3209,9 +3227,8 @@ public class FBReaderView extends RelativeLayout {
                     text = snippet.getText();
                 }
 
-                if (dictionaryHilite == null) {
+                if (dictionaryHilite == null)
                     return;
-                }
 
                 DictionaryUtil.openTextInDictionary(
                         a,
@@ -3683,8 +3700,7 @@ public class FBReaderView extends RelativeLayout {
     @Override
     protected void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        if (pluginview != null) // only related to pluginview
-            scrollDelayed = getPosition();
+        scrollDelayed = getPosition();
         pinchClose();
     }
 
