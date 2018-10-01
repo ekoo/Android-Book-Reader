@@ -2753,14 +2753,13 @@ public class FBReaderView extends RelativeLayout {
         overlaysClose();
         ZLTextPosition pos = null;
         if (widget != null) {
-            if (pluginview != null)
-                pos = getPosition();
+            pos = getPosition();
             removeView((View) widget);
         }
         widget = v;
         addView((View) v, 0, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         if (pos != null)
-            gotoPluginPosition(pos);
+            gotoPosition(pos);
     }
 
     public void loadBook(Storage.FBook fbook) {
