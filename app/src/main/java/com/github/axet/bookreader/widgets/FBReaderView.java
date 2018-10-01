@@ -151,7 +151,7 @@ public class FBReaderView extends RelativeLayout {
     public PluginView pluginview;
     public PageTurningListener pageTurningListener;
     SelectionView selection;
-    ZLTextPosition reflowOffset;
+    ZLTextPosition scrollDelayed;
     DrawerLayout drawer;
     PluginView.Search search;
     int searchPagePending;
@@ -1852,13 +1852,13 @@ public class FBReaderView extends RelativeLayout {
                 clearReflowPage(); // reset reflow page, since we treat pageOffset differently for reflower/full page view
             } else {
                 adapter.open(c);
-                if (reflowOffset != null) {
+                if (scrollDelayed != null) {
                     PluginPage info = pluginview.getPageInfo(getWidth(), getHeight(), c);
                     for (ScrollAdapter.PageCursor p : adapter.pages) {
-                        if (p.start != null && p.start.getParagraphIndex() == reflowOffset.getParagraphIndex()) {
-                            int offset = (int) (reflowOffset.getElementIndex() / info.ratio);
+                        if (p.start != null && p.start.getParagraphIndex() == scrollDelayed.getParagraphIndex()) {
+                            int offset = (int) (scrollDelayed.getElementIndex() / info.ratio);
                             scrollBy(0, offset);
-                            reflowOffset = null;
+                            scrollDelayed = null;
                             break;
                         }
                     }
@@ -1926,24 +1926,24 @@ public class FBReaderView extends RelativeLayout {
                     }
                 });
             }
-            if (reflowOffset != null) {
+            if (scrollDelayed != null) {
                 adapter.loadPages(pluginview.reflower);
                 for (int i = 0; i < adapter.pages.size(); i++) {
                     ScrollAdapter.PageCursor c = adapter.pages.get(i);
                     PluginPage pinfo = pluginview.getPageInfo(getWidth(), getHeight(), c);
-                    if (c.start != null && c.start.getParagraphIndex() == reflowOffset.getParagraphIndex()) {
+                    if (c.start != null && c.start.getParagraphIndex() == scrollDelayed.getParagraphIndex()) {
                         Reflow.Info info = new Reflow.Info(pluginview.reflower, c.start.getElementIndex());
                         double ratio = info.bm.width() / (double) getWidth();
                         ArrayList<Rect> ss = new ArrayList<>(info.src.keySet());
                         Collections.sort(ss, new SelectionView.UL());
-                        int offset = (int) (reflowOffset.getElementIndex() / pinfo.ratio * ratio);
+                        int offset = (int) (scrollDelayed.getElementIndex() / pinfo.ratio * ratio);
                         for (Rect s : ss) {
                             if (s.top <= offset && s.bottom >= offset || s.top > offset) {
                                 scrollToPosition(i);
                                 int screen = (int) ((s.top - offset) / ratio);
                                 int off = info.src.get(s).top - screen;
                                 scrollBy(0, off);
-                                reflowOffset = null;
+                                scrollDelayed = null;
                                 return;
                             }
                         }
@@ -2714,8 +2714,10 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void configWidget(SharedPreferences shared) {
+        ZLTextPosition scrollDelayed = getPosition();
         String mode = shared.getString(MainApplication.PREFERENCE_VIEW_MODE, "");
         setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
+        gotoPluginPosition(scrollDelayed);
     }
 
     public void config() {
@@ -3506,7 +3508,7 @@ public class FBReaderView extends RelativeLayout {
             return;
         if (widget instanceof ScrollView) {
             if (p.getElementIndex() != 0) {
-                reflowOffset = p;
+                scrollDelayed = p;
                 p = new ZLTextFixedPosition(p.getParagraphIndex(), 0, 0);
             }
         }
@@ -3679,7 +3681,7 @@ public class FBReaderView extends RelativeLayout {
     @Override
     protected void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        reflowOffset = getPosition();
+        scrollDelayed = getPosition();
         pinchClose();
     }
 
@@ -3689,7 +3691,7 @@ public class FBReaderView extends RelativeLayout {
 
     public void setReflow(boolean b) {
         pluginview.reflow = b;
-        reflowOffset = getPosition();
+        scrollDelayed = getPosition();
         resetNewPosition();
     }
 }
