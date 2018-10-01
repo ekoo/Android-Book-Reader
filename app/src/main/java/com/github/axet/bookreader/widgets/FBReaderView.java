@@ -2714,10 +2714,8 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void configWidget(SharedPreferences shared) {
-        ZLTextPosition scrollDelayed = getPosition();
         String mode = shared.getString(MainApplication.PREFERENCE_VIEW_MODE, "");
         setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
-        gotoPluginPosition(scrollDelayed);
     }
 
     public void config() {
@@ -2753,12 +2751,16 @@ public class FBReaderView extends RelativeLayout {
 
     public void setWidget(ZLViewWidget v) {
         overlaysClose();
-        if (widget != null)
+        ZLTextPosition pos = null;
+        if (widget != null) {
+            if (pluginview != null)
+                pos = getPosition();
             removeView((View) widget);
+        }
         widget = v;
         addView((View) v, 0, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        if (pluginview != null)
-            gotoPluginPosition(getPosition());
+        if (pos != null)
+            gotoPluginPosition(pos);
     }
 
     public void loadBook(Storage.FBook fbook) {
