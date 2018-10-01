@@ -816,8 +816,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             return true;
         }
         if (id == R.id.action_reflow) {
-            view.pluginview.reflow = !view.pluginview.reflow;
-            view.reset();
+            view.setReflow(!view.isReflow());
             updateToolbar();
         }
         if (id == R.id.action_debug) {
@@ -996,7 +995,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        view.pinchClose();
     }
 
     public boolean onKeyDown(int keyCode, KeyEvent event) {

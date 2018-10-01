@@ -10,6 +10,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -150,6 +151,7 @@ public class FBReaderView extends RelativeLayout {
     public PluginView pluginview;
     public PageTurningListener pageTurningListener;
     SelectionView selection;
+    ZLTextPosition reflowOffset;
     DrawerLayout drawer;
     PluginView.Search search;
     int searchPagePending;
@@ -1836,23 +1838,32 @@ public class FBReaderView extends RelativeLayout {
             int first = findFirstPage();
             if (first == -1)
                 return;
+            ScrollView.ScrollAdapter.PageCursor c = adapter.pages.get(first);
             if (pluginview != null && pluginview.reflow) {
-                ScrollView.ScrollAdapter.PageCursor cc = adapter.pages.get(first);
-                if (cc.start == null) {
-                    int p = cc.end.getParagraphIndex();
-                    int i = cc.end.getElementIndex() - 1;
+                if (c.start == null) {
+                    int p = c.end.getParagraphIndex();
+                    int i = c.end.getElementIndex() - 1;
                     if (i < 0)
                         p = p - 1;
                     pluginview.current.pageNumber = p;
                 } else {
-                    pluginview.current.pageNumber = cc.start.getParagraphIndex();
+                    pluginview.current.pageNumber = c.start.getParagraphIndex();
                 }
                 clearReflowPage(); // reset reflow page, since we treat pageOffset differently for reflower/full page view
             } else {
-                ScrollView.ScrollAdapter.PageCursor c = adapter.pages.get(first);
                 adapter.open(c);
+                if (reflowOffset != null) {
+                    PluginPage info = pluginview.getPageInfo(getWidth(), getHeight(), c);
+                    for (ScrollAdapter.PageCursor p : adapter.pages) {
+                        if (p.start != null && p.start.getParagraphIndex() == reflowOffset.getParagraphIndex()) {
+                            int offset = (int) (reflowOffset.getElementIndex() / info.ratio);
+                            scrollBy(0, offset);
+                            reflowOffset = null;
+                            break;
+                        }
+                    }
+                }
             }
-            ScrollView.ScrollAdapter.PageCursor c = adapter.pages.get(first);
             ZLTextPosition pos = c.start;
             if (pos == null)
                 pos = c.end;
@@ -1914,6 +1925,30 @@ public class FBReaderView extends RelativeLayout {
                         updateOverlays();
                     }
                 });
+            }
+            if (reflowOffset != null) {
+                adapter.loadPages(pluginview.reflower);
+                for (int i = 0; i < adapter.pages.size(); i++) {
+                    ScrollAdapter.PageCursor c = adapter.pages.get(i);
+                    PluginPage pinfo = pluginview.getPageInfo(getWidth(), getHeight(), c);
+                    if (c.start != null && c.start.getParagraphIndex() == reflowOffset.getParagraphIndex()) {
+                        Reflow.Info info = new Reflow.Info(pluginview.reflower, c.start.getElementIndex());
+                        double ratio = info.bm.width() / (double) getWidth();
+                        ArrayList<Rect> ss = new ArrayList<>(info.src.keySet());
+                        Collections.sort(ss, new SelectionView.UL());
+                        int offset = (int) (reflowOffset.getElementIndex() / pinfo.ratio * ratio);
+                        for (Rect s : ss) {
+                            if (s.top <= offset && s.bottom >= offset || s.top > offset) {
+                                scrollToPosition(i);
+                                int screen = (int) ((s.top - offset) / ratio);
+                                int off = info.src.get(s).top - screen;
+                                scrollBy(0, off);
+                                reflowOffset = null;
+                                return;
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -2784,11 +2819,13 @@ public class FBReaderView extends RelativeLayout {
     public ZLTextPosition getPosition() {
         if (pluginview != null) {
             if (widget instanceof ScrollView) {
-                if (pluginview.reflow) {
-                    int first = ((ScrollView) widget).findFirstPage();
-                    if (first != -1) {
-                        RecyclerView.ViewHolder h = ((ScrollView) widget).findViewHolderForAdapterPosition(first);
-                        ScrollView.ScrollAdapter.PageView p = (ScrollView.ScrollAdapter.PageView) h.itemView;
+                int first = ((ScrollView) widget).findFirstPage();
+                if (first != -1) {
+                    RecyclerView.ViewHolder h = ((ScrollView) widget).findViewHolderForAdapterPosition(first);
+                    ScrollView.ScrollAdapter.PageView p = (ScrollView.ScrollAdapter.PageView) h.itemView;
+                    ScrollView.ScrollAdapter.PageCursor c = ((ScrollView) widget).adapter.pages.get(first);
+                    PluginPage info = pluginview.getPageInfo(p.getWidth(), p.getHeight(), c);
+                    if (p.info != null) { // reflow can be true but reflower == null
                         ArrayList<Rect> rr = new ArrayList<>(p.info.dst.keySet());
                         Collections.sort(rr, new SelectionView.UL());
                         int top = -p.getTop();
@@ -2797,19 +2834,16 @@ public class FBReaderView extends RelativeLayout {
                                 int screen = r.top - top; // offset from top screen to top element
                                 double ratio = p.info.bm.width() / p.getWidth();
                                 int offset = (int) (p.info.dst.get(r).top / ratio - screen); // recommended page offset (element - current screen offset)
+                                offset *= info.ratio;
                                 return new ZLTextFixedPosition(pluginview.current.pageNumber, offset, 0);
                             }
                         }
-                    }
-                } else {
-                    int first = ((ScrollView) widget).findFirstPage();
-                    if (first != -1) {
-                        RecyclerView.ViewHolder h = ((ScrollView) widget).findViewHolderForAdapterPosition(first);
-                        ScrollView.ScrollAdapter.PageView p = (ScrollView.ScrollAdapter.PageView) h.itemView;
+                    } else {
                         int top = -p.getTop();
                         if (top < 0)
                             top = 0;
-                        return new ZLTextFixedPosition(pluginview.current.pageNumber, top, 0);
+                        int offset = (int) (top * info.ratio);
+                        return new ZLTextFixedPosition(pluginview.current.pageNumber, offset, 0);
                     }
                 }
             }
@@ -3471,8 +3505,10 @@ public class FBReaderView extends RelativeLayout {
         if (p == null)
             return;
         if (widget instanceof ScrollView) {
-            if (p.getElementIndex() != 0)
+            if (p.getElementIndex() != 0) {
+                reflowOffset = p;
                 p = new ZLTextFixedPosition(p.getParagraphIndex(), 0, 0);
+            }
         }
         pluginview.gotoPosition(p);
     }
@@ -3638,5 +3674,22 @@ public class FBReaderView extends RelativeLayout {
                 }
             }
         }, 3000);
+    }
+
+    @Override
+    protected void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        reflowOffset = getPosition();
+        pinchClose();
+    }
+
+    public boolean isReflow() {
+        return pluginview.reflow;
+    }
+
+    public void setReflow(boolean b) {
+        pluginview.reflow = b;
+        reflowOffset = getPosition();
+        resetNewPosition();
     }
 }
