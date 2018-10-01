@@ -1026,7 +1026,7 @@ public class FBReaderView extends RelativeLayout {
                                     time.cancel();
                                     time = null;
                                 }
-                                Canvas canvas = getCanvas(draw, c);
+                                Canvas canvas = getCanvas(c);
                                 pluginview.current.pageNumber = page;
                                 pluginview.reflower.index = c.start.getElementIndex();
                                 if (pluginview.reflower.count() > 0) {
@@ -1038,7 +1038,7 @@ public class FBReaderView extends RelativeLayout {
                                     info = new Reflow.Info(pluginview.reflower, c.start.getElementIndex());
                                 } else { // empty source page?
                                     pluginview.drawWallpaper(canvas);
-                                    pluginview.drawPage(canvas, getWidth(), getHeight(), pluginview.reflower.bm);
+                                    pluginview.drawPage(canvas, w, h, pluginview.reflower.bm);
                                 }
                                 update();
                                 drawCache(draw);
@@ -1123,10 +1123,10 @@ public class FBReaderView extends RelativeLayout {
                     draw.drawBitmap(bm, src, dst, paint);
                 }
 
-                Canvas getCanvas(Canvas draw, PageCursor c) {
+                Canvas getCanvas(PageCursor c) {
                     if (bm != null)
                         recycle();
-                    bm = Bitmap.createBitmap(draw.getWidth(), draw.getHeight(), Bitmap.Config.RGB_565);
+                    bm = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.RGB_565);
                     cache = c;
                     return new Canvas(bm);
                 }
