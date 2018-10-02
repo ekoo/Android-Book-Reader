@@ -23,7 +23,6 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Parcelable;
-import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.ScaleGestureDetectorCompat;
@@ -110,6 +109,8 @@ import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.core.view.ZLViewWidget;
 import org.geometerplus.zlibrary.text.hyphenation.ZLTextHyphenator;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
+import org.geometerplus.zlibrary.text.view.ZLTextControlElement;
+import org.geometerplus.zlibrary.text.view.ZLTextElement;
 import org.geometerplus.zlibrary.text.view.ZLTextElementArea;
 import org.geometerplus.zlibrary.text.view.ZLTextElementAreaVector;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
@@ -117,9 +118,11 @@ import org.geometerplus.zlibrary.text.view.ZLTextHyperlink;
 import org.geometerplus.zlibrary.text.view.ZLTextHyperlinkRegionSoul;
 import org.geometerplus.zlibrary.text.view.ZLTextImageElement;
 import org.geometerplus.zlibrary.text.view.ZLTextImageRegionSoul;
+import org.geometerplus.zlibrary.text.view.ZLTextParagraphCursor;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextRegion;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
+import org.geometerplus.zlibrary.text.view.ZLTextWordCursor;
 import org.geometerplus.zlibrary.text.view.ZLTextWordRegionSoul;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidPaintContext;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidWidget;
@@ -1179,6 +1182,24 @@ public class FBReaderView extends RelativeLayout {
                         start = c.start;
                     if (c.end != null)
                         end = c.end;
+                }
+
+                @Override
+                public String toString() {
+                    String str = "";
+                    String format = "[%d,%d,%d]";
+                    if (start == null)
+                        str += "- ";
+                    else
+                        str += String.format(format, start.getParagraphIndex(), start.getElementIndex(), start.getCharIndex());
+                    if (end == null)
+                        str += " -";
+                    else {
+                        if (start != null)
+                            str += " - ";
+                        str += String.format(format, end.getParagraphIndex(), end.getElementIndex(), end.getCharIndex());
+                    }
+                    return str;
                 }
             }
 
@@ -2872,8 +2893,17 @@ public class FBReaderView extends RelativeLayout {
                     ScrollView.ScrollAdapter.PageView p = (ScrollView.ScrollAdapter.PageView) h.itemView;
                     int top = -p.getTop();
                     for (ZLTextElementArea a : p.text.areas()) {
-                        if (a.YStart > top || (a.YStart < top && a.YEnd > top))
-                            return new ZLTextFixedPosition(a);
+                        if (a.YStart > top || (a.YStart < top && a.YEnd > top)) {
+                            ZLTextParagraphCursor paragraphCursor = new ZLTextParagraphCursor(app.Model.getTextModel(), a.getParagraphIndex());
+                            ZLTextWordCursor wordCursor = new ZLTextWordCursor(paragraphCursor);
+                            wordCursor.moveTo(a);
+                            ZLTextElement e;
+                            do {
+                                wordCursor.previousWord();
+                                e = wordCursor.getElement();
+                            } while (e instanceof ZLTextControlElement);
+                            return new ZLTextFixedPosition(wordCursor);
+                        }
                     }
                 }
             }
@@ -3728,36 +3758,23 @@ public class FBReaderView extends RelativeLayout {
 
     public void setFontsizeFB(int p) {
         book.info.fontsize = p;
-        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
-        SharedPreferences.Editor edit = shared.edit();
-        edit.putInt(MainApplication.PREFERENCE_FONTSIZE_FBREADER, p);
-        edit.apply();
         config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption, p);
         resetCaches();
     }
 
     public void setFontFB(String f) {
-        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
-        SharedPreferences.Editor edit = shared.edit();
-        edit.putString(MainApplication.PREFERENCE_FONTFAMILY_FBREADER, f);
-        edit.apply();
         config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption, f);
         resetCaches();
     }
 
-    public float getFontsizeReflow() {
+    public Float getFontsizeReflow() {
         if (book.info.fontsize != null)
             return book.info.fontsize / 100f;
-        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
-        return shared.getFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, MainApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
+        return null;
     }
 
     public void setFontsizeReflow(float p) {
         book.info.fontsize = (int) (p * 100f);
-        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
-        SharedPreferences.Editor editor = shared.edit();
-        editor.putFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, p);
-        editor.apply();
         if (pluginview.reflower != null && pluginview.reflower.k2 != null)
             pluginview.reflower.k2.setFontSize(p);
         // view.clearReflowPage(); // font can be reduced and last page may not exits. reset to 0
