@@ -2897,12 +2897,14 @@ public class FBReaderView extends RelativeLayout {
                             ZLTextParagraphCursor paragraphCursor = new ZLTextParagraphCursor(app.Model.getTextModel(), a.getParagraphIndex());
                             ZLTextWordCursor wordCursor = new ZLTextWordCursor(paragraphCursor);
                             wordCursor.moveTo(a);
+                            ZLTextFixedPosition last;
                             ZLTextElement e;
                             do {
+                                last = new ZLTextFixedPosition(wordCursor);
                                 wordCursor.previousWord();
                                 e = wordCursor.getElement();
                             } while (e instanceof ZLTextControlElement);
-                            return new ZLTextFixedPosition(wordCursor);
+                            return last;
                         }
                     }
                 }
