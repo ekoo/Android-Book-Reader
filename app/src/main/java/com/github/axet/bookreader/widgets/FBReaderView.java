@@ -3750,8 +3750,9 @@ public class FBReaderView extends RelativeLayout {
 
     public void setReflow(boolean b) {
         pluginview.reflow = b;
-        scrollDelayed = getPosition();
-        resetNewPosition();
+        ZLTextPosition scrollDelayed = getPosition();
+        reset();
+        gotoPosition(scrollDelayed);
     }
 
     public int getFontsizeFB() {
@@ -3782,7 +3783,8 @@ public class FBReaderView extends RelativeLayout {
         if (pluginview.reflower != null && pluginview.reflower.k2 != null)
             pluginview.reflower.k2.setFontSize(p);
         // view.clearReflowPage(); // font can be reduced and last page may not exits. reset to 0
-        scrollDelayed = getPosition();
-        resetNewPosition();
+        ZLTextPosition scrollDelayed = getPosition();
+        reset();
+        gotoPosition(scrollDelayed);
     }
 }
