@@ -106,16 +106,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         }
     };
     MenuItem searchMenu;
-
-    BroadcastReceiver battery = new BroadcastReceiver() {
-        public void onReceive(Context context, Intent intent) {
-            int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-            int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
-            view.battery = level * 100 / scale;
-            view.invalidateFooter();
-        }
-    };
-
+    BroadcastReceiver battery;
     Runnable invalidateOptionsMenu = new Runnable() {
         @Override
         public void run() {
@@ -540,7 +531,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         view.setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
 
         Context context = getContext();
-        battery.onReceive(context, context.registerReceiver(battery, new IntentFilter(Intent.ACTION_BATTERY_CHANGED)));
 
         view.setWindow(getActivity().getWindow());
         view.setActivity(getActivity());
@@ -704,16 +694,33 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        ScreenlockPreference.onResume(getActivity(), MainApplication.PREFERENCE_SCREENLOCK);
+
+        battery = new BroadcastReceiver() {
+            public void onReceive(Context context, Intent intent) {
+                int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+                int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+                view.battery = level * 100 / scale;
+                view.invalidateFooter();
+            }
+        };
+        battery.onReceive(getContext(), getContext().registerReceiver(battery, new IntentFilter(Intent.ACTION_BATTERY_CHANGED)));
+    }
+
+    @Override
     public void onPause() {
         super.onPause();
         savePosition();
         ScreenlockPreference.onPause(getActivity(), MainApplication.PREFERENCE_SCREENLOCK);
-    }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        ScreenlockPreference.onResume(getActivity(), MainApplication.PREFERENCE_SCREENLOCK);
+        if (battery != null) {
+            getContext().unregisterReceiver(battery);
+            battery = null;
+        }
+
+        handler.removeCallbacks(time);
     }
 
     @Override
@@ -783,8 +790,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     public void onDestroy() {
         super.onDestroy();
         handler.removeCallbacksAndMessages(null);
-        Context context = getContext();
-        context.unregisterReceiver(battery);
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         shared.unregisterOnSharedPreferenceChangeListener(this);
         handler.removeCallbacks(time);
