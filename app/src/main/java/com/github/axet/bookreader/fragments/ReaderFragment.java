@@ -60,6 +60,7 @@ import org.geometerplus.fbreader.bookmodel.TOCTree;
 import org.geometerplus.fbreader.fbreader.ActionCode;
 import org.geometerplus.zlibrary.core.util.ZLTTFInfoDetector;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
+import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.ui.android.view.AndroidFontUtil;
 
 import java.io.File;
@@ -491,6 +492,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         handler.removeCallbacks(time);
         handler.postDelayed(time, s60 - secs);
         view.invalidateFooter();
+        savePosition();
     }
 
     @Override
@@ -757,21 +759,23 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             return;
         if (view.book == null) // when book insn't loaded and view clsosed
             return;
+        ZLTextPosition pos = view.getPosition();
         Uri u = storage.recentUri(book);
         if (storage.exists(u)) { // file can be changed during sync, check for conflicts
             try {
                 Storage.RecentInfo info = new Storage.RecentInfo(getContext(), u);
                 if (info.position != null) {
-                    if (book.info.position == null || !info.position.samePositionAs(book.info.position)) {
-                        storage.move(u, storage.getStoragePath());
-                    }
+                    if (book.info.position == null || !info.position.samePositionAs(book.info.position))
+                        storage.move(u, storage.getStoragePath()); // create copy (1)
+                    if (pos.samePositionAs(book.info.position))
+                        return; // do not need to save
                 }
             } catch (RuntimeException e) {
                 Log.d(TAG, "Unable to load JSON", e);
             }
         }
         book.info = new Storage.RecentInfo(view.book.info);
-        book.info.position = view.getPosition();
+        book.info.position = pos;
         storage.save(book);
     }
 
