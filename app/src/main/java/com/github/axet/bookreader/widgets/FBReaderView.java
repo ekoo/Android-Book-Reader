@@ -2889,6 +2889,7 @@ public class FBReaderView extends RelativeLayout {
             if (widget instanceof ScrollView) {
                 int first = ((ScrollView) widget).findFirstPage();
                 if (first != -1) {
+                    ScrollView.ScrollAdapter.PageCursor c = ((ScrollView) widget).adapter.pages.get(first);
                     RecyclerView.ViewHolder h = ((ScrollView) widget).findViewHolderForAdapterPosition(first);
                     ScrollView.ScrollAdapter.PageView p = (ScrollView.ScrollAdapter.PageView) h.itemView;
                     int top = -p.getTop();
@@ -2903,7 +2904,8 @@ public class FBReaderView extends RelativeLayout {
                                 last = new ZLTextFixedPosition(wordCursor);
                                 wordCursor.previousWord();
                                 e = wordCursor.getElement();
-                            } while (e instanceof ZLTextControlElement);
+                            }
+                            while (e instanceof ZLTextControlElement && wordCursor.compareTo(c.start) >= 0);
                             return last;
                         }
                     }
