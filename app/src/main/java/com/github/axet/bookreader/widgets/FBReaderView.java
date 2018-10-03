@@ -3738,9 +3738,11 @@ public class FBReaderView extends RelativeLayout {
     }
 
     @Override
-    protected void onConfigurationChanged(Configuration newConfig) {
+    public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        scrollDelayed = getPosition();
+        ZLTextPosition scrollDelayed = getPosition();
+        reset();
+        gotoPosition(scrollDelayed);
         pinchClose();
     }
 

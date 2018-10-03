@@ -41,7 +41,6 @@ import android.widget.TextView;
 
 import com.github.axet.androidlibrary.widgets.PopupWindowCompat;
 import com.github.axet.androidlibrary.widgets.ScreenlockPreference;
-import com.github.axet.androidlibrary.widgets.SearchView;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.androidlibrary.widgets.TreeListView;
 import com.github.axet.androidlibrary.widgets.TreeRecyclerView;
@@ -102,7 +101,15 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     Runnable time = new Runnable() {
         @Override
         public void run() {
-            updateTime();
+            long s60 = 60 * 1000;
+            long secs = System.currentTimeMillis() % s60;
+            handler.removeCallbacks(this);
+            long d = s60 - secs;
+            if (d < 1000)
+                d = s60 + d;
+            handler.postDelayed(this, d);
+            view.invalidateFooter();
+            savePosition();
         }
     };
     MenuItem searchMenu;
@@ -477,15 +484,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         ((MainActivity) getActivity()).clearMenu();
     }
 
-    void updateTime() {
-        long s60 = 60 * 1000;
-        long secs = System.currentTimeMillis() % s60;
-        handler.removeCallbacks(time);
-        handler.postDelayed(time, s60 - secs);
-        view.invalidateFooter();
-        savePosition();
-    }
-
     @Override
     public View onCreateView(final LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -572,7 +570,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         updateToolbar();
 
-        updateTime();
+        time.run();
 
         handler.post(new Runnable() {
             @Override
@@ -775,7 +773,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 if (info.position != null) {
                     if (book.info.position == null || !info.position.samePositionAs(book.info.position)) // file changed between saves?
                         storage.move(u, storage.getStoragePath()); // yes. create copy (1)
-                    if (pos.samePositionAs(book.info.position))
+                    if (pos.samePositionAs(info.position))
                         return; // do not need to save
                 }
             } catch (RuntimeException e) {
@@ -993,6 +991,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public void onFullscreenChanged(boolean f) {
+        view.onConfigurationChanged(null);
     }
 
     @Override
