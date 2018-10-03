@@ -762,6 +762,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     }
 
     void savePosition() {
+        Log.d(TAG, "savePosition");
         if (book == null)
             return;
         if (view.book == null) // when book insn't loaded and view clsosed
