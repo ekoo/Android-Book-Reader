@@ -765,8 +765,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             try {
                 Storage.RecentInfo info = new Storage.RecentInfo(getContext(), u);
                 if (info.position != null) {
-                    if (book.info.position == null || !info.position.samePositionAs(book.info.position))
-                        storage.move(u, storage.getStoragePath()); // create copy (1)
+                    if (book.info.position == null || !info.position.samePositionAs(book.info.position)) // file changed between saves?
+                        storage.move(u, storage.getStoragePath()); // yes. create copy (1)
                     if (pos.samePositionAs(book.info.position))
                         return; // do not need to save
                 }
