@@ -8,6 +8,7 @@ import android.util.SparseArray;
 
 import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.bookreader.widgets.FBReaderView;
+import com.github.axet.bookreader.widgets.PluginPage;
 import com.github.axet.bookreader.widgets.PluginRect;
 import com.github.axet.bookreader.widgets.PluginView;
 import com.github.axet.bookreader.widgets.RenderRect;
@@ -674,14 +675,13 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public double getPageHeight(int w, FBReaderView.ScrollView.ScrollAdapter.PageCursor c) {
+        public PluginPage getPageInfo(int w, int h, FBReaderView.ScrollView.ScrollAdapter.PageCursor c) {
             int page;
             if (c.start == null)
                 page = c.end.getParagraphIndex() - 1;
             else
                 page = c.start.getParagraphIndex();
-            DjvuPage r = new DjvuPage(doc, page, w, 0);
-            return r.pageBox.h / r.ratio;
+            return new DjvuPage(doc, page, w, h);
         }
 
         @Override
