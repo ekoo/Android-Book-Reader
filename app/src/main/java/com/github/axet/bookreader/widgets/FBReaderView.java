@@ -1934,7 +1934,7 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public int getMainAreaHeight() {
-            final ZLView.FooterArea footer = ZLApplication.Instance().getCurrentView().getFooterArea();
+            final ZLView.FooterArea footer = app.BookTextView.getFooterArea();
             return footer != null ? getHeight() - footer.getHeight() : getHeight();
         }
 
