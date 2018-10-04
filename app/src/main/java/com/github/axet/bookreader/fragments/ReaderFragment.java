@@ -765,7 +765,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         if (view.book == null) // when book insn't loaded and view clsosed
             return;
         ZLTextPosition pos = view.getPosition();
-        Log.d(TAG, "savePosition " + pos);
         Uri u = storage.recentUri(book);
         if (storage.exists(u)) { // file can be changed during sync, check for conflicts
             try {
@@ -783,6 +782,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         book.info = new Storage.RecentInfo(view.book.info);
         book.info.position = pos;
         storage.save(book);
+        Log.d(TAG, "savePosition " + pos);
     }
 
     @Override

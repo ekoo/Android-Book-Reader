@@ -2892,21 +2892,23 @@ public class FBReaderView extends RelativeLayout {
                     ScrollView.ScrollAdapter.PageCursor c = ((ScrollView) widget).adapter.pages.get(first);
                     RecyclerView.ViewHolder h = ((ScrollView) widget).findViewHolderForAdapterPosition(first);
                     ScrollView.ScrollAdapter.PageView p = (ScrollView.ScrollAdapter.PageView) h.itemView;
-                    int top = -p.getTop();
-                    for (ZLTextElementArea a : p.text.areas()) {
-                        if (a.YStart > top || (a.YStart < top && a.YEnd > top)) {
-                            ZLTextParagraphCursor paragraphCursor = new ZLTextParagraphCursor(app.Model.getTextModel(), a.getParagraphIndex());
-                            ZLTextWordCursor wordCursor = new ZLTextWordCursor(paragraphCursor);
-                            wordCursor.moveTo(a);
-                            ZLTextFixedPosition last;
-                            ZLTextElement e;
-                            do {
-                                last = new ZLTextFixedPosition(wordCursor);
-                                wordCursor.previousWord();
-                                e = wordCursor.getElement();
+                    if (p.text != null) { // happens when view invalidate / recycled before calling getPosition()
+                        int top = -p.getTop();
+                        for (ZLTextElementArea a : p.text.areas()) {
+                            if (a.YStart > top || (a.YStart < top && a.YEnd > top)) {
+                                ZLTextParagraphCursor paragraphCursor = new ZLTextParagraphCursor(app.Model.getTextModel(), a.getParagraphIndex());
+                                ZLTextWordCursor wordCursor = new ZLTextWordCursor(paragraphCursor);
+                                wordCursor.moveTo(a);
+                                ZLTextFixedPosition last;
+                                ZLTextElement e;
+                                do {
+                                    last = new ZLTextFixedPosition(wordCursor);
+                                    wordCursor.previousWord();
+                                    e = wordCursor.getElement();
+                                }
+                                while (e instanceof ZLTextControlElement && wordCursor.compareTo(c.start) >= 0);
+                                return last;
                             }
-                            while (e instanceof ZLTextControlElement && wordCursor.compareTo(c.start) >= 0);
-                            return last;
                         }
                     }
                 }
@@ -3246,8 +3248,13 @@ public class FBReaderView extends RelativeLayout {
                 a.startActivity(Intent.createChooser(intent, null));
 
                 if (widget instanceof ScrollView) {
-                    ((ScrollView) widget).adapter.processInvalidate();
-                    ((ScrollView) widget).adapter.processClear();
+                    getHandler().post(new Runnable() { // do not clear immidiallty. let onPause to be called before p.text = null
+                        @Override
+                        public void run() {
+                            ((ScrollView) widget).adapter.processInvalidate();
+                            ((ScrollView) widget).adapter.processClear();
+                        }
+                    });
                 }
             }
         });
