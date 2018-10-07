@@ -49,7 +49,6 @@ public class MainApplication extends com.github.axet.androidlibrary.app.MainAppl
                 onCreate();
             }
         };
-
     }
 
 }
