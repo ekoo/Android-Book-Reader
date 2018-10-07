@@ -11,7 +11,7 @@ import android.graphics.Rect;
 import android.util.DisplayMetrics;
 
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
-import com.github.axet.bookreader.app.MainApplication;
+import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.k2pdfopt.K2PdfOpt;
 
@@ -109,7 +109,7 @@ public class Reflow {
 
     void create() {
         SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(context);
-        Float old = shared.getFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, MainApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
+        Float old = shared.getFloat(BookApplication.PREFERENCE_FONTSIZE_REFLOW, BookApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
         if (info.fontsize != null)
             old = info.fontsize / 100f;
         if (k2 != null) {
