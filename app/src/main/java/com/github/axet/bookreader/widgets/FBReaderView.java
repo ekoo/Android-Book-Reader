@@ -2511,6 +2511,10 @@ public class FBReaderView extends RelativeLayout {
                     PinchGesture.this.pinchClose();
                 }
             };
+            if (widget instanceof ScrollView)
+                pinch.clip = ((ScrollView) widget).getMainAreaHeight();
+            else
+                pinch.clip = ((ZLAndroidWidget) widget).getMainAreaHeight();
             FBReaderView.this.addView(pinch);
         }
 
