@@ -25,6 +25,7 @@ public class PinchView extends View implements GestureDetector.OnGestureListener
     float centerx = 0.5f;
     float centery = 0.5f;
     Rect v;
+    Rect box;
     float sx;
     float sy;
     Bitmap bm;
@@ -40,6 +41,7 @@ public class PinchView extends View implements GestureDetector.OnGestureListener
     public PinchView(Context context, Rect v, Bitmap bm) {
         super(context);
         this.v = v;
+        this.box = new Rect(v);
         this.dst = new Rect(v);
         this.bm = bm;
 
@@ -75,40 +77,52 @@ public class PinchView extends View implements GestureDetector.OnGestureListener
         return super.onTouchEvent(event);
     }
 
+    @Override
+    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+        box.set(v);
+        if (box.left < left)
+            box.left = left;
+        if (box.top < top)
+            box.top = top;
+        if (box.right > right)
+            box.right = right;
+        if (box.bottom > bottom)
+            box.bottom = bottom;
+    }
+
     public void onScale(ScaleGestureDetector detector) {
         current = detector.getCurrentSpan() - start;
 
         centerx = (detector.getFocusX() - dst.left) / dst.width();
         centery = (detector.getFocusY() - dst.top) / dst.height();
 
-        float ratio = v.height() / (float) v.width();
+        float ratio = src.height() / (float) src.width();
 
         float currentx = current * centerx;
         float currenty = current * centery;
 
-        int x = (int) (v.left + sx - currentx);
-        int y = (int) (v.top + sy - currenty * ratio);
         int w = (int) (v.width() + end + current);
-        int h = (int) (v.height() + end * ratio + current * ratio);
-        int r = x + w;
-        int b = y + h;
+        int h = (int) (w * ratio);
+        int l = (int) (v.left + sx - currentx);
+        int t = (int) (v.top + sy - currenty * ratio);
+        int r = l + w;
+        int b = t + h;
 
-        if (w > v.width()) {
-            if (x > v.left)
+        if (w > box.width()) {
+            if (l > box.left)
                 centerx = 0;
-            if (r < v.right)
+            if (r < box.right)
                 centerx = 1;
         }
 
-        if (h > v.height()) {
-            if (y > v.top)
+        if (h > box.height()) {
+            if (t > box.top)
                 centery = 0;
-            if (b < v.bottom)
+            if (b < box.bottom)
                 centery = 1;
         }
 
         calc();
-
         invalidate();
     }
 
@@ -125,25 +139,53 @@ public class PinchView extends View implements GestureDetector.OnGestureListener
         current = 0;
 
         calc();
-
         invalidate();
     }
 
+    @Override
+    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+        sx -= distanceX;
+        sy -= distanceY;
+
+        float ratio = src.height() / (float) src.width();
+
+        int w = (int) (v.width() + end);
+        int h = (int) (w * ratio);
+        int l = (int) (v.left + sx);
+        int t = (int) (v.top + sy);
+        int r = l + w;
+        int b = t + h;
+
+        if (l > box.left)
+            sx = sx - (l - box.left);
+        if (t > box.top)
+            sy = sy - (t - box.top);
+        if (r < box.right)
+            sx = sx - (r - box.right);
+        if (b < box.bottom)
+            sy = sy - (b - box.bottom);
+
+        calc();
+        invalidate();
+
+        return true;
+    }
+
     void calc() {
-        float ratio = v.height() / (float) v.width();
+        float ratio = src.height() / (float) src.width();
 
         float currentx = current * centerx;
         float currenty = current * centery;
 
-        int x = (int) (v.left + sx - currentx);
-        int y = (int) (v.top + sy - currenty * ratio);
         int w = (int) (v.width() + end + current);
-        int h = (int) (v.height() + end * ratio + current * ratio);
-        int r = x + w;
-        int b = y + h;
+        int h = (int) (w * ratio);
+        int l = (int) (v.left + sx - currentx);
+        int t = (int) (v.top + sy - currenty * ratio);
+        int r = l + w;
+        int b = t + h;
 
-        dst.left = x;
-        dst.top = y;
+        dst.left = l;
+        dst.top = t;
         dst.right = r;
         dst.bottom = b;
     }
@@ -166,40 +208,14 @@ public class PinchView extends View implements GestureDetector.OnGestureListener
 
     @Override
     public boolean onSingleTapUp(MotionEvent e) {
-        if (e.getY() < dst.top || e.getX() < dst.left || e.getX() > dst.right || e.getY() > dst.bottom)
+        if (closeRect.contains((int) e.getX(), (int) e.getY())) {
             pinchClose();
-        if (closeRect.contains((int) e.getX(), (int) e.getY()))
+            return true;
+        }
+        if (e.getY() < dst.top || e.getX() < dst.left || e.getX() > dst.right || e.getY() > dst.bottom) {
             pinchClose();
-        return true;
-    }
-
-    @Override
-    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-        sx -= distanceX;
-        sy -= distanceY;
-
-        float ratio = v.height() / (float) v.width();
-
-        int x = (int) (v.left + sx);
-        int y = (int) (v.top + sy);
-        int w = (int) (v.width() + end);
-        int h = (int) (v.height() + end * ratio);
-        int r = x + w;
-        int b = y + h;
-
-        if (x > v.left)
-            sx = 0;
-        if (y > v.top)
-            sy = 0;
-        if (r < v.right)
-            sx = v.right - w - v.left;
-        if (b < v.bottom)
-            sy = v.bottom - h - v.top;
-
-        calc();
-
-        invalidate();
-
+            return true;
+        }
         return true;
     }
 
