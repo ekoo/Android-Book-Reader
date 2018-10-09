@@ -1,14 +1,12 @@
 package com.github.axet.bookreader.app;
 
 import android.content.Context;
-import android.content.SharedPreferences;
-import android.support.v7.preference.PreferenceManager;
 
-import com.github.axet.bookreader.R;
+import com.github.axet.androidlibrary.app.MainApplication;
 
 import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
 
-public class BookApplication extends com.github.axet.androidlibrary.app.MainApplication {
+public class BookApplication extends MainApplication {
     public static String PREFERENCE_THEME = "theme";
     public static String PREFERENCE_CATALOGS = "catalogs";
     public static String PREFERENCE_CATALOGS_PREFIX = "catalogs_";
@@ -28,7 +26,7 @@ public class BookApplication extends com.github.axet.androidlibrary.app.MainAppl
     public ZLAndroidApplication zlib;
 
     public static int getTheme(Context context, int light, int dark) {
-        return com.github.axet.androidlibrary.app.MainApplication.getTheme(context, PREFERENCE_THEME, light, dark);
+        return MainApplication.getTheme(context, PREFERENCE_THEME, light, dark);
     }
 
     @Override
