@@ -58,9 +58,9 @@ import com.github.axet.androidlibrary.services.FileProvider;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
+import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.ComicsPlugin;
 import com.github.axet.bookreader.app.DjvuPlugin;
-import com.github.axet.bookreader.app.MainApplication;
 import com.github.axet.bookreader.app.PDFPlugin;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.services.ImagesProvider;
@@ -160,6 +160,44 @@ public class FBReaderView extends RelativeLayout {
     DrawerLayout drawer;
     PluginView.Search search;
     int searchPagePending;
+
+    public static void showControls(final ViewGroup p, final View areas) {
+        p.removeCallbacks((Runnable) areas.getTag());
+        p.addView(areas);
+        Runnable hide = new Runnable() {
+            @Override
+            public void run() {
+                hideControls(p, areas);
+            }
+        };
+        areas.setTag(hide);
+        p.postDelayed(hide, 3000);
+    }
+
+    public static void hideControls(final ViewGroup p, final View areas) {
+        p.removeCallbacks((Runnable) areas.getTag());
+        areas.setTag(null);
+        if (Build.VERSION.SDK_INT >= 11) {
+            ValueAnimator v = ValueAnimator.ofFloat(1f, 0f);
+            v.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                @Override
+                @TargetApi(11)
+                public void onAnimationUpdate(ValueAnimator animation) {
+                    ViewCompat.setAlpha(areas, (float) animation.getAnimatedValue());
+                }
+            });
+            v.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    p.removeView(areas);
+                }
+            });
+            v.setDuration(500);
+            v.start();
+        } else {
+            p.removeView(areas);
+        }
+    }
 
     public interface PageTurningListener {
         void onScrollingFinished(ZLViewEnums.PageIndex index);
@@ -2511,6 +2549,10 @@ public class FBReaderView extends RelativeLayout {
                     PinchGesture.this.pinchClose();
                 }
             };
+            if (widget instanceof ScrollView)
+                pinch.clip = ((ScrollView) widget).getMainAreaHeight();
+            else
+                pinch.clip = ((ZLAndroidWidget) widget).getMainAreaHeight();
             FBReaderView.this.addView(pinch);
         }
 
@@ -2740,7 +2782,7 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void configColorProfile(SharedPreferences shared) {
-        if (shared.getString(MainApplication.PREFERENCE_THEME, "").equals(getContext().getString(R.string.Theme_Dark))) {
+        if (shared.getString(BookApplication.PREFERENCE_THEME, "").equals(getContext().getString(R.string.Theme_Dark))) {
             config.setValue(app.ViewOptions.ColorProfileName, ColorProfile.NIGHT);
         } else {
             config.setValue(app.ViewOptions.ColorProfileName, ColorProfile.DAY);
@@ -2748,7 +2790,7 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void configWidget(SharedPreferences shared) {
-        String mode = shared.getString(MainApplication.PREFERENCE_VIEW_MODE, "");
+        String mode = shared.getString(BookApplication.PREFERENCE_VIEW_MODE, "");
         setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
     }
 
@@ -2756,10 +2798,10 @@ public class FBReaderView extends RelativeLayout {
         SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(getContext());
         configColorProfile(shared);
 
-        int d = shared.getInt(MainApplication.PREFERENCE_FONTSIZE_FBREADER, app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.getValue());
+        int d = shared.getInt(BookApplication.PREFERENCE_FONTSIZE_FBREADER, app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption.getValue());
         config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption, d);
 
-        String f = shared.getString(MainApplication.PREFERENCE_FONTFAMILY_FBREADER, app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
+        String f = shared.getString(BookApplication.PREFERENCE_FONTFAMILY_FBREADER, app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
         config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption, f);
 
         config.setValue(app.MiscOptions.AllowScreenBrightnessAdjustment, false);
@@ -3714,34 +3756,9 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void showControls() {
-        final ActiveAreasView areas = new ActiveAreasView(getContext());
+        ActiveAreasView areas = new ActiveAreasView(getContext());
         areas.create(app, getWidth());
-        addView(areas);
-        postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                if (Build.VERSION.SDK_INT >= 11) {
-                    ValueAnimator v = ValueAnimator.ofFloat(1f, 0f);
-                    v.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                        @Override
-                        @TargetApi(11)
-                        public void onAnimationUpdate(ValueAnimator animation) {
-                            ViewCompat.setAlpha(areas, (float) animation.getAnimatedValue());
-                        }
-                    });
-                    v.addListener(new AnimatorListenerAdapter() {
-                        @Override
-                        public void onAnimationEnd(Animator animation) {
-                            removeView(areas);
-                        }
-                    });
-                    v.setDuration(500);
-                    v.start();
-                } else {
-                    removeView(areas);
-                }
-            }
-        }, 3000);
+        showControls(this, areas);
     }
 
     @Override
@@ -3791,7 +3808,6 @@ public class FBReaderView extends RelativeLayout {
         book.info.fontsize = (int) (p * 100f);
         if (pluginview.reflower != null && pluginview.reflower.k2 != null)
             pluginview.reflower.k2.setFontSize(p);
-        // view.clearReflowPage(); // font can be reduced and last page may not exits. reset to 0
         ZLTextPosition scrollDelayed = getPosition();
         reset();
         gotoPosition(scrollDelayed);

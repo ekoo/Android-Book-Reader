@@ -41,7 +41,7 @@ import com.github.axet.androidlibrary.widgets.SearchView;
 import com.github.axet.androidlibrary.widgets.TextMax;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
-import com.github.axet.bookreader.app.MainApplication;
+import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.Storage;
 
 import java.io.File;
@@ -127,7 +127,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
         public void updateGrid() {
             final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
-            if (shared.getString(MainApplication.PREFERENCE_LIBRARY_LAYOUT + getLayout(), "").equals("book_list_item")) {
+            if (shared.getString(BookApplication.PREFERENCE_LIBRARY_LAYOUT + getLayout(), "").equals("book_list_item")) {
                 setNumColumns(1);
                 layout = R.layout.book_list_item;
             } else {
@@ -153,9 +153,9 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             if (item.getItemId() == R.id.action_grid) {
                 SharedPreferences.Editor editor = shared.edit();
                 if (layout == R.layout.book_list_item) {
-                    editor.putString(MainApplication.PREFERENCE_LIBRARY_LAYOUT + getLayout(), "book_item");
+                    editor.putString(BookApplication.PREFERENCE_LIBRARY_LAYOUT + getLayout(), "book_item");
                 } else {
-                    editor.putString(MainApplication.PREFERENCE_LIBRARY_LAYOUT + getLayout(), "book_list_item");
+                    editor.putString(BookApplication.PREFERENCE_LIBRARY_LAYOUT + getLayout(), "book_list_item");
                 }
                 editor.commit();
                 updateGrid();

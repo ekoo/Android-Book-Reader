@@ -49,7 +49,7 @@ import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.BooksCatalog;
 import com.github.axet.bookreader.app.BooksCatalogs;
 import com.github.axet.bookreader.app.LocalBooksCatalog;
-import com.github.axet.bookreader.app.MainApplication;
+import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.NetworkBooksCatalog;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.fragments.LibraryFragment;
@@ -430,7 +430,7 @@ public class MainActivity extends FullscreenActivity
 
         final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
         if (id == R.id.action_file) {
-            String last = shared.getString(MainApplication.PREFERENCE_LAST_PATH, null);
+            String last = shared.getString(BookApplication.PREFERENCE_LAST_PATH, null);
             Uri old = null;
             if (last != null) {
                 old = Uri.parse(last);
@@ -449,7 +449,7 @@ public class MainActivity extends FullscreenActivity
                         File f = Storage.getFile(uri);
                         f = f.getParentFile();
                         SharedPreferences.Editor editor = shared.edit();
-                        editor.putString(MainApplication.PREFERENCE_LAST_PATH, f.toString());
+                        editor.putString(BookApplication.PREFERENCE_LAST_PATH, f.toString());
                         editor.commit();
                     }
                     loadBook(uri, null);
@@ -571,9 +571,9 @@ public class MainActivity extends FullscreenActivity
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    String str = MainApplication.formatSize(MainActivity.this, bytes);
+                                    String str = BookApplication.formatSize(MainActivity.this, bytes);
                                     if (total > 0) {
-                                        str += " / " + MainApplication.formatSize(MainActivity.this, total);
+                                        str += " / " + BookApplication.formatSize(MainActivity.this, total);
                                         load.setProgress((int) (bytes * 100 / total));
                                         load.setVisibility(View.VISIBLE);
                                         v.setVisibility(View.GONE);
@@ -581,7 +581,7 @@ public class MainActivity extends FullscreenActivity
                                         load.setVisibility(View.GONE);
                                         v.setVisibility(View.VISIBLE);
                                     }
-                                    str += String.format(" (%s%s)", MainApplication.formatSize(MainActivity.this, info.getCurrentSpeed()), getString(R.string.per_second));
+                                    str += String.format(" (%s%s)", BookApplication.formatSize(MainActivity.this, info.getCurrentSpeed()), getString(R.string.per_second));
                                     text.setText(str);
                                 }
                             });
@@ -658,7 +658,7 @@ public class MainActivity extends FullscreenActivity
             r.config.setValue(r.app.ImageOptions.TapAction, ImageOptions.TapActionEnum.doNothing);
 
             SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(this);
-            String mode = shared.getString(MainApplication.PREFERENCE_VIEW_MODE, "");
+            String mode = shared.getString(BookApplication.PREFERENCE_VIEW_MODE, "");
             r.setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
 
             r.loadBook(fbook);
@@ -857,7 +857,7 @@ public class MainActivity extends FullscreenActivity
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
-        if (shared.getBoolean(MainApplication.PREFERENCE_VOLUME_KEYS, false)) {
+        if (shared.getBoolean(BookApplication.PREFERENCE_VOLUME_KEYS, false)) {
             FragmentManager fm = getSupportFragmentManager();
             for (Fragment f : fm.getFragments()) {
                 if (f != null && f.isVisible() && f instanceof ReaderFragment) {
@@ -873,7 +873,7 @@ public class MainActivity extends FullscreenActivity
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
-        if (shared.getBoolean(MainApplication.PREFERENCE_VOLUME_KEYS, false)) {
+        if (shared.getBoolean(BookApplication.PREFERENCE_VOLUME_KEYS, false)) {
             FragmentManager fm = getSupportFragmentManager();
             for (Fragment f : fm.getFragments()) {
                 if (f != null && f.isVisible() && f instanceof ReaderFragment) {
@@ -889,7 +889,7 @@ public class MainActivity extends FullscreenActivity
     protected void onResume() {
         super.onResume();
         isRunning = true;
-        RotatePreferenceCompat.onResume(this, MainApplication.PREFERENCE_ROTATE);
+        RotatePreferenceCompat.onResume(this, BookApplication.PREFERENCE_ROTATE);
         CacheImagesAdapter.cacheClear(this);
     }
 

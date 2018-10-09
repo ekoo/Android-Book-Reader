@@ -67,7 +67,7 @@ public class BooksCatalogs {
                 throw new RuntimeException(e);
             }
             SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
-            String json = shared.getString(MainApplication.PREFERENCE_CATALOGS, null);
+            String json = shared.getString(BookApplication.PREFERENCE_CATALOGS, null);
             if (json != null && !json.isEmpty()) {
                 try {
                     List<String> all = nlib.allIds();
@@ -150,7 +150,7 @@ public class BooksCatalogs {
                 }
                 SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
                 SharedPreferences.Editor edit = shared.edit();
-                edit.putString(MainApplication.PREFERENCE_CATALOGS, a.toString());
+                edit.putString(BookApplication.PREFERENCE_CATALOGS, a.toString());
                 edit.commit();
             }
         });
@@ -230,9 +230,9 @@ public class BooksCatalogs {
     public void load() {
         list.clear();
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
-        int count = shared.getInt(MainApplication.PREFERENCE_CATALOGS_PREFIX + MainApplication.PREFERENCE_CATALOGS_COUNT, -1);
+        int count = shared.getInt(BookApplication.PREFERENCE_CATALOGS_PREFIX + BookApplication.PREFERENCE_CATALOGS_COUNT, -1);
         for (int i = 0; i < count; i++) {
-            String json = shared.getString(MainApplication.PREFERENCE_CATALOGS_PREFIX + i, "");
+            String json = shared.getString(BookApplication.PREFERENCE_CATALOGS_PREFIX + i, "");
             try {
                 JSONObject o = new JSONObject(json);
                 String type = o.optString("type", "");
@@ -255,10 +255,10 @@ public class BooksCatalogs {
     public void save() {
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor edit = shared.edit();
-        edit.putInt(MainApplication.PREFERENCE_CATALOGS_PREFIX + MainApplication.PREFERENCE_CATALOGS_COUNT, list.size());
+        edit.putInt(BookApplication.PREFERENCE_CATALOGS_PREFIX + BookApplication.PREFERENCE_CATALOGS_COUNT, list.size());
         for (int i = 0; i < list.size(); i++) {
             JSONObject o = list.get(i).save();
-            edit.putString(MainApplication.PREFERENCE_CATALOGS_PREFIX + i, o.toString());
+            edit.putString(BookApplication.PREFERENCE_CATALOGS_PREFIX + i, o.toString());
         }
         edit.commit();
     }

@@ -33,7 +33,6 @@ import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.wget.SpeedInfo;
-import com.github.axet.wget.WGet;
 
 import org.apache.commons.io.IOUtils;
 import org.geometerplus.fbreader.book.BookUtil;
@@ -1757,7 +1756,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public Uri getStoragePath() {
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
-        String path = shared.getString(MainApplication.PREFERENCE_STORAGE, null);
+        String path = shared.getString(BookApplication.PREFERENCE_STORAGE, null);
         if (path == null)
             return Uri.fromFile(getLocalStorage());
         else

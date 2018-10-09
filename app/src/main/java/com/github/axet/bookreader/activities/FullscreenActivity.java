@@ -18,7 +18,7 @@ import android.view.WindowManager;
 
 import com.github.axet.androidlibrary.widgets.AppCompatThemeActivity;
 import com.github.axet.bookreader.R;
-import com.github.axet.bookreader.app.MainApplication;
+import com.github.axet.bookreader.app.BookApplication;
 
 import java.util.List;
 
@@ -119,12 +119,12 @@ public class FullscreenActivity extends AppCompatThemeActivity {
 
     @Override
     public int getAppTheme() {
-        return MainApplication.getTheme(this, R.style.AppThemeLight_NoActionBar, R.style.AppThemeDark_NoActionBar);
+        return BookApplication.getTheme(this, R.style.AppThemeLight_NoActionBar, R.style.AppThemeDark_NoActionBar);
     }
 
     @Override
     public int getAppThemePopup() {
-        return MainApplication.getTheme(this, R.style.AppThemeLight_PopupOverlay, R.style.AppThemeDark_PopupOverlay);
+        return BookApplication.getTheme(this, R.style.AppThemeLight_PopupOverlay, R.style.AppThemeDark_PopupOverlay);
     }
 
     @Override

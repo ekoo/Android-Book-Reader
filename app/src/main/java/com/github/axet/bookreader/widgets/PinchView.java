@@ -3,68 +3,99 @@ package com.github.axet.bookreader.widgets;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
+import android.graphics.Matrix;
 import android.graphics.Rect;
-import android.graphics.drawable.Drawable;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.graphics.drawable.DrawableCompat;
+import android.graphics.RectF;
 import android.support.v4.view.GestureDetectorCompat;
+import android.support.v4.view.ViewCompat;
+import android.support.v7.widget.AppCompatImageView;
 import android.view.GestureDetector;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 
-import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
 
-public class PinchView extends View implements GestureDetector.OnGestureListener {
+public class PinchView extends FrameLayout implements GestureDetector.OnGestureListener {
     float start; // starting sloop
     float end;
     float current;
     float centerx = 0.5f;
     float centery = 0.5f;
-    Rect v;
+    Rect page; // page rect
+    Rect box; // box is smaller then 'page rect', it can increace scroll distance
     float sx;
     float sy;
     Bitmap bm;
     Rect src;
     Rect dst;
     GestureDetectorCompat gestures;
-    Drawable close;
-    Rect closeRect;
-    Paint closePaint;
-    Paint paint = new Paint();
+    int clip;
+    int rotation = 0;
+
+    View toolbar;
+    ImageView image;
+
+    public static void rotateRect(final int degrees, final int px, final int py, final Rect rect) {
+        final RectF rectF = new RectF(rect);
+        final Matrix matrix = new Matrix();
+        matrix.setRotate(degrees, px, py);
+        matrix.mapRect(rectF);
+        rect.set((int) rectF.left, (int) rectF.top, (int) rectF.right, (int) rectF.bottom);
+    }
 
     public PinchView(Context context, Rect v, Bitmap bm) {
         super(context);
-        this.v = v;
+        this.page = v;
+        this.box = new Rect(v);
         this.dst = new Rect(v);
         this.bm = bm;
 
-        close = ContextCompat.getDrawable(context, R.drawable.ic_close_black_24dp);
-        int closeSize = ThemeUtils.dp2px(context, 50);
-        int closePadding = ThemeUtils.dp2px(context, 5);
-        closeRect = new Rect(v.width() - closeSize + closePadding, closePadding, v.width() - closePadding, closeSize - closePadding);
-        close.setBounds(new Rect(0, 0, closeRect.width(), closeRect.height()));
-        DrawableCompat.setTint(DrawableCompat.wrap(close), Color.WHITE);
-        closePaint = new Paint();
-        closePaint.setStyle(Paint.Style.FILL);
-        closePaint.setColor(0x33333333);
+        LayoutInflater inflater = LayoutInflater.from(context);
+
+        image = new AppCompatImageView(context);
+        image.setImageBitmap(bm);
+        addView(image, new MarginLayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        toolbar = inflater.inflate(R.layout.pinch_toolbar, this, false);
+        addView(toolbar);
+
+        View left = toolbar.findViewById(R.id.pinch_left);
+        left.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                rotation -= 90;
+                rotation %= 360;
+                ViewCompat.setRotation(image, rotation);
+                limitsOff();
+                calc();
+            }
+        });
+        View right = toolbar.findViewById(R.id.pinch_right);
+        right.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                rotation += 90;
+                rotation %= 360;
+                ViewCompat.setRotation(image, rotation);
+                limitsOff();
+                calc();
+            }
+        });
+        View close = toolbar.findViewById(R.id.pinch_close);
+        close.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                pinchClose();
+            }
+        });
 
         src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
         gestures = new GestureDetectorCompat(context, this);
         gestures.setIsLongpressEnabled(false);
-    }
-
-    @Override
-    protected void onDraw(Canvas canvas) {
-        canvas.drawBitmap(bm, src, dst, paint);
-        canvas.drawRect(closeRect, closePaint);
-        canvas.save();
-        canvas.translate(closeRect.left, closeRect.top);
-        close.draw(canvas);
-        canvas.restore();
     }
 
     @Override
@@ -74,45 +105,57 @@ public class PinchView extends View implements GestureDetector.OnGestureListener
         return super.onTouchEvent(event);
     }
 
+    @Override
+    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+        super.onLayout(changed, left, top, right, bottom);
+        box.set(page);
+        if (box.left < left)
+            box.left = left;
+        if (box.top < top)
+            box.top = top;
+        if (box.right > right)
+            box.right = right;
+        if (box.bottom > bottom)
+            box.bottom = bottom;
+    }
+
     public void onScale(ScaleGestureDetector detector) {
         current = detector.getCurrentSpan() - start;
 
         centerx = (detector.getFocusX() - dst.left) / dst.width();
         centery = (detector.getFocusY() - dst.top) / dst.height();
 
-        float ratio = v.height() / (float) v.width();
+        float ratio = src.height() / (float) src.width();
 
         float currentx = current * centerx;
         float currenty = current * centery;
 
-        int x = (int) (v.left + sx - currentx);
-        int y = (int) (v.top + sy - currenty * ratio);
-        int w = (int) (v.width() + end + current);
-        int h = (int) (v.height() + end * ratio + current * ratio);
-        int r = x + w;
-        int b = y + h;
+        int w = (int) (page.width() + end + current);
+        int h = (int) (w * ratio);
+        int l = (int) (page.left + sx - currentx);
+        int t = (int) (page.top + sy - currenty * ratio);
+        int r = l + w;
+        int b = t + h;
 
-        if (w > v.width()) {
-            if (x > v.left)
+        if (w > box.width()) {
+            if (l > box.left)
                 centerx = 0;
-            if (r < v.right)
+            if (r < box.right)
                 centerx = 1;
         }
 
-        if (h > v.height()) {
-            if (y > v.top)
+        if (h > box.height()) {
+            if (t > box.top)
                 centery = 0;
-            if (b < v.bottom)
+            if (b < box.bottom)
                 centery = 1;
         }
 
         calc();
-
-        invalidate();
     }
 
     public void onScaleEnd() {
-        float ratio = v.height() / (float) v.width();
+        float ratio = page.height() / (float) page.width();
 
         float currentx = current * centerx;
         float currenty = current * centery;
@@ -124,27 +167,81 @@ public class PinchView extends View implements GestureDetector.OnGestureListener
         current = 0;
 
         calc();
+    }
 
-        invalidate();
+    @Override
+    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+        sx -= distanceX;
+        sy -= distanceY;
+
+        limitsOff();
+        calc();
+
+        return true;
+    }
+
+    void limitsOff() {
+        float ratio = src.height() / (float) src.width();
+
+        int w = (int) (page.width() + end);
+        int h = (int) (w * ratio);
+        int l = (int) (page.left + sx);
+        int t = (int) (page.top + sy);
+        int r = l + w;
+        int b = t + h;
+
+        Rect p = new Rect(l, t, r, b);
+        rotateRect(rotation, p.centerX(), p.centerY(), p);
+
+        if (p.width() < box.width()) {
+            end = end - (p.width() - box.width());
+            sx = sx - (p.left - box.left);
+            p.left = box.left;
+            p.right = box.right;
+            limitsOff();
+        }
+        if (p.height() < box.height()) {
+            end = end - (p.height() - box.height());
+            sy = sy - (p.top - box.top);
+            p.top = box.top;
+            p.bottom = box.bottom;
+            limitsOff();
+        }
+
+        if (p.left > box.left)
+            sx = sx - (p.left - box.left);
+        if (p.top > box.top)
+            sy = sy - (p.top - box.top);
+        if (p.right < box.right)
+            sx = sx - (p.right - box.right);
+        if (p.bottom < box.bottom)
+            sy = sy - (p.bottom - box.bottom);
     }
 
     void calc() {
-        float ratio = v.height() / (float) v.width();
+        float ratio = src.height() / (float) src.width();
 
         float currentx = current * centerx;
         float currenty = current * centery;
 
-        int x = (int) (v.left + sx - currentx);
-        int y = (int) (v.top + sy - currenty * ratio);
-        int w = (int) (v.width() + end + current);
-        int h = (int) (v.height() + end * ratio + current * ratio);
-        int r = x + w;
-        int b = y + h;
+        int w = (int) (page.width() + end + current);
+        int h = (int) (w * ratio);
+        int l = (int) (page.left + sx - currentx);
+        int t = (int) (page.top + sy - currenty * ratio);
+        int r = l + w;
+        int b = t + h;
 
-        dst.left = x;
-        dst.top = y;
+        dst.left = l;
+        dst.top = t;
         dst.right = r;
         dst.bottom = b;
+
+        MarginLayoutParams lp = (MarginLayoutParams) image.getLayoutParams();
+        lp.leftMargin = l;
+        lp.topMargin = t;
+        lp.width = w;
+        lp.height = h;
+        image.setLayoutParams(lp);
     }
 
     public void close() {
@@ -165,40 +262,12 @@ public class PinchView extends View implements GestureDetector.OnGestureListener
 
     @Override
     public boolean onSingleTapUp(MotionEvent e) {
-        if (e.getY() < dst.top || e.getX() < dst.left || e.getX() > dst.right || e.getY() > dst.bottom)
+        Rect r = new Rect();
+        image.getHitRect(r);
+        if (!r.contains((int) e.getX(), (int) e.getY())) {
             pinchClose();
-        if (closeRect.contains((int) e.getX(), (int) e.getY()))
-            pinchClose();
-        return true;
-    }
-
-    @Override
-    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-        sx -= distanceX;
-        sy -= distanceY;
-
-        float ratio = v.height() / (float) v.width();
-
-        int x = (int) (v.left + sx);
-        int y = (int) (v.top + sy);
-        int w = (int) (v.width() + end);
-        int h = (int) (v.height() + end * ratio);
-        int r = x + w;
-        int b = y + h;
-
-        if (x > v.left)
-            sx = 0;
-        if (y > v.top)
-            sy = 0;
-        if (r < v.right)
-            sx = v.right - w - v.left;
-        if (b < v.bottom)
-            sy = v.bottom - h - v.top;
-
-        calc();
-
-        invalidate();
-
+            return true;
+        }
         return true;
     }
 
@@ -212,5 +281,13 @@ public class PinchView extends View implements GestureDetector.OnGestureListener
     }
 
     public void pinchClose() {
+    }
+
+    @Override
+    protected void dispatchDraw(Canvas canvas) {
+        Rect c = canvas.getClipBounds();
+        c.bottom = clip - getTop();
+        canvas.clipRect(c);
+        super.dispatchDraw(canvas);
     }
 }

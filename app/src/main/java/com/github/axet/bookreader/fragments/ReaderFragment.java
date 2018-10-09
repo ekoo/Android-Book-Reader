@@ -49,7 +49,7 @@ import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.FullscreenActivity;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.ComicsPlugin;
-import com.github.axet.bookreader.app.MainApplication;
+import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.bookreader.widgets.PluginView;
@@ -525,7 +525,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         };
 
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
-        String mode = shared.getString(MainApplication.PREFERENCE_VIEW_MODE, "");
+        String mode = shared.getString(BookApplication.PREFERENCE_VIEW_MODE, "");
         view.setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
 
         Context context = getContext();
@@ -694,7 +694,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     @Override
     public void onResume() {
         super.onResume();
-        ScreenlockPreference.onResume(getActivity(), MainApplication.PREFERENCE_SCREENLOCK);
+        ScreenlockPreference.onResume(getActivity(), BookApplication.PREFERENCE_SCREENLOCK);
 
         battery = new BroadcastReceiver() {
             public void onReceive(Context context, Intent intent) {
@@ -711,7 +711,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     public void onPause() {
         super.onPause();
         savePosition();
-        ScreenlockPreference.onPause(getActivity(), MainApplication.PREFERENCE_SCREENLOCK);
+        ScreenlockPreference.onPause(getActivity(), BookApplication.PREFERENCE_SCREENLOCK);
 
         if (battery != null) {
             getContext().unregisterReceiver(battery);
@@ -730,7 +730,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     public void setFontsizeFB(int p) {
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         SharedPreferences.Editor edit = shared.edit();
-        edit.putInt(MainApplication.PREFERENCE_FONTSIZE_FBREADER, p);
+        edit.putInt(BookApplication.PREFERENCE_FONTSIZE_FBREADER, p);
         edit.apply();
         view.setFontsizeFB(p);
     }
@@ -738,7 +738,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     public void setFontFB(String f) {
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         SharedPreferences.Editor edit = shared.edit();
-        edit.putString(MainApplication.PREFERENCE_FONTFAMILY_FBREADER, f);
+        edit.putString(BookApplication.PREFERENCE_FONTFAMILY_FBREADER, f);
         edit.apply();
         view.setFontFB(f);
     }
@@ -748,13 +748,13 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         if (fontsize != null)
             return fontsize;
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
-        return shared.getFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, MainApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
+        return shared.getFloat(BookApplication.PREFERENCE_FONTSIZE_REFLOW, BookApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
     }
 
     public void setFontsizeReflow(float p) {
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         SharedPreferences.Editor editor = shared.edit();
-        editor.putFloat(MainApplication.PREFERENCE_FONTSIZE_REFLOW, p);
+        editor.putFloat(BookApplication.PREFERENCE_FONTSIZE_REFLOW, p);
         editor.apply();
         view.setFontsizeReflow(p);
     }
@@ -804,7 +804,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public void onUserInteraction() {
-        ScreenlockPreference.onUserInteraction(getActivity(), MainApplication.PREFERENCE_SCREENLOCK);
+        ScreenlockPreference.onUserInteraction(getActivity(), BookApplication.PREFERENCE_SCREENLOCK);
     }
 
     @Override
@@ -835,7 +835,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             fontsList.setSelection(fonts.selected);
             updateFontsize();
             PopupWindowCompat.showAsTooltip(popupWindow, MenuItemCompat.getActionView(item), Gravity.BOTTOM,
-                    MainApplication.getTheme(getContext(),
+                    BookApplication.getTheme(getContext(),
                             ThemeUtils.getColor(getContext(), R.color.button_material_light),
                             ThemeUtils.getColor(getContext(), R.color.button_material_dark)),
                     ThemeUtils.dp2px(getContext(), 300));
@@ -849,7 +849,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             FBReaderView.Widgets m = view.widget instanceof FBReaderView.ScrollView ? FBReaderView.Widgets.PAGING : FBReaderView.Widgets.CONTINUOUS;
             SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
             SharedPreferences.Editor edit = shared.edit();
-            edit.putString(MainApplication.PREFERENCE_VIEW_MODE, m.toString());
+            edit.putString(BookApplication.PREFERENCE_VIEW_MODE, m.toString());
             edit.apply();
             view.setWidget(m);
             view.reset();
@@ -975,11 +975,11 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        if (key.equals(MainApplication.PREFERENCE_VIEW_MODE)) {
+        if (key.equals(BookApplication.PREFERENCE_VIEW_MODE)) {
             view.configWidget(sharedPreferences);
             view.showControls();
         }
-        if (key.equals(MainApplication.PREFERENCE_THEME)) {
+        if (key.equals(BookApplication.PREFERENCE_THEME)) {
             view.configColorProfile(sharedPreferences);
         }
     }
