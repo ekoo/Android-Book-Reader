@@ -46,10 +46,10 @@ import com.github.axet.androidlibrary.widgets.SearchView;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
+import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.BooksCatalog;
 import com.github.axet.bookreader.app.BooksCatalogs;
 import com.github.axet.bookreader.app.LocalBooksCatalog;
-import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.NetworkBooksCatalog;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.fragments.LibraryFragment;
@@ -541,12 +541,24 @@ public class MainActivity extends FullscreenActivity
         builder.setTitle(R.string.loading_book);
         builder.setView(ll);
         builder.setCancelable(false);
+        builder.setPositiveButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+            }
+        });
         final AlertDialog d = builder.create();
         d.show();
 
         Thread thread = new Thread("load book") {
             @Override
             public void run() {
+                final Thread t = Thread.currentThread();
+                d.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        t.interrupt();
+                    }
+                });
                 try {
                     String s = u.getScheme();
                     if (s.equals(SCHEME_CATALOG)) {
@@ -597,6 +609,8 @@ public class MainActivity extends FullscreenActivity
                                 success.run();
                         }
                     });
+                } catch (Storage.DownloadInterrupted e) {
+                    Log.d(TAG, "interrupted", e);
                 } catch (Exception e) {
                     Post(e);
                 } finally {

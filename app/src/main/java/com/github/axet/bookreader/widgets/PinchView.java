@@ -32,13 +32,13 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
     float sy;
     Bitmap bm;
     Rect src;
-    Rect dst;
     GestureDetectorCompat gestures;
     int clip;
     int rotation = 0;
 
     View toolbar;
     ImageView image;
+    MarginLayoutParams lp;
 
     public static void rotateRect(final int degrees, final int px, final int py, final Rect rect) {
         final RectF rectF = new RectF(rect);
@@ -52,14 +52,14 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
         super(context);
         this.page = v;
         this.box = new Rect(v);
-        this.dst = new Rect(v);
         this.bm = bm;
 
         LayoutInflater inflater = LayoutInflater.from(context);
 
+        lp = new MarginLayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         image = new AppCompatImageView(context);
         image.setImageBitmap(bm);
-        addView(image, new MarginLayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        addView(image, lp);
         toolbar = inflater.inflate(R.layout.pinch_toolbar, this, false);
         addView(toolbar);
 
@@ -122,8 +122,8 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
     public void onScale(ScaleGestureDetector detector) {
         current = detector.getCurrentSpan() - start;
 
-        centerx = (detector.getFocusX() - dst.left) / dst.width();
-        centery = (detector.getFocusY() - dst.top) / dst.height();
+        centerx = (detector.getFocusX() - lp.leftMargin) / lp.width;
+        centery = (detector.getFocusY() - lp.topMargin) / lp.height;
 
         float ratio = src.height() / (float) src.width();
 
@@ -137,20 +137,24 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
         int r = l + w;
         int b = t + h;
 
-        if (w > box.width()) {
-            if (l > box.left)
+        Rect p = new Rect(l, t, r, b);
+        rotateRect(rotation, p.centerX(), p.centerY(), p);
+
+        if (p.width() > box.width()) {
+            if (p.left > box.left)
                 centerx = 0;
-            if (r < box.right)
+            if (p.right < box.right)
                 centerx = 1;
         }
 
-        if (h > box.height()) {
-            if (t > box.top)
+        if (p.height() > box.height()) {
+            if (p.top > box.top)
                 centery = 0;
-            if (b < box.bottom)
+            if (p.bottom < box.bottom)
                 centery = 1;
         }
 
+        limitsOff();
         calc();
     }
 
@@ -183,10 +187,13 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
     void limitsOff() {
         float ratio = src.height() / (float) src.width();
 
-        int w = (int) (page.width() + end);
+        float currentx = current * centerx;
+        float currenty = current * centery;
+
+        int w = (int) (page.width() + end + current);
         int h = (int) (w * ratio);
-        int l = (int) (page.left + sx);
-        int t = (int) (page.top + sy);
+        int l = (int) (page.left + sx - currentx);
+        int t = (int) (page.top + sy - currenty * ratio);
         int r = l + w;
         int b = t + h;
 
@@ -196,16 +203,14 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
         if (p.width() < box.width()) {
             end = end - (p.width() - box.width());
             sx = sx - (p.left - box.left);
-            p.left = box.left;
-            p.right = box.right;
             limitsOff();
+            return;
         }
         if (p.height() < box.height()) {
             end = end - (p.height() - box.height());
             sy = sy - (p.top - box.top);
-            p.top = box.top;
-            p.bottom = box.bottom;
             limitsOff();
+            return;
         }
 
         if (p.left > box.left)
@@ -228,15 +233,8 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
         int h = (int) (w * ratio);
         int l = (int) (page.left + sx - currentx);
         int t = (int) (page.top + sy - currenty * ratio);
-        int r = l + w;
-        int b = t + h;
 
-        dst.left = l;
-        dst.top = t;
-        dst.right = r;
-        dst.bottom = b;
-
-        MarginLayoutParams lp = (MarginLayoutParams) image.getLayoutParams();
+        lp = (MarginLayoutParams) image.getLayoutParams();
         lp.leftMargin = l;
         lp.topMargin = t;
         lp.width = w;
