@@ -2553,7 +2553,7 @@ public class FBReaderView extends RelativeLayout {
                 pinch.clip = ((ScrollView) widget).getMainAreaHeight();
             else
                 pinch.clip = ((ZLAndroidWidget) widget).getMainAreaHeight();
-            FBReaderView.this.addView(pinch);
+            FBReaderView.this.addView(pinch, new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         }
 
         public void pinchClose() {
