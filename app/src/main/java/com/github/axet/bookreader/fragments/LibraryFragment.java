@@ -515,7 +515,6 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         holder.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                final MainActivity main = (MainActivity) getActivity();
                 Storage.Book b = books.getItem(position);
                 main.loadBook(b);
             }

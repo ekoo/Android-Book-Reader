@@ -70,6 +70,7 @@ import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.net.HttpURLConnection;
@@ -127,6 +128,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         byte[] buf = new byte[BUF_SIZE];
         int len;
         while ((len = is.read(buf)) > 0) {
+            if (Thread.currentThread().isInterrupted())
+                throw new DownloadInterrupted();
             digest.update(buf, 0, len);
             if (os != null)
                 os.write(buf, 0, len);
@@ -165,6 +168,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         } catch (BookReadingException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static class DownloadInterrupted extends RuntimeException {
     }
 
     public static class Info implements SystemInfo {
