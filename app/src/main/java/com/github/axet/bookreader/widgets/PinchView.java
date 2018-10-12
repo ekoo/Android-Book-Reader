@@ -40,12 +40,18 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
     ImageView image;
     MarginLayoutParams lp;
 
-    public static void rotateRect(final int degrees, final int px, final int py, final Rect rect) {
-        final RectF rectF = new RectF(rect);
-        final Matrix matrix = new Matrix();
+    public static void rotateRect(int degrees, int px, int py, Rect rect) {
+        RectF rectF = new RectF(rect);
+        Matrix matrix = new Matrix();
         matrix.setRotate(degrees, px, py);
         matrix.mapRect(rectF);
         rect.set((int) rectF.left, (int) rectF.top, (int) rectF.right, (int) rectF.bottom);
+    }
+
+    public static void rotateRect(int degrees, float px, float py, RectF rect) {
+        Matrix matrix = new Matrix();
+        matrix.setRotate(degrees, px, py);
+        matrix.mapRect(rect);
     }
 
     public PinchView(Context context, Rect v, Bitmap bm) {
@@ -67,22 +73,14 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
         left.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                rotation -= 90;
-                rotation %= 360;
-                ViewCompat.setRotation(image, rotation);
-                limitsOff();
-                calc();
+                addRotate(-90);
             }
         });
         View right = toolbar.findViewById(R.id.pinch_right);
         right.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                rotation += 90;
-                rotation %= 360;
-                ViewCompat.setRotation(image, rotation);
-                limitsOff();
-                calc();
+                addRotate(90);
             }
         });
         View close = toolbar.findViewById(R.id.pinch_close);
@@ -98,6 +96,14 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
         gestures.setIsLongpressEnabled(false);
     }
 
+    void addRotate(int a) {
+        rotation += a;
+        rotation %= 360;
+        ViewCompat.setRotation(image, rotation);
+        limitsOff();
+        calc();
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (gestures.onTouchEvent(event))
@@ -109,14 +115,7 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
         box.set(page);
-        if (box.left < left)
-            box.left = left;
-        if (box.top < top)
-            box.top = top;
-        if (box.right > right)
-            box.right = right;
-        if (box.bottom > bottom)
-            box.bottom = bottom;
+        box.intersect(left, top, right, bottom);
     }
 
     public void onScale(ScaleGestureDetector detector) {
@@ -130,14 +129,14 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
         float currentx = current * centerx;
         float currenty = current * centery;
 
-        int w = (int) (page.width() + end + current);
-        int h = (int) (w * ratio);
-        int l = (int) (page.left + sx - currentx);
-        int t = (int) (page.top + sy - currenty * ratio);
-        int r = l + w;
-        int b = t + h;
+        float w = page.width() + end + current;
+        float h = w * ratio;
+        float l = page.left + sx - currentx;
+        float t = page.top + sy - currenty * ratio;
+        float r = l + w;
+        float b = t + h;
 
-        Rect p = new Rect(l, t, r, b);
+        RectF p = new RectF(l, t, r, b);
         rotateRect(rotation, p.centerX(), p.centerY(), p);
 
         if (p.width() > box.width()) {
@@ -190,14 +189,14 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
         float currentx = current * centerx;
         float currenty = current * centery;
 
-        int w = (int) (page.width() + end + current);
-        int h = (int) (w * ratio);
-        int l = (int) (page.left + sx - currentx);
-        int t = (int) (page.top + sy - currenty * ratio);
-        int r = l + w;
-        int b = t + h;
+        float w = page.width() + end + current;
+        float h = w * ratio;
+        float l = page.left + sx - currentx;
+        float t = page.top + sy - currenty * ratio;
+        float r = l + w;
+        float b = t + h;
 
-        Rect p = new Rect(l, t, r, b);
+        RectF p = new RectF(l, t, r, b);
         rotateRect(rotation, p.centerX(), p.centerY(), p);
 
         if (p.width() < box.width()) {
@@ -229,16 +228,16 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
         float currentx = current * centerx;
         float currenty = current * centery;
 
-        int w = (int) (page.width() + end + current);
-        int h = (int) (w * ratio);
-        int l = (int) (page.left + sx - currentx);
-        int t = (int) (page.top + sy - currenty * ratio);
+        float w = page.width() + end + current;
+        float h = w * ratio;
+        float l = page.left + sx - currentx;
+        float t = page.top + sy - currenty * ratio;
 
         lp = (MarginLayoutParams) image.getLayoutParams();
-        lp.leftMargin = l;
-        lp.topMargin = t;
-        lp.width = w;
-        lp.height = h;
+        lp.leftMargin = (int) l;
+        lp.topMargin = (int) t;
+        lp.width = (int) w;
+        lp.height = (int) h;
         image.setLayoutParams(lp);
     }
 
