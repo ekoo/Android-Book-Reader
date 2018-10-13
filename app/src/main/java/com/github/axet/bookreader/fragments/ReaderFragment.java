@@ -48,8 +48,8 @@ import com.github.axet.bookreader.BuildConfig;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.FullscreenActivity;
 import com.github.axet.bookreader.activities.MainActivity;
-import com.github.axet.bookreader.app.ComicsPlugin;
 import com.github.axet.bookreader.app.BookApplication;
+import com.github.axet.bookreader.app.ComicsPlugin;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.bookreader.widgets.PluginView;
@@ -570,8 +570,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         updateToolbar();
 
-        time.run();
-
         handler.post(new Runnable() {
             @Override
             public void run() {
@@ -705,6 +703,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             }
         };
         battery.onReceive(getContext(), getContext().registerReceiver(battery, new IntentFilter(Intent.ACTION_BATTERY_CHANGED)));
+
+        time.run();
     }
 
     @Override
@@ -835,9 +835,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             fontsList.setSelection(fonts.selected);
             updateFontsize();
             PopupWindowCompat.showAsTooltip(popupWindow, MenuItemCompat.getActionView(item), Gravity.BOTTOM,
-                    BookApplication.getTheme(getContext(),
-                            ThemeUtils.getColor(getContext(), R.color.button_material_light),
-                            ThemeUtils.getColor(getContext(), R.color.button_material_dark)),
+                    ThemeUtils.getThemeColor(getContext(), R.attr.colorButtonNormal),
                     ThemeUtils.dp2px(getContext(), 300));
         }
         if (id == R.id.action_rtl) {

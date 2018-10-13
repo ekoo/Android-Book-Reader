@@ -50,7 +50,6 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             Natives.loadLibraries(info.context, "djvu", "djvulibrejni");
             Config.natives = false;
         }
-        Storage.K2PdfOptInit(info.context);
         return new DjvuPlugin(info);
     }
 

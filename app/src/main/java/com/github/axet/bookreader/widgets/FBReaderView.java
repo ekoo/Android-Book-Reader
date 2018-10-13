@@ -3256,7 +3256,7 @@ public class FBReaderView extends RelativeLayout {
                 app.BookTextView.clearSelection();
                 selectionClose();
 
-                final ClipboardManager clipboard = (ClipboardManager) getContext().getApplicationContext().getSystemService(Application.CLIPBOARD_SERVICE);
+                final ClipboardManager clipboard = (ClipboardManager) getContext().getSystemService(Application.CLIPBOARD_SERVICE);
                 clipboard.setText(text);
                 UIMessageUtil.showMessageText(a, clipboard.getText().toString());
 
@@ -3360,8 +3360,7 @@ public class FBReaderView extends RelativeLayout {
                 toast.setOnClickWrapper(new OnClickWrapper("bkmk", new SuperToast.OnClickListener() {
                     @Override
                     public void onClick(View view, Parcelable token) {
-                        final Intent intent =
-                                new Intent(getContext().getApplicationContext(), EditBookmarkActivity.class);
+                        final Intent intent = new Intent(getContext(), EditBookmarkActivity.class);
                         FBReaderIntents.putBookmarkExtra(intent, bookmark);
                         OrientationUtil.startActivity(a, intent);
                     }

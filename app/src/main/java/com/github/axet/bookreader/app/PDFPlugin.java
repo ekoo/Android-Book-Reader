@@ -53,7 +53,6 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             Natives.loadLibraries(info.context, "modpdfium", "pdfiumjni");
             Config.natives = false;
         }
-        Storage.K2PdfOptInit(info.context);
         return new PDFPlugin(info);
     }
 

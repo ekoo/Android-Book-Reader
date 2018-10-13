@@ -40,15 +40,19 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
     ImageView image;
     MarginLayoutParams lp;
 
-    public static void rotateRect(int degrees, int px, int py, Rect rect) {
-        RectF rectF = new RectF(rect);
+    public static void rotateRect(Rect rect, int degrees, int px, int py) {
         Matrix matrix = new Matrix();
         matrix.setRotate(degrees, px, py);
+        RectF rectF = new RectF(rect);
         matrix.mapRect(rectF);
         rect.set((int) rectF.left, (int) rectF.top, (int) rectF.right, (int) rectF.bottom);
     }
 
-    public static void rotateRect(int degrees, float px, float py, RectF rect) {
+    public static void rotateRect(RectF rect, float degrees) {
+        rotateRect(rect, degrees, rect.centerX(), rect.centerY());
+    }
+
+    public static void rotateRect(RectF rect, float degrees, float px, float py) {
         Matrix matrix = new Matrix();
         matrix.setRotate(degrees, px, py);
         matrix.mapRect(rect);
@@ -137,7 +141,7 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
         float b = t + h;
 
         RectF p = new RectF(l, t, r, b);
-        rotateRect(rotation, p.centerX(), p.centerY(), p);
+        rotateRect(p, rotation);
 
         if (p.width() > box.width()) {
             if (p.left > box.left)
@@ -197,7 +201,7 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
         float b = t + h;
 
         RectF p = new RectF(l, t, r, b);
-        rotateRect(rotation, p.centerX(), p.centerY(), p);
+        rotateRect(p, rotation);
 
         if (p.width() < box.width()) {
             end = end - (p.width() - box.width());

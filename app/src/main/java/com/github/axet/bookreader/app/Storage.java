@@ -105,13 +105,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public static final String JSON_EXT = "json";
     public static final String ZIP_EXT = "zip";
 
-    public static void K2PdfOptInit(Context context) {
-        if (com.github.axet.k2pdfopt.Config.natives) {
-            Natives.loadLibraries(context, "willus", "k2pdfopt", "k2pdfoptjni");
-            com.github.axet.k2pdfopt.Config.natives = false;
-        }
-    }
-
     public static Detector[] supported() {
         return new Detector[]{new FileFB2(), new FileFB2Zip(), new FileEPUB(), new FileHTML(), new FileHTMLZip(),
                 new FilePDF(), new FileDjvu(), new FileRTF(), new FileRTFZip(), new FileDoc(),
