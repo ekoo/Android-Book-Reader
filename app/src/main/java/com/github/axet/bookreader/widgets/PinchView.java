@@ -7,9 +7,9 @@ import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.support.v4.view.GestureDetectorCompat;
-import android.support.v4.view.ViewCompat;
 import android.support.v7.widget.AppCompatImageView;
 import android.view.GestureDetector;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -18,6 +18,7 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
+import com.github.axet.androidlibrary.widgets.PopupWindowCompat;
 import com.github.axet.bookreader.R;
 
 public class PinchView extends FrameLayout implements GestureDetector.OnGestureListener {
@@ -66,7 +67,7 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
 
         LayoutInflater inflater = LayoutInflater.from(context);
 
-        lp = new MarginLayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.NO_GRAVITY); // API9 requires gravity to be set
         image = new AppCompatImageView(context);
         image.setImageBitmap(bm);
         addView(image, lp);
@@ -103,7 +104,7 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
     void addRotate(int a) {
         rotation += a;
         rotation %= 360;
-        ViewCompat.setRotation(image, rotation);
+        PopupWindowCompat.setRotationCompat(image, rotation);
         limitsOff();
         calc();
     }
@@ -120,6 +121,28 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
         super.onLayout(changed, left, top, right, bottom);
         box.set(page);
         box.intersect(left, top, right, bottom);
+    }
+
+    public void scale(final float r) {
+        final int w = getWidth();
+        final int h = getHeight();
+        onScale(new ScaleGestureDetector(getContext(), null) {
+            @Override
+            public float getCurrentSpan() {
+                return w * (r - 1f);
+            }
+
+            @Override
+            public float getFocusX() {
+                return w / 2;
+            }
+
+            @Override
+            public float getFocusY() {
+                return h / 2;
+            }
+        });
+        onScaleEnd();
     }
 
     public void onScale(ScaleGestureDetector detector) {

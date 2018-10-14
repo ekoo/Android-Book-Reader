@@ -18,6 +18,7 @@ import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.github.axet.androidlibrary.widgets.PopupWindowCompat;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
 
@@ -40,18 +41,6 @@ public class ActiveAreasView extends RelativeLayout {
         names.put("nextPage", getContext().getString(R.string.controls_nextpage));
         names.put("previousPage", getContext().getString(R.string.controls_prevpage));
         names.put("brightness", getContext().getString(R.string.controls_brightness));
-    }
-
-    public static void setRotationCompat(View view, int r) {
-        if (Build.VERSION.SDK_INT >= 11) {
-            ViewCompat.setRotation(view, r);
-        } else {
-            RotateAnimation animation = new RotateAnimation(0, r, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
-            animation.setInterpolator(new LinearInterpolator());
-            animation.setDuration(1);
-            animation.setFillAfter(true);
-            view.startAnimation(animation);
-        }
     }
 
     public class ZoneView extends FrameLayout {
@@ -110,7 +99,7 @@ public class ActiveAreasView extends RelativeLayout {
                 lp = (MarginLayoutParams) v.text.getLayoutParams();
                 lp.width = v.text.getMeasuredWidth();
                 lp.height = v.text.getMeasuredHeight();
-                setRotationCompat(v.text, 90);
+                PopupWindowCompat.setRotationCompat(v.text, 90);
                 v.text.requestLayout();
             }
         }
