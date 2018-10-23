@@ -3,6 +3,7 @@ package com.github.axet.bookreader.app;
 import android.content.Context;
 
 import com.github.axet.androidlibrary.app.MainApplication;
+import com.github.axet.bookreader.R;
 
 import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
 
@@ -26,7 +27,7 @@ public class BookApplication extends MainApplication {
     public ZLAndroidApplication zlib;
 
     public static int getTheme(Context context, int light, int dark) {
-        return MainApplication.getTheme(context, PREFERENCE_THEME, light, dark);
+        return MainApplication.getTheme(context, PREFERENCE_THEME, light, dark, context.getString(R.string.Theme_Dark));
     }
 
     @Override

@@ -25,7 +25,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.axet.androidlibrary.app.AlarmManager;
-import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
@@ -70,7 +69,6 @@ import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.net.HttpURLConnection;
@@ -96,7 +94,6 @@ import de.innosystec.unrar.Archive;
 import de.innosystec.unrar.rarfile.FileHeader;
 
 public class Storage extends com.github.axet.androidlibrary.app.Storage {
-
     public static String TAG = Storage.class.getCanonicalName();
 
     public static final int MD5_SIZE = 32;

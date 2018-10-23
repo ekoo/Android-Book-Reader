@@ -72,9 +72,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-public class MainActivity extends FullscreenActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
-
+public class MainActivity extends FullscreenActivity implements NavigationView.OnNavigationItemSelectedListener {
     public static final String TAG = MainActivity.class.getSimpleName();
 
     public static final String LIBRARY = "library";

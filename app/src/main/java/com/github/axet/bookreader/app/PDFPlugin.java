@@ -43,7 +43,6 @@ import java.util.List;
 import java.util.Locale;
 
 public class PDFPlugin extends BuiltinFormatPlugin {
-
     public static String TAG = PDFPlugin.class.getSimpleName();
 
     public static final String EXT = "pdf";
@@ -1014,5 +1013,4 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
         return count;
     }
-
 }

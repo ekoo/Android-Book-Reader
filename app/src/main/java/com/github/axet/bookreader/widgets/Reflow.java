@@ -79,6 +79,7 @@ public class Reflow {
     }
 
     public Reflow(Context context, int w, int h, int page, FBReaderView.CustomView custom, Storage.RecentInfo info) {
+        K2PdfOptInit(context);
         this.context = context;
         this.page = page;
         this.info = info;
@@ -117,7 +118,6 @@ public class Reflow {
     }
 
     void create() {
-        K2PdfOptInit(context);
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
         Float old = shared.getFloat(BookApplication.PREFERENCE_FONTSIZE_REFLOW, BookApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
         if (info.fontsize != null)
