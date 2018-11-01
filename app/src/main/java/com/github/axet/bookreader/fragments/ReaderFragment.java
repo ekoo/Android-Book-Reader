@@ -32,11 +32,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.BaseAdapter;
 import android.widget.CheckedTextView;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.PopupWindow;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -61,7 +59,6 @@ import org.geometerplus.fbreader.bookmodel.TOCTree;
 import org.geometerplus.fbreader.fbreader.ActionCode;
 import org.geometerplus.zlibrary.core.util.ZLTTFInfoDetector;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
-import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.ui.android.view.AndroidFontUtil;
 
 import java.io.File;
@@ -768,7 +765,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             return;
         if (view.book == null) // when book insn't loaded and view clsosed
             return;
-        ZLTextPosition pos = view.getPosition();
+        Storage.RecentInfo save = new Storage.RecentInfo(view.book.info);
+        save.position = view.getPosition();
         Uri u = storage.recentUri(book);
         if (storage.exists(u)) { // file can be changed during sync, check for conflicts
             try {
@@ -776,17 +774,16 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 if (info.position != null) {
                     if (book.info.position == null || !info.position.samePositionAs(book.info.position)) // file changed between saves?
                         storage.move(u, storage.getStoragePath()); // yes. create copy (1)
-                    if (pos.samePositionAs(info.position))
-                        return; // do not need to save
+                    if (save.position.samePositionAs(info.position) && (save.fontsize.equals(info.fontsize)))
+                        return; // nothing to save
                 }
             } catch (RuntimeException e) {
                 Log.d(TAG, "Unable to load JSON", e);
             }
         }
-        book.info = new Storage.RecentInfo(view.book.info);
-        book.info.position = pos;
+        book.info = save;
         storage.save(book);
-        Log.d(TAG, "savePosition " + pos);
+        Log.d(TAG, "savePosition " + save.position);
     }
 
     @Override
