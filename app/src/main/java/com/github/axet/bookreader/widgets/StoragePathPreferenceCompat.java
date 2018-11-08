@@ -15,6 +15,8 @@ import com.github.axet.bookreader.R;
 import java.io.File;
 
 public class StoragePathPreferenceCompat extends com.github.axet.androidlibrary.widgets.StoragePathPreferenceCompat {
+    CharSequence defSummary;
+
     public StoragePathPreferenceCompat(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
     }
@@ -28,6 +30,7 @@ public class StoragePathPreferenceCompat extends com.github.axet.androidlibrary.
     }
 
     public void create() {
+        defSummary = getSummary();
         choicer = new OpenStorageChoicer(storage, OpenFileDialog.DIALOG_TYPE.FOLDER_DIALOG, false) {
             Uri reset;
 
@@ -37,6 +40,7 @@ public class StoragePathPreferenceCompat extends com.github.axet.androidlibrary.
                     SharedPreferences.Editor editor = getSharedPreferences().edit();
                     editor.remove(getKey());
                     editor.apply();
+                    setSummary(defSummary);
                 } else {
                     if (callChangeListener(uri.toString())) {
                         setText(uri.toString());
