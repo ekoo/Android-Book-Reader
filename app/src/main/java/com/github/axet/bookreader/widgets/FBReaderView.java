@@ -73,11 +73,8 @@ import org.geometerplus.android.fbreader.NavigationPopup;
 import org.geometerplus.android.fbreader.PopupPanel;
 import org.geometerplus.android.fbreader.SelectionPopup;
 import org.geometerplus.android.fbreader.TextSearchPopup;
-import org.geometerplus.android.fbreader.api.FBReaderIntents;
-import org.geometerplus.android.fbreader.bookmark.EditBookmarkActivity;
 import org.geometerplus.android.fbreader.dict.DictionaryUtil;
 import org.geometerplus.android.fbreader.libraryService.BookCollectionShadow;
-import org.geometerplus.android.util.OrientationUtil;
 import org.geometerplus.android.util.UIMessageUtil;
 import org.geometerplus.android.util.UIUtil;
 import org.geometerplus.fbreader.book.BookUtil;
@@ -926,6 +923,7 @@ public class FBReaderView extends RelativeLayout {
                 Reflow.Info info;
                 SelectionView.PageView selection;
                 LinksView links;
+                BookmarksView bookmarks;
                 SearchView search;
 
                 public PageView(ViewGroup parent) {
@@ -1142,6 +1140,10 @@ public class FBReaderView extends RelativeLayout {
                     if (links != null) {
                         links.close();
                         links = null;
+                    }
+                    if (bookmarks != null) {
+                        bookmarks.close();
+                        bookmarks = null;
                     }
                     if (search != null) {
                         search.close();
@@ -2046,6 +2048,7 @@ public class FBReaderView extends RelativeLayout {
             if (selection != null)
                 selectionUpdate(view);
             linksUpdate(view);
+            bookmarksUpdate(view);
             if (search != null)
                 searchUpdate(view);
         }
@@ -2089,6 +2092,55 @@ public class FBReaderView extends RelativeLayout {
                 } else {
                     linksRemove(view);
                 }
+            }
+        }
+
+        public void bookmarksClose() {
+            for (ScrollAdapter.PageHolder h : adapter.holders) {
+                bookmarksRemove(h.page);
+            }
+        }
+
+        public void bookmarksRemove(ScrollAdapter.PageView view) {
+            if (view.bookmarks == null)
+                return;
+            view.bookmarks.close();
+            view.bookmarks = null;
+        }
+
+        public void bookmarksUpdate(ScrollAdapter.PageView view) {
+            int pos = view.holder.getAdapterPosition();
+            if (pos == -1) {
+                bookmarksRemove(view);
+            } else {
+                ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+
+                final PluginView.Selection.Page page;
+
+                if (c.start == null || c.end == null) {
+                    page = null;
+                } else {
+                    page = pluginview.selectPage(c.start, view.info, view.getWidth(), view.getHeight());
+                }
+
+                if (page != null && (!pluginview.reflow || view.info != null)) {
+                    if (view.bookmarks == null)
+                        view.bookmarks = new BookmarksView(page, book.info.bookmarks.getBookmarks(page), view.info);
+                    int x = view.getLeft();
+                    int y = view.getTop();
+                    if (view.info != null)
+                        x += view.info.margin.left;
+                    view.bookmarks.update(x, y);
+                } else {
+                    bookmarksRemove(view);
+                }
+            }
+        }
+
+        public void bookmarksUpdate() {
+            for (ScrollAdapter.PageHolder h : adapter.holders) {
+                bookmarksRemove(h.page);
+                bookmarksUpdate(h.page);
             }
         }
 
@@ -2638,6 +2690,76 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
+    public class BookmarksView {
+        public ArrayList<View> bookmarks = new ArrayList<>();
+
+        public BookmarksView(PluginView.Selection.Page page, ArrayList<Storage.Bookmark> ll, Reflow.Info info) {
+            if (ll == null)
+                return;
+            for (int i = 0; i < ll.size(); i++) {
+                final Storage.Bookmark l = ll.get(i);
+                PluginView.Selection s = pluginview.select(l.start, l.end);
+                PluginView.Selection.Bounds bb = s.getBounds(page);
+                s.close();
+                Rect[] rr;
+                if (pluginview.reflow) {
+                    rr = pluginview.boundsUpdate(bb.rr, info);
+                } else {
+                    rr = bb.rr;
+                }
+                for (Rect r : rr) {
+                    MarginLayoutParams lp = new MarginLayoutParams(r.width(), r.height());
+                    View v = new View(getContext());
+                    v.setLayoutParams(lp);
+                    v.setTag(r);
+                    v.setOnClickListener(new OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                        }
+                    });
+                    v.setBackgroundColor(SelectionView.SELECTION_ALPHA << 24 | app.BookTextView.getHighlightingBackgroundColor().intValue());
+                    bookmarks.add(v);
+                    FBReaderView.this.addView(v);
+                }
+            }
+        }
+
+        public void update(int x, int y) {
+            for (View v : bookmarks) {
+                Rect l = (Rect) v.getTag();
+                MarginLayoutParams lp = (MarginLayoutParams) v.getLayoutParams();
+                lp.leftMargin = x + l.left;
+                lp.topMargin = y + l.top;
+                lp.width = l.width();
+                lp.height = l.height();
+                v.requestLayout();
+            }
+        }
+
+        public void hide() {
+            for (View v : bookmarks)
+                v.setVisibility(GONE);
+        }
+
+        public void show() {
+            for (View v : bookmarks)
+                v.setVisibility(VISIBLE);
+        }
+
+        public void close() {
+            final ArrayList<View> old = new ArrayList<>(bookmarks); // can be called during RelativeLayout onLayout
+            post(new Runnable() {
+                @Override
+                public void run() {
+                    for (View v : old) {
+                        FBReaderView.this.removeView(v);
+                    }
+                }
+            });
+            bookmarks.clear();
+        }
+    }
+
     public class SearchView {
         public ArrayList<View> words = new ArrayList<>();
         int padding;
@@ -2766,8 +2888,6 @@ public class FBReaderView extends RelativeLayout {
                 public void createControlPanel(Activity activity, RelativeLayout root) {
                     super.createControlPanel(activity, root);
                     View t = myWindow.findViewById(org.geometerplus.zlibrary.ui.android.R.id.selection_panel_translate);
-                    t.setVisibility(View.GONE);
-                    t = myWindow.findViewById(org.geometerplus.zlibrary.ui.android.R.id.selection_panel_bookmark);
                     t.setVisibility(View.GONE);
                 }
             };
@@ -3339,33 +3459,19 @@ public class FBReaderView extends RelativeLayout {
         app.addAction(ActionCode.SELECTION_BOOKMARK, new FBAction(app) {
             @Override
             protected void run(Object... params) {
-                final Bookmark bookmark;
                 if (params.length != 0) {
-                    bookmark = (Bookmark) params[0];
+                    Bookmark bookmark = (Bookmark) params[0];
                 } else {
-                    bookmark = app.addSelectionBookmark();
-                }
-                if (bookmark == null) {
-                    return;
-                }
-
-                final SuperActivityToast toast =
-                        new SuperActivityToast(a, SuperToast.Type.BUTTON);
-                toast.setText(bookmark.getText());
-                toast.setDuration(SuperToast.Duration.EXTRA_LONG);
-                toast.setButtonIcon(
-                        android.R.drawable.ic_menu_edit,
-                        ZLResource.resource("dialog").getResource("button").getResource("edit").getValue()
-                );
-                toast.setOnClickWrapper(new OnClickWrapper("bkmk", new SuperToast.OnClickListener() {
-                    @Override
-                    public void onClick(View view, Parcelable token) {
-                        final Intent intent = new Intent(getContext(), EditBookmarkActivity.class);
-                        FBReaderIntents.putBookmarkExtra(intent, bookmark);
-                        OrientationUtil.startActivity(a, intent);
+                    if (selection != null) {
+                        book.info.bookmarks.add(new Storage.Bookmark(selection.selection.getText(), selection.selection.getStart(), selection.selection.getEnd()));
+                    } else {
+                        TextSnippet snippet = app.BookTextView.getSelectedSnippet();
+                        book.info.bookmarks.add(new Storage.Bookmark(snippet.getText(), snippet.getStart(), snippet.getEnd()));
                     }
-                }));
-                showToast(toast);
+                    bookmarksUpdate();
+                    app.BookTextView.clearSelection();
+                    selectionClose();
+                }
             }
         });
         app.addAction(ActionCode.SELECTION_CLEAR, new FBAction(app) {
@@ -3719,6 +3825,20 @@ public class FBReaderView extends RelativeLayout {
             ((FBAndroidWidget) widget).linksClose();
     }
 
+    public void bookmarksClose() {
+        if (widget instanceof ScrollView)
+            ((ScrollView) widget).bookmarksClose();
+        if (widget instanceof FBAndroidWidget)
+            ; // ((FBAndroidWidget) widget).bookmarksClose();
+    }
+
+    public void bookmarksUpdate() {
+        if (widget instanceof ScrollView)
+            ((ScrollView) widget).bookmarksUpdate();
+        if (widget instanceof FBAndroidWidget)
+            ; // ((FBAndroidWidget) widget).bookmarksClose();
+    }
+
     public void searchClose() {
         app.hideActivePopup();
         if (widget instanceof ScrollView)
@@ -3736,6 +3856,7 @@ public class FBReaderView extends RelativeLayout {
         pinchClose();
         selectionClose();
         linksClose();
+        bookmarksClose();
         searchClose();
     }
 

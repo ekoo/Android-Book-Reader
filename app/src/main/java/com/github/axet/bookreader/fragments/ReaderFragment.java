@@ -775,8 +775,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                     if (book.info.position == null || !info.position.samePositionAs(book.info.position)) // file changed between saves?
                         storage.move(u, storage.getStoragePath()); // yes. create copy (1)
                     if (save.position.samePositionAs(info.position)) {
-                        if (save.fontsize == null || info.fontsize != null && save.fontsize.equals(info.fontsize))
-                            return; // nothing to save
+                        if (save.fontsize == null || info.fontsize != null && save.fontsize.equals(info.fontsize)) {
+                            if (save.bookmarks == null || info.bookmarks != null && save.bookmarks.equals(info.bookmarks))
+                                return; // nothing to save
+                        }
                     }
                 }
             } catch (RuntimeException e) {

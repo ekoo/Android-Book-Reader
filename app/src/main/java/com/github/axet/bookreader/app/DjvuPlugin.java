@@ -29,6 +29,8 @@ import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.text.model.ZLTextMark;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
+import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
+import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.ui.android.image.ZLBitmapImage;
 
 import java.io.File;
@@ -220,6 +222,14 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             selectWord(p, point);
         }
 
+        public DjvuSelection(DjvuLibre doc, ZLTextPosition start, ZLTextPosition end) {
+            this.doc = doc;
+            this.start = open(start.getParagraphIndex());
+            this.start.index = start.getElementIndex();
+            this.end = open(end.getParagraphIndex());
+            this.end.index = end.getElementIndex();
+        }
+
         SelectionPage open(Page page) {
             SelectionPage pp = open(page.page);
             pp.w = page.w;
@@ -407,6 +417,16 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
         @Override
         public void close() {
+        }
+
+        @Override
+        public ZLTextFixedPosition getStart() {
+            return new ZLTextFixedPosition(start.page, start.index, 0);
+        }
+
+        @Override
+        public ZLTextFixedPosition getEnd() {
+            return new ZLTextFixedPosition(end.page, end.index, 0);
         }
     }
 
@@ -704,6 +724,14 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         @Override
         public Selection select(Selection.Page page, Selection.Point point) {
             DjvuSelection s = new DjvuSelection(doc, page, point);
+            if (s.isEmpty())
+                return null;
+            return s;
+        }
+
+        @Override
+        public Selection select(ZLTextPosition start, ZLTextPosition end) {
+            DjvuSelection s = new DjvuSelection(doc, start, end);
             if (s.isEmpty())
                 return null;
             return s;

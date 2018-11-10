@@ -111,6 +111,14 @@ public class PluginView {
             return null;
         }
 
+        public ZLTextPosition getStart() {
+            return null;
+        }
+
+        public ZLTextPosition getEnd() {
+            return null;
+        }
+
         public Rect[] getBoundsAll(Page page) {
             return null;
         }
@@ -572,6 +580,10 @@ public class PluginView {
     }
 
     public Selection select(Selection.Page p, Selection.Point point) {
+        return null;
+    }
+
+    public Selection select(ZLTextPosition start, ZLTextPosition end) {
         return null;
     }
 

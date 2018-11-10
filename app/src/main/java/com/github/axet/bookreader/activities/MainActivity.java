@@ -301,7 +301,6 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
 
         MenuItem searchMenu = menu.findItem(R.id.action_search);
@@ -904,5 +903,4 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         RotatePreferenceCompat.onResume(this, BookApplication.PREFERENCE_ROTATE);
         CacheImagesAdapter.cacheClear(this);
     }
-
 }

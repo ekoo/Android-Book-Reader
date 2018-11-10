@@ -213,12 +213,10 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     }
 
     public static class ByCreated implements Comparator<Storage.Book> {
-
         @Override
         public int compare(Storage.Book o1, Storage.Book o2) {
             return Long.valueOf(o1.info.created).compareTo(o2.info.created);
         }
-
     }
 
     public class LibraryAdapter extends BooksAdapter {

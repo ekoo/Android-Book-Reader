@@ -31,6 +31,8 @@ import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.text.model.ZLTextMark;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
+import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
+import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.ui.android.image.ZLBitmapImage;
 
 import java.io.File;
@@ -223,6 +225,14 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             map.put(page.page, page);
             point = new Point(page.ppage.toPage(0, 0, page.w, page.h, 0, point.x, point.y));
             selectWord(page, point);
+        }
+
+        public Selection(Pdfium pdfium, ZLTextPosition start, ZLTextPosition end) {
+            this.pdfium = pdfium;
+            this.start = open(start.getParagraphIndex());
+            this.start.index = start.getElementIndex();
+            this.end = open(end.getParagraphIndex());
+            this.end.index = end.getElementIndex();
         }
 
         public boolean isEmpty() {
@@ -438,6 +448,16 @@ public class PDFPlugin extends BuiltinFormatPlugin {
                 page.close();
             }
             map.clear();
+        }
+
+        @Override
+        public ZLTextFixedPosition getStart() {
+            return new ZLTextFixedPosition(start.page, start.index, 0);
+        }
+
+        @Override
+        public ZLTextFixedPosition getEnd() {
+            return new ZLTextFixedPosition(end.page, end.index, 0);
         }
     }
 
@@ -813,6 +833,16 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             }
             start.close();
             return null;
+        }
+
+        @Override
+        public Selection select(ZLTextPosition start, ZLTextPosition end) {
+            PDFPlugin.Selection s = new PDFPlugin.Selection(doc, start, end);
+            if (s.isEmpty()) {
+                s.close();
+                return null;
+            }
+            return s;
         }
 
         @Override

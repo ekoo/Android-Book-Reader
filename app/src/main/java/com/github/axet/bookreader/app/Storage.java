@@ -31,6 +31,7 @@ import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.widgets.FBReaderView;
+import com.github.axet.bookreader.widgets.PluginView;
 import com.github.axet.wget.SpeedInfo;
 
 import org.apache.commons.io.IOUtils;
@@ -306,6 +307,22 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             throw new UnknownUri();
         }
         return list;
+    }
+
+    public static ZLTextPosition loadPosition(JSONArray a) throws JSONException {
+        if (a == null)
+            return null;
+        return new ZLTextFixedPosition(a.getInt(0), a.getInt(1), a.getInt(2));
+    }
+
+    public static JSONArray savePosition(ZLTextPosition position) {
+        if (position == null)
+            return null;
+        JSONArray a = new JSONArray();
+        a.put(position.getParagraphIndex());
+        a.put(position.getElementIndex());
+        a.put(position.getCharIndex());
+        return a;
     }
 
     public static class Detector {
@@ -984,6 +1001,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         public Map<String, ZLPaintContext.ScalingType> scales = new HashMap<>(); // individual scales
         public FBView.ImageFitting scale; // all images
         public Integer fontsize; // FBView size or Reflow / 100
+        public Bookmarks bookmarks = new Bookmarks();
 
         public RecentInfo() {
         }
@@ -998,6 +1016,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             scale = info.scale;
             scales = new HashMap<>(info.scales);
             fontsize = info.fontsize;
+            bookmarks = new Bookmarks(info.bookmarks);
         }
 
         public RecentInfo(File f) {
@@ -1043,9 +1062,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             last = o.getLong("last");
             authors = o.optString("authors", null);
             title = o.optString("title", null);
-            JSONArray a = o.optJSONArray("position");
-            if (a != null)
-                position = new ZLTextFixedPosition(a.getInt(0), a.getInt(1), a.getInt(2));
+            position = loadPosition(o.optJSONArray("position"));
             String scale = o.optString("scale");
             if (scale != null && !scale.isEmpty())
                 this.scale = FBView.ImageFitting.valueOf(scale);
@@ -1060,6 +1077,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             fontsize = o.optInt("fontsize", -1);
             if (fontsize == -1)
                 fontsize = null;
+            bookmarks = new Bookmarks(o.optJSONArray("bookmarks"));
         }
 
         public JSONObject save() throws JSONException {
@@ -1068,13 +1086,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             o.put("last", last);
             o.put("authors", authors);
             o.put("title", title);
-            if (position != null) {
-                JSONArray a = new JSONArray();
-                a.put(position.getParagraphIndex());
-                a.put(position.getElementIndex());
-                a.put(position.getCharIndex());
-                o.put("position", a);
-            }
+            o.put("position", savePosition(position));
             if (scale != null)
                 o.put("scale", scale.name());
             if (!scales.isEmpty()) {
@@ -1082,6 +1094,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             }
             if (fontsize != null)
                 o.put("fontsize", fontsize);
+            o.put("bookmarks", bookmarks.save());
             return o;
         }
 
@@ -1105,6 +1118,108 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             }
             if (fontsize == null || last < info.last)
                 fontsize = info.fontsize;
+        }
+    }
+
+    public static class Bookmark {
+        public String name;
+        public String text;
+        public ZLTextPosition start;
+        public ZLTextPosition end;
+
+        public Bookmark() {
+        }
+
+        public Bookmark(Bookmark b) {
+            name = b.name;
+            text = b.text;
+            start = b.start;
+            end = b.end;
+        }
+
+        public Bookmark(String t, ZLTextPosition s, ZLTextPosition e) {
+            text = t;
+            start = s;
+            end = e;
+        }
+
+        public Bookmark(JSONObject j) throws JSONException {
+            load(j);
+        }
+
+        public void load(JSONObject j) throws JSONException {
+            name = j.optString("name");
+            text = j.optString("text");
+            start = loadPosition(j.optJSONArray("start"));
+            end = loadPosition(j.optJSONArray("end"));
+        }
+
+        public JSONObject save() throws JSONException {
+            JSONObject j = new JSONObject();
+            j.put("name", name);
+            j.put("text", text);
+            j.put("start", savePosition(start));
+            j.put("end", savePosition(end));
+            return j;
+        }
+
+        public boolean equals(Bookmark b) {
+            if (name != null && b.name != null) {
+                if (!name.equals(b.name))
+                    return false;
+            } else {
+                return false;
+            }
+            if (!text.equals(b.text))
+                return false;
+            return start.samePositionAs(b.start) && end.samePositionAs(b.end);
+        }
+    }
+
+    public static class Bookmarks extends ArrayList<Bookmark> {
+        public Bookmarks() {
+        }
+
+        public Bookmarks(Bookmarks bb) {
+            for (Bookmark b : bb)
+                add(new Bookmark(b));
+        }
+
+        public Bookmarks(JSONArray a) throws JSONException {
+            load(a);
+        }
+
+        public JSONArray save() throws JSONException {
+            JSONArray a = new JSONArray();
+            for (Bookmark b : this)
+                a.put(b.save());
+            return a;
+        }
+
+        public void load(JSONArray json) throws JSONException {
+            for (int i = 0; i < json.length(); i++) {
+                add(new Bookmark(json.getJSONObject(i)));
+            }
+        }
+
+        public ArrayList<Bookmark> getBookmarks(PluginView.Selection.Page page) {
+            ArrayList<Bookmark> list = new ArrayList<>();
+            for (Bookmark b : this) {
+                if (b.start.getParagraphIndex() == page.page || b.end.getParagraphIndex() == page.page)
+                    list.add(b);
+            }
+            return list;
+        }
+
+        public boolean equals(Bookmarks b) {
+            int s = b.size();
+            if (size() != s)
+                return false;
+            for (int i = 0; i < s; i++) {
+                if (!get(i).equals(b.get(i)))
+                    return false;
+            }
+            return true;
         }
     }
 
