@@ -68,8 +68,8 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         switch (e) {
             case "bmp":
             case "png":
-            case "jpeg":
             case "gif":
+            case "jpeg":
             case "jpg":
             case "webp":
                 return true;

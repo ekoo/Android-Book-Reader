@@ -196,7 +196,7 @@ public class BooksCatalogs {
                     is.close();
                 }
             } else if (s.startsWith(ContentResolver.SCHEME_FILE)) {
-                File f = new File(uri.getPath());
+                File f = Storage.getFile(uri);
                 FileInputStream is = new FileInputStream(f);
                 ct.load(is);
                 is.close();

@@ -8,11 +8,13 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.support.v7.preference.PreferenceManager;
 import android.util.DisplayMetrics;
 
-import com.github.axet.androidlibrary.widgets.ThemeUtils;
+import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.Storage;
+import com.github.axet.k2pdfopt.Config;
 import com.github.axet.k2pdfopt.K2PdfOpt;
 
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
@@ -33,6 +35,13 @@ public class Reflow {
     public Bitmap bm; // source bm, in case or errors, recycled otherwise
     public Storage.RecentInfo info;
     FBReaderView.CustomView custom; // font size
+
+    public static void K2PdfOptInit(Context context) {
+        if (Config.natives) {
+            Natives.loadLibraries(context, "willus", "k2pdfopt", "k2pdfoptjni");
+            Config.natives = false;
+        }
+    }
 
     public static class Info {
         public Rect bm; // source bitmap size
@@ -70,6 +79,7 @@ public class Reflow {
     }
 
     public Reflow(Context context, int w, int h, int page, FBReaderView.CustomView custom, Storage.RecentInfo info) {
+        K2PdfOptInit(context);
         this.context = context;
         this.page = page;
         this.info = info;
@@ -108,7 +118,7 @@ public class Reflow {
     }
 
     void create() {
-        SharedPreferences shared = android.preference.PreferenceManager.getDefaultSharedPreferences(context);
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
         Float old = shared.getFloat(BookApplication.PREFERENCE_FONTSIZE_REFLOW, BookApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
         if (info.fontsize != null)
             old = info.fontsize / 100f;

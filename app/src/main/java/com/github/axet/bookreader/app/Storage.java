@@ -25,13 +25,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.axet.androidlibrary.app.AlarmManager;
-import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.widgets.FBReaderView;
+import com.github.axet.bookreader.widgets.PluginView;
 import com.github.axet.wget.SpeedInfo;
 
 import org.apache.commons.io.IOUtils;
@@ -70,7 +70,6 @@ import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.net.HttpURLConnection;
@@ -96,7 +95,6 @@ import de.innosystec.unrar.Archive;
 import de.innosystec.unrar.rarfile.FileHeader;
 
 public class Storage extends com.github.axet.androidlibrary.app.Storage {
-
     public static String TAG = Storage.class.getCanonicalName();
 
     public static final int MD5_SIZE = 32;
@@ -104,13 +102,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public static final int BUF_SIZE = 1024;
     public static final String JSON_EXT = "json";
     public static final String ZIP_EXT = "zip";
-
-    public static void K2PdfOptInit(Context context) {
-        if (com.github.axet.k2pdfopt.Config.natives) {
-            Natives.loadLibraries(context, "willus", "k2pdfopt", "k2pdfoptjni");
-            com.github.axet.k2pdfopt.Config.natives = false;
-        }
-    }
 
     public static Detector[] supported() {
         return new Detector[]{new FileFB2(), new FileFB2Zip(), new FileEPUB(), new FileHTML(), new FileHTMLZip(),
@@ -316,6 +307,33 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             throw new UnknownUri();
         }
         return list;
+    }
+
+    public static ZLTextPosition loadPosition(String s) {
+        if (s == null || s.isEmpty())
+            return null;
+        try {
+            JSONArray o = new JSONArray(s);
+            return loadPosition(o);
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static ZLTextPosition loadPosition(JSONArray a) throws JSONException {
+        if (a == null || a.length() == 0)
+            return null;
+        return new ZLTextFixedPosition(a.getInt(0), a.getInt(1), a.getInt(2));
+    }
+
+    public static JSONArray savePosition(ZLTextPosition position) {
+        if (position == null)
+            return null;
+        JSONArray a = new JSONArray();
+        a.put(position.getParagraphIndex());
+        a.put(position.getElementIndex());
+        a.put(position.getCharIndex());
+        return a;
     }
 
     public static class Detector {
@@ -987,13 +1005,14 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public static class RecentInfo {
         public long created; // date added to the my readings
-        public long last; // last access time
+        public long last; // last write time
         public ZLTextPosition position;
         public String authors;
         public String title;
         public Map<String, ZLPaintContext.ScalingType> scales = new HashMap<>(); // individual scales
         public FBView.ImageFitting scale; // all images
         public Integer fontsize; // FBView size or Reflow / 100
+        public Bookmarks bookmarks;
 
         public RecentInfo() {
         }
@@ -1008,6 +1027,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             scale = info.scale;
             scales = new HashMap<>(info.scales);
             fontsize = info.fontsize;
+            if (info.bookmarks != null)
+                bookmarks = new Bookmarks(info.bookmarks);
         }
 
         public RecentInfo(File f) {
@@ -1053,9 +1074,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             last = o.getLong("last");
             authors = o.optString("authors", null);
             title = o.optString("title", null);
-            JSONArray a = o.optJSONArray("position");
-            if (a != null)
-                position = new ZLTextFixedPosition(a.getInt(0), a.getInt(1), a.getInt(2));
+            position = loadPosition(o.optJSONArray("position"));
             String scale = o.optString("scale");
             if (scale != null && !scale.isEmpty())
                 this.scale = FBView.ImageFitting.valueOf(scale);
@@ -1070,6 +1089,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             fontsize = o.optInt("fontsize", -1);
             if (fontsize == -1)
                 fontsize = null;
+            JSONArray b = o.optJSONArray("bookmarks");
+            if (b != null && b.length() > 0)
+                bookmarks = new Bookmarks(b);
         }
 
         public JSONObject save() throws JSONException {
@@ -1078,20 +1100,17 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             o.put("last", last);
             o.put("authors", authors);
             o.put("title", title);
-            if (position != null) {
-                JSONArray a = new JSONArray();
-                a.put(position.getParagraphIndex());
-                a.put(position.getElementIndex());
-                a.put(position.getCharIndex());
-                o.put("position", a);
-            }
+            JSONArray p = savePosition(position);
+            if (p != null)
+                o.put("position", p);
             if (scale != null)
                 o.put("scale", scale.name());
-            if (!scales.isEmpty()) {
+            if (!scales.isEmpty())
                 o.put("scales", WebViewCustom.toJSON(scales));
-            }
             if (fontsize != null)
                 o.put("fontsize", fontsize);
+            if (bookmarks != null && bookmarks.size() > 0)
+                o.put("bookmarks", bookmarks.save());
             return o;
         }
 
@@ -1115,6 +1134,140 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             }
             if (fontsize == null || last < info.last)
                 fontsize = info.fontsize;
+            if (bookmarks == null) {
+                bookmarks = info.bookmarks;
+            } else if (info.bookmarks != null) {
+                for (Bookmark b : info.bookmarks) {
+                    boolean found = false;
+                    for (int i = 0; i < bookmarks.size(); i++) {
+                        Bookmark m = bookmarks.get(i);
+                        if (b.start.samePositionAs(m.start) && b.end.samePositionAs(m.end) && m.last < b.last) {
+                            found = true;
+                            bookmarks.set(i, b);
+                        }
+                    }
+                    if (!found)
+                        bookmarks.add(b);
+                }
+            }
+        }
+    }
+
+    public static class Bookmark {
+        public long last; // last change event
+        public String name;
+        public String text;
+        public int color;
+        public ZLTextPosition start;
+        public ZLTextPosition end;
+
+        public Bookmark() {
+        }
+
+        public Bookmark(Bookmark b) {
+            last = b.last;
+            name = b.name;
+            text = b.text;
+            color = b.color;
+            start = b.start;
+            end = b.end;
+        }
+
+        public Bookmark(String t, ZLTextPosition s, ZLTextPosition e) {
+            last = System.currentTimeMillis();
+            text = t;
+            start = s;
+            end = e;
+        }
+
+        public Bookmark(JSONObject j) throws JSONException {
+            load(j);
+        }
+
+        public void load(JSONObject j) throws JSONException {
+            last = j.optLong("last");
+            name = j.optString("name");
+            text = j.optString("text");
+            color = j.optInt("color");
+            start = loadPosition(j.optJSONArray("start"));
+            end = loadPosition(j.optJSONArray("end"));
+        }
+
+        public JSONObject save() throws JSONException {
+            JSONObject j = new JSONObject();
+            j.put("last", last);
+            if (name != null)
+                j.put("name", name);
+            j.put("text", text);
+            j.put("color", color);
+            JSONArray s = savePosition(start);
+            if (s != null)
+                j.put("start", s);
+            JSONArray e = savePosition(end);
+            if (e != null)
+                j.put("end", e);
+            return j;
+        }
+
+        public boolean equals(Bookmark b) {
+            if (name != null && b.name != null) {
+                if (!name.equals(b.name))
+                    return false;
+            } else {
+                return false;
+            }
+            if (color != b.color)
+                return false;
+            if (!text.equals(b.text))
+                return false;
+            return start.samePositionAs(b.start) && end.samePositionAs(b.end);
+        }
+    }
+
+    public static class Bookmarks extends ArrayList<Bookmark> {
+        public Bookmarks() {
+        }
+
+        public Bookmarks(Bookmarks bb) {
+            for (Bookmark b : bb)
+                add(new Bookmark(b));
+        }
+
+        public Bookmarks(JSONArray a) throws JSONException {
+            load(a);
+        }
+
+        public JSONArray save() throws JSONException {
+            JSONArray a = new JSONArray();
+            for (Bookmark b : this)
+                a.put(b.save());
+            return a;
+        }
+
+        public void load(JSONArray json) throws JSONException {
+            for (int i = 0; i < json.length(); i++) {
+                add(new Bookmark(json.getJSONObject(i)));
+            }
+        }
+
+        public ArrayList<Bookmark> getBookmarks(PluginView.Selection.Page page) {
+            ArrayList<Bookmark> list = new ArrayList<>();
+            for (Bookmark b : this) {
+                if (b.start.getParagraphIndex() == page.page || b.end.getParagraphIndex() == page.page)
+                    list.add(b);
+            }
+            return list;
+        }
+
+        public boolean equals(Bookmarks b) {
+            int s = b.size();
+            if (size() != s)
+                return false;
+            for (int i = 0; i < s; i++) {
+                if (!get(i).equals(b.get(i)))
+                    return false;
+            }
+            return true;
         }
     }
 

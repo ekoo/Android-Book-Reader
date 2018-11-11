@@ -43,6 +43,8 @@ import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.Storage;
+import com.github.axet.bookreader.widgets.BookmarksDialog;
+import com.github.axet.bookreader.widgets.FBReaderView;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -65,7 +67,6 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             ActivityCompat.invalidateOptionsMenu(getActivity());
         }
     };
-
 
     public static class FragmentHolder {
         RecyclerView grid;
@@ -150,7 +151,8 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
         public boolean onOptionsItemSelected(MenuItem item) {
             final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
-            if (item.getItemId() == R.id.action_grid) {
+            int id = item.getItemId();
+            if (id == R.id.action_grid) {
                 SharedPreferences.Editor editor = shared.edit();
                 if (layout == R.layout.book_list_item) {
                     editor.putString(BookApplication.PREFERENCE_LIBRARY_LAYOUT + getLayout(), "book_item");
@@ -213,12 +215,10 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     }
 
     public static class ByCreated implements Comparator<Storage.Book> {
-
         @Override
         public int compare(Storage.Book o1, Storage.Book o2) {
             return Long.valueOf(o1.info.created).compareTo(o2.info.created);
         }
-
     }
 
     public class LibraryAdapter extends BooksAdapter {
@@ -257,6 +257,14 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
         public void load() {
             all = storage.list();
+        }
+
+        public boolean hasBookmarks() {
+            for (Storage.Book b : all) {
+                if (b.info.bookmarks != null)
+                    return true;
+            }
+            return false;
         }
 
         public void delete(Storage.Book b) {
@@ -637,6 +645,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
         MenuItem homeMenu = menu.findItem(R.id.action_home);
         MenuItem tocMenu = menu.findItem(R.id.action_toc);
+        MenuItem bookmarksMenu = menu.findItem(R.id.action_bm);
         MenuItem searchMenu = menu.findItem(R.id.action_search);
         MenuItem reflow = menu.findItem(R.id.action_reflow);
         MenuItem fontsize = menu.findItem(R.id.action_fontsize);
@@ -648,6 +657,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         searchMenu.setVisible(true);
         homeMenu.setVisible(false);
         tocMenu.setVisible(false);
+        bookmarksMenu.setVisible(books.hasBookmarks());
         fontsize.setVisible(false);
         debug.setVisible(false);
         rtl.setVisible(false);
@@ -660,6 +670,19 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     public boolean onOptionsItemSelected(MenuItem item) {
         if (holder.onOptionsItemSelected(item)) {
             invalidateOptionsMenu.run();
+            return true;
+        }
+        int id = item.getItemId();
+        if (id == R.id.action_bm) {
+            BookmarksDialog dialog = new BookmarksDialog(getContext()) {
+                @Override
+                public void selected(Storage.Book b, Storage.Bookmark bm) {
+                    MainActivity main = ((MainActivity) getActivity());
+                    main.openBook(b.url, new FBReaderView.ZLTextIndexPosition(bm.start, bm.end));
+                }
+            };
+            dialog.load(books.all);
+            dialog.show();
             return true;
         }
         return super.onOptionsItemSelected(item);

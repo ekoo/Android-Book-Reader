@@ -29,28 +29,31 @@ import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.text.model.ZLTextMark;
 import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
+import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
+import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.ui.android.image.ZLBitmapImage;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 public class DjvuPlugin extends BuiltinFormatPlugin {
-
     public static String TAG = DjvuPlugin.class.getSimpleName();
 
     public static final String EXT = "djvu";
+
+    public static int[] TYPES = new int[]{DjvuLibre.ZONE_CHARACTER, DjvuLibre.ZONE_WORD, DjvuLibre.ZONE_LINE,
+            DjvuLibre.ZONE_PARAGRAPH, DjvuLibre.ZONE_REGION, DjvuLibre.ZONE_COLUMN,
+            DjvuLibre.ZONE_PAGE};
 
     public static DjvuPlugin create(Storage.Info info) {
         if (Config.natives) {
             Natives.loadLibraries(info.context, "djvu", "djvulibrejni");
             Config.natives = false;
         }
-        Storage.K2PdfOptInit(info.context);
         return new DjvuPlugin(info);
     }
 
@@ -219,6 +222,14 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             selectWord(p, point);
         }
 
+        public DjvuSelection(DjvuLibre doc, ZLTextPosition start, ZLTextPosition end) {
+            this.doc = doc;
+            this.start = open(start.getParagraphIndex());
+            this.start.index = start.getElementIndex();
+            this.end = open(end.getParagraphIndex());
+            this.end.index = end.getElementIndex();
+        }
+
         SelectionPage open(Page page) {
             SelectionPage pp = open(page.page);
             pp.w = page.w;
@@ -235,16 +246,13 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
                 pp.page = page;
                 pp.info = doc.getPageInfo(page);
 
-                int[] types = new int[]{DjvuLibre.ZONE_CHARACTER, DjvuLibre.ZONE_WORD, DjvuLibre.ZONE_LINE,
-                        DjvuLibre.ZONE_PARAGRAPH, DjvuLibre.ZONE_REGION, DjvuLibre.ZONE_COLUMN,
-                        DjvuLibre.ZONE_PAGE};
-                for (int type : types) {
+                for (int type : TYPES) {
                     pp.text = doc.getText(page, type);
                     if (pp.text != null && pp.text.bounds.length != 0)
                         break;
                 }
             }
-            return pp;
+            return new SelectionPage(pp);
         }
 
         public boolean isEmpty() {
@@ -410,6 +418,16 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         @Override
         public void close() {
         }
+
+        @Override
+        public ZLTextFixedPosition getStart() {
+            return new ZLTextFixedPosition(start.page, start.index, 0);
+        }
+
+        @Override
+        public ZLTextFixedPosition getEnd() {
+            return new ZLTextFixedPosition(end.page, end.index, 0);
+        }
     }
 
     public static class DjvuSearch extends PluginView.Search {
@@ -468,10 +486,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
 
         boolean hasText(int page) {
-            int[] types = new int[]{DjvuLibre.ZONE_CHARACTER, DjvuLibre.ZONE_WORD, DjvuLibre.ZONE_LINE,
-                    DjvuLibre.ZONE_PARAGRAPH, DjvuLibre.ZONE_REGION, DjvuLibre.ZONE_COLUMN,
-                    DjvuLibre.ZONE_PAGE};
-            for (int type : types) {
+            for (int type : TYPES) {
                 DjvuLibre.Text text = doc.getText(page, type);
                 if (text != null && text.bounds.length != 0)
                     return true;
@@ -487,10 +502,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             pages.put(page, pp);
             pp.page = page;
             pp.info = doc.getPageInfo(page);
-            int[] types = new int[]{DjvuLibre.ZONE_CHARACTER, DjvuLibre.ZONE_WORD, DjvuLibre.ZONE_LINE,
-                    DjvuLibre.ZONE_PARAGRAPH, DjvuLibre.ZONE_REGION, DjvuLibre.ZONE_COLUMN,
-                    DjvuLibre.ZONE_PAGE};
-            for (int type : types) {
+            for (int type : TYPES) {
                 pp.text = doc.getText(page, type);
                 if (pp.text != null && pp.text.bounds.length != 0)
                     break;
@@ -532,9 +544,8 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
                     rr.add(b);
                     hh.add(b);
                 }
-                if (index >= 0 && r == all.get(index)) {
+                if (index >= 0 && r == all.get(index))
                     bounds.highlight = hh.toArray(new Rect[0]);
-                }
             }
             bounds.rr = rr.toArray(new Rect[0]);
             return bounds;
@@ -713,6 +724,14 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         @Override
         public Selection select(Selection.Page page, Selection.Point point) {
             DjvuSelection s = new DjvuSelection(doc, page, point);
+            if (s.isEmpty())
+                return null;
+            return s;
+        }
+
+        @Override
+        public Selection select(ZLTextPosition start, ZLTextPosition end) {
+            DjvuSelection s = new DjvuSelection(doc, start, end);
             if (s.isEmpty())
                 return null;
             return s;

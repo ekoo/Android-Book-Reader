@@ -7,9 +7,9 @@ import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.support.v4.view.GestureDetectorCompat;
-import android.support.v4.view.ViewCompat;
 import android.support.v7.widget.AppCompatImageView;
 import android.view.GestureDetector;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -18,6 +18,7 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
+import com.github.axet.androidlibrary.widgets.PopupWindowCompat;
 import com.github.axet.bookreader.R;
 
 public class PinchView extends FrameLayout implements GestureDetector.OnGestureListener {
@@ -40,15 +41,19 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
     ImageView image;
     MarginLayoutParams lp;
 
-    public static void rotateRect(int degrees, int px, int py, Rect rect) {
-        RectF rectF = new RectF(rect);
+    public static void rotateRect(Rect rect, int degrees, int px, int py) {
         Matrix matrix = new Matrix();
         matrix.setRotate(degrees, px, py);
+        RectF rectF = new RectF(rect);
         matrix.mapRect(rectF);
         rect.set((int) rectF.left, (int) rectF.top, (int) rectF.right, (int) rectF.bottom);
     }
 
-    public static void rotateRect(int degrees, float px, float py, RectF rect) {
+    public static void rotateRect(RectF rect, float degrees) {
+        rotateRect(rect, degrees, rect.centerX(), rect.centerY());
+    }
+
+    public static void rotateRect(RectF rect, float degrees, float px, float py) {
         Matrix matrix = new Matrix();
         matrix.setRotate(degrees, px, py);
         matrix.mapRect(rect);
@@ -62,7 +67,7 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
 
         LayoutInflater inflater = LayoutInflater.from(context);
 
-        lp = new MarginLayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.NO_GRAVITY); // API9 requires gravity to be set
         image = new AppCompatImageView(context);
         image.setImageBitmap(bm);
         addView(image, lp);
@@ -99,7 +104,7 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
     void addRotate(int a) {
         rotation += a;
         rotation %= 360;
-        ViewCompat.setRotation(image, rotation);
+        PopupWindowCompat.setRotationCompat(image, rotation);
         limitsOff();
         calc();
     }
@@ -116,6 +121,28 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
         super.onLayout(changed, left, top, right, bottom);
         box.set(page);
         box.intersect(left, top, right, bottom);
+    }
+
+    public void scale(final float r) {
+        final int w = getWidth();
+        final int h = getHeight();
+        onScale(new ScaleGestureDetector(getContext(), null) {
+            @Override
+            public float getCurrentSpan() {
+                return w * (r - 1f);
+            }
+
+            @Override
+            public float getFocusX() {
+                return w / 2;
+            }
+
+            @Override
+            public float getFocusY() {
+                return h / 2;
+            }
+        });
+        onScaleEnd();
     }
 
     public void onScale(ScaleGestureDetector detector) {
@@ -137,7 +164,7 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
         float b = t + h;
 
         RectF p = new RectF(l, t, r, b);
-        rotateRect(rotation, p.centerX(), p.centerY(), p);
+        rotateRect(p, rotation);
 
         if (p.width() > box.width()) {
             if (p.left > box.left)
@@ -197,7 +224,7 @@ public class PinchView extends FrameLayout implements GestureDetector.OnGestureL
         float b = t + h;
 
         RectF p = new RectF(l, t, r, b);
-        rotateRect(rotation, p.centerX(), p.centerY(), p);
+        rotateRect(p, rotation);
 
         if (p.width() < box.width()) {
             end = end - (p.width() - box.width());

@@ -18,6 +18,11 @@
         android:title="@string/book_toc"
         app:showAsAction="ifRoom" />
     <item
+        android:id="@+id/action_bm"
+        android:icon="@drawable/ic_bookmark_border_white_24dp"
+        android:title="Bookmarks"
+        app:showAsAction="ifRoom" />
+    <item
         android:id="@+id/action_debug"
         android:icon="@drawable/ic_bug_report_black_24dp"
         android:title="Debug"

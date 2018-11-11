@@ -72,9 +72,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-public class MainActivity extends FullscreenActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
-
+public class MainActivity extends FullscreenActivity implements NavigationView.OnNavigationItemSelectedListener {
     public static final String TAG = MainActivity.class.getSimpleName();
 
     public static final String LIBRARY = "library";
@@ -303,7 +301,6 @@ public class MainActivity extends FullscreenActivity
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
 
         MenuItem searchMenu = menu.findItem(R.id.action_search);
@@ -772,6 +769,11 @@ public class MainActivity extends FullscreenActivity
         addFragment(ReaderFragment.newInstance(uri), ReaderFragment.TAG).commit();
     }
 
+    public void openBook(Uri uri, FBReaderView.ZLTextIndexPosition pos) {
+        popBackStack(ReaderFragment.TAG, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+        addFragment(ReaderFragment.newInstance(uri, pos), ReaderFragment.TAG).commit();
+    }
+
     public void openLibrary() {
         popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
         openFragment(libraryFragment, LibraryFragment.TAG).commit();
@@ -906,5 +908,4 @@ public class MainActivity extends FullscreenActivity
         RotatePreferenceCompat.onResume(this, BookApplication.PREFERENCE_ROTATE);
         CacheImagesAdapter.cacheClear(this);
     }
-
 }

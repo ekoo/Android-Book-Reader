@@ -20,6 +20,8 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -30,11 +32,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.BaseAdapter;
 import android.widget.CheckedTextView;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.PopupWindow;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -48,9 +48,10 @@ import com.github.axet.bookreader.BuildConfig;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.FullscreenActivity;
 import com.github.axet.bookreader.activities.MainActivity;
-import com.github.axet.bookreader.app.ComicsPlugin;
 import com.github.axet.bookreader.app.BookApplication;
+import com.github.axet.bookreader.app.ComicsPlugin;
 import com.github.axet.bookreader.app.Storage;
+import com.github.axet.bookreader.widgets.BookmarksDialog;
 import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.bookreader.widgets.PluginView;
 import com.github.axet.bookreader.widgets.ToolbarButtonView;
@@ -59,7 +60,6 @@ import org.geometerplus.fbreader.bookmodel.TOCTree;
 import org.geometerplus.fbreader.fbreader.ActionCode;
 import org.geometerplus.zlibrary.core.util.ZLTTFInfoDetector;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
-import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.ui.android.view.AndroidFontUtil;
 
 import java.io.File;
@@ -88,7 +88,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     AlertDialog tocdialog;
     FontAdapter fonts;
     View fontsFrame;
-    ListView fontsList;
+    RecyclerView fontsList;
     TextView fontsText;
     View fontsize_popup;
     TextView fontsizepopup_text;
@@ -138,10 +138,20 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         }
     }
 
-    public static class FontAdapter extends BaseAdapter {
+    public static class FontHolder extends RecyclerView.ViewHolder {
+        public CheckedTextView tv;
+
+        public FontHolder(View itemView) {
+            super(itemView);
+            tv = (CheckedTextView) itemView.findViewById(android.R.id.text1);
+        }
+    }
+
+    public static class FontAdapter extends RecyclerView.Adapter<FontHolder> {
         Context context;
         public ArrayList<FontView> ff = new ArrayList<>();
         public int selected;
+        public AdapterView.OnItemClickListener clickListener;
 
         public FontAdapter(Context context) {
             this.context = context;
@@ -181,37 +191,28 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         }
 
         @Override
-        public int getCount() {
+        public int getItemCount() {
             return ff.size();
         }
 
         @Override
-        public Object getItem(int position) {
-            return ff.get(position);
+        public FontHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            final LayoutInflater inflater = LayoutInflater.from(context);
+            View view = inflater.inflate(android.R.layout.select_dialog_singlechoice, parent, false);
+            return new FontHolder(view);
         }
 
         @Override
-        public long getItemId(int position) {
-            return position;
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            View view = convertView;
-
-            if (view == null) {
-                final LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-                view = inflater.inflate(android.R.layout.select_dialog_singlechoice, parent, false);
-            }
-
-            if (view != null) {
-                CheckedTextView tv = (CheckedTextView) view.findViewById(android.R.id.text1);
-                tv.setChecked(selected == position);
-                tv.setTypeface(ff.get(position).font);
-                tv.setText(ff.get(position).name);
-            }
-
-            return view;
+        public void onBindViewHolder(final FontHolder holder, int position) {
+            holder.itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    clickListener.onItemClick(null, null, holder.getAdapterPosition(), -1);
+                }
+            });
+            holder.tv.setChecked(selected == position);
+            holder.tv.setTypeface(ff.get(position).font);
+            holder.tv.setText(ff.get(position).name);
         }
     }
 
@@ -469,6 +470,15 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         return fragment;
     }
 
+    public static ReaderFragment newInstance(Uri uri, FBReaderView.ZLTextIndexPosition pos) {
+        ReaderFragment fragment = new ReaderFragment();
+        Bundle args = new Bundle();
+        args.putParcelable("uri", uri);
+        args.putParcelable("pos", pos);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -495,18 +505,19 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         fontsizepopup_minus = fontsize_popup.findViewById(R.id.fontsize_minus);
         fontsizepopup_seek = (SeekBar) fontsize_popup.findViewById(R.id.fontsize_seek);
         fonts = new FontAdapter(getContext());
-        fontsFrame = fontsize_popup.findViewById(R.id.fonts_frame);
-        fontsText = (TextView) fontsize_popup.findViewById(R.id.fonts_text);
-        fontsText.setText(getString(R.string.add_more_fonts_to, FONTS.toString()));
-        fontsList = (ListView) fontsize_popup.findViewById(R.id.fonts_list);
-        fontsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        fonts.clickListener = new AdapterView.OnItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View v, int position, long id) {
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 fonts.select(position);
                 setFontFB(fonts.ff.get(position).name);
                 updateToolbar();
             }
-        });
+        };
+        fontsFrame = fontsize_popup.findViewById(R.id.fonts_frame);
+        fontsText = (TextView) fontsize_popup.findViewById(R.id.fonts_text);
+        fontsText.setText(getString(R.string.add_more_fonts_to, FONTS.toString()));
+        fontsList = (RecyclerView) fontsize_popup.findViewById(R.id.fonts_list);
+        fontsList.setLayoutManager(new LinearLayoutManager(getContext()));
         final MainActivity main = (MainActivity) getActivity();
         view = (FBReaderView) v.findViewById(R.id.main_view);
 
@@ -522,6 +533,11 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             public void onSearchClose() {
                 MenuItemCompat.collapseActionView(searchMenu);
             }
+
+            @Override
+            public void onBookmarksUpdate() {
+                updateToolbar();
+            }
         };
 
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
@@ -535,11 +551,14 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         view.setDrawer(main.drawer);
 
         Uri uri = getArguments().getParcelable("uri");
+        FBReaderView.ZLTextIndexPosition pos = getArguments().getParcelable("pos");
 
         try {
             book = storage.load(uri);
             fbook = storage.read(book);
             view.loadBook(fbook);
+            if (pos != null)
+                view.gotoPosition(pos);
         } catch (RuntimeException e) {
             main.Error(e);
             main.openLibrary();
@@ -569,8 +588,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         }
 
         updateToolbar();
-
-        time.run();
 
         handler.post(new Runnable() {
             @Override
@@ -705,6 +722,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             }
         };
         battery.onReceive(getContext(), getContext().registerReceiver(battery, new IntentFilter(Intent.ACTION_BATTERY_CHANGED)));
+
+        time.run();
     }
 
     @Override
@@ -764,25 +783,27 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             return;
         if (view.book == null) // when book insn't loaded and view clsosed
             return;
-        ZLTextPosition pos = view.getPosition();
+        Storage.RecentInfo save = new Storage.RecentInfo(view.book.info);
+        save.position = view.getPosition();
         Uri u = storage.recentUri(book);
         if (storage.exists(u)) { // file can be changed during sync, check for conflicts
             try {
                 Storage.RecentInfo info = new Storage.RecentInfo(getContext(), u);
-                if (info.position != null) {
-                    if (book.info.position == null || !info.position.samePositionAs(book.info.position)) // file changed between saves?
-                        storage.move(u, storage.getStoragePath()); // yes. create copy (1)
-                    if (pos.samePositionAs(info.position))
-                        return; // do not need to save
+                if (info.position != null && save.position.samePositionAs(info.position)) {
+                    if (save.fontsize == null || info.fontsize != null && save.fontsize.equals(info.fontsize)) {
+                        if (save.bookmarks == null || info.bookmarks != null && save.bookmarks.equals(info.bookmarks))
+                            return; // nothing to save
+                    }
                 }
+                if (book.info.last != info.last) // file changed between saves?
+                    storage.move(u, storage.getStoragePath()); // yes. create conflict (1)
             } catch (RuntimeException e) {
                 Log.d(TAG, "Unable to load JSON", e);
             }
         }
-        book.info = new Storage.RecentInfo(view.book.info);
-        book.info.position = pos;
+        book.info = save;
         storage.save(book);
-        Log.d(TAG, "savePosition " + pos);
+        Log.d(TAG, "savePosition " + save.position);
     }
 
     @Override
@@ -816,6 +837,17 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             showTOC();
             return true;
         }
+        if (id == R.id.action_bm) {
+            BookmarksDialog dialog = new BookmarksDialog(getContext()) {
+                @Override
+                public void selected(Storage.Bookmark b) {
+                    view.gotoPosition(new FBReaderView.ZLTextIndexPosition(b.start, b.end));
+                }
+            };
+            dialog.load(view.book.info.bookmarks);
+            dialog.show();
+            return true;
+        }
         if (id == R.id.action_reflow) {
             view.setReflow(!view.isReflow());
             updateToolbar();
@@ -832,12 +864,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         if (id == R.id.action_fontsize) {
             popupWindow = new PopupWindow(fontsize_popup);
             fonts.select(view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
-            fontsList.setSelection(fonts.selected);
+            fontsList.scrollToPosition(fonts.selected);
             updateFontsize();
             PopupWindowCompat.showAsTooltip(popupWindow, MenuItemCompat.getActionView(item), Gravity.BOTTOM,
-                    BookApplication.getTheme(getContext(),
-                            ThemeUtils.getColor(getContext(), R.color.button_material_light),
-                            ThemeUtils.getColor(getContext(), R.color.button_material_dark)),
+                    ThemeUtils.getThemeColor(getContext(), R.attr.colorButtonNormal),
                     ThemeUtils.dp2px(getContext(), 300));
         }
         if (id == R.id.action_rtl) {
@@ -876,6 +906,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         searchMenu = menu.findItem(R.id.action_search);
         MenuItem reflow = menu.findItem(R.id.action_reflow);
         MenuItem debug = menu.findItem(R.id.action_debug);
+        MenuItem bookmarksMenu = menu.findItem(R.id.action_bm);
         final MenuItem fontsize = menu.findItem(R.id.action_fontsize);
         final MenuItem rtl = menu.findItem(R.id.action_rtl);
         MenuItem grid = menu.findItem(R.id.action_grid);
@@ -937,6 +968,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         });
         rtl.setTitle(view.app.BookTextView.rtlMode ? "RTL" : "LTR");
         ((ToolbarButtonView) MenuItemCompat.getActionView(rtl)).text.setText(view.app.BookTextView.rtlMode ? "RTL" : "LTR");
+        bookmarksMenu.setVisible(view.book.info.bookmarks != null && view.book.info.bookmarks.size() > 0);
     }
 
     void showTOC() {
