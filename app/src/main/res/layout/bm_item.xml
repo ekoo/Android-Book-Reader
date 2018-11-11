@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
     android:orientation="horizontal"
     tools:context="com.github.axet.bookreader.activities.MainActivity">
 
@@ -28,16 +27,20 @@
         android:layout_gravity="center"
         android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/text"
+        <com.github.axet.androidlibrary.widgets.TextMax
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Test test" />
+            android:layout_height="wrap_content">
 
-        <LinearLayout
+            <TextView
+                android:id="@+id/text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Test test" />
+        </com.github.axet.androidlibrary.widgets.TextMax>
+
+        <com.github.axet.androidlibrary.widgets.TextMax
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:layout_height="wrap_content">
 
             <TextView
                 android:id="@+id/name"
@@ -46,19 +49,6 @@
                 android:layout_gravity="center"
                 android:text="Пир"
                 android:textStyle="bold" />
-
-            <VideoView
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
-
-            <TextView
-                android:id="@+id/book"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="И. В. Гетте - Фауст"
-                android:textStyle="bold" />
-        </LinearLayout>
+        </com.github.axet.androidlibrary.widgets.TextMax>
     </LinearLayout>
 </LinearLayout>

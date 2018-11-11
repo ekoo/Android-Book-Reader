@@ -310,7 +310,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public static ZLTextPosition loadPosition(JSONArray a) throws JSONException {
-        if (a == null)
+        if (a == null || a.length() == 0)
             return null;
         return new ZLTextFixedPosition(a.getInt(0), a.getInt(1), a.getInt(2));
     }
@@ -994,14 +994,14 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public static class RecentInfo {
         public long created; // date added to the my readings
-        public long last; // last access time
+        public long last; // last write time
         public ZLTextPosition position;
         public String authors;
         public String title;
         public Map<String, ZLPaintContext.ScalingType> scales = new HashMap<>(); // individual scales
         public FBView.ImageFitting scale; // all images
         public Integer fontsize; // FBView size or Reflow / 100
-        public Bookmarks bookmarks = new Bookmarks();
+        public Bookmarks bookmarks;
 
         public RecentInfo() {
         }
@@ -1016,7 +1016,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             scale = info.scale;
             scales = new HashMap<>(info.scales);
             fontsize = info.fontsize;
-            bookmarks = new Bookmarks(info.bookmarks);
+            if (info.bookmarks != null)
+                bookmarks = new Bookmarks(info.bookmarks);
         }
 
         public RecentInfo(File f) {
@@ -1077,7 +1078,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             fontsize = o.optInt("fontsize", -1);
             if (fontsize == -1)
                 fontsize = null;
-            bookmarks = new Bookmarks(o.optJSONArray("bookmarks"));
+            JSONArray b = o.optJSONArray("bookmarks");
+            if (b != null && b.length() > 0)
+                bookmarks = new Bookmarks(b);
         }
 
         public JSONObject save() throws JSONException {
@@ -1086,15 +1089,17 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             o.put("last", last);
             o.put("authors", authors);
             o.put("title", title);
-            o.put("position", savePosition(position));
+            JSONArray p = savePosition(position);
+            if (p != null)
+                o.put("position", p);
             if (scale != null)
                 o.put("scale", scale.name());
-            if (!scales.isEmpty()) {
+            if (!scales.isEmpty())
                 o.put("scales", WebViewCustom.toJSON(scales));
-            }
             if (fontsize != null)
                 o.put("fontsize", fontsize);
-            o.put("bookmarks", bookmarks.save());
+            if (bookmarks != null)
+                o.put("bookmarks", bookmarks.save());
             return o;
         }
 
@@ -1118,12 +1123,30 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             }
             if (fontsize == null || last < info.last)
                 fontsize = info.fontsize;
+            if (bookmarks == null) {
+                bookmarks = info.bookmarks;
+            } else if (info.bookmarks != null) {
+                for (Bookmark b : info.bookmarks) {
+                    boolean found = false;
+                    for (int i = 0; i < bookmarks.size(); i++) {
+                        Bookmark m = bookmarks.get(i);
+                        if (b.start.samePositionAs(m.start) && b.end.samePositionAs(m.end) && m.last < b.last) {
+                            found = true;
+                            bookmarks.set(i, b);
+                        }
+                    }
+                    if (!found)
+                        bookmarks.add(b);
+                }
+            }
         }
     }
 
     public static class Bookmark {
+        public long last; // last change event
         public String name;
         public String text;
+        public int color;
         public ZLTextPosition start;
         public ZLTextPosition end;
 
@@ -1131,13 +1154,16 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
 
         public Bookmark(Bookmark b) {
+            last = b.last;
             name = b.name;
             text = b.text;
+            color = b.color;
             start = b.start;
             end = b.end;
         }
 
         public Bookmark(String t, ZLTextPosition s, ZLTextPosition e) {
+            last = System.currentTimeMillis();
             text = t;
             start = s;
             end = e;
@@ -1148,18 +1174,27 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
 
         public void load(JSONObject j) throws JSONException {
+            last = j.optLong("last");
             name = j.optString("name");
             text = j.optString("text");
+            color = j.optInt("color");
             start = loadPosition(j.optJSONArray("start"));
             end = loadPosition(j.optJSONArray("end"));
         }
 
         public JSONObject save() throws JSONException {
             JSONObject j = new JSONObject();
-            j.put("name", name);
+            j.put("last", last);
+            if (name != null)
+                j.put("name", name);
             j.put("text", text);
-            j.put("start", savePosition(start));
-            j.put("end", savePosition(end));
+            j.put("color", color);
+            JSONArray s = savePosition(start);
+            if (s != null)
+                j.put("start", s);
+            JSONArray e = savePosition(end);
+            if (e != null)
+                j.put("end", e);
             return j;
         }
 
@@ -1170,6 +1205,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             } else {
                 return false;
             }
+            if (color != b.color)
+                return false;
             if (!text.equals(b.text))
                 return false;
             return start.samePositionAs(b.start) && end.samePositionAs(b.end);

@@ -11,12 +11,11 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.github.axet.androidlibrary.widgets.TextMax;
 import com.github.axet.androidlibrary.widgets.TreeListView;
 import com.github.axet.androidlibrary.widgets.TreeRecyclerView;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.Storage;
-
-import org.geometerplus.fbreader.bookmodel.TOCTree;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,14 +29,12 @@ public class BookmarksDialog extends AlertDialog.Builder {
         ImageView image;
         TextView text;
         TextView name;
-        TextView book;
 
         public BMHolder(View itemView) {
             super(itemView);
             image = (ImageView) itemView.findViewById(R.id.image);
             text = (TextView) itemView.findViewById(R.id.text);
             name = (TextView) itemView.findViewById(R.id.name);
-            book = (TextView) itemView.findViewById(R.id.book);
         }
     }
 
@@ -60,14 +57,14 @@ public class BookmarksDialog extends AlertDialog.Builder {
         @Override
         public BMHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             LayoutInflater inflater = LayoutInflater.from(getContext());
-            View convertView = inflater.inflate(R.layout.bm_item, null);
+            View convertView = inflater.inflate(R.layout.bm_item, parent, false);
             return new BMHolder(convertView);
         }
 
         @Override
         public void onBindViewHolder(final BMHolder h, int position) {
             TreeListView.TreeNode t = getItem(h.getAdapterPosition(this));
-            TOCTree tt = (TOCTree) t.tag;
+            Storage.Bookmark tt = (Storage.Bookmark) t.tag;
             ImageView ex = (ImageView) h.itemView.findViewById(R.id.expand);
             if (t.nodes.isEmpty())
                 ex.setVisibility(View.INVISIBLE);
@@ -82,13 +79,16 @@ public class BookmarksDialog extends AlertDialog.Builder {
                 h.image.setColorFilter(Color.GRAY);
                 h.text.setTypeface(null, Typeface.NORMAL);
             }
-            h.text.setText(tt.getText());
+            h.text.setText(tt.text.replaceAll("\n", " "));
+            if (tt.name == null || tt.name.isEmpty()) {
+                ((TextMax) h.name.getParent()).setVisibility(View.GONE);
+            } else {
+                h.name.setText(tt.name.replaceAll("\n", " "));
+            }
             h.itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    TOCTree n = (TOCTree) getItem(h.getAdapterPosition(BMAdapter.this)).tag;
-                    if (n.hasChildren())
-                        return;
+                    Storage.Bookmark n = (Storage.Bookmark) getItem(h.getAdapterPosition(BMAdapter.this)).tag;
                     dialog.dismiss();
                 }
             });
@@ -98,19 +98,50 @@ public class BookmarksDialog extends AlertDialog.Builder {
     public class BMAdapterBooks extends BMAdapter {
         public BMAdapterBooks(ArrayList<Storage.Book> books) {
             loadBooks(root, books);
+            load();
         }
 
         void loadBooks(TreeListView.TreeNode r, List<Storage.Book> books) {
             for (Storage.Book b : books) {
-                TreeListView.TreeNode n = new TreeListView.TreeNode(r, b);
-                r.nodes.add(n);
-                load(n, b.info.bookmarks);
+                if (b.info.bookmarks != null) {
+                    TreeListView.TreeNode n = new TreeListView.TreeNode(r, b);
+                    r.nodes.add(n);
+                    load(n, b.info.bookmarks);
+                }
             }
         }
 
         @Override
-        public void onBindViewHolder(BMHolder h, int position) {
-            super.onBindViewHolder(h, position);
+        public void onBindViewHolder(final BMHolder h, int position) {
+            TreeListView.TreeNode t = getItem(h.getAdapterPosition(this));
+            if (t.tag instanceof Storage.Bookmark) {
+                super.onBindViewHolder(h, position);
+            } else {
+                Storage.Book tt = (Storage.Book) t.tag;
+                ImageView ex = (ImageView) h.itemView.findViewById(R.id.expand);
+                if (t.nodes.isEmpty())
+                    ex.setVisibility(View.INVISIBLE);
+                else
+                    ex.setVisibility(View.VISIBLE);
+                ex.setImageResource(t.expanded ? R.drawable.ic_expand_less_black_24dp : R.drawable.ic_expand_more_black_24dp);
+                h.itemView.setPadding(20 * t.level, 0, 0, 0);
+                if (t.selected) {
+                    h.text.setTypeface(null, Typeface.BOLD);
+                    h.image.setColorFilter(null);
+                } else {
+                    h.image.setColorFilter(Color.GRAY);
+                    h.text.setTypeface(null, Typeface.NORMAL);
+                }
+                h.text.setText(Storage.getTitle(tt.info));
+                h.name.setVisibility(View.GONE);
+                h.itemView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Storage.Bookmark n = (Storage.Bookmark) getItem(h.getAdapterPosition(BMAdapterBooks.this)).tag;
+                        dialog.dismiss();
+                    }
+                });
+            }
         }
     }
 
@@ -130,8 +161,8 @@ public class BookmarksDialog extends AlertDialog.Builder {
         });
     }
 
-    public void loadBook(Storage.Book book) {
-        a = new BMAdapter(book.info.bookmarks);
+    public void load(Storage.Bookmarks bm) {
+        a = new BMAdapter(bm);
         tree = new TreeRecyclerView(getContext());
         tree.setAdapter(a);
         setView(tree);

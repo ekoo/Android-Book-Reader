@@ -51,6 +51,7 @@ import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.ComicsPlugin;
 import com.github.axet.bookreader.app.Storage;
+import com.github.axet.bookreader.widgets.BookmarksDialog;
 import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.bookreader.widgets.PluginView;
 import com.github.axet.bookreader.widgets.ToolbarButtonView;
@@ -771,16 +772,14 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         if (storage.exists(u)) { // file can be changed during sync, check for conflicts
             try {
                 Storage.RecentInfo info = new Storage.RecentInfo(getContext(), u);
-                if (info.position != null) {
-                    if (book.info.position == null || !info.position.samePositionAs(book.info.position)) // file changed between saves?
-                        storage.move(u, storage.getStoragePath()); // yes. create copy (1)
-                    if (save.position.samePositionAs(info.position)) {
-                        if (save.fontsize == null || info.fontsize != null && save.fontsize.equals(info.fontsize)) {
-                            if (save.bookmarks == null || info.bookmarks != null && save.bookmarks.equals(info.bookmarks))
-                                return; // nothing to save
-                        }
+                if (info.position != null && save.position.samePositionAs(info.position)) {
+                    if (save.fontsize == null || info.fontsize != null && save.fontsize.equals(info.fontsize)) {
+                        if (save.bookmarks == null || info.bookmarks != null && save.bookmarks.equals(info.bookmarks))
+                            return; // nothing to save
                     }
                 }
+                if (book.info.last != info.last) // file changed between saves?
+                    storage.move(u, storage.getStoragePath()); // yes. create conflict (1)
             } catch (RuntimeException e) {
                 Log.d(TAG, "Unable to load JSON", e);
             }
@@ -819,6 +818,12 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         int id = item.getItemId();
         if (id == R.id.action_toc) {
             showTOC();
+            return true;
+        }
+        if(id == R.id.action_bm) {
+            BookmarksDialog dialog = new BookmarksDialog(getContext());
+            dialog.load(view.book.info.bookmarks);
+            dialog.show();
             return true;
         }
         if (id == R.id.action_reflow) {
@@ -879,6 +884,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         searchMenu = menu.findItem(R.id.action_search);
         MenuItem reflow = menu.findItem(R.id.action_reflow);
         MenuItem debug = menu.findItem(R.id.action_debug);
+        MenuItem bookmarksMenu = menu.findItem(R.id.action_bm);
         final MenuItem fontsize = menu.findItem(R.id.action_fontsize);
         final MenuItem rtl = menu.findItem(R.id.action_rtl);
         MenuItem grid = menu.findItem(R.id.action_grid);
@@ -940,6 +946,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         });
         rtl.setTitle(view.app.BookTextView.rtlMode ? "RTL" : "LTR");
         ((ToolbarButtonView) MenuItemCompat.getActionView(rtl)).text.setText(view.app.BookTextView.rtlMode ? "RTL" : "LTR");
+        bookmarksMenu.setVisible(book.info.bookmarks != null);
     }
 
     void showTOC() {

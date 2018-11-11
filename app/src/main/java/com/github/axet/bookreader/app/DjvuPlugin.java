@@ -252,7 +252,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
                         break;
                 }
             }
-            return pp;
+            return new SelectionPage(pp);
         }
 
         public boolean isEmpty() {

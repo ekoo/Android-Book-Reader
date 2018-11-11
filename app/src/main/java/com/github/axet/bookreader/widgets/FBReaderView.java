@@ -24,6 +24,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
+import android.support.v4.graphics.ColorUtils;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.ScaleGestureDetectorCompat;
 import android.support.v4.view.ViewCompat;
@@ -39,6 +40,7 @@ import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -46,9 +48,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -56,6 +61,7 @@ import android.widget.TextView;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.services.FileProvider;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
+import com.github.axet.androidlibrary.widgets.PopupWindowCompat;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.BookApplication;
@@ -354,6 +360,7 @@ public class FBReaderView extends RelativeLayout {
 
         ReflowMap<Reflow.Info> infos = new ReflowMap<>();
         ReflowMap<LinksView> links = new ReflowMap<>();
+        ReflowMap<BookmarksView> bookmarks = new ReflowMap<>();
         ReflowMap<SearchView> searchs = new ReflowMap<>();
 
         public class ReflowMap<V> extends HashMap<ZLTextPosition, V> {
@@ -485,6 +492,10 @@ public class FBReaderView extends RelativeLayout {
                 LinksView old = links.put(position, l);
                 if (old != null)
                     old.close();
+                BookmarksView b = new BookmarksView(page, book.info.bookmarks, info);
+                BookmarksView bold = bookmarks.put(position, b);
+                if (bold != null)
+                    bold.close();
                 if (search != null) {
                     SearchView s = new SearchView(search.getBounds(page), info);
                     SearchView sold = searchs.put(position, s);
@@ -528,6 +539,16 @@ public class FBReaderView extends RelativeLayout {
                     l.update(x, y);
                 }
 
+                for (BookmarksView b : bookmarks.values()) {
+                    if (b != null)
+                        b.hide();
+                }
+                BookmarksView b = bookmarks.get(position);
+                if (b != null) {
+                    b.show();
+                    b.update(x, y);
+                }
+
                 for (SearchView s : searchs.values()) {
                     if (s != null)
                         s.hide();
@@ -556,6 +577,14 @@ public class FBReaderView extends RelativeLayout {
                     l.close();
             }
             links.clear();
+        }
+
+        public void bookmarksClose() {
+            for (BookmarksView l : bookmarks.values()) {
+                if (l != null)
+                    l.close();
+            }
+            bookmarks.clear();
         }
 
         public void searchClose() {
@@ -646,6 +675,7 @@ public class FBReaderView extends RelativeLayout {
             }
             infos.clear();
             links.clear();
+            bookmarks.clear();
             searchs.clear();
         }
 
@@ -2125,7 +2155,7 @@ public class FBReaderView extends RelativeLayout {
 
                 if (page != null && (!pluginview.reflow || view.info != null)) {
                     if (view.bookmarks == null)
-                        view.bookmarks = new BookmarksView(page, book.info.bookmarks.getBookmarks(page), view.info);
+                        view.bookmarks = new BookmarksView(page, book.info.bookmarks, view.info);
                     int x = view.getLeft();
                     int y = view.getTop();
                     if (view.info != null)
@@ -2693,21 +2723,31 @@ public class FBReaderView extends RelativeLayout {
     public class BookmarksView {
         public ArrayList<View> bookmarks = new ArrayList<>();
 
-        public BookmarksView(PluginView.Selection.Page page, ArrayList<Storage.Bookmark> ll, Reflow.Info info) {
+        public BookmarksView(PluginView.Selection.Page page, Storage.Bookmarks bms, Reflow.Info info) {
+            if (bms == null)
+                return;
+            ArrayList<Storage.Bookmark> ll = bms.getBookmarks(page);
             if (ll == null)
                 return;
             for (int i = 0; i < ll.size(); i++) {
+                final ArrayList<View> bmv = new ArrayList<>();
                 final Storage.Bookmark l = ll.get(i);
                 PluginView.Selection s = pluginview.select(l.start, l.end);
                 PluginView.Selection.Bounds bb = s.getBounds(page);
                 s.close();
+                Rect union = null;
                 Rect[] rr;
                 if (pluginview.reflow) {
                     rr = pluginview.boundsUpdate(bb.rr, info);
                 } else {
                     rr = bb.rr;
                 }
-                for (Rect r : rr) {
+                List<Rect> kk = SelectionView.lines(rr);
+                for (Rect r : kk) {
+                    if (union == null)
+                        union = new Rect(r);
+                    else
+                        union.union(r);
                     MarginLayoutParams lp = new MarginLayoutParams(r.width(), r.height());
                     View v = new View(getContext());
                     v.setLayoutParams(lp);
@@ -2715,9 +2755,89 @@ public class FBReaderView extends RelativeLayout {
                     v.setOnClickListener(new OnClickListener() {
                         @Override
                         public void onClick(View v) {
+                            LayoutInflater inflater = LayoutInflater.from(getContext());
+                            final EditText name = new EditText(getContext());
+                            name.setText(l.name);
+                            if (l.name != null)
+                                name.setSelection(l.name.length());
+                            int colors[] = new int[]{0xffff0000, 0xffFF8000, 0xffFFFF00, 0xff00FF00, 0xff0000FF, 0xff3F00FF, 0xff7F00FF};
+                            LinearLayout ll = new LinearLayout(getContext()) {
+                                @Override
+                                protected void onDetachedFromWindow() {
+                                    super.onDetachedFromWindow();
+                                    l.name = name.getText().toString();
+                                    l.last = System.currentTimeMillis();
+                                }
+                            };
+                            ll.setOrientation(LinearLayout.VERTICAL);
+                            final LinearLayout hh = new LinearLayout(getContext());
+                            int dp24 = ThemeUtils.dp2px(getContext(), 24);
+                            MarginLayoutParams lp = new MarginLayoutParams(dp24, dp24);
+                            int dp2 = ThemeUtils.dp2px(getContext(), 2);
+                            lp.setMargins(dp2, dp2, dp2, dp2);
+                            for (int c : colors) {
+                                final View color = inflater.inflate(R.layout.bm_color, null);
+                                ImageView image = (ImageView) color.findViewById(R.id.color);
+                                image.setColorFilter(c);
+                                final ImageView check = (ImageView) color.findViewById(R.id.checkbox);
+                                check.setVisibility(l.color == c ? VISIBLE : GONE);
+                                check.setColorFilter(ColorUtils.calculateLuminance(c) < 0.5f ? Color.WHITE : Color.GRAY);
+                                color.setTag(c);
+                                color.setOnClickListener(new OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        l.color = (int) color.getTag();
+                                        l.last = System.currentTimeMillis();
+                                        for (View b : bmv) {
+                                            b.setBackgroundColor(SelectionView.SELECTION_ALPHA << 24 | (l.color & 0xffffff));
+                                        }
+                                        for (int i = 0; i < hh.getChildCount(); i++) {
+                                            View color = hh.getChildAt(i);
+                                            final ImageView check = (ImageView) color.findViewById(R.id.checkbox);
+                                            if (check != null) // trash icon
+                                                check.setVisibility((int) color.getTag() == l.color ? VISIBLE : GONE);
+                                        }
+                                    }
+                                });
+                                hh.addView(color, lp);
+                            }
+                            final PopupWindow w = new PopupWindow();
+                            ImageView trash = new ImageView(getContext());
+                            trash.setImageResource(R.drawable.ic_close_black_24dp);
+                            trash.setColorFilter(ThemeUtils.getThemeColor(getContext(), R.attr.colorAccent));
+                            trash.setOnClickListener(new OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                                    builder.setTitle("Delete bookmark?");
+                                    builder.setMessage(R.string.are_you_sure);
+                                    builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            book.info.bookmarks.remove(l);
+                                            bookmarksUpdate();
+                                            w.dismiss();
+                                        }
+                                    });
+                                    builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                        }
+                                    });
+                                    builder.show();
+                                }
+                            });
+                            hh.addView(trash, lp);
+                            ll.addView(hh);
+                            ll.addView(name);
+                            w.setContentView(ll);
+                            w.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+                            PopupWindowCompat.showAsTooltip(w, v, Gravity.BOTTOM);
                         }
                     });
-                    v.setBackgroundColor(SelectionView.SELECTION_ALPHA << 24 | app.BookTextView.getHighlightingBackgroundColor().intValue());
+                    int color = l.color == 0 ? app.BookTextView.getHighlightingBackgroundColor().intValue() : l.color;
+                    v.setBackgroundColor(SelectionView.SELECTION_ALPHA << 24 | (color & 0xffffff));
+                    bmv.add(v);
                     bookmarks.add(v);
                     FBReaderView.this.addView(v);
                 }
@@ -3462,6 +3582,8 @@ public class FBReaderView extends RelativeLayout {
                 if (params.length != 0) {
                     Bookmark bookmark = (Bookmark) params[0];
                 } else {
+                    if (book.info.bookmarks == null)
+                        book.info.bookmarks = new Storage.Bookmarks();
                     if (selection != null) {
                         book.info.bookmarks.add(new Storage.Bookmark(selection.selection.getText(), selection.selection.getStart(), selection.selection.getEnd()));
                     } else {
@@ -3829,14 +3951,14 @@ public class FBReaderView extends RelativeLayout {
         if (widget instanceof ScrollView)
             ((ScrollView) widget).bookmarksClose();
         if (widget instanceof FBAndroidWidget)
-            ; // ((FBAndroidWidget) widget).bookmarksClose();
+            ((FBAndroidWidget) widget).bookmarksClose();
     }
 
     public void bookmarksUpdate() {
         if (widget instanceof ScrollView)
             ((ScrollView) widget).bookmarksUpdate();
         if (widget instanceof FBAndroidWidget)
-            ; // ((FBAndroidWidget) widget).bookmarksClose();
+            ((FBAndroidWidget) widget).updateOverlaysReset();
     }
 
     public void searchClose() {
