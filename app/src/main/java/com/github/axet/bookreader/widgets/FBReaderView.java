@@ -199,6 +199,20 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
+    public static Rect findUnion(List<ZLTextElementArea> areas, Storage.Bookmark bm) {
+        Rect union = null;
+        for (ZLTextElementArea a : areas) {
+            if (bm.start.compareTo(a) <= 0 && bm.end.compareTo(a) >= 0) {
+                Rect r = new Rect(a.XStart, a.YStart, a.XEnd, a.YEnd);
+                if (union == null)
+                    union = r;
+                else
+                    union.union(r);
+            }
+        }
+        return union;
+    }
+
     public static class ZLTextIndexPosition extends ZLTextFixedPosition implements Parcelable {
         public static final Parcelable.Creator CREATOR = new Parcelable.Creator() {
             public ZLTextIndexPosition createFromParcel(Parcel in) {
@@ -1893,16 +1907,8 @@ public class FBReaderView extends RelativeLayout {
             for (int i = 0; i < lm.getChildCount(); i++) {
                 ScrollAdapter.PageView view = (ScrollAdapter.PageView) lm.getChildAt(i);
                 if (view.text != null) {
-                    for (ZLTextElementArea a : view.text.areas()) {
-                        if (bm.start.compareTo(a) <= 0 && bm.end.compareTo(a) >= 0) {
-                            p = view;
-                            Rect r = new Rect(a.XStart, a.YStart, a.XEnd, a.YEnd);
-                            if (union == null)
-                                union = r;
-                            else
-                                union.union(r);
-                        }
-                    }
+                    p = view;
+                    union = FBReaderView.findUnion(view.text.areas(), bm);
                 }
             }
             union.offset(p.getLeft(), p.getTop());
@@ -2299,19 +2305,9 @@ public class FBReaderView extends RelativeLayout {
 
         public void bookmarksUpdate() {
             if (pluginview == null) {
-                app.BookTextView.clearHighlighting();
-                ArrayList<ZLTextHighlighting> hi = new ArrayList<>();
-                if (book.info.bookmarks != null) {
-                    for (int i = 0; i < book.info.bookmarks.size(); i++) {
-                        final Storage.Bookmark b = book.info.bookmarks.get(i);
-                        ZLBookmark h = new ZLBookmark(app.BookTextView, b);
-                        hi.add(h);
-                    }
-                }
-                app.BookTextView.addHighlightings(hi);
-                for (ScrollAdapter.PageHolder h : adapter.holders) {
+                for (ScrollView.ScrollAdapter.PageHolder h : ((ScrollView) widget).adapter.holders) {
                     h.itemView.invalidate();
-                    adapter.invalidates.add(h);
+                    ((ScrollView) widget).adapter.invalidates.add(h);
                 }
             } else {
                 for (ScrollAdapter.PageHolder h : adapter.holders) {
@@ -3682,6 +3678,8 @@ public class FBReaderView extends RelativeLayout {
                     final View anchor = new View(getContext());
                     if (widget instanceof ScrollView)
                         union = ((ScrollView) widget).findUnion(bm);
+                    else
+                        union = findUnion(app.BookTextView.myCurrentPage.TextElementMap.areas(), bm);
                     LayoutParams lp = new LayoutParams(union.width(), union.height());
                     lp.leftMargin = union.left;
                     lp.topMargin = union.top;
@@ -4087,6 +4085,18 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void bookmarksUpdate() {
+        if (pluginview == null) {
+            app.BookTextView.clearHighlighting();
+            ArrayList<ZLTextHighlighting> hi = new ArrayList<>();
+            if (book.info.bookmarks != null) {
+                for (int i = 0; i < book.info.bookmarks.size(); i++) {
+                    final Storage.Bookmark b = book.info.bookmarks.get(i);
+                    ZLBookmark h = new ZLBookmark(app.BookTextView, b);
+                    hi.add(h);
+                }
+            }
+            app.BookTextView.addHighlightings(hi);
+        }
         if (widget instanceof ScrollView)
             ((ScrollView) widget).bookmarksUpdate();
         if (widget instanceof FBAndroidWidget)
