@@ -199,7 +199,8 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
-    public static Rect findUnion(Rect union, List<ZLTextElementArea> areas, Storage.Bookmark bm) {
+    public static Rect findUnion(List<ZLTextElementArea> areas, Storage.Bookmark bm) {
+        Rect union = null;
         for (ZLTextElementArea a : areas) {
             if (bm.start.compareTo(a) <= 0 && bm.end.compareTo(a) >= 0) {
                 Rect r = new Rect(a.XStart, a.YStart, a.XEnd, a.YEnd);
@@ -580,7 +581,18 @@ public class FBReaderView extends RelativeLayout {
                     info = new Reflow.Info(pluginview.reflower, position.getElementIndex());
                     infos.put(position, info);
                 } else {
-                    position = new ZLTextFixedPosition(pluginview.current.pageNumber, 0, 0);
+                    PluginPage old = new PluginPage(pluginview.current) {
+                        @Override
+                        public void load() {
+                        }
+
+                        @Override
+                        public int getPagesCount() {
+                            return pluginview.current.getPagesCount();
+                        }
+                    };
+                    old.load(index);
+                    position = new ZLTextFixedPosition(old.pageNumber, 0, 0);
                 }
                 Rect dst = getPageRect();
                 PluginView.Selection.Page page = pluginview.selectPage(position, info, dst.width(), dst.height());
@@ -770,9 +782,9 @@ public class FBReaderView extends RelativeLayout {
                 }
             }
             infos.clear();
-            links.clear();
-            bookmarks.clear();
-            searchs.clear();
+            linksClose();
+            bookmarksClose();
+            searchClose();
         }
 
         @Override
@@ -1904,17 +1916,19 @@ public class FBReaderView extends RelativeLayout {
 
         public Rect findUnion(Storage.Bookmark bm) {
             Rect union = null;
-            ScrollView.ScrollAdapter.PageView p = null;
             for (int i = 0; i < lm.getChildCount(); i++) {
                 ScrollAdapter.PageView view = (ScrollAdapter.PageView) lm.getChildAt(i);
                 if (view.text != null) {
-                    p = view;
-                    union = FBReaderView.findUnion(union, view.text.areas(), bm);
+                    Rect r = FBReaderView.findUnion(view.text.areas(), bm);
+                    if (r != null) {
+                        r.offset(view.getLeft(), view.getTop());
+                        if (union == null)
+                            union = r;
+                        else
+                            union.union(r);
+                    }
                 }
             }
-            if (union == null)
-                return null;
-            union.offset(p.getLeft(), p.getTop());
             return union;
         }
 
@@ -2250,7 +2264,7 @@ public class FBReaderView extends RelativeLayout {
                     page = pluginview.selectPage(c.start, view.info, view.getWidth(), view.getHeight());
                 }
 
-                if (page != null && (!pluginview.reflow || view.info != null)) {
+                if (page != null && (!pluginview.reflow || view.info != null) && view.getParent() != null) { // cached views has no parrent
                     if (view.links == null)
                         view.links = new LinksView(pluginview.getLinks(page), view.info);
                     int x = view.getLeft();
@@ -2292,7 +2306,7 @@ public class FBReaderView extends RelativeLayout {
                     page = pluginview.selectPage(c.start, view.info, view.getWidth(), view.getHeight());
                 }
 
-                if (page != null && (!pluginview.reflow || view.info != null)) {
+                if (page != null && (!pluginview.reflow || view.info != null) && view.getParent() != null) { // cached views has no parrent
                     if (view.bookmarks == null)
                         view.bookmarks = new BookmarksView(page, book.info.bookmarks, view.info);
                     int x = view.getLeft();
@@ -2307,16 +2321,9 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public void bookmarksUpdate() {
-            if (pluginview == null) {
-                for (ScrollView.ScrollAdapter.PageHolder h : adapter.holders) {
-                    h.page.recycle();
-                    h.page.invalidate();
-                }
-            } else {
-                for (ScrollAdapter.PageHolder h : adapter.holders) {
-                    bookmarksRemove(h.page);
-                    bookmarksUpdate(h.page);
-                }
+            for (ScrollAdapter.PageHolder h : adapter.holders) {
+                bookmarksRemove(h.page);
+                bookmarksUpdate(h.page);
             }
         }
 
@@ -2439,7 +2446,7 @@ public class FBReaderView extends RelativeLayout {
                     page = pluginview.selectPage(c.start, view.info, view.getWidth(), view.getHeight());
                 }
 
-                if (page != null && (!pluginview.reflow || view.info != null)) {
+                if (page != null && (!pluginview.reflow || view.info != null) && view.getParent() != null) { // cached views has no parrent
                     if (view.search == null)
                         view.search = new SearchView(search.getBounds(page), view.info);
                     int x = view.getLeft();
@@ -3684,13 +3691,12 @@ public class FBReaderView extends RelativeLayout {
                     if (widget instanceof ScrollView)
                         union = ((ScrollView) widget).findUnion(bm);
                     else
-                        union = findUnion(null, app.BookTextView.myCurrentPage.TextElementMap.areas(), bm);
-                    LayoutParams lp = new LayoutParams(union.width(), union.height());
+                        union = findUnion(app.BookTextView.myCurrentPage.TextElementMap.areas(), bm);
+                    MarginLayoutParams lp = new MarginLayoutParams(union.width(), union.height());
                     lp.leftMargin = union.left;
                     lp.topMargin = union.top;
-                    ArrayList<View> bmv = new ArrayList<>();
                     FBReaderView.this.addView(anchor, lp);
-                    final BookmarkPopup b = new BookmarkPopup(anchor, bm, bmv) {
+                    final BookmarkPopup b = new BookmarkPopup(anchor, bm, new ArrayList<View>()) {
                         @Override
                         public void onDelete(Storage.Bookmark l) {
                             book.info.bookmarks.remove(l);
@@ -4106,8 +4112,16 @@ public class FBReaderView extends RelativeLayout {
             }
             app.BookTextView.addHighlightings(hi);
         }
-        if (widget instanceof ScrollView)
-            ((ScrollView) widget).bookmarksUpdate();
+        if (widget instanceof ScrollView) {
+            if (pluginview == null) {
+                for (ScrollView.ScrollAdapter.PageHolder h : ((ScrollView) widget).adapter.holders) {
+                    h.page.recycle();
+                    h.page.invalidate();
+                }
+            } else {
+                ((ScrollView) widget).bookmarksUpdate();
+            }
+        }
         if (widget instanceof FBAndroidWidget)
             ((FBAndroidWidget) widget).updateOverlaysReset();
     }
