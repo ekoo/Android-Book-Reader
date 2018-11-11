@@ -581,7 +581,18 @@ public class FBReaderView extends RelativeLayout {
                     info = new Reflow.Info(pluginview.reflower, position.getElementIndex());
                     infos.put(position, info);
                 } else {
-                    position = new ZLTextFixedPosition(pluginview.current.pageNumber, 0, 0);
+                    PluginPage old = new PluginPage(pluginview.current) {
+                        @Override
+                        public void load() {
+                        }
+
+                        @Override
+                        public int getPagesCount() {
+                            return pluginview.current.getPagesCount();
+                        }
+                    };
+                    old.load(index);
+                    position = new ZLTextFixedPosition(old.pageNumber, 0, 0);
                 }
                 Rect dst = getPageRect();
                 PluginView.Selection.Page page = pluginview.selectPage(position, info, dst.width(), dst.height());
