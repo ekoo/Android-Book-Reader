@@ -89,6 +89,7 @@ public class BookmarksDialog extends AlertDialog.Builder {
                 @Override
                 public void onClick(View v) {
                     Storage.Bookmark n = (Storage.Bookmark) getItem(h.getAdapterPosition(BMAdapter.this)).tag;
+                    selected(n);
                     dialog.dismiss();
                 }
             });
@@ -113,9 +114,18 @@ public class BookmarksDialog extends AlertDialog.Builder {
 
         @Override
         public void onBindViewHolder(final BMHolder h, int position) {
-            TreeListView.TreeNode t = getItem(h.getAdapterPosition(this));
+            final TreeListView.TreeNode t = getItem(h.getAdapterPosition(this));
             if (t.tag instanceof Storage.Bookmark) {
                 super.onBindViewHolder(h, position);
+                h.itemView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Storage.Book tt = (Storage.Book) t.parent.tag;
+                        Storage.Bookmark n = (Storage.Bookmark) getItem(h.getAdapterPosition(BMAdapterBooks.this)).tag;
+                        selected(tt, n);
+                        dialog.dismiss();
+                    }
+                });
             } else {
                 Storage.Book tt = (Storage.Book) t.tag;
                 ImageView ex = (ImageView) h.itemView.findViewById(R.id.expand);
@@ -133,14 +143,7 @@ public class BookmarksDialog extends AlertDialog.Builder {
                     h.text.setTypeface(null, Typeface.NORMAL);
                 }
                 h.text.setText(Storage.getTitle(tt.info));
-                h.name.setVisibility(View.GONE);
-                h.itemView.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        Storage.Bookmark n = (Storage.Bookmark) getItem(h.getAdapterPosition(BMAdapterBooks.this)).tag;
-                        dialog.dismiss();
-                    }
-                });
+                ((TextMax) h.name.getParent()).setVisibility(View.GONE);
             }
         }
     }
@@ -187,5 +190,11 @@ public class BookmarksDialog extends AlertDialog.Builder {
     @Override
     public AlertDialog show() {
         return super.show();
+    }
+
+    public void selected(Storage.Bookmark b) {
+    }
+
+    public void selected(Storage.Book book, Storage.Bookmark bm) {
     }
 }

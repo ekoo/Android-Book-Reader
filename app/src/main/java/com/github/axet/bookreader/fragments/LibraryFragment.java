@@ -44,6 +44,7 @@ import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.BookmarksDialog;
+import com.github.axet.bookreader.widgets.FBReaderView;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -673,7 +674,13 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
         int id = item.getItemId();
         if (id == R.id.action_bm) {
-            BookmarksDialog dialog = new BookmarksDialog(getContext());
+            BookmarksDialog dialog = new BookmarksDialog(getContext()) {
+                @Override
+                public void selected(Storage.Book b, Storage.Bookmark bm) {
+                    MainActivity main = ((MainActivity) getActivity());
+                    main.openBook(b.url, new FBReaderView.ZLTextIndexPosition(bm.start, bm.end));
+                }
+            };
             dialog.load(books.all);
             dialog.show();
             return true;

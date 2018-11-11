@@ -22,6 +22,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.v4.graphics.ColorUtils;
@@ -199,6 +200,52 @@ public class FBReaderView extends RelativeLayout {
             v.start();
         } else {
             p.removeView(areas);
+        }
+    }
+
+    public static class ZLTextIndexPosition extends ZLTextFixedPosition implements Parcelable {
+        public static final Parcelable.Creator CREATOR = new Parcelable.Creator() {
+            public ZLTextIndexPosition createFromParcel(Parcel in) {
+                return new ZLTextIndexPosition(in);
+            }
+
+            public ZLTextIndexPosition[] newArray(int size) {
+                return new ZLTextIndexPosition[size];
+            }
+        };
+
+        public ZLTextPosition end;
+
+        static ZLTextPosition read(Parcel in) {
+            int p = in.readInt();
+            int e = in.readInt();
+            int c = in.readInt();
+            return new ZLTextFixedPosition(p, e, c);
+        }
+
+        public ZLTextIndexPosition(ZLTextPosition p, ZLTextPosition e) {
+            super(p);
+            end = new ZLTextFixedPosition(e);
+        }
+
+        public ZLTextIndexPosition(Parcel in) {
+            super(read(in));
+            end = read(in);
+        }
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        @Override
+        public void writeToParcel(Parcel dest, int flags) {
+            dest.writeInt(getParagraphIndex());
+            dest.writeInt(getElementIndex());
+            dest.writeInt(getCharIndex());
+            dest.writeInt(end.getParagraphIndex());
+            dest.writeInt(end.getElementIndex());
+            dest.writeInt(end.getCharIndex());
         }
     }
 
@@ -1956,9 +2003,20 @@ public class FBReaderView extends RelativeLayout {
                         PluginPage info = pluginview.getPageInfo(getWidth(), getHeight(), c);
                         for (ScrollAdapter.PageCursor p : adapter.pages) {
                             if (p.start != null && p.start.getParagraphIndex() == scrollDelayed.getParagraphIndex()) {
-                                int offset = (int) (scrollDelayed.getElementIndex() / info.ratio);
-                                scrollBy(0, offset);
-                                adapter.oldTurn = pos;
+                                if (scrollDelayed instanceof ZLTextIndexPosition) {
+                                    PluginView.Selection s = pluginview.select(scrollDelayed, ((ZLTextIndexPosition) scrollDelayed).end);
+                                    PluginView.Selection.Page page = pluginview.selectPage(scrollDelayed, null, info.w, info.h);
+                                    PluginView.Selection.Bounds bb = s.getBounds(page);
+                                    s.close();
+                                    Rect union = SelectionView.union(Arrays.asList(bb.rr));
+                                    int offset = union.centerY() - ScrollView.this.getHeight() / 2;
+                                    scrollBy(0, offset);
+                                    adapter.oldTurn = pos;
+                                } else {
+                                    int offset = (int) (scrollDelayed.getElementIndex() / info.ratio);
+                                    scrollBy(0, offset);
+                                    adapter.oldTurn = pos;
+                                }
                                 scrollDelayed = null;
                                 break;
                             }
@@ -2039,13 +2097,29 @@ public class FBReaderView extends RelativeLayout {
                         double ratio = info.bm.width() / (double) getWidth();
                         ArrayList<Rect> ss = new ArrayList<>(info.src.keySet());
                         Collections.sort(ss, new SelectionView.UL());
-                        int offset = (int) (scrollDelayed.getElementIndex() / pinfo.ratio * ratio);
+                        int offset;
+                        if (scrollDelayed instanceof ZLTextIndexPosition) {
+                            PluginView.Selection s = pluginview.select(scrollDelayed, ((ZLTextIndexPosition) scrollDelayed).end);
+                            PluginView.Selection.Page page = pluginview.selectPage(scrollDelayed, info, pinfo.w, pinfo.h);
+                            PluginView.Selection.Bounds bb = s.getBounds(page);
+                            s.close();
+                            Rect union = SelectionView.union(Arrays.asList(bb.rr));
+                            offset = union.top;
+                        } else {
+                            offset = (int) (scrollDelayed.getElementIndex() / pinfo.ratio * ratio);
+                        }
                         for (Rect s : ss) {
                             if (s.top <= offset && s.bottom >= offset || s.top > offset) {
                                 scrollToPosition(i);
                                 int screen = (int) ((s.top - offset) / ratio);
                                 int off = info.src.get(s).top - screen;
                                 scrollBy(0, off);
+                                post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        updateOverlays();
+                                    }
+                                });
                                 adapter.oldTurn = new ZLTextFixedPosition(c.start);
                                 scrollDelayed = null;
                                 return;
@@ -2722,8 +2796,27 @@ public class FBReaderView extends RelativeLayout {
 
     public class BookmarksView {
         public ArrayList<View> bookmarks = new ArrayList<>();
+        int clip;
+
+        public class WordView extends View {
+            public WordView(Context context) {
+                super(context);
+            }
+
+            @Override
+            public void draw(Canvas canvas) {
+                android.graphics.Rect c = canvas.getClipBounds();
+                c.bottom = clip - getTop();
+                canvas.clipRect(c);
+                super.draw(canvas);
+            }
+        }
 
         public BookmarksView(PluginView.Selection.Page page, Storage.Bookmarks bms, Reflow.Info info) {
+            if (widget instanceof ScrollView)
+                clip = ((ScrollView) widget).getMainAreaHeight();
+            else
+                clip = ((ZLAndroidWidget) widget).getMainAreaHeight();
             if (bms == null)
                 return;
             ArrayList<Storage.Bookmark> ll = bms.getBookmarks(page);
@@ -2749,7 +2842,7 @@ public class FBReaderView extends RelativeLayout {
                     else
                         union.union(r);
                     MarginLayoutParams lp = new MarginLayoutParams(r.width(), r.height());
-                    View v = new View(getContext());
+                    WordView v = new WordView(getContext());
                     v.setLayoutParams(lp);
                     v.setTag(r);
                     v.setOnClickListener(new OnClickListener() {

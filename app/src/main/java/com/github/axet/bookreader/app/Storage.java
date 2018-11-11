@@ -309,6 +309,17 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return list;
     }
 
+    public static ZLTextPosition loadPosition(String s) {
+        if (s == null || s.isEmpty())
+            return null;
+        try {
+            JSONArray o = new JSONArray(s);
+            return loadPosition(o);
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static ZLTextPosition loadPosition(JSONArray a) throws JSONException {
         if (a == null || a.length() == 0)
             return null;

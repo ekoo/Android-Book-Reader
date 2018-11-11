@@ -769,6 +769,11 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         addFragment(ReaderFragment.newInstance(uri), ReaderFragment.TAG).commit();
     }
 
+    public void openBook(Uri uri, FBReaderView.ZLTextIndexPosition pos) {
+        popBackStack(ReaderFragment.TAG, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+        addFragment(ReaderFragment.newInstance(uri, pos), ReaderFragment.TAG).commit();
+    }
+
     public void openLibrary() {
         popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
         openFragment(libraryFragment, LibraryFragment.TAG).commit();

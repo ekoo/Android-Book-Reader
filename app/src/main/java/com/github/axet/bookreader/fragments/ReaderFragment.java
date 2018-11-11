@@ -470,6 +470,15 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         return fragment;
     }
 
+    public static ReaderFragment newInstance(Uri uri, FBReaderView.ZLTextIndexPosition pos) {
+        ReaderFragment fragment = new ReaderFragment();
+        Bundle args = new Bundle();
+        args.putParcelable("uri", uri);
+        args.putParcelable("pos", pos);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -537,11 +546,14 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         view.setDrawer(main.drawer);
 
         Uri uri = getArguments().getParcelable("uri");
+        FBReaderView.ZLTextIndexPosition pos = getArguments().getParcelable("pos");
 
         try {
             book = storage.load(uri);
             fbook = storage.read(book);
             view.loadBook(fbook);
+            if (pos != null)
+                view.gotoPosition(pos);
         } catch (RuntimeException e) {
             main.Error(e);
             main.openLibrary();
@@ -820,8 +832,13 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             showTOC();
             return true;
         }
-        if(id == R.id.action_bm) {
-            BookmarksDialog dialog = new BookmarksDialog(getContext());
+        if (id == R.id.action_bm) {
+            BookmarksDialog dialog = new BookmarksDialog(getContext()) {
+                @Override
+                public void selected(Storage.Bookmark b) {
+                    view.gotoPosition(new FBReaderView.ZLTextIndexPosition(b.start, b.end));
+                }
+            };
             dialog.load(view.book.info.bookmarks);
             dialog.show();
             return true;
