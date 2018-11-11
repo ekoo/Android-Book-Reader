@@ -4087,7 +4087,7 @@ public class FBReaderView extends RelativeLayout {
 
     public void bookmarksUpdate() {
         if (pluginview == null) {
-            app.BookTextView.clearHighlighting();
+            app.BookTextView.removeHighlightings(ZLBookmark.class);
             ArrayList<ZLTextHighlighting> hi = new ArrayList<>();
             if (book.info.bookmarks != null) {
                 for (int i = 0; i < book.info.bookmarks.size(); i++) {
