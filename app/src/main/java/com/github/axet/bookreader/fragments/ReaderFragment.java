@@ -533,6 +533,11 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             public void onSearchClose() {
                 MenuItemCompat.collapseActionView(searchMenu);
             }
+
+            @Override
+            public void onBookmarksUpdate() {
+                updateToolbar();
+            }
         };
 
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
@@ -963,7 +968,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         });
         rtl.setTitle(view.app.BookTextView.rtlMode ? "RTL" : "LTR");
         ((ToolbarButtonView) MenuItemCompat.getActionView(rtl)).text.setText(view.app.BookTextView.rtlMode ? "RTL" : "LTR");
-        bookmarksMenu.setVisible(book.info.bookmarks != null);
+        bookmarksMenu.setVisible(view.book.info.bookmarks != null && view.book.info.bookmarks.size() > 0);
     }
 
     void showTOC() {

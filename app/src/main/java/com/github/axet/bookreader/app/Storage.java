@@ -1109,7 +1109,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 o.put("scales", WebViewCustom.toJSON(scales));
             if (fontsize != null)
                 o.put("fontsize", fontsize);
-            if (bookmarks != null)
+            if (bookmarks != null && bookmarks.size() > 0)
                 o.put("bookmarks", bookmarks.save());
             return o;
         }

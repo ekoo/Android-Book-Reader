@@ -290,6 +290,8 @@ public class FBReaderView extends RelativeLayout {
         void onScrollingFinished(ZLViewEnums.PageIndex index);
 
         void onSearchClose();
+
+        void onBookmarksUpdate();
     }
 
     public class CustomView extends FBView {
@@ -2923,6 +2925,8 @@ public class FBReaderView extends RelativeLayout {
                                 public void onDelete(Storage.Bookmark l) {
                                     book.info.bookmarks.remove(l);
                                     bookmarksUpdate();
+                                    if (pageTurningListener != null)
+                                        pageTurningListener.onBookmarksUpdate();
                                 }
                             };
                             b.show();
@@ -3691,6 +3695,8 @@ public class FBReaderView extends RelativeLayout {
                         public void onDelete(Storage.Bookmark l) {
                             book.info.bookmarks.remove(l);
                             bookmarksUpdate();
+                            if (pageTurningListener != null)
+                                pageTurningListener.onBookmarksUpdate();
                         }
 
                         @Override
@@ -3722,6 +3728,8 @@ public class FBReaderView extends RelativeLayout {
                         book.info.bookmarks.add(new Storage.Bookmark(snippet.getText(), snippet.getStart(), snippet.getEnd()));
                     }
                     bookmarksUpdate();
+                    if (pageTurningListener != null)
+                        pageTurningListener.onBookmarksUpdate();
                     app.BookTextView.clearSelection();
                     selectionClose();
                 }
