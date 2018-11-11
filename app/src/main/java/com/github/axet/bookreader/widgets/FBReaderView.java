@@ -771,9 +771,9 @@ public class FBReaderView extends RelativeLayout {
                 }
             }
             infos.clear();
-            links.clear();
-            bookmarks.clear();
-            searchs.clear();
+            linksClose();
+            bookmarksClose();
+            searchClose();
         }
 
         @Override
@@ -2253,7 +2253,7 @@ public class FBReaderView extends RelativeLayout {
                     page = pluginview.selectPage(c.start, view.info, view.getWidth(), view.getHeight());
                 }
 
-                if (page != null && (!pluginview.reflow || view.info != null)) {
+                if (page != null && (!pluginview.reflow || view.info != null) && view.getParent() != null) { // cached views has no parrent
                     if (view.links == null)
                         view.links = new LinksView(pluginview.getLinks(page), view.info);
                     int x = view.getLeft();
@@ -2295,7 +2295,7 @@ public class FBReaderView extends RelativeLayout {
                     page = pluginview.selectPage(c.start, view.info, view.getWidth(), view.getHeight());
                 }
 
-                if (page != null && (!pluginview.reflow || view.info != null)) {
+                if (page != null && (!pluginview.reflow || view.info != null) && view.getParent() != null) { // cached views has no parrent
                     if (view.bookmarks == null)
                         view.bookmarks = new BookmarksView(page, book.info.bookmarks, view.info);
                     int x = view.getLeft();
@@ -2435,7 +2435,7 @@ public class FBReaderView extends RelativeLayout {
                     page = pluginview.selectPage(c.start, view.info, view.getWidth(), view.getHeight());
                 }
 
-                if (page != null && (!pluginview.reflow || view.info != null)) {
+                if (page != null && (!pluginview.reflow || view.info != null) && view.getParent() != null) { // cached views has no parrent
                     if (view.search == null)
                         view.search = new SearchView(search.getBounds(page), view.info);
                     int x = view.getLeft();
