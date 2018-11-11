@@ -199,8 +199,7 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
-    public static Rect findUnion(List<ZLTextElementArea> areas, Storage.Bookmark bm) {
-        Rect union = null;
+    public static Rect findUnion(Rect union, List<ZLTextElementArea> areas, Storage.Bookmark bm) {
         for (ZLTextElementArea a : areas) {
             if (bm.start.compareTo(a) <= 0 && bm.end.compareTo(a) >= 0) {
                 Rect r = new Rect(a.XStart, a.YStart, a.XEnd, a.YEnd);
@@ -1908,9 +1907,11 @@ public class FBReaderView extends RelativeLayout {
                 ScrollAdapter.PageView view = (ScrollAdapter.PageView) lm.getChildAt(i);
                 if (view.text != null) {
                     p = view;
-                    union = FBReaderView.findUnion(view.text.areas(), bm);
+                    union = FBReaderView.findUnion(union, view.text.areas(), bm);
                 }
             }
+            if (union == null)
+                return null;
             union.offset(p.getLeft(), p.getTop());
             return union;
         }
@@ -2305,9 +2306,9 @@ public class FBReaderView extends RelativeLayout {
 
         public void bookmarksUpdate() {
             if (pluginview == null) {
-                for (ScrollView.ScrollAdapter.PageHolder h : ((ScrollView) widget).adapter.holders) {
-                    h.itemView.invalidate();
-                    ((ScrollView) widget).adapter.invalidates.add(h);
+                for (ScrollView.ScrollAdapter.PageHolder h : adapter.holders) {
+                    h.page.recycle();
+                    h.page.invalidate();
                 }
             } else {
                 for (ScrollAdapter.PageHolder h : adapter.holders) {
@@ -3674,12 +3675,12 @@ public class FBReaderView extends RelativeLayout {
             protected void run(Object... params) {
                 if (params.length != 0) {
                     Storage.Bookmark bm = (Storage.Bookmark) params[0];
-                    Rect union = null;
+                    Rect union;
                     final View anchor = new View(getContext());
                     if (widget instanceof ScrollView)
                         union = ((ScrollView) widget).findUnion(bm);
                     else
-                        union = findUnion(app.BookTextView.myCurrentPage.TextElementMap.areas(), bm);
+                        union = findUnion(null, app.BookTextView.myCurrentPage.TextElementMap.areas(), bm);
                     LayoutParams lp = new LayoutParams(union.width(), union.height());
                     lp.leftMargin = union.left;
                     lp.topMargin = union.top;
