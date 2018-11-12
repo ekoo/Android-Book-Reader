@@ -53,4 +53,6 @@
     <string name="controls_prevpage">Previous page</string>
     <string name="controls_brightness">Brightness</string>
     <string name="per_second">/s</string>
+    <string name="delete_bookmark">Delete bookmark</string>
+    <string name="bookmarks">Bookmarks</string>
 </resources>

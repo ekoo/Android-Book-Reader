@@ -87,7 +87,7 @@ public class BookmarkPopup {
             @Override
             public void onClick(View v) {
                 AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                builder.setTitle("Delete bookmark?");
+                builder.setTitle(R.string.delete_bookmark);
                 builder.setMessage(R.string.are_you_sure);
                 builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                     @Override

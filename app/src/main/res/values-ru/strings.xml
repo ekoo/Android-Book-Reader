@@ -48,4 +48,6 @@
     <string name="controls_prevpage">Предыдущая страница</string>
     <string name="controls_brightness">Яркость</string>
     <string name="per_second">/с</string>
+    <string name="delete_bookmark">Удалить заметку</string>
+    <string name="bookmarks">Заметки</string>
 </resources>
