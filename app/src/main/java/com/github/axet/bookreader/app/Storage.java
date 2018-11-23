@@ -995,8 +995,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         public Book() {
         }
 
-        public Book(Uri u) {
-            String name = Storage.getDocumentName(u);
+        public Book(Context context, Uri u) {
+            String name = Storage.getName(context, u);
             url = u;
             md5 = Storage.getNameNoExt(name);
             ext = Storage.getExt(name);
@@ -1434,10 +1434,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
             String ss = u.getScheme();
             if (ss.equals(ContentResolver.SCHEME_CONTENT) && DocumentsContract.getDocumentId(u).startsWith(DocumentsContract.getTreeDocumentId(storage))) // else we can't get from content://storage to real path
-                return new Book(DocumentsContract.buildDocumentUriUsingTree(storage, DocumentsContract.getDocumentId(u)));
+                return new Book(context, DocumentsContract.buildDocumentUriUsingTree(storage, DocumentsContract.getDocumentId(u)));
         }
         if (s.equals(ContentResolver.SCHEME_FILE) && u.getPath().startsWith(storage.getPath()))
-            return new Book(u);
+            return new Book(context, u);
 
         boolean tmp = false;
         File file = null;
@@ -2011,7 +2011,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public Uri move(Uri u, Uri dir) {
         try {
-            Uri n = getNextFile(getStoragePath(), getDocumentName(u), Storage.JSON_EXT);
+            Uri n = getNextFile(getStoragePath(), getName(u), Storage.JSON_EXT);
             InputStream is;
             OutputStream os;
             String s = u.getScheme();

@@ -554,28 +554,17 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                         }
                         if (item.getItemId() == R.id.action_open) {
                             String ext = storage.getExt(b.url);
-                            String t = Storage.getTitle(b.info) + "." + ext;
-                            String type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
-                            Uri uri = StorageProvider.getProvider().share(b.url, t);
-                            Intent intent = new Intent(Intent.ACTION_VIEW);
-                            intent.setDataAndType(uri, type);
-                            FileProvider.grantPermissions(getContext(), intent, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                            startActivity(intent);
+                            String n = Storage.getTitle(b.info) + "." + ext;
+                            Intent open = StorageProvider.getProvider().openIntent(b.url, n);
+                            startActivity(open);
                         }
                         if (item.getItemId() == R.id.action_share) {
                             String ext = storage.getExt(b.url);
                             String t = Storage.getTitle(b.info) + "." + ext;
                             String name = storage.getName(b.url);
                             String type = Storage.getTypeByName(name);
-                            Uri uri = StorageProvider.getProvider().share(b.url, t);
-                            Intent intent = new Intent(Intent.ACTION_SEND);
-                            intent.setType(type);
-                            intent.putExtra(Intent.EXTRA_EMAIL, "");
-                            intent.putExtra(Intent.EXTRA_SUBJECT, t);
-                            intent.putExtra(Intent.EXTRA_TEXT, getString(R.string.shared_via, getString(R.string.app_name)));
-                            intent.putExtra(Intent.EXTRA_STREAM, uri);
-                            FileProvider.grantPermissions(getContext(), intent, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                            startActivity(intent);
+                            Intent share = StorageProvider.getProvider().shareIntent(b.url, t, type, name);
+                            startActivity(share);
                         }
                         if (item.getItemId() == R.id.action_delete) {
                             AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
