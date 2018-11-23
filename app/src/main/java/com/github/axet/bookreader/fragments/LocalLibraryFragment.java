@@ -3,15 +3,14 @@ package com.github.axet.bookreader.fragments;
 import android.annotation.TargetApi;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.provider.DocumentsContract;
-import android.support.annotation.Nullable;
+import android.support.annotation.NonNull;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.GridLayoutManager;
@@ -24,14 +23,15 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.github.axet.androidlibrary.crypto.MD5;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
+import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.androidlibrary.widgets.SearchView;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.activities.MainActivity;
@@ -42,7 +42,6 @@ import com.github.axet.bookreader.widgets.BrowserDialogFragment;
 
 import org.apache.commons.io.IOUtils;
 import org.geometerplus.android.util.UIUtil;
-import org.geometerplus.fbreader.network.tree.NetworkItemsLoader;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -64,6 +63,8 @@ import java.util.TreeMap;
 public class LocalLibraryFragment extends Fragment implements MainActivity.SearchListener {
     public static final String TAG = LocalLibraryFragment.class.getSimpleName();
 
+    public static final int RESULT_PERMS = 1;
+
     LibraryFragment.FragmentHolder holder;
     LocalLibraryAdapter books;
     Storage storage;
@@ -77,14 +78,60 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             ActivityCompat.invalidateOptionsMenu(getActivity());
         }
     };
+    Uri calcRoot;
+    int calcIndex;
+    ArrayList<Uri> calc = new ArrayList<>();
+    Runnable calcRun = new Runnable() {
+        Snackbar old;
 
-    public static String getDisplayName(Uri u) {
-        String p = Storage.getDocumentPath(u);
+        @Override
+        public void run() {
+            if (calcIndex < calc.size()) {
+                Uri u = calc.get(calcIndex);
+                show(u);
+                walk(calcRoot, u);
+                calcIndex++;
+                handler.post(this);
+            } else {
+                Collections.sort(books.all, new ByCreated());
+                books.filter = null;
+                loadBooks();
+            }
+        }
+
+        void show(Uri u) {
+            if (old == null)
+                old = Snackbar.make(getActivity().findViewById(android.R.id.content), "", Snackbar.LENGTH_SHORT);
+            old.setText(storage.getDisplayName(u));
+            old.show();
+        }
+    };
+
+    public static String getPath(Context context, Uri uri) { // display purpose
+        String s = uri.getScheme();
+        if (s.startsWith(ContentResolver.SCHEME_CONTENT)) {
+            return Storage.getDocumentPath(context, uri);
+        } else if (s.startsWith(ContentResolver.SCHEME_FILE)) {
+            File f = Storage.getFile(uri);
+            return f.getPath();
+        } else {
+            throw new Storage.UnknownUri();
+        }
+    }
+
+    public static String getDisplayName(Context context, Uri u) {
+        String p = getPath(context, u);
         return ".../" + new File(p).getName();
     }
 
-    public static class ByCreated implements Comparator<Item> {
+    public static class FilesFirst implements Comparator<Storage.Node> {
+        @Override
+        public int compare(Storage.Node o1, Storage.Node o2) {
+            return Boolean.valueOf(o1.dir).compareTo(o2.dir);
+        }
+    }
 
+    public static class ByCreated implements Comparator<Item> {
         @Override
         public int compare(Item o1, Item o2) {
             if (o1 instanceof Folder && o2 instanceof Folder) {
@@ -103,7 +150,6 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                 return r;
             return b1.url.getLastPathSegment().compareTo(b2.url.getLastPathSegment());
         }
-
     }
 
     public interface Item {
@@ -159,36 +205,39 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             return holder.layout;
         }
 
-        public void load() {
-            Uri u = Uri.parse(n.url);
-            load(u);
-            books.filter = null;
+        public InputStream open(Uri uri) throws IOException {
+            String s = uri.getScheme();
+            if (s.equals(ContentResolver.SCHEME_FILE)) {
+                File f = Storage.getFile(uri);
+                return new FileInputStream(f);
+            } else if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
+                ContentResolver resolver = getContext().getContentResolver();
+                return resolver.openInputStream(uri);
+            } else {
+                throw new Storage.UnknownUri();
+            }
         }
 
-        void load(File f) {
-            load(f, f);
-        }
-
-        Folder getFolder(File root, File f) {
-            String p = root.getPath();
-            String n = f.getPath();
-            if (n.startsWith(p))
-                n = n.substring(p.length());
-            File m = new File(n);
+        Folder getFolder(Uri root, Uri u) {
+            File m;
+            String s = root.getScheme();
+            if (s.equals(ContentResolver.SCHEME_FILE)) {
+                int r = root.getPath().length();
+                File f = Storage.getFile(u);
+                String n = f.getPath();
+                n = n.substring(r);
+                m = new File(n);
+            } else if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
+                m = new File(storage.buildDocumentPath(root, u));
+            } else {
+                throw new Storage.UnknownUri();
+            }
             return getFolder(m.getParent());
         }
 
-        @TargetApi(21)
-        Folder getFolder(Uri root, Uri u) {
-            String p = DocumentsContract.getTreeDocumentId(root);
-            String f = DocumentsContract.getDocumentId(u);
-            if (f.startsWith(p))
-                f = f.substring(p.length());
-            File n = new File(f);
-            return getFolder(n.getParent());
-        }
-
         Folder getFolder(String s) {
+            if (s == null)
+                s = OpenFileDialog.ROOT;
             Folder m = folders.get(s);
             if (m != null)
                 return m;
@@ -199,104 +248,10 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             return m;
         }
 
-        void load(File root, File f) {
-            File[] ff = f.listFiles();
-            if (ff != null) {
-                for (File k : ff) {
-                    if (k.isDirectory()) {
-                        load(root, k);
-                    } else {
-                        String ext = Storage.getExt(k).toLowerCase(Locale.US);
-                        Storage.Detector[] dd = Storage.supported();
-                        for (Storage.Detector d : dd) {
-                            if (ext.equals(d.ext)) {
-                                books.all.add(new Book(getFolder(root, k), k));
-                                break;
-                            }
-                        }
-                        if (ext.equals(Storage.ZIP_EXT)) {
-                            try {
-                                InputStream is = new FileInputStream(k);
-                                Storage.detecting(storage, dd, is, null, Uri.fromFile(k));
-                            } catch (IOException | NoSuchAlgorithmException e) {
-                                throw new RuntimeException(e);
-                            }
-                            for (Storage.Detector d : dd) {
-                                if (d.detected) {
-                                    Book book = new Book(getFolder(root, k), k);
-                                    book.ext = d.ext;
-                                    books.all.add(book);
-                                    break; // priority first - more imporant
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        @TargetApi(21)
-        void load(Uri u, Uri childrenUri) {
-            ContentResolver contentResolver = storage.getContext().getContentResolver();
-            Cursor childCursor = contentResolver.query(childrenUri, null, null, null, null);
-            if (childCursor != null) {
-                try {
-                    while (childCursor.moveToNext()) {
-                        String id = childCursor.getString(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID));
-                        String t = childCursor.getString(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME));
-                        String type = childCursor.getString(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE));
-                        long size = childCursor.getLong(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE));
-                        if (type != null && type.equals(DocumentsContract.Document.MIME_TYPE_DIR)) {
-                            Uri k = DocumentsContract.buildChildDocumentsUriUsingTree(u, id);
-                            load(u, k);
-                        } else if (size > 0) {
-                            Uri k = DocumentsContract.buildDocumentUriUsingTree(u, id);
-                            String ext = Storage.getExt(t).toLowerCase();
-                            Storage.Detector[] dd = Storage.supported();
-                            for (Storage.Detector d : dd) {
-                                if (ext.equals(d.ext)) {
-                                    books.all.add(new Book(getFolder(u, k), k));
-                                    break;
-                                }
-                            }
-                            if (ext.equals(Storage.ZIP_EXT)) {
-                                try {
-                                    InputStream is = contentResolver.openInputStream(k);
-                                    Storage.detecting(storage, dd, is, null, k);
-                                } catch (IOException | NoSuchAlgorithmException e) {
-                                    throw new RuntimeException(e);
-                                }
-                                for (Storage.Detector d : dd) {
-                                    if (d.detected) {
-                                        Book book = new Book(getFolder(u, k), k);
-                                        book.ext = d.ext;
-                                        books.all.add(book);
-                                        break; // priority first - more imporant
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } finally {
-                    childCursor.close();
-                }
-            }
-        }
-
-        void load(Uri u) {
+        void clear() {
             folders.clear();
             all.clear();
             clearTasks();
-            String s = u.getScheme();
-            if (Build.VERSION.SDK_INT >= 21 && s.startsWith(ContentResolver.SCHEME_CONTENT)) {
-                Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(u, DocumentsContract.getTreeDocumentId(u));
-                load(u, childrenUri);
-            } else if (s.startsWith(ContentResolver.SCHEME_FILE)) {
-                load(Storage.getFile(u));
-            } else {
-                throw new Storage.UnknownUri();
-            }
-            Collections.sort(all, new ByCreated());
         }
 
         public void refresh() {
@@ -313,7 +268,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                         if (b.info != null)
                             t = b.info.title;
                         if (t == null || t.isEmpty()) {
-                            t = getDisplayName(b.url);
+                            t = getDisplayName(getContext(), b.url);
                         }
                         if (SearchView.filter(filter, t)) {
                             if (!ff.contains(b.folder)) {
@@ -391,12 +346,12 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                 setText(h.aa, b.info.authors);
                 String t = b.info.title;
                 if (t == null || t.isEmpty()) {
-                    t = getDisplayName(b.url);
+                    t = getDisplayName(getContext(), b.url);
                 }
                 setText(h.tt, t);
             } else {
                 setText(h.aa, "");
-                setText(h.tt, getDisplayName(b.url));
+                setText(h.tt, getDisplayName(getContext(), b.url));
             }
 
             if (b.cover != null && b.cover.exists()) {
@@ -629,27 +584,69 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
     }
 
     @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-    }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-    }
-
-    @Override
     public void onDestroy() {
         super.onDestroy();
         books.clearTasks();
+        handler.removeCallbacks(calcRun);
         handler.removeCallbacksAndMessages(null);
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        books.load();
-        loadBooks();
+        loadCatalog();
+    }
+
+    void walk(Uri root, Uri uri) {
+        ArrayList<Storage.Node> nn = storage.walk(root, uri);
+        Collections.sort(nn, new FilesFirst());
+        for (Storage.Node n : nn) {
+            if (n.uri.equals(uri))
+                continue;
+            if (n.dir) {
+                calc.add(n.uri);
+            } else {
+                String ext = Storage.getExt(n.name).toLowerCase(Locale.US);
+                Storage.Detector[] dd = Storage.supported();
+                for (Storage.Detector d : dd) {
+                    if (ext.equals(d.ext)) {
+                        books.all.add(new Book(books.getFolder(root, n.uri), n.uri));
+                        break;
+                    }
+                }
+                if (ext.equals(Storage.ZIP_EXT)) {
+                    try {
+                        InputStream is = books.open(n.uri);
+                        Storage.detecting(storage, dd, is, null, n.uri);
+                        is.close();
+                    } catch (IOException | NoSuchAlgorithmException e) {
+                        throw new RuntimeException(e);
+                    }
+                    for (Storage.Detector d : dd) {
+                        if (d.detected) {
+                            Book book = new Book(books.getFolder(root, n.uri), n.uri);
+                            book.ext = d.ext;
+                            books.all.add(book);
+                            break; // priority first - more imporant
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    void loadCatalog() {
+        calcRoot = Uri.parse(n.url);
+        String s = calcRoot.getScheme();
+        if (s.equals(ContentResolver.SCHEME_FILE)) {
+            if (!Storage.permitted(LocalLibraryFragment.this, Storage.PERMISSIONS_RO, RESULT_PERMS))
+                return;
+        }
+        books.clear();
+        calc.clear();
+        calcIndex = 0;
+        calc.add(calcRoot);
+        calcRun.run();
     }
 
     @Override
@@ -727,5 +724,16 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
     @Override
     public String getHint() {
         return getString(R.string.search_local);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == RESULT_PERMS) {
+            if (Storage.permitted(getContext(), Storage.PERMISSIONS_RO))
+                loadCatalog();
+            else
+                Toast.makeText(getContext(), R.string.not_permitted, Toast.LENGTH_SHORT).show();
+        }
     }
 }
