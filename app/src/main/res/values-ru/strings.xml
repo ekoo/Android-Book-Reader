@@ -50,4 +50,6 @@
     <string name="per_second">/с</string>
     <string name="delete_bookmark">Удалить заметку</string>
     <string name="bookmarks">Заметки</string>
+    <string name="pref_volume_title">Volume Keys Turning</string>
+    <string name="pref_volume_summary">Use volume keys to turn pages</string>
 </resources>

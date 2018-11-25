@@ -28,16 +28,20 @@
     <string name="search_local">Local Search&#8230;</string>
     <string name="search_network">Network Search&#8230;</string>
     <string name="search_book">Book Search&#8230;</string>
-    <string name="pref_theme_title">Theme</string>
     <string name="more_books">Get more Books Catalogs from \'About\' menu</string>
-    <string name="pref_rotate_title">Rotate</string>
-    <string name="pref_rotate_summary">Allow screen rotate</string>
     <string name="from_local_folder">... from local folder</string>
     <string name="from_json_file">... from (.json) file</string>
     <string name="view_mode_continuous">Continuous View</string>
     <string name="view_mode_paging">Paging View</string>
+
+    <string name="pref_rotate_title">Rotate</string>
+    <string name="pref_rotate_summary">Allow screen rotate</string>
+    <string name="pref_theme_title">Theme</string>
     <string name="pref_storagepath_title">Sync Folder</string>
     <string name="pref_storagepath_summary">No \'Sync Folder\' selected</string>
+    <string name="pref_volume_title">Volume Keys Turning</string>
+    <string name="pref_volume_summary">Use volume keys to turn pages</string>
+
     <string name="continue_reading">Continue reading from:</string>
     <string name="sync_conflict">Sync conflict</string>
     <string name="view_mode">View Mode</string>
