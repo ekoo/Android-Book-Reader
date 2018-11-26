@@ -37,11 +37,9 @@ public class ImagesProvider extends StorageProvider {
         Uri f = find(uri);
         if (f == null)
             return null;
-
-        final String url = f.toString();
-        final String prefix = ZLFileImage.SCHEME + "://";
-        if (url.startsWith(prefix)) {
-            final String[] data = url.split("\000");
+        String s = f.getScheme();
+        if (s.equals(ZLFileImage.SCHEME)) {
+            final String[] data = f.toString().split("\000");
             int count = Integer.parseInt(data[2]);
             int[] offsets = new int[count];
             int[] lengths = new int[count];
