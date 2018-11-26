@@ -85,10 +85,7 @@ public class ImagesProvider extends StorageProvider {
 
         freeUris();
 
-        final String url = f.toString();
-        final String prefix = ZLFileImage.SCHEME + "://";
-
-        final ZLFileImage image = ZLFileImage.byUrlPath(url.substring(prefix.length()));
+        final ZLFileImage image = ZLFileImage.byUrlPath(f.getPath());
         if (image == null)
             throw new FileNotFoundException();
 
