@@ -21,6 +21,7 @@ import org.geometerplus.zlibrary.ui.android.image.ZLAndroidImageData;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
 
 public class ImagesProvider extends StorageProvider {
     public static String TAG = ImagesProvider.class.getSimpleName();
@@ -31,6 +32,21 @@ public class ImagesProvider extends StorageProvider {
         return (ImagesProvider) infos.get(ImagesProvider.class);
     }
 
+    public static long getImageSize(ZLFileImage image) {
+        try {
+            Class klass = image.getClass();
+            Field f = klass.getDeclaredField("myLengths");
+            f.setAccessible(true);
+            int[] aa = (int[]) f.get(image);
+            int c = 0;
+            for (int a : aa)
+                c += a;
+            return c;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Nullable
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
@@ -39,14 +55,7 @@ public class ImagesProvider extends StorageProvider {
             return null;
         String s = f.getScheme();
         if (s.equals(ZLFileImage.SCHEME)) {
-            final String[] data = f.toString().split("\000");
-            int count = Integer.parseInt(data[2]);
-            int[] offsets = new int[count];
-            int[] lengths = new int[count];
-            for (int i = 0; i < count; ++i) {
-                offsets[i] = Integer.parseInt(data[3 + i]);
-                lengths[i] = Integer.parseInt(data[3 + count + i]);
-            }
+            final ZLFileImage image = ZLFileImage.byUrlPath(f.getPath());
 
             if (projection == null)
                 projection = FileProvider.COLUMNS;
@@ -63,7 +72,7 @@ public class ImagesProvider extends StorageProvider {
                     values[i++] = uri.getLastPathSegment(); // contains original name
                 } else if (OpenableColumns.SIZE.equals(col)) {
                     cols[i] = OpenableColumns.SIZE;
-                    values[i++] = lengths[0];
+                    values[i++] = getImageSize(image);
                 }
             }
 
