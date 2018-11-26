@@ -1,11 +1,16 @@
 package com.github.axet.bookreader.services;
 
+import android.content.res.AssetFileDescriptor;
+import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
+import android.provider.OpenableColumns;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.util.Log;
 
+import com.github.axet.androidlibrary.services.FileProvider;
 import com.github.axet.androidlibrary.services.StorageProvider;
 
 import org.geometerplus.zlibrary.core.image.ZLFileImage;
@@ -14,6 +19,8 @@ import org.geometerplus.zlibrary.core.image.ZLImageManager;
 import org.geometerplus.zlibrary.ui.android.image.ZLAndroidImageData;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.OutputStream;
 
 public class ImagesProvider extends StorageProvider {
     public static String TAG = ImagesProvider.class.getSimpleName();
@@ -22,6 +29,53 @@ public class ImagesProvider extends StorageProvider {
 
     public static ImagesProvider getProvider() {
         return (ImagesProvider) infos.get(ImagesProvider.class);
+    }
+
+    @Nullable
+    @Override
+    public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
+        Uri f = find(uri);
+        if (f == null)
+            return null;
+
+        final String url = f.toString();
+        final String prefix = ZLFileImage.SCHEME + "://";
+        if (url.startsWith(prefix)) {
+            final String[] data = url.split("\000");
+            int count = Integer.parseInt(data[2]);
+            int[] offsets = new int[count];
+            int[] lengths = new int[count];
+            for (int i = 0; i < count; ++i) {
+                offsets[i] = Integer.parseInt(data[3 + i]);
+                lengths[i] = Integer.parseInt(data[3 + count + i]);
+            }
+
+            if (projection == null)
+                projection = FileProvider.COLUMNS;
+
+            final MatrixCursor cursor = new MatrixCursor(projection, 1);
+
+            String[] cols = new String[projection.length];
+            Object[] values = new Object[projection.length];
+
+            int i = 0;
+            for (String col : projection) {
+                if (OpenableColumns.DISPLAY_NAME.equals(col)) {
+                    cols[i] = OpenableColumns.DISPLAY_NAME;
+                    values[i++] = uri.getLastPathSegment(); // contains original name
+                } else if (OpenableColumns.SIZE.equals(col)) {
+                    cols[i] = OpenableColumns.SIZE;
+                    values[i++] = lengths[0];
+                }
+            }
+
+            values = FileProvider.copyOf(values, i);
+
+            cursor.addRow(values);
+            return cursor;
+        } else {
+            return super.query(uri, projection, selection, selectionArgs, sortOrder);
+        }
     }
 
     @Nullable
@@ -41,28 +95,31 @@ public class ImagesProvider extends StorageProvider {
             throw new FileNotFoundException();
 
         try {
-            ParcelFileDescriptor pp[] = ParcelFileDescriptor.createPipe();
-            ParcelFileDescriptor r = pp[0];
-            final ParcelFileDescriptor w = pp[1];
             final ZLImageData imageData = ZLImageManager.Instance().getImageData(image);
             final Bitmap bm = ((ZLAndroidImageData) imageData).getFullSizeBitmap();
-            Thread thread = new Thread(new Runnable() {
+            return openInputStream(new InputStreamWriter() {
                 @Override
-                public void run() {
+                public void copy(OutputStream os) throws IOException {
                     try {
-                        ParcelFileDescriptor.AutoCloseOutputStream out = new ParcelFileDescriptor.AutoCloseOutputStream(w);
-                        bm.compress(Bitmap.CompressFormat.PNG, 100, out);
+                        bm.compress(Bitmap.CompressFormat.PNG, 100, os);
                         bm.recycle();
-                        out.close();
                     } catch (Throwable e) {
-                        Log.d(TAG, "extract file broken", e);
+                        throw new IOException(e);
                     }
                 }
-            }, "Extract Image Book");
-            thread.start();
-            return r;
+
+                @Override
+                public void close() throws IOException {
+                }
+            }, mode);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Nullable
+    @Override
+    public AssetFileDescriptor openAssetFile(@NonNull Uri uri, @NonNull String mode) throws FileNotFoundException {
+        return new AssetFileDescriptor(openFile(uri, mode), 0, AssetFileDescriptor.UNKNOWN_LENGTH);
     }
 }
