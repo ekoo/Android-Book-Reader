@@ -55,7 +55,6 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.net.HttpClient;
-import com.github.axet.androidlibrary.services.FileProvider;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
@@ -3470,26 +3469,17 @@ public class FBReaderView extends RelativeLayout {
                         public boolean onMenuItemClick(MenuItem item) {
                             switch (item.getItemId()) {
                                 case R.id.action_open: {
-                                    String t = image.ImageElement.Id;
-                                    String type = Storage.getTypeByExt(ImagesProvider.EXT);
-                                    Uri uri = ImagesProvider.getProvider().share(Uri.parse(image.ImageElement.URL), t);
-                                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                                    intent.setDataAndType(uri, type);
-                                    FileProvider.grantPermissions(getContext(), intent, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                                    String name = image.ImageElement.Id;
+                                    Uri uri = Uri.parse(image.ImageElement.URL);
+                                    Intent intent = ImagesProvider.getProvider().openIntent(uri, name);
                                     getContext().startActivity(intent);
                                     break;
                                 }
                                 case R.id.action_share: {
-                                    String t = image.ImageElement.Id;
+                                    String name = image.ImageElement.Id;
                                     String type = Storage.getTypeByExt(ImagesProvider.EXT);
-                                    Uri uri = ImagesProvider.getProvider().share(Uri.parse(image.ImageElement.URL), t);
-                                    Intent intent = new Intent(Intent.ACTION_SEND);
-                                    intent.setType(type);
-                                    intent.putExtra(Intent.EXTRA_EMAIL, "");
-                                    intent.putExtra(Intent.EXTRA_SUBJECT, Storage.getTitle(book.info) + " (" + t + ")");
-                                    intent.putExtra(Intent.EXTRA_TEXT, getContext().getString(R.string.shared_via, getContext().getString(R.string.app_name)));
-                                    intent.putExtra(Intent.EXTRA_STREAM, uri);
-                                    FileProvider.grantPermissions(getContext(), intent, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                                    Uri uri = Uri.parse(image.ImageElement.URL);
+                                    Intent intent = ImagesProvider.getProvider().shareIntent(uri, name, type, Storage.getTitle(book.info) + " (" + name + ")");
                                     getContext().startActivity(intent);
                                     break;
                                 }
