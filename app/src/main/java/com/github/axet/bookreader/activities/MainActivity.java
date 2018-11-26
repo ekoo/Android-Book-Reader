@@ -24,6 +24,7 @@ import android.support.v4.view.MenuItemCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.widget.AppCompatImageButton;
 import android.support.v7.widget.PopupMenu;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -33,7 +34,6 @@ import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -189,11 +189,6 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
     }
 
     @Override
-    protected void attachBaseContext(Context newBase) {
-        super.attachBaseContext(newBase);
-    }
-
-    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         storage = new Storage(this);
@@ -250,7 +245,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
             intent.putExtra("url", ct.getId());
             m.setIntent(intent);
             m.setIcon(R.drawable.ic_drag_handle_black_24dp);
-            ImageButton b = new ImageButton(this);
+            AppCompatImageButton b = new AppCompatImageButton(this);
             b.setColorFilter(accent);
             b.setImageResource(R.drawable.ic_delete_black_24dp);
             b.setOnClickListener(new View.OnClickListener() {
