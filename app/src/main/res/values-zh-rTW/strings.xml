@@ -53,8 +53,8 @@
     <string name="controls_prevpage">上一頁</string>
     <string name="controls_brightness">亮度</string>
     <string name="per_second">/s</string>
-    <string name="delete_bookmark">Delete bookmark</string>
-    <string name="bookmarks">Bookmarks</string>
-    <string name="pref_volume_title">Volume Keys Turning</string>
-    <string name="pref_volume_summary">Use volume keys to turn pages</string>
+    <string name="delete_bookmark">刪除書籤</string>
+    <string name="bookmarks">書籤</string>
+    <string name="pref_volume_title">音量鍵翻頁</string>
+    <string name="pref_volume_summary">使用音量鍵翻頁</string>
 </resources>
