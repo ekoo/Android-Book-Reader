@@ -1,5 +1,7 @@
 package com.github.axet.bookreader.app;
 
+import com.github.axet.androidlibrary.app.FileTypeDetector;
+import com.github.axet.androidlibrary.app.SuperUser;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 
 import org.apache.commons.io.output.StringBuilderWriter;
@@ -19,28 +21,6 @@ public class NetworkBooksCatalog extends BooksCatalog {
     public Map<String, String> home;
     public Map<String, Object> opds;
     public Map<String, String> tops;
-
-    public static class FileJSON extends Storage.FileTxt {
-        public FileJSON() {
-            super("json");
-        }
-
-        @Override
-        public void write(byte[] buf, int off, int len) {
-            super.write(buf, off, len);
-            if (done && !detected)
-                return;
-            int end = off + len;
-            for (int i = off; i < end; i++) {
-                int c = buf[i];
-                if (Character.isWhitespace(c))
-                    continue;
-                done = true;
-                detected = (c == '{' || c == '['); // first symbol after spaces ends
-                return;
-            }
-        }
-    }
 
     public NetworkBooksCatalog(JSONObject json) {
         load(json);
@@ -65,8 +45,8 @@ public class NetworkBooksCatalog extends BooksCatalog {
         try {
             StringBuilderWriter sw = new StringBuilderWriter();
             WriterOutputStream os = new WriterOutputStream(sw, Charset.defaultCharset());
-            FileJSON d = new FileJSON();
-            byte[] buf = new byte[Storage.BUF_SIZE];
+            FileTypeDetector.FileJSON d = new FileTypeDetector.FileJSON();
+            byte[] buf = new byte[SuperUser.BUF_SIZE];
             int len;
             while ((len = is.read(buf)) > 0) {
                 os.write(buf, 0, len);

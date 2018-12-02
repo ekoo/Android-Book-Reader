@@ -5,8 +5,11 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.os.ParcelFileDescriptor;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
+import com.github.axet.androidlibrary.services.StorageProvider;
 import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.bookreader.widgets.PluginPage;
 import com.github.axet.bookreader.widgets.PluginRect;
@@ -40,8 +43,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
@@ -78,21 +79,19 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
     }
 
     public static PluginRect getImageSize(InputStream is) {
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inJustDecodeBounds = true;
-        Rect outPadding = new Rect();
-        BitmapFactory.decodeStream(is, outPadding, options);
         try {
-            if (is instanceof ZipInputStream)
-                ((ZipInputStream) is).close(true);
-            else
-                is.close();
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = true;
+            Rect outPadding = new Rect();
+            BitmapFactory.decodeStream(is, outPadding, options);
+            is.close();
+            if (options.outWidth == -1 || options.outHeight == -1)
+                return null;
+            return new PluginRect(0, 0, options.outWidth, options.outHeight);
         } catch (IOException e) {
             Log.d(TAG, "unable to close is", e);
-        }
-        if (options.outWidth == -1 || options.outHeight == -1)
             return null;
-        return new PluginRect(0, 0, options.outWidth, options.outHeight);
+        }
     }
 
     public static String getRarFileName(FileHeader header) {
@@ -102,6 +101,29 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         if (header.getHostOS().equals(HostSystem.win32))
             s = s.replaceAll("\\\\", "/");
         return s;
+    }
+
+    public static class ZipInputStreamSafe extends InputStream {
+        ZipInputStream is;
+
+        public ZipInputStreamSafe(ZipInputStream is) {
+            this.is = is;
+        }
+
+        @Override
+        public int read() throws IOException {
+            return is.read();
+        }
+
+        @Override
+        public int read(@NonNull byte[] b, int off, int len) throws IOException {
+            return is.read(b, off, len);
+        }
+
+        @Override
+        public void close() throws IOException {
+            is.close(true);
+        }
     }
 
     public static class ZipStore extends net.lingala.zip4j.core.NativeStorage {
@@ -268,16 +290,17 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
 
         public Bitmap render(int p, Bitmap.Config c) {
             ArchiveFile f = pages.get(p);
-            InputStream is = f.open();
-            BitmapFactory.Options op = new BitmapFactory.Options();
-            op.inPreferredConfig = c;
-            Bitmap bm = BitmapFactory.decodeStream(is, null, op);
             try {
+                InputStream is = f.open();
+                BitmapFactory.Options op = new BitmapFactory.Options();
+                op.inPreferredConfig = c;
+                Bitmap bm = BitmapFactory.decodeStream(is, null, op);
                 is.close();
+                return bm;
             } catch (IOException e) {
                 Log.d(TAG, "closing stream", e);
+                return null;
             }
-            return bm;
         }
 
         void load(FileDescriptor fd) {
@@ -322,7 +345,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
     public interface ArchiveFile {
         String getPath();
 
-        InputStream open();
+        InputStream open() throws IOException;
 
         void copy(OutputStream os);
 
@@ -447,8 +470,12 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
 
                         @Override
                         public PluginRect getRect() {
-                            if (r == null)
-                                r = getImageSize(open());
+                            try {
+                                if (r == null)
+                                    r = getImageSize(open());
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
                             return r;
                         }
 
@@ -458,27 +485,22 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
                         }
 
                         @Override
-                        public InputStream open() {
-                            try {
-                                final PipedInputStream is = new PipedInputStream();
-                                final PipedOutputStream os = new PipedOutputStream(is);
-                                Thread thread = new Thread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        try {
-                                            archive.extractFile(header, os);
-                                            os.flush();
-                                            os.close();
-                                        } catch (Throwable e) {
-                                            Log.d(TAG, "extract file broken", e);
-                                        }
+                        public InputStream open() throws IOException {
+                            return new ParcelFileDescriptor.AutoCloseInputStream(new StorageProvider.ParcelInputStream() {
+                                @Override
+                                public void copy(OutputStream os) throws IOException {
+                                    try {
+                                        archive.extractFile(header, os);
+                                    } catch (RarException e) {
+                                        throw new IOException(e);
                                     }
-                                }, "Write Archive File");
-                                thread.start();
-                                return is;
-                            } catch (Exception e) {
-                                throw new RuntimeException(e);
-                            }
+                                }
+
+                                @Override
+                                public long getStatSize() {
+                                    return header.getFullUnpackSize();
+                                }
+                            });
                         }
 
                         @Override
@@ -555,7 +577,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
                         @Override
                         public InputStream open() {
                             try {
-                                return zip.getInputStream(zipEntry);
+                                return new ZipInputStreamSafe(zip.getInputStream(zipEntry));
                             } catch (Exception e) {
                                 throw new RuntimeException(e);
                             }
