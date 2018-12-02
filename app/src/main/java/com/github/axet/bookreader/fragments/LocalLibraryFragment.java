@@ -28,6 +28,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.axet.androidlibrary.app.FileTypeDetector;
 import com.github.axet.androidlibrary.crypto.MD5;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
@@ -607,8 +608,8 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                 calc.add(n.uri);
             } else {
                 String ext = Storage.getExt(n.name).toLowerCase(Locale.US);
-                Storage.Detector[] dd = Storage.supported();
-                for (Storage.Detector d : dd) {
+                FileTypeDetector.Detector[] dd = Storage.supported();
+                for (FileTypeDetector.Detector d : dd) {
                     if (ext.equals(d.ext)) {
                         books.all.add(new Book(books.getFolder(root, n.uri), n.uri));
                         break;
@@ -617,12 +618,12 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                 if (ext.equals(Storage.ZIP_EXT)) {
                     try {
                         InputStream is = books.open(n.uri);
-                        Storage.detecting(storage, dd, is, null, n.uri);
+                        FileTypeDetector.detecting(getContext(), dd, is, null, n.uri);
                         is.close();
                     } catch (IOException | NoSuchAlgorithmException e) {
                         throw new RuntimeException(e);
                     }
-                    for (Storage.Detector d : dd) {
+                    for (FileTypeDetector.Detector d : dd) {
                         if (d.detected) {
                             Book book = new Book(books.getFolder(root, n.uri), n.uri);
                             book.ext = d.ext;
