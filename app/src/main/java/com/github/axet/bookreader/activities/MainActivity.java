@@ -38,6 +38,7 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.github.axet.androidlibrary.app.FileTypeDetector;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.OpenChoicer;
@@ -601,7 +602,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
                                 success.run();
                         }
                     });
-                } catch (Storage.DownloadInterrupted e) {
+                } catch (FileTypeDetector.DownloadInterrupted e) {
                     Log.d(TAG, "interrupted", e);
                 } catch (Exception e) {
                     Post(e);
