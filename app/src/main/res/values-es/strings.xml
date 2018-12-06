@@ -48,8 +48,8 @@
     <string name="controls_prevpage">Página siguiente</string>
     <string name="controls_brightness">Brillo</string>
     <string name="per_second">/s</string>
-    <string name="delete_bookmark">Delete bookmark</string>
-    <string name="bookmarks">Bookmarks</string>
-    <string name="pref_volume_title">Volume Keys Turning</string>
-    <string name="pref_volume_summary">Use volume keys to turn pages</string>
+    <string name="delete_bookmark">Borrar marcador</string>
+    <string name="bookmarks">Marcadores</string>
+    <string name="pref_volume_title">Desplazamiento con Teclas de volumen</string>
+    <string name="pref_volume_summary">Usa las teclas de volumen para pasar páginas</string>
 </resources>
