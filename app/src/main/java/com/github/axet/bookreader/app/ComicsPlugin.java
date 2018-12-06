@@ -37,14 +37,9 @@ import org.geometerplus.zlibrary.text.model.ZLTextParagraph;
 import org.geometerplus.zlibrary.ui.android.image.ZLBitmapImage;
 
 import java.io.File;
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -52,7 +47,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import de.innosystec.unrar.Archive;
-import de.innosystec.unrar.NativeFile;
+import de.innosystec.unrar.NativeStorage;
 import de.innosystec.unrar.exception.RarException;
 import de.innosystec.unrar.rarfile.FileHeader;
 import de.innosystec.unrar.rarfile.HostSystem;
@@ -126,142 +121,6 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class ZipStore extends net.lingala.zip4j.core.NativeStorage {
-        FileChannel fc;
-
-        public ZipStore(FileChannel fc) {
-            super((File) null);
-            this.fc = fc;
-        }
-
-        public net.lingala.zip4j.core.NativeFile read() throws FileNotFoundException {
-            return new ZipNativeFile(fc);
-        }
-
-        public net.lingala.zip4j.core.NativeFile write() throws FileNotFoundException {
-            throw new RuntimeException("not supported");
-        }
-
-        public net.lingala.zip4j.core.NativeStorage open(String name) {
-            throw new RuntimeException("not supported");
-        }
-
-        public boolean exists() {
-            return true;
-        }
-
-        public boolean canRead() {
-            return true;
-        }
-
-        public boolean canWrite() {
-            return false;
-        }
-
-        public boolean isHidden() {
-            return false;
-        }
-
-        public net.lingala.zip4j.core.NativeStorage getParent() {
-            throw new RuntimeException("not supported");
-        }
-
-        public String getName() {
-            throw new RuntimeException("not supported");
-        }
-
-        public boolean isDirectory() {
-            return false;
-        }
-
-        public long lastModified() {
-            throw new RuntimeException("not supported");
-        }
-
-        public long length() {
-            try {
-                return fc.size();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public boolean renameTo(net.lingala.zip4j.core.NativeStorage f) {
-            throw new RuntimeException("not supported");
-        }
-
-        public void setLastModified(long l) {
-            throw new RuntimeException("not supported");
-        }
-
-        public void setReadOnly() {
-            throw new RuntimeException("not supported");
-        }
-
-        public boolean mkdirs() {
-            throw new RuntimeException("not supported");
-        }
-
-        public boolean delete() {
-            throw new RuntimeException("not supported");
-        }
-
-        public net.lingala.zip4j.core.NativeStorage[] listFiles() {
-            throw new RuntimeException("not supported");
-        }
-
-        public String getPath() {
-            throw new RuntimeException("not supported");
-        }
-
-        public String getRelPath(net.lingala.zip4j.core.NativeStorage child) {
-            throw new RuntimeException("not supported");
-        }
-    }
-
-    public static class RarStore extends de.innosystec.unrar.NativeStorage {
-        FileChannel fc;
-
-        public RarStore(FileChannel fc) {
-            super((File) null);
-            this.fc = fc;
-        }
-
-        @Override
-        public NativeFile read() throws FileNotFoundException {
-            return new RarFile(fc);
-        }
-
-        @Override
-        public de.innosystec.unrar.NativeStorage open(String name) {
-            throw new RuntimeException("not supported");
-        }
-
-        @Override
-        public boolean exists() {
-            return true;
-        }
-
-        @Override
-        public de.innosystec.unrar.NativeStorage getParent() {
-            throw new RuntimeException("not supported");
-        }
-
-        @Override
-        public long length() {
-            try {
-                return fc.size();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public String getPath() {
-            throw new RuntimeException("not supported");
-        }
-    }
-
     public static class ArchiveToc {
         public int level;
         public String name;
@@ -303,15 +162,15 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
             }
         }
 
-        void load(FileDescriptor fd) {
-            pages = list(fd);
+        void load(File file) {
+            pages = list(file);
             if (pages.size() == 0)
                 throw new RuntimeException("no comics found!");
             Collections.sort(pages, new SortByName());
             loadTOC();
         }
 
-        ArrayList<ArchiveFile> list(FileDescriptor fd) {
+        ArrayList<ArchiveFile> list(File file) {
             return null;
         }
 
@@ -347,119 +206,25 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
 
         InputStream open() throws IOException;
 
-        void copy(OutputStream os);
+        void copy(OutputStream os) throws IOException;
 
         long getLength();
 
         PluginRect getRect();
     }
 
-    public static class RarFile extends NativeFile {
-        FileChannel fc;
-
-        public RarFile(FileChannel fc) {
-            this.fc = fc;
-        }
-
-        public void setPosition(long s) throws IOException {
-            fc.position(s);
-        }
-
-        public int read() throws IOException {
-            ByteBuffer bb = ByteBuffer.allocate(1);
-            fc.read(bb);
-            bb.flip();
-            return bb.getInt();
-        }
-
-        public int readFully(byte[] buf, int len) throws IOException {
-            ByteBuffer bb = ByteBuffer.allocate(len);
-            fc.read(bb);
-            bb.flip();
-            ByteBuffer.wrap(buf).put(bb);
-            return len;
-        }
-
-        public int read(byte[] buf, int off, int len) throws IOException {
-            ByteBuffer bb = ByteBuffer.allocate(len);
-            fc.read(bb);
-            bb.flip();
-            ByteBuffer.wrap(buf, off, len).put(bb);
-            return len;
-        }
-
-        public long getPosition() throws IOException {
-            return fc.position();
-        }
-
-        public void close() throws IOException {
-            fc.close();
-        }
-    }
-
-    public static class ZipNativeFile extends net.lingala.zip4j.core.NativeFile {
-        FileChannel fc;
-
-        public ZipNativeFile(FileChannel fc) {
-            this.fc = fc;
-        }
-
-        public long length() throws IOException {
-            return fc.size();
-        }
-
-        public void seek(long s) throws IOException {
-            fc.position(s);
-        }
-
-        public void readFully(byte[] buf, int off, int len) throws IOException {
-            read(buf, off, len);
-        }
-
-        public int read(byte[] buf) throws IOException {
-            ByteBuffer bb = ByteBuffer.wrap(buf);
-            int l = fc.read(bb);
-            bb.flip();
-            return l;
-        }
-
-        public int read(byte[] buf, int off, int len) throws IOException {
-            ByteBuffer bb = ByteBuffer.wrap(buf, off, len);
-            fc.read(bb);
-            bb.flip();
-            return len;
-        }
-
-        public long getFilePointer() throws IOException {
-            return fc.position();
-        }
-
-        public void close() throws IOException {
-        }
-
-        public void write(byte[] buf) throws IOException {
-            throw new RuntimeException("not supported");
-        }
-
-        public void write(byte[] b, int off, int len) throws IOException {
-            throw new RuntimeException("not supported");
-        }
-    }
-
     public static class RarDecoder extends Decoder {
         ArrayList<Archive> aa = new ArrayList<>();
 
-        public RarDecoder(FileDescriptor fd) {
-            load(fd);
+        public RarDecoder(File file) {
+            load(file);
         }
 
         @Override
-        public ArrayList<ArchiveFile> list(FileDescriptor fd) {
+        public ArrayList<ArchiveFile> list(File file) {
             try {
                 ArrayList<ArchiveFile> ff = new ArrayList<>();
-                final FileInputStream fis = new FileInputStream(fd);
-                final FileChannel fc = fis.getChannel();
-                final Archive archive = new Archive(new RarStore(fc));
+                final Archive archive = new Archive(new NativeStorage(file));
                 List<FileHeader> list = archive.getFileHeaders();
                 for (FileHeader h : list) {
                     if (h.isDirectory())
@@ -504,11 +269,11 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
                         }
 
                         @Override
-                        public void copy(OutputStream os) {
+                        public void copy(OutputStream os) throws IOException {
                             try {
                                 archive.extractFile(header, os);
                             } catch (RarException e) {
-                                throw new RuntimeException(e);
+                                throw new IOException(e);
                             }
                         }
 
@@ -529,9 +294,8 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         @Override
         public void clear() {
             try {
-                for (Archive a : aa) {
+                for (Archive a : aa)
                     a.close();
-                }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -542,17 +306,15 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
     public static class ZipDecoder extends Decoder {
         ArrayList<ZipFile> aa = new ArrayList<>();
 
-        public ZipDecoder(FileDescriptor fd) {
-            load(fd);
+        public ZipDecoder(File file) {
+            load(file);
         }
 
         @Override
-        public ArrayList<ArchiveFile> list(FileDescriptor fd) {
+        public ArrayList<ArchiveFile> list(File file) {
             try {
-                final FileInputStream fis = new FileInputStream(fd);
-                final FileChannel fc = fis.getChannel();
                 ArrayList<ArchiveFile> ff = new ArrayList<>();
-                final ZipFile zip = new ZipFile(new ZipStore(fc));
+                final ZipFile zip = new ZipFile(new net.lingala.zip4j.core.NativeStorage(file));
                 aa.add(zip);
                 List list = zip.getFileHeaders();
                 for (Object o : list) {
@@ -663,20 +425,14 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
     public static class ComicsView extends PluginView {
         public Decoder doc;
         Paint paint = new Paint();
-        FileInputStream is;
 
         public ComicsView(ZLFile f) {
-            try {
-                File ff = new File(f.getPath());
-                is = new FileInputStream(ff);
-                if (ff.toString().toLowerCase().endsWith(EXTZ))
-                    doc = new ZipDecoder(is.getFD());
-                if (ff.toString().toLowerCase().endsWith(EXTR))
-                    doc = new RarDecoder(is.getFD());
-                current = new ComicsPage(doc);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            File file = new File(f.getPath());
+            if (file.getPath().toLowerCase().endsWith("." + EXTZ))
+                doc = new ZipDecoder(file);
+            if (file.getPath().toLowerCase().endsWith("." + EXTR))
+                doc = new RarDecoder(file);
+            current = new ComicsPage(doc);
         }
 
         @Override
@@ -722,7 +478,6 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         protected void finalize() throws Throwable {
             super.finalize();
             doc.close();
-            is.close();
         }
 
         @Override

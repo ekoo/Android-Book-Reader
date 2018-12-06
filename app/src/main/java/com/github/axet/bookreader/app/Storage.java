@@ -68,7 +68,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.net.HttpURLConnection;
-import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -81,6 +80,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import de.innosystec.unrar.Archive;
+import de.innosystec.unrar.NativeStorage;
 import de.innosystec.unrar.rarfile.FileHeader;
 
 public class Storage extends com.github.axet.androidlibrary.app.Storage {
@@ -815,11 +815,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 throw new RuntimeException("Unsupported format");
 
             if (book.ext.equals(ComicsPlugin.EXTR)) { // handling cbz solid archives
-                final FileInputStream fis = new FileInputStream(file);
-                final FileChannel fc = fis.getChannel();
                 File cbz = null;
                 try {
-                    final Archive archive = new Archive(new ComicsPlugin.RarStore(fc));
+                    final Archive archive = new Archive(new NativeStorage(file));
                     if (archive.getMainHeader().isSolid()) {
                         cbz = createTempBook("tmp");
                         OutputStream zos = new FileOutputStream(cbz);

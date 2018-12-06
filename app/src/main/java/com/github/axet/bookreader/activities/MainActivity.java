@@ -39,6 +39,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.app.FileTypeDetector;
+import com.github.axet.androidlibrary.app.SuperUser;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.OpenChoicer;
@@ -103,21 +104,12 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         }
     };
 
-    public static String toString(Throwable e) {
-        while (e.getCause() != null)
-            e = e.getCause();
-        String msg = e.getMessage();
-        if (msg == null || msg.isEmpty())
-            msg = e.getClass().getSimpleName();
-        return msg;
-    }
-
     public void Post(final Throwable e) {
         Log.e(TAG, "Error", e);
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Error(MainActivity.toString(e));
+                Error(SuperUser.toMessage(e));
             }
         });
     }
@@ -133,7 +125,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
 
     public void Error(Throwable e) {
         Log.e(TAG, "Error", e);
-        Error(toString(e));
+        Error(SuperUser.toMessage(e));
     }
 
     public void Error(String msg) {
