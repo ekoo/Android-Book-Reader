@@ -24,6 +24,7 @@ import android.widget.TextView;
 import com.github.axet.androidlibrary.crypto.MD5;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
+import com.github.axet.androidlibrary.widgets.ErrorDialog;
 import com.github.axet.androidlibrary.widgets.SearchView;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
@@ -381,7 +382,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                         }
                     });
                 } catch (Exception e) {
-                    main.Post(e);
+                    ErrorDialog.Post(main, e);
                 }
             }
         }, getContext());
@@ -469,7 +470,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                         }
                     });
                 } catch (Exception e) {
-                    main.Post(e);
+                    ErrorDialog.Post(main, e);
                 }
             }
         }, getContext());
@@ -527,7 +528,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                 }
                             });
                         } catch (Exception e) {
-                            main.Post(e);
+                            ErrorDialog.Post(main, e);
                         }
                     }
                 }, getContext());
@@ -572,11 +573,11 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                                     return;
                                                 }
                                             }
-                                            main.Error("Empty Url");
+                                            ErrorDialog.Error(main, "Empty Url");
                                         }
                                     });
                                 } catch (Exception e) {
-                                    main.Post(e);
+                                    ErrorDialog.Post(main, e);
                                 }
                             }
                         }, getContext());
@@ -585,7 +586,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                         loadBook((NetworkBookTree) b);
                     }
                 } catch (RuntimeException e) {
-                    main.Error(e);
+                    ErrorDialog.Error(main, e);
                 }
             }
         });
@@ -631,7 +632,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                 }
                             });
                         } catch (Exception e) {
-                            main.Post(e);
+                            ErrorDialog.Post(main, e);
                         }
                     }
                 }, getContext());
@@ -702,7 +703,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                 book.info.title = Storage.getNameNoExt(uri.getLastPathSegment());
                         }
                         Uri r = storage.recentUri(book);
-                        if (!storage.exists(r))
+                        if (!Storage.exists(getContext(), r))
                             storage.save(book);
                         handler.post(new Runnable() {
                             @Override
@@ -711,7 +712,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                             }
                         });
                     } catch (Exception e) {
-                        main.Post(e);
+                        ErrorDialog.Post(main, e);
                     }
                 }
             }, getContext());
@@ -760,7 +761,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                             }
                         });
                     } catch (Exception e) {
-                        main.Post(e);
+                        ErrorDialog.Post(main, e);
                     }
                 }
             }, getContext());

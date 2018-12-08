@@ -1,7 +1,6 @@
 package com.github.axet.bookreader.app;
 
 import com.github.axet.androidlibrary.app.FileTypeDetector;
-import com.github.axet.androidlibrary.app.SuperUser;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 
 import org.apache.commons.io.output.StringBuilderWriter;
@@ -46,7 +45,7 @@ public class NetworkBooksCatalog extends BooksCatalog {
             StringBuilderWriter sw = new StringBuilderWriter();
             WriterOutputStream os = new WriterOutputStream(sw, Charset.defaultCharset());
             FileTypeDetector.FileJSON d = new FileTypeDetector.FileJSON();
-            byte[] buf = new byte[SuperUser.BUF_SIZE];
+            byte[] buf = new byte[FileTypeDetector.BUF_SIZE];
             int len;
             while ((len = is.read(buf)) > 0) {
                 os.write(buf, 0, len);

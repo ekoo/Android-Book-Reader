@@ -42,6 +42,7 @@ import com.github.axet.androidlibrary.app.FileTypeDetector;
 import com.github.axet.androidlibrary.app.SuperUser;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
+import com.github.axet.androidlibrary.widgets.ErrorDialog;
 import com.github.axet.androidlibrary.widgets.OpenChoicer;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.androidlibrary.widgets.SearchView;
@@ -98,47 +99,10 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
     BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(FBReaderView.ACTION_MENU)) {
+            if (intent.getAction().equals(FBReaderView.ACTION_MENU))
                 toggle();
-            }
         }
     };
-
-    public void Post(final Throwable e) {
-        Log.e(TAG, "Error", e);
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Error(SuperUser.toMessage(e));
-            }
-        });
-    }
-
-    public void Post(final String e) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Error(e);
-            }
-        });
-    }
-
-    public void Error(Throwable e) {
-        Log.e(TAG, "Error", e);
-        Error(SuperUser.toMessage(e));
-    }
-
-    public void Error(String msg) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Error");
-        builder.setMessage(msg);
-        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-            }
-        });
-        builder.show();
-    }
 
     public interface SearchListener {
         String getHint();
@@ -382,7 +346,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
                         reloadMenu();
                         openLibrary(ct);
                     } catch (Exception e) {
-                        Post(e);
+                        ErrorDialog.Post(MainActivity.this, e);
                     }
                 }
             };
@@ -403,7 +367,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
                         reloadMenu();
                         openLibrary(ct);
                     } catch (Exception e) {
-                        Post(e);
+                        ErrorDialog.Post(MainActivity.this, e);
                     }
                 }
             };
@@ -597,7 +561,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
                 } catch (FileTypeDetector.DownloadInterrupted e) {
                     Log.d(TAG, "interrupted", e);
                 } catch (Exception e) {
-                    Post(e);
+                    ErrorDialog.Post(MainActivity.this, e);
                 } finally {
                     runOnUiThread(new Runnable() {
                         @Override
@@ -638,7 +602,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
                         } catch (Exception e) {
                             Log.d(TAG, "unable to merge info", e);
                         }
-                        storage.delete(u);
+                        Storage.delete(MainActivity.this, u);
                     }
                     book.info.position = selected.get(0);
                     storage.save(book);

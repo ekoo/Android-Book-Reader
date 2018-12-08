@@ -548,15 +548,15 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                             d.show();
                         }
                         if (item.getItemId() == R.id.action_open) {
-                            String ext = storage.getExt(b.url);
+                            String ext = Storage.getExt(getContext(), b.url);
                             String n = Storage.getTitle(b.info) + "." + ext;
                             Intent open = StorageProvider.getProvider().openIntent(b.url, n);
                             startActivity(open);
                         }
                         if (item.getItemId() == R.id.action_share) {
-                            String ext = storage.getExt(b.url);
+                            String ext = Storage.getExt(getContext(), b.url);
                             String t = Storage.getTitle(b.info) + "." + ext;
-                            String name = storage.getName(b.url);
+                            String name = Storage.getName(getContext(), b.url);
                             String type = Storage.getTypeByName(name);
                             Intent share = StorageProvider.getProvider().shareIntent(b.url, t, type, name);
                             startActivity(share);

@@ -57,6 +57,7 @@ import android.widget.TextView;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
+import com.github.axet.androidlibrary.widgets.TopAlwaysSmoothScroller;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.ComicsPlugin;
@@ -1777,68 +1778,6 @@ public class FBReaderView extends RelativeLayout {
                 if (onFilter(e))
                     return true;
                 return false;
-            }
-        }
-
-        class TopSnappedSmoothScroller extends LinearSmoothScroller {
-            public TopSnappedSmoothScroller(Context context) {
-                super(context);
-            }
-
-            @Override
-            public PointF computeScrollVectorForPosition(int targetPosition) {
-                return lm.computeScrollVectorForPosition(targetPosition);
-            }
-
-            @Override
-            protected int getVerticalSnapPreference() {
-                return SNAP_TO_ANY;
-            }
-
-            @Override
-            public int calculateDtToFit(int viewStart, int viewEnd, int boxStart, int boxEnd, int
-                    snapPreference) {
-                switch (snapPreference) {
-                    case SNAP_TO_START:
-                        return boxStart - viewStart;
-                    case SNAP_TO_END:
-                        return boxEnd - viewEnd;
-                    case SNAP_TO_ANY:
-                        int dtBox = boxEnd - boxStart;
-                        int dtView = viewEnd - viewStart;
-                        if (dtBox < dtView) {
-                            return -viewStart;
-                        }
-                        final int dtStart = boxStart - viewStart;
-                        if (dtStart > 0) {
-                            return dtStart;
-                        }
-                        final int dtEnd = boxEnd - viewEnd;
-                        if (dtEnd < 0) {
-                            return dtEnd;
-                        }
-                        break;
-                    default:
-                        throw new IllegalArgumentException("snap preference should be one of the"
-                                + " constants defined in SmoothScroller, starting with SNAP_");
-                }
-                return 0;
-            }
-        }
-
-        class TopAlwaysSmoothScroller extends LinearSmoothScroller {
-            public TopAlwaysSmoothScroller(Context context) {
-                super(context);
-            }
-
-            @Override
-            public PointF computeScrollVectorForPosition(int targetPosition) {
-                return lm.computeScrollVectorForPosition(targetPosition);
-            }
-
-            @Override
-            protected int getVerticalSnapPreference() {
-                return SNAP_TO_START;
             }
         }
 
