@@ -198,11 +198,13 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
-    public static Intent createProcessText() {
+    public static Intent translateIntent(String text) {
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_PROCESS_TEXT);
-        intent.setType("text/plain");
-        intent.setPackage("com.google.android.apps.translate");
+        intent.setType(HttpClient.CONTENTTYPE_TEXT);
+        intent.setPackage("com.google.android.apps.translate"); // only known translator
+        intent.putExtra(Intent.EXTRA_PROCESS_TEXT, text);
+        intent.putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true);
         return intent;
     }
 
@@ -3058,7 +3060,7 @@ public class FBReaderView extends RelativeLayout {
                     super.createControlPanel(activity, root);
                     View t = myWindow.findViewById(org.geometerplus.zlibrary.ui.android.R.id.selection_panel_translate);
                     PackageManager packageManager = getContext().getPackageManager();
-                    List<ResolveInfo> rr = packageManager.queryIntentActivities(createProcessText(), 0);
+                    List<ResolveInfo> rr = packageManager.queryIntentActivities(translateIntent(null), 0);
                     if (rr.isEmpty())
                         t.setVisibility(View.GONE);
                     else
@@ -3600,9 +3602,7 @@ public class FBReaderView extends RelativeLayout {
                     text = snippet.getText();
                 }
 
-                Intent intent = createProcessText();
-                intent.putExtra(Intent.EXTRA_PROCESS_TEXT, text);
-                intent.putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true);
+                Intent intent = translateIntent(text);
                 getContext().startActivity(intent);
 
                 app.BookTextView.clearSelection();
