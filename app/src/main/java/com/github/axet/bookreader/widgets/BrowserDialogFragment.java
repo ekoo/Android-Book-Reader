@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.webkit.WebView;
 
 import com.github.axet.androidlibrary.net.HttpClient;
+import com.github.axet.androidlibrary.widgets.ErrorDialog;
 import com.github.axet.bookreader.activities.MainActivity;
 
 import cz.msebera.android.httpclient.client.config.CookieSpecs;
@@ -72,7 +73,6 @@ public class BrowserDialogFragment extends com.github.axet.androidlibrary.widget
 
     @Override
     public void onErrorMessage(String msg) {
-        ((MainActivity) getActivity()).Post(msg);
+        ErrorDialog.Post(getActivity(), msg);
     }
-
 }

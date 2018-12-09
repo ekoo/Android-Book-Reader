@@ -11,6 +11,7 @@ import android.widget.Toast;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.androidlibrary.widgets.OpenStorageChoicer;
 import com.github.axet.bookreader.R;
+import com.github.axet.bookreader.app.Storage;
 
 import java.io.File;
 
@@ -80,7 +81,7 @@ public class StoragePathPreferenceCompat extends com.github.axet.androidlibrary.
         Uri u = storage.getStoragePath(v);
         if (u != null) {
             setText(u.toString());
-            setSummary(storage.getDisplayName(u));
+            setSummary(Storage.getDisplayName(getContext(), u));
         }
     }
 

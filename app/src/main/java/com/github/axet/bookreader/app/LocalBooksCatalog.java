@@ -96,7 +96,7 @@ public class LocalBooksCatalog extends BooksCatalog {
     public String getDisplayName(Uri u) {
         String s = u.getScheme();
         if (s.equals(ContentResolver.SCHEME_CONTENT))
-            return storage.getDisplayName(u);
+            return Storage.getDisplayName(storage.getContext(), u);
         else
             return ".../" + u.getLastPathSegment();
     }

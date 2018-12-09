@@ -68,7 +68,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.net.HttpURLConnection;
-import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -81,6 +80,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import de.innosystec.unrar.Archive;
+import de.innosystec.unrar.NativeStorage;
 import de.innosystec.unrar.rarfile.FileHeader;
 
 public class Storage extends com.github.axet.androidlibrary.app.Storage {
@@ -212,7 +212,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
             String id = book.md5 + "." + JSON_EXT;
             Uri doc = DocumentsContract.buildDocumentUriUsingTree(Storage.getDocumentTreeUri(book.url), DocumentsContract.getTreeDocumentId(book.url));
-            return child(doc, id);
+            return child(context, doc, id);
         } else if (s.equals(ContentResolver.SCHEME_FILE)) {
             return Uri.fromFile(recentFile(book));
         } else {
@@ -612,7 +612,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         String s = u.getScheme();
         if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
             Uri root = Storage.getDocumentTreeUri(u);
-            Uri o = createFile(root, Storage.getDocumentChildPath(u));
+            Uri o = createFile(context, root, Storage.getDocumentChildPath(u));
             ContentResolver resolver = context.getContentResolver();
             ParcelFileDescriptor fd;
             try {
@@ -723,7 +723,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             }
         }
         Uri r = recentUri(book);
-        if (exists(r)) {
+        if (exists(context, r)) {
             try {
                 book.info = new RecentInfo(context, r);
             } catch (RuntimeException e) {
@@ -741,7 +741,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             else
                 book.info.title = Storage.getNameNoExt(uri.getLastPathSegment());
         }
-        if (!exists(r))
+        if (!exists(context, r))
             save(book);
         return book;
     }
@@ -767,7 +767,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (ss.equals(ContentResolver.SCHEME_CONTENT) && DocumentsContract.getDocumentId(u).startsWith(DocumentsContract.getTreeDocumentId(storage))) // else we can't get from content://storage to real path
                 return new Book(context, DocumentsContract.buildDocumentUriUsingTree(storage, DocumentsContract.getDocumentId(u)));
         }
-        if (s.equals(ContentResolver.SCHEME_FILE) && u.getPath().startsWith(storage.getPath()))
+        if (s.equals(ContentResolver.SCHEME_FILE) && relative(storage.getPath(), u.getPath())!=null)
             return new Book(context, u);
 
         boolean tmp = false;
@@ -815,11 +815,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 throw new RuntimeException("Unsupported format");
 
             if (book.ext.equals(ComicsPlugin.EXTR)) { // handling cbz solid archives
-                final FileInputStream fis = new FileInputStream(file);
-                final FileChannel fc = fis.getChannel();
                 File cbz = null;
                 try {
-                    final Archive archive = new Archive(new ComicsPlugin.RarStore(fc));
+                    final Archive archive = new Archive(new NativeStorage(file));
                     if (archive.getMainHeader().isSolid()) {
                         cbz = createTempBook("tmp");
                         OutputStream zos = new FileOutputStream(cbz);
@@ -861,12 +859,12 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         String e = Storage.getExt(t);
                         if (n.equals(book.md5) && !e.equals(JSON_EXT)) { // delete all but json
                             Uri k = DocumentsContract.buildDocumentUriUsingTree(childrenUri, id);
-                            delete(k);
+                            delete(context, k);
                         }
                     }
                 }
                 String id = book.md5 + "." + book.ext;
-                Uri o = createFile(storage, id);
+                Uri o = createFile(context, storage, id);
                 ContentResolver resolver = context.getContentResolver();
 
                 ParcelFileDescriptor fd = resolver.openFileDescriptor(o, "rw");
@@ -933,7 +931,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public void load(Book book) {
         if (book.info == null) {
             Uri r = recentUri(book);
-            if (exists(r))
+            if (exists(context, r))
                 try {
                     book.info = new RecentInfo(context, r);
                 } catch (RuntimeException e) {
@@ -1071,7 +1069,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         Uri uri = getStoragePath();
         ArrayList<Book> list = new ArrayList<>();
         String s = uri.getScheme();
-        if (Build.VERSION.SDK_INT >= 21 && s.startsWith(ContentResolver.SCHEME_CONTENT)) {
+        if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
             ContentResolver contentResolver = context.getContentResolver();
             Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri));
             Cursor childCursor = contentResolver.query(childrenUri, null, null, null, null);
@@ -1091,13 +1089,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                                 if (t.endsWith("." + d.ext)) {
                                     Uri k = DocumentsContract.buildDocumentUriUsingTree(uri, id);
                                     Book b = new Book();
-                                    b.md5 = getNameNoExt(k);
+                                    b.md5 = getNameNoExt(context, k);
                                     b.url = k;
                                     File cover = coverFile(context, b);
                                     if (cover.exists())
                                         b.cover = cover;
                                     Uri r = recentUri(b);
-                                    if (exists(r)) {
+                                    if (exists(context, r)) {
                                         try {
                                             b.info = new RecentInfo(context, r);
                                         } catch (RuntimeException e) {
@@ -1118,7 +1116,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     childCursor.close();
                 }
             }
-        } else if (s.startsWith(ContentResolver.SCHEME_FILE)) {
+        } else if (s.equals(ContentResolver.SCHEME_FILE)) {
             File dir = getFile(uri);
             list(list, dir);
         } else {
@@ -1128,11 +1126,11 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     }
 
     public void delete(final Book book) {
-        delete(book.url);
+        delete(context, book.url);
         if (book.cover != null)
             book.cover.delete();
 
-        delete(recentUri(book));
+        delete(context, recentUri(book));
 
         // delete all md5.* files (old, cover images, and sync conflicts files)
         Uri storage = getStoragePath();
@@ -1148,7 +1146,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         String t = childCursor.getString(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME));
                         if (t.startsWith(book.md5)) { // delete all but json
                             Uri k = DocumentsContract.buildDocumentUriUsingTree(storage, id);
-                            delete(k);
+                            delete(context, k);
                         }
                     }
                 } finally {
@@ -1183,7 +1181,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
             String s = b.url.getScheme();
             if (s.equals(ContentResolver.SCHEME_CONTENT)) {
-                String ext = getExt(b.url);
+                String ext = getExt(context, b.url);
                 fbook.tmp = createTempBook(ext);
                 OutputStream os = new FileOutputStream(fbook.tmp);
                 os = new BufferedOutputStream(os);
@@ -1336,20 +1334,20 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
             }
             if (m)
-                migrate(f, path);
+                migrate(context, f, path);
         }
     }
 
     public Uri move(Uri u, Uri dir) {
         try {
-            Uri n = getNextFile(getStoragePath(), getName(u), Storage.JSON_EXT);
+            Uri n = getNextFile(context, getStoragePath(), getName(context, u), Storage.JSON_EXT);
             InputStream is;
             OutputStream os;
             String s = u.getScheme();
             if (Build.VERSION.SDK_INT >= 21 && s.startsWith(ContentResolver.SCHEME_CONTENT)) {
                 ContentResolver resolver = getContext().getContentResolver();
                 is = resolver.openInputStream(u);
-                n = createFile(dir, Storage.getDocumentChildPath(n));
+                n = createFile(context, dir, Storage.getDocumentChildPath(n));
                 os = resolver.openOutputStream(n);
             } else if (s.startsWith(ContentResolver.SCHEME_FILE)) {
                 is = new FileInputStream(Storage.getFile(u));
@@ -1361,7 +1359,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             IOUtils.copy(is, os);
             is.close();
             os.close();
-            delete(u);
+            delete(context, u);
             return n;
         } catch (IOException e) {
             throw new RuntimeException(e);

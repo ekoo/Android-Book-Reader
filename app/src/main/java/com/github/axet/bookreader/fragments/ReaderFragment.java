@@ -39,6 +39,7 @@ import android.widget.PopupWindow;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.github.axet.androidlibrary.widgets.ErrorDialog;
 import com.github.axet.androidlibrary.widgets.PopupWindowCompat;
 import com.github.axet.androidlibrary.widgets.ScreenlockPreference;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
@@ -560,7 +561,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             if (pos != null)
                 view.gotoPosition(pos);
         } catch (RuntimeException e) {
-            main.Error(e);
+            ErrorDialog.Error(main, e);
             main.openLibrary();
         }
 
@@ -786,7 +787,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         Storage.RecentInfo save = new Storage.RecentInfo(view.book.info);
         save.position = view.getPosition();
         Uri u = storage.recentUri(book);
-        if (storage.exists(u)) { // file can be changed during sync, check for conflicts
+        if (Storage.exists(getContext(), u)) { // file can be changed during sync, check for conflicts
             try {
                 Storage.RecentInfo info = new Storage.RecentInfo(getContext(), u);
                 if (info.position != null && save.position.samePositionAs(info.position)) {
