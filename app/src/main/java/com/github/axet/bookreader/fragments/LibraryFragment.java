@@ -558,7 +558,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                             String t = Storage.getTitle(b.info) + "." + ext;
                             String name = Storage.getName(getContext(), b.url);
                             String type = Storage.getTypeByName(name);
-                            Intent share = StorageProvider.getProvider().shareIntent(b.url, t, type, name);
+                            Intent share = StorageProvider.getProvider().shareIntent(b.url, t, type, t);
                             startActivity(share);
                         }
                         if (item.getItemId() == R.id.action_delete) {
