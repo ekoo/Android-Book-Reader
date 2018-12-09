@@ -10,12 +10,13 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -32,7 +33,6 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.LinearSmoothScroller;
 import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
@@ -83,7 +83,6 @@ import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.bookmodel.FBHyperlinkType;
 import org.geometerplus.fbreader.bookmodel.TOCTree;
 import org.geometerplus.fbreader.fbreader.ActionCode;
-import org.geometerplus.fbreader.fbreader.DictionaryHighlighting;
 import org.geometerplus.fbreader.fbreader.FBAction;
 import org.geometerplus.fbreader.fbreader.FBView;
 import org.geometerplus.fbreader.fbreader.options.ColorProfile;
@@ -197,6 +196,14 @@ public class FBReaderView extends RelativeLayout {
         } else {
             p.removeView(areas);
         }
+    }
+
+    public static Intent createProcessText() {
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_PROCESS_TEXT);
+        intent.setType("text/plain");
+        intent.setPackage("com.google.android.apps.translate");
+        return intent;
     }
 
     public static Rect findUnion(List<ZLTextElementArea> areas, Storage.Bookmark bm) {
@@ -3050,7 +3057,12 @@ public class FBReaderView extends RelativeLayout {
                 public void createControlPanel(Activity activity, RelativeLayout root) {
                     super.createControlPanel(activity, root);
                     View t = myWindow.findViewById(org.geometerplus.zlibrary.ui.android.R.id.selection_panel_translate);
-                    t.setVisibility(View.GONE);
+                    PackageManager packageManager = getContext().getPackageManager();
+                    List<ResolveInfo> rr = packageManager.queryIntentActivities(createProcessText(), 0);
+                    if (rr.isEmpty())
+                        t.setVisibility(View.GONE);
+                    else
+                        t.setVisibility(View.VISIBLE);
                 }
             };
         }
@@ -3577,9 +3589,7 @@ public class FBReaderView extends RelativeLayout {
         app.addAction(ActionCode.SELECTION_TRANSLATE, new FBAction(app) {
             @Override
             protected void run(Object... params) {
-                final DictionaryHighlighting dictionaryHilite = DictionaryHighlighting.get(app.BookTextView);
-
-                String text;
+                final String text;
 
                 if (selection != null) {
                     text = selection.selection.getText();
@@ -3590,22 +3600,11 @@ public class FBReaderView extends RelativeLayout {
                     text = snippet.getText();
                 }
 
-                if (dictionaryHilite == null)
-                    return;
+                Intent intent = createProcessText();
+                intent.putExtra(Intent.EXTRA_PROCESS_TEXT, text);
+                intent.putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true);
+                getContext().startActivity(intent);
 
-                DictionaryUtil.openTextInDictionary(
-                        a,
-                        text,
-                        app.BookTextView.getCountOfSelectedWords() == 1,
-                        app.BookTextView.getSelectionStartY(),
-                        app.BookTextView.getSelectionEndY(),
-                        new Runnable() {
-                            public void run() {
-                                app.BookTextView.addHighlighting(dictionaryHilite);
-                                widget.repaint();
-                            }
-                        }
-                );
                 app.BookTextView.clearSelection();
                 selectionClose();
             }
