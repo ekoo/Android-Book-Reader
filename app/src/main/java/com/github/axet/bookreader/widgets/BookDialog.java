@@ -19,6 +19,8 @@ import org.geometerplus.android.fbreader.network.NetworkBookInfoActivity;
 
 public class BookDialog extends DialogFragment {
 
+    View v;
+
     public NetworkBookInfoActivity a = new NetworkBookInfoActivity() {
         @Override
         public WindowManager getWindowManager() {
@@ -41,8 +43,6 @@ public class BookDialog extends DialogFragment {
             return LayoutInflater.from(getApplicationContext());
         }
     };
-
-    View v;
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {

@@ -1251,42 +1251,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             return getStoragePath(path);
     }
 
-    public static void migrateLocalStorageDialog(final Context context, final Handler handler, final Storage storage) {
-        int dp10 = ThemeUtils.dp2px(context, 10);
-        ProgressBar progress = new ProgressBar(context);
-        progress.setIndeterminate(true);
-        progress.setPadding(dp10, dp10, dp10, dp10);
-        AlertDialog.Builder b = new AlertDialog.Builder(context);
-        b.setTitle("Migrating data");
-        b.setView(progress);
-        b.setCancelable(false);
-        final AlertDialog dialog = b.create();
-        final Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    storage.migrateLocalStorage();
-                } catch (final RuntimeException e) {
-                    Log.d(TAG, "migrate error", e);
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(context, e.getMessage(), Toast.LENGTH_LONG).show();
-                        }
-                    });
-                }
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        dialog.cancel();
-                    }
-                });
-            }
-        });
-        dialog.show();
-        thread.start();
-    }
-
+    @Override
     public void migrateLocalStorage() {
         migrateLocalStorage(getLocalInternal());
         migrateLocalStorage(getLocalExternal());
@@ -1344,12 +1309,12 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             InputStream is;
             OutputStream os;
             String s = u.getScheme();
-            if (Build.VERSION.SDK_INT >= 21 && s.startsWith(ContentResolver.SCHEME_CONTENT)) {
+            if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
                 ContentResolver resolver = getContext().getContentResolver();
                 is = resolver.openInputStream(u);
                 n = createFile(context, dir, Storage.getDocumentChildPath(n));
                 os = resolver.openOutputStream(n);
-            } else if (s.startsWith(ContentResolver.SCHEME_FILE)) {
+            } else if (s.equals(ContentResolver.SCHEME_FILE)) {
                 is = new FileInputStream(Storage.getFile(u));
                 os = new FileOutputStream(Storage.getFile(n));
                 os = new BufferedOutputStream(os);

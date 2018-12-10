@@ -5,16 +5,11 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.preference.PreferenceActivity;
-import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.v7.app.ActionBar;
-import android.support.v7.preference.ListPreference;
-import android.support.v7.preference.Preference;
 import android.support.v7.preference.PreferenceFragmentCompat;
 import android.view.MenuItem;
 
@@ -29,7 +24,7 @@ public class SettingsActivity extends AppCompatSettingsThemeActivity {
 
     public static final int RESULT_STORAGE = 1;
 
-    Handler handler = new Handler();
+    Storage storage;
 
     public static void startActivity(Context context) {
         Intent intent = new Intent(context, SettingsActivity.class);
@@ -54,6 +49,7 @@ public class SettingsActivity extends AppCompatSettingsThemeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        storage = new Storage(this);
         RotatePreferenceCompat.onCreate(this, BookApplication.PREFERENCE_ROTATE);
         setupActionBar();
         getSupportFragmentManager().beginTransaction().replace(android.R.id.content, new GeneralPreferenceFragment()).commit();
@@ -78,9 +74,8 @@ public class SettingsActivity extends AppCompatSettingsThemeActivity {
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         super.onSharedPreferenceChanged(sharedPreferences, key);
-        if (key.equals(BookApplication.PREFERENCE_STORAGE)) {
-            Storage.migrateLocalStorageDialog(this, handler, new Storage(this));
-        }
+        if (key.equals(BookApplication.PREFERENCE_STORAGE))
+            storage.migrateLocalStorageDialog(this);
     }
 
     /**
