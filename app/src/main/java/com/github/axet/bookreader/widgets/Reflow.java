@@ -185,8 +185,7 @@ public class Reflow {
                 index++;
                 pending = 0;
                 break;
-            case current:
-                index += -pending; // cancel
+            case current: // cancel
                 pending = 0;
                 if (count() == -1)
                     return;
