@@ -59,4 +59,5 @@
     <string name="per_second">/s</string>
     <string name="delete_bookmark">Delete bookmark</string>
     <string name="bookmarks">Bookmarks</string>
+    <string name="bookmark_edit">Edit</string>
 </resources>

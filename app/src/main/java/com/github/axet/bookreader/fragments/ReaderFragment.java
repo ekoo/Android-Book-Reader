@@ -844,6 +844,22 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 public void selected(Storage.Bookmark b) {
                     view.gotoPosition(new FBReaderView.ZLTextIndexPosition(b.start, b.end));
                 }
+
+                @Override
+                public void save(Storage.Bookmark bm) {
+                    view.bookmarksUpdate();
+                    savePosition();
+                }
+
+                @Override
+                public void delete(Storage.Bookmark bm) {
+                    int i = book.info.bookmarks.indexOf(bm);
+                    book.info.bookmarks.remove(i);
+                    i = view.book.info.bookmarks.indexOf(bm);
+                    view.book.info.bookmarks.remove(i);
+                    view.bookmarksUpdate();
+                    savePosition();
+                }
             };
             dialog.load(view.book.info.bookmarks);
             dialog.show();

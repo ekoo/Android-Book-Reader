@@ -2,15 +2,21 @@ package com.github.axet.bookreader.widgets;
 
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.widget.PopupMenu;
 import android.view.LayoutInflater;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.github.axet.androidlibrary.net.HttpClient;
+import com.github.axet.androidlibrary.widgets.OptimizationPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.TextMax;
 import com.github.axet.androidlibrary.widgets.TreeListView;
 import com.github.axet.androidlibrary.widgets.TreeRecyclerView;
@@ -63,8 +69,8 @@ public class BookmarksDialog extends AlertDialog.Builder {
 
         @Override
         public void onBindViewHolder(final BMHolder h, int position) {
-            TreeListView.TreeNode t = getItem(h.getAdapterPosition(this));
-            Storage.Bookmark tt = (Storage.Bookmark) t.tag;
+            final TreeListView.TreeNode t = getItem(h.getAdapterPosition(this));
+            final Storage.Bookmark tt = (Storage.Bookmark) t.tag;
             ImageView ex = (ImageView) h.itemView.findViewById(R.id.expand);
             if (t.nodes.isEmpty())
                 ex.setVisibility(View.INVISIBLE);
@@ -91,6 +97,90 @@ public class BookmarksDialog extends AlertDialog.Builder {
                     Storage.Bookmark n = (Storage.Bookmark) getItem(h.getAdapterPosition(BMAdapter.this)).tag;
                     selected(n);
                     dialog.dismiss();
+                }
+            });
+            h.itemView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    PopupMenu menu = new PopupMenu(getContext(), h.itemView);
+                    final MenuInflater inflater = new MenuInflater(getContext());
+                    inflater.inflate(R.menu.bookmark_menu, menu.getMenu());
+                    menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                        @Override
+                        public boolean onMenuItemClick(MenuItem item) {
+                            int id = item.getItemId();
+                            switch (id) {
+                                case R.id.action_edit:
+                                    BookmarkPopup popup = new BookmarkPopup(h.itemView, tt, new ArrayList<View>()) {
+                                        @Override
+                                        public void onDismiss() {
+                                            if (t.parent == root) {
+                                                save(tt);
+                                            } else {
+                                                Storage.Book b = (Storage.Book) t.parent.tag;
+                                                save(b, tt);
+                                            }
+                                            notifyDataSetChanged();
+                                        }
+                                    };
+                                    popup.show();
+                                    break;
+                                case R.id.action_open:
+                                    if (t.parent == root) {
+                                        save(tt);
+                                    } else {
+                                        Storage.Book b = (Storage.Book) t.parent.tag;
+                                        save(b, tt);
+                                    }
+                                    break;
+                                case R.id.action_share:
+                                    String subject;
+                                    String text;
+                                    if (t.parent == root) {
+                                        subject = tt.name;
+                                    } else {
+                                        Storage.Book b = (Storage.Book) t.parent.tag;
+                                        subject = Storage.getTitle(b.info);
+                                    }
+                                    text = tt.text + "\n\n" + tt.name;
+                                    Intent intent = new Intent(Intent.ACTION_SEND);
+                                    intent.setType(HttpClient.CONTENTTYPE_TEXT);
+                                    intent.putExtra(Intent.EXTRA_EMAIL, "");
+                                    intent.putExtra(Intent.EXTRA_SUBJECT, subject);
+                                    intent.putExtra(Intent.EXTRA_TEXT, text);
+                                    if (OptimizationPreferenceCompat.isCallable(getContext(), intent))
+                                        getContext().startActivity(intent);
+                                    break;
+                                case R.id.action_delete:
+                                    AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                                    builder.setTitle(R.string.delete_bookmark);
+                                    builder.setMessage(R.string.are_you_sure);
+                                    builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            if (t.parent == root) {
+                                                delete(tt);
+                                            } else {
+                                                Storage.Book b = (Storage.Book) t.parent.tag;
+                                                delete(b, tt);
+                                            }
+                                            items.remove(t);
+                                            notifyDataSetChanged();
+                                        }
+                                    });
+                                    builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                        }
+                                    });
+                                    builder.show();
+                                    break;
+                            }
+                            return true;
+                        }
+                    });
+                    menu.show();
+                    return false;
                 }
             });
         }
@@ -157,7 +247,7 @@ public class BookmarksDialog extends AlertDialog.Builder {
         tree = new TreeRecyclerView(getContext());
         tree.setAdapter(a);
         setView(tree);
-        setPositiveButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+        setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
             }
@@ -169,7 +259,7 @@ public class BookmarksDialog extends AlertDialog.Builder {
         tree = new TreeRecyclerView(getContext());
         tree.setAdapter(a);
         setView(tree);
-        setPositiveButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+        setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
             }
@@ -196,5 +286,17 @@ public class BookmarksDialog extends AlertDialog.Builder {
     }
 
     public void selected(Storage.Book book, Storage.Bookmark bm) {
+    }
+
+    public void save(Storage.Book book, Storage.Bookmark bm) {
+    }
+
+    public void save(Storage.Bookmark bm) {
+    }
+
+    public void delete(Storage.Book book, Storage.Bookmark bm) {
+    }
+
+    public void delete(Storage.Bookmark bm) {
     }
 }
