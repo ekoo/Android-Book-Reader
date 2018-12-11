@@ -8,7 +8,6 @@ import android.support.v7.app.AlertDialog;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -48,10 +47,10 @@ public class BookmarkPopup {
         };
         ll.setOrientation(LinearLayout.VERTICAL);
         final LinearLayout hh = new LinearLayout(getContext());
-        int dp24 = ThemeUtils.dp2px(getContext(), 24);
-        ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(dp24, dp24);
+        int dp5 = ThemeUtils.dp2px(getContext(), 5);
+        hh.setPadding(dp5, dp5, dp5, dp5);
+        int dp1 = ThemeUtils.dp2px(getContext(), 1);
         int dp2 = ThemeUtils.dp2px(getContext(), 2);
-        lp.setMargins(dp2, dp2, dp2, dp2);
         for (int c : colors) {
             final View color = inflater.inflate(R.layout.bm_color, null);
             ImageView image = (ImageView) color.findViewById(R.id.color);
@@ -65,9 +64,8 @@ public class BookmarkPopup {
                 public void onClick(View v) {
                     l.color = (int) color.getTag();
                     l.last = System.currentTimeMillis();
-                    for (View b : bmv) {
+                    for (View b : bmv)
                         b.setBackgroundColor(SelectionView.SELECTION_ALPHA << 24 | (l.color & 0xffffff));
-                    }
                     for (int i = 0; i < hh.getChildCount(); i++) {
                         View color = hh.getChildAt(i);
                         final ImageView check = (ImageView) color.findViewById(R.id.checkbox);
@@ -77,6 +75,8 @@ public class BookmarkPopup {
                     onSelect(l.color);
                 }
             });
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.setMargins(dp1, dp1, dp1, dp1);
             hh.addView(color, lp);
         }
         w = new PopupWindow();
@@ -104,6 +104,9 @@ public class BookmarkPopup {
                 builder.show();
             }
         });
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.gravity = Gravity.CENTER;
+        lp.setMargins(dp1, dp1, dp1, dp1);
         hh.addView(trash, lp);
         ll.addView(hh);
         ll.addView(name);

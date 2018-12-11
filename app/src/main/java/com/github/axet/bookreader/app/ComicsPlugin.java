@@ -61,6 +61,10 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
     public static boolean isImage(ArchiveFile a) {
         File f = new File(a.getPath());
         String e = Storage.getExt(f).toLowerCase();
+        return isImage(e);
+    }
+
+    public static boolean isImage(String e) {
         switch (e) {
             case "bmp":
             case "png":

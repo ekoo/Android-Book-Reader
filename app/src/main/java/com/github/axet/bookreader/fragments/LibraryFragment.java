@@ -664,6 +664,17 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                     MainActivity main = ((MainActivity) getActivity());
                     main.openBook(b.url, new FBReaderView.ZLTextIndexPosition(bm.start, bm.end));
                 }
+
+                @Override
+                public void save(Storage.Book book, Storage.Bookmark bm) {
+                    storage.save(book);
+                }
+
+                @Override
+                public void delete(Storage.Book book, Storage.Bookmark bm) {
+                    book.info.bookmarks.remove(bm);
+                    storage.save(book);
+                }
             };
             dialog.load(books.all);
             dialog.show();

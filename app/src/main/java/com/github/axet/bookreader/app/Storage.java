@@ -10,25 +10,20 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Handler;
 import android.os.ParcelFileDescriptor;
 import android.preference.PreferenceManager;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
-import android.support.v7.app.AlertDialog;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.github.axet.androidlibrary.app.AlarmManager;
 import com.github.axet.androidlibrary.app.FileTypeDetector;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
-import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.widgets.FBReaderView;
@@ -290,13 +285,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return a;
     }
 
-    public static class FileCbz extends FileTypeDetector.FileZip {
+    public static class FileCbz extends FileTypeDetector.FileZip { // we not treating all zip archives as comics, ext must be cbz
         public FileCbz() {
             super(ComicsPlugin.EXTZ);
         }
     }
 
-    public static class FileCbr extends FileTypeDetector.FileRar {
+    public static class FileCbr extends FileTypeDetector.FileRar { // we not treating all rar archives as comics, ext must be cbr
         public FileCbr() {
             super(ComicsPlugin.EXTR);
         }
@@ -581,6 +576,14 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             }
         }
 
+        public int indexOf(Bookmark b) {
+            for (int i = 0; i < size(); i++) {
+                if (get(i).equals(b))
+                    return i;
+            }
+            return -1;
+        }
+
         public ArrayList<Bookmark> getBookmarks(PluginView.Selection.Page page) {
             ArrayList<Bookmark> list = new ArrayList<>();
             for (Bookmark b : this) {
@@ -767,7 +770,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (ss.equals(ContentResolver.SCHEME_CONTENT) && DocumentsContract.getDocumentId(u).startsWith(DocumentsContract.getTreeDocumentId(storage))) // else we can't get from content://storage to real path
                 return new Book(context, DocumentsContract.buildDocumentUriUsingTree(storage, DocumentsContract.getDocumentId(u)));
         }
-        if (s.equals(ContentResolver.SCHEME_FILE) && relative(storage.getPath(), u.getPath())!=null)
+        if (s.equals(ContentResolver.SCHEME_FILE) && relative(storage.getPath(), u.getPath()) != null)
             return new Book(context, u);
 
         boolean tmp = false;
