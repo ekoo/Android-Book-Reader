@@ -4,9 +4,10 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Color;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.support.v4.graphics.ColorUtils;
 import android.util.Log;
 
 import com.github.axet.bookreader.app.Storage;
@@ -22,7 +23,6 @@ import org.geometerplus.zlibrary.text.view.ZLTextView;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Map;
 
 public class PluginView {
@@ -30,9 +30,16 @@ public class PluginView {
 
     public static final int RENDER_MIN = 512; // mininum screen width
 
+    public static final float[] NEGATIVE = {
+            -1.0f, 0, 0, 0, 255, // red
+            0, -1.0f, 0, 0, 255, // green
+            0, 0, -1.0f, 0, 255, // blue
+            0, 0, 0, 1.0f, 0  // alpha
+    };
+
     public Bitmap wallpaper;
     public int wallpaperColor;
-    public Paint paint = new Paint();
+    public Paint paint = new Paint(); // foreground / content color
     public PluginPage current;
     public boolean reflow = false;
     public boolean reflowDebug;
@@ -203,6 +210,10 @@ public class PluginView {
             if (wallpaper != null)
                 this.wallpaper = BitmapFactory.decodeStream(wallpaper.getInputStream());
             wallpaperColor = (0xff << 24) | app.BookTextView.getBackgroundColor().intValue();
+            if (ColorUtils.calculateLuminance(wallpaperColor) < 0.5f)
+                paint.setColorFilter(new ColorMatrixColorFilter(NEGATIVE));
+            else
+                paint.setColorFilter(null);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -519,7 +530,7 @@ public class PluginView {
                 if (reflower == null || reflower.bm == bm)
                     drawWallpaper(canvas); // we are about to draw original page, perapre bacgkournd
                 else
-                    canvas.drawColor(Color.WHITE); // prepare white
+                    canvas.drawColor(wallpaperColor); // prepare white
                 drawPage(canvas, w, h, bm);
                 bm.recycle();
                 return;

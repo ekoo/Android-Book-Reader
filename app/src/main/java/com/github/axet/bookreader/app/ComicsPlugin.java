@@ -3,7 +3,6 @@ package com.github.axet.bookreader.app;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.ParcelFileDescriptor;
 import android.support.annotation.NonNull;
@@ -424,7 +423,6 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
 
     public static class ComicsView extends PluginView {
         public Decoder doc;
-        Paint paint = new Paint();
 
         public ComicsView(ZLFile f) {
             File file = new File(f.getPath());
