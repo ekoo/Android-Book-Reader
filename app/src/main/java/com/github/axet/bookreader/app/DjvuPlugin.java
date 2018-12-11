@@ -2,7 +2,6 @@ package com.github.axet.bookreader.app;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Paint;
 import android.graphics.Rect;
 import android.util.SparseArray;
 
@@ -672,7 +671,6 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
     public static class DjvuView extends PluginView {
         public DjvuLibre doc;
-        Paint paint = new Paint();
         FileInputStream is;
 
         public DjvuView(ZLFile f) {
