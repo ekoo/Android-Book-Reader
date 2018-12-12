@@ -725,6 +725,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         battery.onReceive(getContext(), getContext().registerReceiver(battery, new IntentFilter(Intent.ACTION_BATTERY_CHANGED)));
 
         time.run();
+
+        updateTheme(); // MainActivity.restartActivity() not called while ReaderFragment active
     }
 
     @Override
@@ -902,14 +904,14 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             view.reset();
             updateToolbar();
         }
-        if (id == R.id.action_theme) {
-            if (view.pluginview != null)
-                view.pluginview.updateTheme();
-            view.repaint();
-            return true;
-        }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    public void updateTheme() {
+        if (view.pluginview != null)
+            view.pluginview.updateTheme();
+        view.repaint();
     }
 
     @Override
