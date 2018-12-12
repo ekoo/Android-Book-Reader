@@ -1222,8 +1222,8 @@ public class FBReaderView extends RelativeLayout {
                                     Bitmap bm = pluginview.reflower.render(c.start.getElementIndex());
                                     Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
                                     Rect dst = new Rect(app.BookTextView.getLeftMargin(), 0, app.BookTextView.getLeftMargin() + pluginview.reflower.rw, pluginview.reflower.h);
-                                    canvas.drawColor(pluginview.wallpaperColor);
-                                    canvas.drawBitmap(bm, src, dst, pluginview.paint);
+                                    canvas.drawColor(Color.WHITE); // cache color always white
+                                    canvas.drawBitmap(bm, src, dst, null); // cache paint always clean
                                     info = new Reflow.Info(pluginview.reflower, c.start.getElementIndex());
                                 } else { // empty source page?
                                     pluginview.drawWallpaper(canvas);
