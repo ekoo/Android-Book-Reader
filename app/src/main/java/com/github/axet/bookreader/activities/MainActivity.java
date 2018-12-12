@@ -436,16 +436,8 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
             String d = getString(R.string.Theme_Dark);
             edit.putString(BookApplication.PREFERENCE_THEME, t.equals(d) ? getString(R.string.Theme_Light) : d);
             edit.commit();
-            Fragment f = getCurrentFragment();
-            if (f instanceof ReaderFragment) {
-                invalidateOptionsMenu();
-            } else if (f instanceof NetworkLibraryFragment) {
-                restartActivity(((NetworkLibraryFragment) f).getUri());
-                return true;
-            } else if (f instanceof LibraryFragment) {
-                restartActivity();
-                return true;
-            }
+            restartActivity();
+            return true;
         }
 
         return super.onOptionsItemSelected(item);
@@ -914,6 +906,19 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         isRunning = true;
         RotatePreferenceCompat.onResume(this, BookApplication.PREFERENCE_ROTATE);
         CacheImagesAdapter.cacheClear(this);
+    }
+
+    @Override
+    public void restartActivity() {
+        Fragment f = getCurrentFragment();
+        if (f instanceof ReaderFragment) {
+            ((ReaderFragment) f).updateTheme();
+            invalidateOptionsMenu();
+        } else if (f instanceof NetworkLibraryFragment) {
+            restartActivity(((NetworkLibraryFragment) f).getUri());
+        } else if (f instanceof LibraryFragment) {
+            super.restartActivity();
+        }
     }
 
     public void restartActivity(String url) {
