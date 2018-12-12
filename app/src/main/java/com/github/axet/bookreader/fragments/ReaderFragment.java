@@ -902,6 +902,13 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             view.reset();
             updateToolbar();
         }
+        if (id == R.id.action_theme) {
+            if (view.pluginview != null)
+                view.pluginview.updateTheme();
+            view.repaint();
+            return true;
+        }
+
         return super.onOptionsItemSelected(item);
     }
 

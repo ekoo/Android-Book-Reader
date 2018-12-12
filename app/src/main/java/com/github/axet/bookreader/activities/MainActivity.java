@@ -39,7 +39,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.app.FileTypeDetector;
-import com.github.axet.androidlibrary.app.SuperUser;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.ErrorDialog;
@@ -71,6 +70,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -81,6 +81,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
     public static final String LIBRARY = "library";
     public static final String ADD_CATALOG = "add_catalog";
     public static final String SCHEME_CATALOG = "catalog";
+    public static final String VIEW_CATALOG = "VIEW_CATALOG";
 
     public static final int RESULT_FILE = 1;
     public static final int RESULT_ADD_CATALOG = 2;
@@ -143,6 +144,16 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
                 return v;
         }
         return null;
+    }
+
+    public static class ResourcesMap extends HashMap<String, String> {
+        public ResourcesMap(Context context, int k, int v) {
+            String[] kk = context.getResources().getStringArray(k);
+            String[] vv = context.getResources().getStringArray(v);
+            for (int i = 0; i < kk.length; i++) {
+                put(kk[i], vv[i]);
+            }
+        }
     }
 
     @Override
@@ -248,6 +259,8 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
                 }
             }
             super.onBackPressed();
+            if (fm.getBackStackEntryCount() == 0)
+                onResume(); // udpate theme if changed
         }
     }
 
@@ -256,6 +269,14 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         getMenuInflater().inflate(R.menu.main, menu);
 
         MenuItem searchMenu = menu.findItem(R.id.action_search);
+
+        final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
+        MenuItem theme = menu.findItem(R.id.action_theme);
+        String t = shared.getString(BookApplication.PREFERENCE_THEME, "");
+        String d = getString(R.string.Theme_Dark);
+        theme.setIcon(t.equals(d) ? R.drawable.ic_brightness_night_white_24dp : R.drawable.ic_brightness_day_white_24dp);
+        ResourcesMap map = new ResourcesMap(this, R.array.theme_value, R.array.theme_text);
+        theme.setTitle(map.get(getString(t.equals(d) ? R.string.Theme_Dark : R.string.Theme_Light)));
 
         final SearchView searchView = (SearchView) MenuItemCompat.getActionView(searchMenu);
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
@@ -409,6 +430,24 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
             choicer.show(old);
         }
 
+        if (id == R.id.action_theme) {
+            SharedPreferences.Editor edit = shared.edit();
+            String t = shared.getString(BookApplication.PREFERENCE_THEME, "");
+            String d = getString(R.string.Theme_Dark);
+            edit.putString(BookApplication.PREFERENCE_THEME, t.equals(d) ? getString(R.string.Theme_Light) : d);
+            edit.commit();
+            Fragment f = getCurrentFragment();
+            if (f instanceof ReaderFragment) {
+                invalidateOptionsMenu();
+            } else if (f instanceof NetworkLibraryFragment) {
+                restartActivity(((NetworkLibraryFragment) f).getUri());
+                return true;
+            } else if (f instanceof LibraryFragment) {
+                restartActivity();
+                return true;
+            }
+        }
+
         return super.onOptionsItemSelected(item);
     }
 
@@ -465,6 +504,10 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
             u = intent.getData();
         if (u == null)
             return;
+        if (a.equals(VIEW_CATALOG)) {
+            openLibrary(catalogs.find(u.toString()));
+            return;
+        }
         loadBook(u, null);
     }
 
@@ -616,7 +659,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
             View v = inflater.inflate(R.layout.recent, null);
 
             final FBReaderView r = (FBReaderView) v.findViewById(R.id.recent_fbview);
-            //r.config.setValue(r.app.ViewOptions.ScrollbarType, 0);
+            // r.config.setValue(r.app.ViewOptions.ScrollbarType, 0);
             r.config.setValue(r.app.MiscOptions.WordTappingAction, MiscOptions.WordTappingActionEnum.doNothing);
             r.config.setValue(r.app.ImageOptions.TapAction, ImageOptions.TapActionEnum.doNothing);
 
@@ -704,16 +747,25 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
     public void popBackStack(String tag, int flags) { // only pop existing TAG
         FragmentManager fm = getSupportFragmentManager();
         if (tag == null) {
-            fm.popBackStack(null, flags);
+            fm.popBackStackImmediate(null, flags);
             return;
         }
         for (int i = 0; i < fm.getBackStackEntryCount(); i++) {
             String n = fm.getBackStackEntryAt(i).getName();
             if (n != null && n.equals(tag)) {
-                fm.popBackStack(tag, flags);
+                fm.popBackStackImmediate(tag, flags);
                 return;
             }
         }
+    }
+
+    public Fragment getCurrentFragment() {
+        FragmentManager fm = getSupportFragmentManager();
+        int c = fm.getBackStackEntryCount();
+        if (c == 0)
+            return null;
+        String name = fm.getBackStackEntryAt(c - 1).getName();
+        return fm.findFragmentByTag(name);
     }
 
     public void openBook(Uri uri) {
@@ -727,8 +779,10 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
     }
 
     public void openLibrary() {
+        FragmentManager fm = getSupportFragmentManager();
         popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
         openFragment(libraryFragment, LibraryFragment.TAG).commit();
+        onResume(); // update theme if changed
     }
 
     public void openLibrary(BooksCatalog ct) {
@@ -859,5 +913,12 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         isRunning = true;
         RotatePreferenceCompat.onResume(this, BookApplication.PREFERENCE_ROTATE);
         CacheImagesAdapter.cacheClear(this);
+    }
+
+    public void restartActivity(String url) {
+        Uri uri = Uri.parse(url);
+        finish();
+        startActivity(new Intent(this, getClass()).setAction(VIEW_CATALOG).putExtra(Intent.EXTRA_STREAM, uri));
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
     }
 }

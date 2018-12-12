@@ -21,7 +21,6 @@ import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.RotatePreferenceCompat;
 
 public class SettingsActivity extends AppCompatSettingsThemeActivity {
-
     public static final int RESULT_STORAGE = 1;
 
     Storage storage;
@@ -29,11 +28,6 @@ public class SettingsActivity extends AppCompatSettingsThemeActivity {
     public static void startActivity(Context context) {
         Intent intent = new Intent(context, SettingsActivity.class);
         context.startActivity(intent);
-    }
-
-    @Override
-    protected void attachBaseContext(Context newBase) {
-        super.attachBaseContext(newBase);
     }
 
     @Override
@@ -55,20 +49,11 @@ public class SettingsActivity extends AppCompatSettingsThemeActivity {
         getSupportFragmentManager().beginTransaction().replace(android.R.id.content, new GeneralPreferenceFragment()).commit();
     }
 
-    /**
-     * Set up the {@link android.app.ActionBar}, if the API is available.
-     */
     private void setupActionBar() {
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
-            // Show the Up button in the action bar.
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
     }
 
     @Override
@@ -78,10 +63,6 @@ public class SettingsActivity extends AppCompatSettingsThemeActivity {
             storage.migrateLocalStorageDialog(this);
     }
 
-    /**
-     * This fragment shows general preferences only. It is used when the
-     * activity is showing a two-pane settings UI.
-     */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public static class GeneralPreferenceFragment extends PreferenceFragmentCompat {
         @Override

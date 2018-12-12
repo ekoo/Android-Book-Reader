@@ -671,9 +671,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
                 AssetFileDescriptor fd = resolver.openAssetFileDescriptor(uri, "r");
                 InputStream is = new AssetFileDescriptor.AutoCloseInputStream(fd);
-                long len = fd.getDeclaredLength();
-                if (len == AssetFileDescriptor.UNKNOWN_LENGTH)
-                    len = fd.getLength();
+                long len = fd.getLength();
                 is = new BufferedInputStream(is);
                 if (progress != null)
                     is = new ProgresInputstream(is, len, progress);
@@ -682,7 +680,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        } else if (s.startsWith(WebViewCustom.SCHEME_HTTP)) {
+        } else if (s.equals(WebViewCustom.SCHEME_HTTP)) {
             try {
                 InputStream is;
                 if (Build.VERSION.SDK_INT < 11) {

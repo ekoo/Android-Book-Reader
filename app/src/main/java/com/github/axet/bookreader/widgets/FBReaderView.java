@@ -1064,7 +1064,6 @@ public class FBReaderView extends RelativeLayout {
                 TextView progressText;
                 Bitmap bm; // cache bitmap
                 PageCursor cache; // cache cursor
-                Paint paint = new Paint(); // cache paint
 
                 ZLTextElementAreaVector text;
                 Reflow.Info info;
@@ -1314,7 +1313,7 @@ public class FBReaderView extends RelativeLayout {
                 void drawCache(Canvas draw) {
                     Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
                     Rect dst = new Rect(0, 0, getWidth(), getHeight());
-                    draw.drawBitmap(bm, src, dst, paint);
+                    draw.drawBitmap(bm, src, dst, pluginview.paint);
                 }
 
                 Canvas getCanvas(PageCursor c) {
@@ -1879,6 +1878,7 @@ public class FBReaderView extends RelativeLayout {
             return union;
         }
 
+        @Override
         public void reset() {
             postInvalidate();
         }
@@ -3952,6 +3952,16 @@ public class FBReaderView extends RelativeLayout {
             ((ScrollView) widget).adapter.reset();
             if (pluginview != null)
                 ((ScrollView) widget).updateOverlays();
+        } else {
+            widget.reset();
+            widget.repaint();
+        }
+    }
+
+    public void repaint() {
+        if (widget instanceof ScrollView) {
+            ((ScrollView) widget).requestLayout();
+            ((ScrollView) widget).reset();
         } else {
             widget.reset();
             widget.repaint();
