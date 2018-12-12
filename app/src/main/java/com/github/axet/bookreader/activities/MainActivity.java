@@ -759,13 +759,14 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         }
     }
 
+    @SuppressLint("RestrictedApi")
     public Fragment getCurrentFragment() {
         FragmentManager fm = getSupportFragmentManager();
-        int c = fm.getBackStackEntryCount();
-        if (c == 0)
-            return null;
-        String name = fm.getBackStackEntryAt(c - 1).getName();
-        return fm.findFragmentByTag(name);
+        for (Fragment f : fm.getFragments()) {
+            if (f.isVisible())
+                return f;
+        }
+        return null;
     }
 
     public void openBook(Uri uri) {
