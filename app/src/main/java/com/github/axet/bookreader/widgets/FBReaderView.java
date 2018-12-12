@@ -3958,9 +3958,11 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
-    public void repaint() {
+    public void updateTheme() {
+        if (pluginview != null)
+            pluginview.updateTheme();
         if (widget instanceof ScrollView) {
-            ((ScrollView) widget).requestLayout();
+            ((ScrollView) widget).requestLayout(); // repaint views
             ((ScrollView) widget).reset();
         } else {
             widget.reset();
