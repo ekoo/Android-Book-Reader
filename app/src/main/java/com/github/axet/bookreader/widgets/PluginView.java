@@ -204,11 +204,17 @@ public class PluginView {
     }
 
     public PluginView() {
+        updateTheme();
+    }
+
+    public void updateTheme() {
         try {
             org.geometerplus.fbreader.fbreader.FBReaderApp app = new org.geometerplus.fbreader.fbreader.FBReaderApp(null, new BookCollectionShadow());
             ZLFile wallpaper = app.BookTextView.getWallpaperFile();
             if (wallpaper != null)
                 this.wallpaper = BitmapFactory.decodeStream(wallpaper.getInputStream());
+            else
+                this.wallpaper = null;
             wallpaperColor = (0xff << 24) | app.BookTextView.getBackgroundColor().intValue();
             if (ColorUtils.calculateLuminance(wallpaperColor) < 0.5f)
                 paint.setColorFilter(new ColorMatrixColorFilter(NEGATIVE));

@@ -344,6 +344,10 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         }
     }
 
+    public String getUri() {
+        return getArguments().getString("url");
+    }
+
     public NetworkItemsLoader getCatalogItem(String url, String name) {
         UrlInfoCollection<UrlInfoWithDate> ii = new UrlInfoCollection<>();
         ii.addInfo(new UrlInfoWithDate(UrlInfo.Type.Catalog, url, MimeType.APP_ATOM_XML));
