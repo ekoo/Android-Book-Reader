@@ -755,7 +755,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
     public Fragment getCurrentFragment() {
         FragmentManager fm = getSupportFragmentManager();
         for (Fragment f : fm.getFragments()) {
-            if (f.isVisible())
+            if (f != null && f.isVisible())
                 return f;
         }
         return null;

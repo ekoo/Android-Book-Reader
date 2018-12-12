@@ -726,7 +726,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         time.run();
 
-        updateTheme(); // MainActivity.restartActivity() not called while ReaderFragment active
+        updateTheme(); // MainActivity.restartActivity() not called when double change while ReaderFragment active
     }
 
     @Override
@@ -909,9 +909,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     }
 
     public void updateTheme() {
-        if (view.pluginview != null)
-            view.pluginview.updateTheme();
-        view.repaint();
+        view.updateTheme();
     }
 
     @Override
