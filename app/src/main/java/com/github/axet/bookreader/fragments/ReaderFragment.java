@@ -937,6 +937,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         final MenuItem rtl = menu.findItem(R.id.action_rtl);
         MenuItem grid = menu.findItem(R.id.action_grid);
         MenuItem mode = menu.findItem(R.id.action_mode);
+        MenuItem theme = menu.findItem(R.id.action_theme);
 
         boolean search;
 
@@ -995,6 +996,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         rtl.setTitle(view.app.BookTextView.rtlMode ? "RTL" : "LTR");
         ((ToolbarButtonView) MenuItemCompat.getActionView(rtl)).text.setText(view.app.BookTextView.rtlMode ? "RTL" : "LTR");
         bookmarksMenu.setVisible(view.book.info.bookmarks != null && view.book.info.bookmarks.size() > 0);
+
+        if (view.pluginview instanceof ComicsPlugin.ComicsView)
+            theme.setVisible(false);
     }
 
     void showTOC() {
