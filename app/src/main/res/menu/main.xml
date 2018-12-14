@@ -39,7 +39,7 @@
         android:icon="@drawable/ic_format_size_white_24dp"
         android:title="Font Size"
         app:actionViewClass="com.github.axet.bookreader.widgets.ToolbarFontSizeView"
-        app:showAsAction="always" />
+        app:showAsAction="ifRoom" />
     <item
         android:id="@+id/action_reflow"
         android:icon="@drawable/ic_wrap_text_white_24dp"
