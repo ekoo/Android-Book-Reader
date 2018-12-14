@@ -906,9 +906,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             fontsList.scrollToPosition(fonts.selected);
             updateFontsize();
             View v = MenuItemCompat.getActionView(item);
-            if (v == null || !ViewCompat.isAttachedToWindow(v)) {
+            if (v == null || !ViewCompat.isAttachedToWindow(v))
                 v = getOverflowMenuButton(getActivity());
-            }
             PopupWindowCompat.showAsTooltip(popupWindow, v, Gravity.BOTTOM,
                     ThemeUtils.getThemeColor(getContext(), R.attr.colorButtonNormal), // v has overflow ThemedContext
                     ThemeUtils.dp2px(getContext(), 300));

@@ -53,4 +53,5 @@
     <string name="pref_volume_title">Desplazamiento con Teclas de volumen</string>
     <string name="pref_volume_summary">Usa las teclas de volumen para pasar páginas</string>
     <string name="bookmark_edit">Edit</string>
+    <string name="select_font">Font</string>
 </resources>
