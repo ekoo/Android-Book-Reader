@@ -70,6 +70,8 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -101,6 +103,33 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
             ActivityCompat.invalidateOptionsMenu(getActivity());
         }
     };
+
+    public static class MobileFirst implements Comparator<UrlInfo> {
+        public static String[] order = new String[]{"epub", "fb2", "mobi"};
+
+        public MobileFirst() {
+        }
+
+        Integer indexOf(MimeType m) {
+            for (int i = 0; i < order.length; i++) {
+                if (m.Name.contains(order[i]))
+                    return i;
+            }
+            return Integer.MAX_VALUE;
+        }
+
+        public int compare(MimeType m1, MimeType m2) {
+            return indexOf(m1).compareTo(indexOf(m2));
+        }
+
+        @Override
+        public int compare(UrlInfo o1, UrlInfo o2) {
+            int r = compare(o1.Mime, o2.Mime);
+            if (r != 0)
+                return r;
+            return 0;
+        }
+    }
 
     public class SearchCatalog {
         NetworkOperationData data;
@@ -601,6 +630,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         List<UrlInfo> ll = n.Book.getAllInfos(t);
         if (ll.size() == 0)
             return null;
+        Collections.sort(ll, new MobileFirst());
         return ll.get(0);
     }
 
