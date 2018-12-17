@@ -294,10 +294,8 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         public Uri getCover(int position) {
             FBTree b = list.get(position);
             ZLImage cover = b.getCover();
-            if (cover != null && cover instanceof NetworkImage) {
-                Uri u = Uri.parse(((NetworkImage) cover).Url);
-                return u;
-            }
+            if (cover instanceof NetworkImage)
+                return Uri.parse(((NetworkImage) cover).Url);
             return null;
         }
 
@@ -309,11 +307,10 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
 
             View convertView = h.itemView;
 
-            if (cover != null) {
+            if (cover != null)
                 downloadTask(cover, convertView);
-            } else {
+            else
                 downloadTaskUpdate(null, null, convertView);
-            }
         }
     }
 
