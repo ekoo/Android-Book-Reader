@@ -38,7 +38,6 @@ import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.BookDialog;
 import com.github.axet.bookreader.widgets.BrowserDialogFragment;
 
-import org.apache.commons.io.IOUtils;
 import org.geometerplus.android.util.UIUtil;
 import org.geometerplus.fbreader.network.INetworkLink;
 import org.geometerplus.fbreader.network.NetworkBookItem;
@@ -63,14 +62,13 @@ import org.geometerplus.fbreader.tree.FBTree;
 import org.geometerplus.zlibrary.core.image.ZLImage;
 import org.geometerplus.zlibrary.core.network.ZLNetworkContext;
 import org.geometerplus.zlibrary.core.network.ZLNetworkException;
+import org.geometerplus.zlibrary.core.network.ZLNetworkManager;
 import org.geometerplus.zlibrary.core.network.ZLNetworkRequest;
 import org.geometerplus.zlibrary.core.util.MimeType;
 import org.geometerplus.zlibrary.core.util.ZLNetworkUtil;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -346,6 +344,20 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         books = new NetworkLibraryAdapter();
         n = (NetworkBooksCatalog) catalogs.find(u);
         nc = new BooksCatalogs.NetworkContext(getContext());
+        ZLNetworkManager.Instance().setCredentialsCreator(new ZLNetworkManager.CredentialsCreator() {
+            @Override
+            protected void startAuthenticationDialog(String host, String area, String scheme, String username) {
+                final ZLNetworkManager.CredentialsCreator cred = this;
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        synchronized (cred) {
+                            cred.notifyAll();
+                        }
+                    }
+                });
+            }
+        });
 
         setHasOptionsMenu(true);
 
