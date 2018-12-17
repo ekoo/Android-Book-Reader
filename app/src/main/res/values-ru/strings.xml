@@ -53,5 +53,5 @@
     <string name="pref_volume_title">Кнопки громкости</string>
     <string name="pref_volume_summary">Использовать кнопки громкости для перелистывания страниц</string>
     <string name="bookmark_edit">Редактировать</string>
-    <string name="select_font">Шрифт</string>
+    <string name="book_font">Шрифт</string>
 </resources>
