@@ -1,5 +1,6 @@
 package com.github.axet.bookreader.fragments;
 
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -19,6 +20,7 @@ import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.MenuItemCompat;
+import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -121,6 +123,24 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             ActivityCompat.invalidateOptionsMenu(getActivity());
         }
     };
+
+    public static View getOverflowMenuButton(Activity a) {
+        return getOverflowMenuButton((ViewGroup) a.findViewById(R.id.toolbar));
+    }
+
+    public static View getOverflowMenuButton(ViewGroup p) {
+        for (int i = 0; i < p.getChildCount(); i++) {
+            View v = p.getChildAt(i);
+            if (v.getClass().getCanonicalName().contains("OverflowMenuButton"))
+                return v;
+            if (v instanceof ViewGroup) {
+                v = getOverflowMenuButton((ViewGroup) v);
+                if (v != null)
+                    return v;
+            }
+        }
+        return null;
+    }
 
     public static class FontView {
         public String name;
@@ -885,8 +905,11 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             fonts.select(view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
             fontsList.scrollToPosition(fonts.selected);
             updateFontsize();
-            PopupWindowCompat.showAsTooltip(popupWindow, MenuItemCompat.getActionView(item), Gravity.BOTTOM,
-                    ThemeUtils.getThemeColor(getContext(), R.attr.colorButtonNormal),
+            View v = MenuItemCompat.getActionView(item);
+            if (v == null || !ViewCompat.isAttachedToWindow(v))
+                v = getOverflowMenuButton(getActivity());
+            PopupWindowCompat.showAsTooltip(popupWindow, v, Gravity.BOTTOM,
+                    ThemeUtils.getThemeColor(getContext(), R.attr.colorButtonNormal), // v has overflow ThemedContext
                     ThemeUtils.dp2px(getContext(), 300));
         }
         if (id == R.id.action_rtl) {

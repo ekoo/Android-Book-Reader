@@ -12,6 +12,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.design.internal.NavigationMenuItemView;
@@ -153,6 +154,70 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
             for (int i = 0; i < kk.length; i++) {
                 put(kk[i], vv[i]);
             }
+        }
+    }
+
+    public static class ProgressDialog extends AlertDialog.Builder {
+        public Handler handler = new Handler();
+        public ProgressBar load;
+        public ProgressBar v;
+        public TextView text;
+        public Storage.Progress progress = new Storage.Progress() {
+            @Override
+            public void progress(final long bytes, final long total) {
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        ProgressDialog.this.progress(bytes, total);
+                    }
+                });
+            }
+        };
+
+        public ProgressDialog(Context context) {
+            super(context);
+            int dp10 = ThemeUtils.dp2px(context, 10);
+
+            final LinearLayout ll = new LinearLayout(context);
+            ll.setOrientation(LinearLayout.VERTICAL);
+            v = new ProgressBar(context);
+            v.setIndeterminate(true);
+            v.setPadding(dp10, dp10, dp10, dp10);
+            ll.addView(v);
+            load = new ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal);
+            load.setPadding(dp10, dp10, dp10, dp10);
+            load.setMax(100);
+            ll.addView(load);
+            text = new TextView(context);
+            text.setPadding(dp10, dp10, dp10, dp10);
+            ll.addView(text);
+            load.setVisibility(View.GONE);
+            text.setVisibility(View.GONE);
+
+            setTitle(R.string.loading_book);
+            setView(ll);
+            setCancelable(false);
+            setPositiveButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                }
+            });
+        }
+
+        public void progress(long bytes, long total) {
+            String str = BookApplication.formatSize(getContext(), bytes);
+            if (total > 0) {
+                str += " / " + BookApplication.formatSize(getContext(), total);
+                load.setProgress((int) (bytes * 100 / total));
+                load.setVisibility(View.VISIBLE);
+                v.setVisibility(View.GONE);
+            } else {
+                load.setVisibility(View.GONE);
+                v.setVisibility(View.VISIBLE);
+            }
+            str += String.format(" (%s%s)", BookApplication.formatSize(getContext(), progress.info.getCurrentSpeed()), getContext().getString(R.string.per_second));
+            text.setText(str);
+            text.setVisibility(View.VISIBLE);
         }
     }
 
@@ -504,35 +569,8 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
     }
 
     public void loadBook(final Uri u, final Runnable success) {
-        int dp10 = ThemeUtils.dp2px(this, 10);
-
-        final LinearLayout ll = new LinearLayout(this);
-        ll.setOrientation(LinearLayout.VERTICAL);
-        final ProgressBar v = new ProgressBar(this);
-        v.setIndeterminate(true);
-        v.setPadding(dp10, dp10, dp10, dp10);
-        ll.addView(v);
-        final ProgressBar load = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
-        load.setPadding(dp10, dp10, dp10, dp10);
-        load.setMax(100);
-        ll.addView(load);
-        final TextView text = new TextView(this);
-        text.setPadding(dp10, dp10, dp10, dp10);
-        ll.addView(text);
-        load.setVisibility(View.GONE);
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(R.string.loading_book);
-        builder.setView(ll);
-        builder.setCancelable(false);
-        builder.setPositiveButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-            }
-        });
+        final ProgressDialog builder = new ProgressDialog(this);
         final AlertDialog d = builder.create();
-        d.show();
-
         Thread thread = new Thread("load book") {
             @Override
             public void run() {
@@ -561,28 +599,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
                         });
                         return;
                     }
-                    final Storage.Book book = storage.load(u, new Storage.Progress() {
-                        @Override
-                        public void progress(final long bytes, final long total) {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    String str = BookApplication.formatSize(MainActivity.this, bytes);
-                                    if (total > 0) {
-                                        str += " / " + BookApplication.formatSize(MainActivity.this, total);
-                                        load.setProgress((int) (bytes * 100 / total));
-                                        load.setVisibility(View.VISIBLE);
-                                        v.setVisibility(View.GONE);
-                                    } else {
-                                        load.setVisibility(View.GONE);
-                                        v.setVisibility(View.VISIBLE);
-                                    }
-                                    str += String.format(" (%s%s)", BookApplication.formatSize(MainActivity.this, info.getCurrentSpeed()), getString(R.string.per_second));
-                                    text.setText(str);
-                                }
-                            });
-                        }
-                    });
+                    final Storage.Book book = storage.load(u, builder.progress);
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
