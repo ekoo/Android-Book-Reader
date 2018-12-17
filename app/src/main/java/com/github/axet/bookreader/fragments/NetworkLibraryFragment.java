@@ -653,14 +653,14 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                         Menu menu = w.getMenu();
                         for (UrlInfo u : ll) {
                             MenuItem add = menu.add(getString(R.string.book_open) + " '" + formatMime(u.Mime.Name) + "'");
-                            add.setIntent(new Intent().setDataAndType(Uri.parse(u.Url), u.Mime.Name));
+                            add.setIntent(new Intent(Intent.ACTION_VIEW).setDataAndType(Uri.parse(u.Url), u.Mime.Name));
                         }
                         w.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                             @Override
                             public boolean onMenuItemClick(MenuItem item) {
                                 Intent intent = item.getIntent();
                                 loadBook(new UrlInfo(UrlInfo.Type.Book, intent.getData().toString(), MimeType.get(intent.getType())));
-                                return false;
+                                return true;
                             }
                         });
                         w.show();
