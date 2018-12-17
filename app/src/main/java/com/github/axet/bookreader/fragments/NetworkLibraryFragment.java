@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AlertDialog;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -92,6 +93,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     NetworkItemsLoader def;
     ArrayList<Pattern> ignore;
     String useragent;
+    ArrayList<NetworkItemsLoader> toolbarItems = new ArrayList<>();
     Handler handler = new Handler();
     Runnable invalidateOptionsMenu = new Runnable() {
         @Override
@@ -99,8 +101,6 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
             ActivityCompat.invalidateOptionsMenu(getActivity());
         }
     };
-
-    ArrayList<NetworkItemsLoader> toolbarItems = new ArrayList<>();
 
     public class SearchCatalog {
         NetworkOperationData data;
@@ -161,9 +161,9 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     }
 
     public class NetworkLibraryAdapter extends LibraryFragment.BooksAdapter {
+        String filter;
         List<FBTree> all = new ArrayList<>();
         List<FBTree> list = new ArrayList<>();
-        String filter;
 
         public NetworkLibraryAdapter() {
             super(NetworkLibraryFragment.this.getContext(), NetworkLibraryFragment.this.holder);
@@ -646,11 +646,15 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         } else {
             final Uri uri = Uri.parse(u.Url);
             final String mimetype = u.Mime.toString(); // gutenberg fake mimetypes when it want to open browser
-            UIUtil.wait("loadingBook", new Runnable() {
+            final MainActivity.ProgressDialog builder = new MainActivity.ProgressDialog(getContext());
+            final AlertDialog d = builder.create();
+            d.show();
+            Thread t = new Thread("loading book") {
                 @Override
                 public void run() {
                     try {
                         String contentDisposition = null;
+                        long total;
                         InputStream is;
                         if (Build.VERSION.SDK_INT < 11) {
                             HttpURLConnection conn = HttpClient.openConnection(uri, useragent);
@@ -667,6 +671,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                 });
                                 return;
                             }
+                            total = conn.getContentLength();
                         } else {
                             HttpClient client = new HttpClient() {
                                 @Override
@@ -697,8 +702,10 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                 return;
                             }
                             is = new BufferedInputStream(w.getInputStream());
+                            total = w.contentLength;
                         }
-                        final Storage.Book book = storage.load(is, uri); // we have to download content first, then determine it type. not using load(uri)
+                        Storage.ProgresInputstream pis = new Storage.ProgresInputstream(is, total, builder.progress);
+                        final Storage.Book book = storage.load(pis, uri); // not using Storage.load(uri). we have to download content first, then determine it type.
                         storage.load(book);
                         if (book.info.title == null || book.info.title.isEmpty() || book.info.title.equals(book.md5)) {
                             if (contentDisposition != null && !contentDisposition.isEmpty())
@@ -717,9 +724,17 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                         });
                     } catch (Exception e) {
                         ErrorDialog.Post(main, e);
+                    } finally {
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                d.cancel();
+                            }
+                        });
                     }
                 }
-            }, getContext());
+            };
+            t.start();
         }
     }
 
