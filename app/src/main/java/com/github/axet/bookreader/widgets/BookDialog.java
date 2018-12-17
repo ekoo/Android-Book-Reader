@@ -19,6 +19,7 @@ import org.geometerplus.android.fbreader.network.NetworkBookInfoActivity;
 
 public class BookDialog extends DialogFragment {
 
+    AlertDialog d;
     View v;
 
     public NetworkBookInfoActivity a = new NetworkBookInfoActivity() {
@@ -46,7 +47,7 @@ public class BookDialog extends DialogFragment {
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        AlertDialog d = new AlertDialog.Builder(getActivity())
+        d = new AlertDialog.Builder(getActivity())
                 .setTitle(a.myBook.Title)
                 .setNeutralButton(getContext().getString(com.github.axet.androidlibrary.R.string.close),
                         new DialogInterface.OnClickListener() {
@@ -82,6 +83,13 @@ public class BookDialog extends DialogFragment {
         // a.setupButtons();
 
         return v;
+    }
+
+
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        d.setView(view); // with out setView api10 crash due to wrapping of child view
     }
 
     @Override
