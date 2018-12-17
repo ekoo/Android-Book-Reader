@@ -105,7 +105,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     };
 
     public static class MobileFirst implements Comparator<UrlInfo> {
-        public static String[] order = new String[]{"epub", "fb2", "mobi"};
+        public static String[] order = new String[]{"epub", "fb2", "x-fictionbook", "mobi", "x-mobipocket-ebook"};
 
         public MobileFirst() {
         }
