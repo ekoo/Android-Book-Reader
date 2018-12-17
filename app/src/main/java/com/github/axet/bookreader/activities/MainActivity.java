@@ -571,6 +571,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
     public void loadBook(final Uri u, final Runnable success) {
         final ProgressDialog builder = new ProgressDialog(this);
         final AlertDialog d = builder.create();
+        d.show();
         Thread thread = new Thread("load book") {
             @Override
             public void run() {

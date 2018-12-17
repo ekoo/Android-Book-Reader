@@ -10,6 +10,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.widget.PopupMenu;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -21,7 +22,6 @@ import android.widget.AdapterView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.crypto.MD5;
@@ -648,7 +648,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                 final FBTree b = books.getItem(position);
                 if (b instanceof NetworkBookTree) {
                     List<UrlInfo> ll = ((NetworkBookTree) b).Book.getAllInfos(UrlInfo.Type.Book);
-                    if (Build.VERSION.SDK_INT >= 11 && ll.size() > 1) {
+                    if (ll.size() > 1) {
                         PopupMenu w = new PopupMenu(getContext(), view);
                         Menu menu = w.getMenu();
                         for (UrlInfo u : ll) {
@@ -738,54 +738,36 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                     String contentDisposition = null;
                     long total;
                     InputStream is;
-                    if (Build.VERSION.SDK_INT < 11) {
-                        HttpURLConnection conn = HttpClient.openConnection(uri, useragent);
-                        is = conn.getInputStream();
-                        String wm = conn.getContentType();
-                        if (wm != null && mimetype != null && !wm.equals(mimetype) && wm.startsWith("text")) {
-                            final String html = IOUtils.toString(is, Charset.defaultCharset());
-                            handler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    BrowserDialogFragment b = BrowserDialogFragment.createHtml(uri.toString(), html);
-                                    b.show(getFragmentManager(), "");
-                                }
-                            });
-                            return;
+                    HttpClient client = new HttpClient() {
+                        @Override
+                        protected CloseableHttpClient build(HttpClientBuilder builder) {
+                            if (useragent != null)
+                                builder.setUserAgent(useragent);
+                            return super.build(builder);
                         }
-                        total = conn.getContentLength();
-                    } else {
-                        HttpClient client = new HttpClient() {
-                            @Override
-                            protected CloseableHttpClient build(HttpClientBuilder builder) {
-                                if (useragent != null)
-                                    builder.setUserAgent(useragent);
-                                return super.build(builder);
-                            }
-                        };
-                        final HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
-                        if (w.getError() != null)
-                            throw new RuntimeException(w.getError() + ": " + uri);
-                        if (w.contentDisposition != null) {
-                            Pattern cp = Pattern.compile("filename=[\"]*([^\"]*)[\"]*");
-                            Matcher cm = cp.matcher(w.contentDisposition);
-                            if (cm.find())
-                                contentDisposition = cm.group(1);
-                        }
-                        String wm = w.getMimeType();
-                        if (w.getResponse().getEntity().getContentType() != null && mimetype != null && !wm.equals(mimetype) && wm.startsWith("text")) {
-                            handler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    BrowserDialogFragment b = BrowserDialogFragment.createHtml(uri.toString(), w.getHtml());
-                                    b.show(getFragmentManager(), "");
-                                }
-                            });
-                            return;
-                        }
-                        is = new BufferedInputStream(w.getInputStream());
-                        total = w.contentLength;
+                    };
+                    final HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
+                    if (w.getError() != null)
+                        throw new RuntimeException(w.getError() + ": " + uri);
+                    if (w.contentDisposition != null) {
+                        Pattern cp = Pattern.compile("filename=[\"]*([^\"]*)[\"]*");
+                        Matcher cm = cp.matcher(w.contentDisposition);
+                        if (cm.find())
+                            contentDisposition = cm.group(1);
                     }
+                    String wm = w.mimetype;
+                    if (w.getResponse().getEntity().getContentType() != null && mimetype != null && !wm.equals(mimetype) && wm.startsWith("text")) {
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                BrowserDialogFragment b = BrowserDialogFragment.createHtml(uri.toString(), w.getHtml());
+                                b.show(getFragmentManager(), "");
+                            }
+                        });
+                        return;
+                    }
+                    is = new BufferedInputStream(w.getInputStream());
+                    total = w.contentLength;
                     Storage.ProgresInputstream pis = new Storage.ProgresInputstream(is, total, builder.progress);
                     final Storage.Book book = storage.load(pis, uri); // not using Storage.load(uri). we have to download content first, then determine it type.
                     storage.load(book);
