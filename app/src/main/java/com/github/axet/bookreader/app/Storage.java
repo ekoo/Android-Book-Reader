@@ -62,7 +62,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Writer;
-import java.net.HttpURLConnection;
 import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -683,29 +682,21 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         } else if (s.equals(WebViewCustom.SCHEME_HTTP)) {
             try {
                 InputStream is;
-                if (Build.VERSION.SDK_INT < 11) {
-                    HttpURLConnection conn = HttpClient.openConnection(uri, HttpClient.USER_AGENT);
-                    is = conn.getInputStream();
-                    is = new BufferedInputStream(is);
-                    if (progress != null)
-                        is = new ProgresInputstream(is, conn.getContentLength(), progress);
-                } else {
-                    HttpClient client = new HttpClient();
-                    HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
-                    if (w.getError() != null)
-                        throw new RuntimeException(w.getError() + ": " + uri);
-                    if (w.contentDisposition != null) {
-                        Pattern cp = Pattern.compile("filename=[\"]*([^\"]*)[\"]*");
-                        Matcher cm = cp.matcher(w.contentDisposition);
-                        if (cm.find()) {
-                            contentDisposition = cm.group(1);
-                            contentDisposition = Storage.getNameNoExt(contentDisposition);
-                        }
+                HttpClient client = new HttpClient();
+                HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
+                if (w.getError() != null)
+                    throw new RuntimeException(w.getError() + ": " + uri);
+                if (w.contentDisposition != null) {
+                    Pattern cp = Pattern.compile("filename=[\"]*([^\"]*)[\"]*");
+                    Matcher cm = cp.matcher(w.contentDisposition);
+                    if (cm.find()) {
+                        contentDisposition = cm.group(1);
+                        contentDisposition = Storage.getNameNoExt(contentDisposition);
                     }
-                    is = new BufferedInputStream(w.getInputStream());
-                    if (progress != null)
-                        is = new ProgresInputstream(is, w.contentLength, progress);
                 }
+                is = new BufferedInputStream(w.getInputStream());
+                if (progress != null)
+                    is = new ProgresInputstream(is, w.contentLength, progress);
                 book = load(is, uri);
             } catch (IOException e) {
                 throw new RuntimeException(e);

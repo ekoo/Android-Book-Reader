@@ -181,21 +181,14 @@ public class BooksCatalogs {
                 ct.load(is);
                 is.close();
             } else if (s.startsWith(WebViewCustom.SCHEME_HTTP)) {
-                if (Build.VERSION.SDK_INT < 11) {
-                    HttpURLConnection conn = HttpClient.openConnection(uri);
-                    InputStream is = new BufferedInputStream(conn.getInputStream());
-                    ct.load(is);
-                    is.close();
-                } else {
-                    HttpClient client = new HttpClient();
-                    HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
-                    if (w.getError() != null)
-                        throw new RuntimeException(w.getError() + ": " + uri);
-                    InputStream is = new BufferedInputStream(w.getInputStream());
-                    ct.load(is);
-                    is.close();
-                }
-            } else if (s.startsWith(ContentResolver.SCHEME_FILE)) {
+                HttpClient client = new HttpClient();
+                HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
+                if (w.getError() != null)
+                    throw new RuntimeException(w.getError() + ": " + uri);
+                InputStream is = new BufferedInputStream(w.getInputStream());
+                ct.load(is);
+                is.close();
+            } else if (s.equals(ContentResolver.SCHEME_FILE)) {
                 File f = Storage.getFile(uri);
                 FileInputStream is = new FileInputStream(f);
                 ct.load(is);
