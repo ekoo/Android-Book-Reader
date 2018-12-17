@@ -1,6 +1,7 @@
 package com.github.axet.bookreader.fragments;
 
 import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -20,6 +21,7 @@ import android.widget.AdapterView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.crypto.MD5;
@@ -82,6 +84,10 @@ import cz.msebera.android.httpclient.impl.client.HttpClientBuilder;
 public class NetworkLibraryFragment extends Fragment implements MainActivity.SearchListener {
     public static final String TAG = NetworkLibraryFragment.class.getSimpleName();
 
+    public static final String CONTENTTYPE_EPUB = "application/epub+zip";
+    public static final String CONTENTTYPE_MOBI = "application/x-mobipocket-ebook";
+    public static final String CONTENTTYPE_PDF = "application/pdf";
+
     LibraryFragment.FragmentHolder holder;
     NetworkLibraryAdapter books;
     Storage storage;
@@ -104,8 +110,22 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         }
     };
 
+    public static String formatMime(String mime) {
+        switch (mime) {
+            case Storage.CONTENTTYPE_FB2:
+                return "fb2";
+            case CONTENTTYPE_EPUB:
+                return "epub";
+            case CONTENTTYPE_MOBI:
+                return "mobi";
+            case CONTENTTYPE_PDF:
+                return "pdf";
+        }
+        return mime;
+    }
+
     public static class MobileFirst implements Comparator<UrlInfo> {
-        public static String[] order = new String[]{"epub", "fb2", "mobi"};
+        public static String[] order = new String[]{"epub", "fb2", "x-fictionbook", "mobi", "x-mobipocket-ebook"};
 
         public MobileFirst() {
         }
@@ -594,9 +614,8 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                                         protected void load() throws ZLNetworkException {
                                         }
                                     };
-                                    if (l.Tree.subtrees().isEmpty()) {
+                                    if (l.Tree.subtrees().isEmpty())
                                         new CatalogExpander(l.NetworkContext, l.Tree, false, false).run();
-                                    }
                                     handler.post(new Runnable() {
                                         @Override
                                         public void run() {
@@ -621,6 +640,33 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
                 } catch (RuntimeException e) {
                     ErrorDialog.Error(main, e);
                 }
+            }
+        });
+        holder.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                final FBTree b = books.getItem(position);
+                if (b instanceof NetworkBookTree) {
+                    List<UrlInfo> ll = ((NetworkBookTree) b).Book.getAllInfos(UrlInfo.Type.Book);
+                    if (Build.VERSION.SDK_INT >= 11 && ll.size() > 1) {
+                        PopupMenu w = new PopupMenu(getContext(), view);
+                        Menu menu = w.getMenu();
+                        for (UrlInfo u : ll) {
+                            MenuItem add = menu.add(getString(R.string.book_open) + " '" + formatMime(u.Mime.Name) + "'");
+                            add.setIntent(new Intent().setDataAndType(Uri.parse(u.Url), u.Mime.Name));
+                        }
+                        w.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                            @Override
+                            public boolean onMenuItemClick(MenuItem item) {
+                                Intent intent = item.getIntent();
+                                loadBook(new UrlInfo(UrlInfo.Type.Book, intent.getData().toString(), MimeType.get(intent.getType())));
+                                return false;
+                            }
+                        });
+                        w.show();
+                    }
+                }
+                return true;
             }
         });
         return v;
@@ -674,98 +720,103 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
             }
             openBrowser(url);
         } else {
-            final Uri uri = Uri.parse(u.Url);
-            final String mimetype = u.Mime.toString(); // gutenberg fake mimetypes when it want to open browser
-            final MainActivity.ProgressDialog builder = new MainActivity.ProgressDialog(getContext());
-            final AlertDialog d = builder.create();
-            d.show();
-            Thread t = new Thread("loading book") {
-                @Override
-                public void run() {
-                    try {
-                        String contentDisposition = null;
-                        long total;
-                        InputStream is;
-                        if (Build.VERSION.SDK_INT < 11) {
-                            HttpURLConnection conn = HttpClient.openConnection(uri, useragent);
-                            is = conn.getInputStream();
-                            String wm = conn.getContentType();
-                            if (wm != null && mimetype != null && !wm.equals(mimetype) && wm.startsWith("text")) {
-                                final String html = IOUtils.toString(is, Charset.defaultCharset());
-                                handler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        BrowserDialogFragment b = BrowserDialogFragment.createHtml(uri.toString(), html);
-                                        b.show(getFragmentManager(), "");
-                                    }
-                                });
-                                return;
-                            }
-                            total = conn.getContentLength();
-                        } else {
-                            HttpClient client = new HttpClient() {
-                                @Override
-                                protected CloseableHttpClient build(HttpClientBuilder builder) {
-                                    if (useragent != null)
-                                        builder.setUserAgent(useragent);
-                                    return super.build(builder);
-                                }
-                            };
-                            final HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
-                            if (w.getError() != null)
-                                throw new RuntimeException(w.getError() + ": " + uri);
-                            if (w.contentDisposition != null) {
-                                Pattern cp = Pattern.compile("filename=[\"]*([^\"]*)[\"]*");
-                                Matcher cm = cp.matcher(w.contentDisposition);
-                                if (cm.find())
-                                    contentDisposition = cm.group(1);
-                            }
-                            String wm = w.getMimeType();
-                            if (w.getResponse().getEntity().getContentType() != null && mimetype != null && !wm.equals(mimetype) && wm.startsWith("text")) {
-                                handler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        BrowserDialogFragment b = BrowserDialogFragment.createHtml(uri.toString(), w.getHtml());
-                                        b.show(getFragmentManager(), "");
-                                    }
-                                });
-                                return;
-                            }
-                            is = new BufferedInputStream(w.getInputStream());
-                            total = w.contentLength;
-                        }
-                        Storage.ProgresInputstream pis = new Storage.ProgresInputstream(is, total, builder.progress);
-                        final Storage.Book book = storage.load(pis, uri); // not using Storage.load(uri). we have to download content first, then determine it type.
-                        storage.load(book);
-                        if (book.info.title == null || book.info.title.isEmpty() || book.info.title.equals(book.md5)) {
-                            if (contentDisposition != null && !contentDisposition.isEmpty())
-                                book.info.title = contentDisposition;
-                            else
-                                book.info.title = Storage.getNameNoExt(uri.getLastPathSegment());
-                        }
-                        Uri r = storage.recentUri(book);
-                        if (!Storage.exists(getContext(), r))
-                            storage.save(book);
-                        handler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                main.loadBook(book);
-                            }
-                        });
-                    } catch (Exception e) {
-                        ErrorDialog.Post(main, e);
-                    } finally {
-                        handler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                d.cancel();
-                            }
-                        });
-                    }
-                }
-            };
-            t.start();
+            loadBook(u);
         }
+    }
+
+    void loadBook(UrlInfo u) {
+        final MainActivity main = (MainActivity) getActivity();
+        final Uri uri = Uri.parse(u.Url);
+        final String mimetype = u.Mime.toString(); // gutenberg fake mimetypes when it want to open browser
+        final MainActivity.ProgressDialog builder = new MainActivity.ProgressDialog(getContext());
+        final AlertDialog d = builder.create();
+        d.show();
+        Thread t = new Thread("loading book") {
+            @Override
+            public void run() {
+                try {
+                    String contentDisposition = null;
+                    long total;
+                    InputStream is;
+                    if (Build.VERSION.SDK_INT < 11) {
+                        HttpURLConnection conn = HttpClient.openConnection(uri, useragent);
+                        is = conn.getInputStream();
+                        String wm = conn.getContentType();
+                        if (wm != null && mimetype != null && !wm.equals(mimetype) && wm.startsWith("text")) {
+                            final String html = IOUtils.toString(is, Charset.defaultCharset());
+                            handler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    BrowserDialogFragment b = BrowserDialogFragment.createHtml(uri.toString(), html);
+                                    b.show(getFragmentManager(), "");
+                                }
+                            });
+                            return;
+                        }
+                        total = conn.getContentLength();
+                    } else {
+                        HttpClient client = new HttpClient() {
+                            @Override
+                            protected CloseableHttpClient build(HttpClientBuilder builder) {
+                                if (useragent != null)
+                                    builder.setUserAgent(useragent);
+                                return super.build(builder);
+                            }
+                        };
+                        final HttpClient.DownloadResponse w = client.getResponse(null, uri.toString());
+                        if (w.getError() != null)
+                            throw new RuntimeException(w.getError() + ": " + uri);
+                        if (w.contentDisposition != null) {
+                            Pattern cp = Pattern.compile("filename=[\"]*([^\"]*)[\"]*");
+                            Matcher cm = cp.matcher(w.contentDisposition);
+                            if (cm.find())
+                                contentDisposition = cm.group(1);
+                        }
+                        String wm = w.getMimeType();
+                        if (w.getResponse().getEntity().getContentType() != null && mimetype != null && !wm.equals(mimetype) && wm.startsWith("text")) {
+                            handler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    BrowserDialogFragment b = BrowserDialogFragment.createHtml(uri.toString(), w.getHtml());
+                                    b.show(getFragmentManager(), "");
+                                }
+                            });
+                            return;
+                        }
+                        is = new BufferedInputStream(w.getInputStream());
+                        total = w.contentLength;
+                    }
+                    Storage.ProgresInputstream pis = new Storage.ProgresInputstream(is, total, builder.progress);
+                    final Storage.Book book = storage.load(pis, uri); // not using Storage.load(uri). we have to download content first, then determine it type.
+                    storage.load(book);
+                    if (book.info.title == null || book.info.title.isEmpty() || book.info.title.equals(book.md5)) {
+                        if (contentDisposition != null && !contentDisposition.isEmpty())
+                            book.info.title = contentDisposition;
+                        else
+                            book.info.title = Storage.getNameNoExt(uri.getLastPathSegment());
+                    }
+                    Uri r = storage.recentUri(book);
+                    if (!Storage.exists(getContext(), r))
+                        storage.save(book);
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            main.loadBook(book);
+                        }
+                    });
+                } catch (Exception e) {
+                    ErrorDialog.Post(main, e);
+                } finally {
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            d.cancel();
+                        }
+                    });
+                }
+            }
+        };
+        t.start();
     }
 
     @Override

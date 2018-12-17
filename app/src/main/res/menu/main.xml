@@ -37,7 +37,7 @@
     <item
         android:id="@+id/action_fontsize"
         android:icon="@drawable/ic_format_size_white_24dp"
-        android:title="@string/select_font"
+        android:title="@string/book_font"
         app:actionViewClass="com.github.axet.bookreader.widgets.ToolbarFontSizeView"
         app:showAsAction="ifRoom" />
     <item
