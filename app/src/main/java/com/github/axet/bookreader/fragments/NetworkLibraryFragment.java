@@ -505,7 +505,6 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
             lp.gravity = Gravity.CENTER;
             holder.searchtoolbar.addView(t, lp);
         }
-
         if (holder.searchtoolbar.getChildCount() == 0)
             holder.toolbar.setVisibility(View.GONE);
         else
