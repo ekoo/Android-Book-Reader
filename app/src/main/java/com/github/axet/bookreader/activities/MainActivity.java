@@ -405,12 +405,8 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_about) {
             AboutPreferenceCompat.buildDialog(this, R.raw.about).show();
             return true;
@@ -737,7 +733,6 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
             builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    ;
                 }
             });
             builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
@@ -845,8 +840,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
 
     public FragmentTransaction openFragment(Fragment f, String tag) {
         FragmentManager fm = getSupportFragmentManager();
-        FragmentTransaction t = fm.beginTransaction().replace(R.id.main_content, f, tag);
-        return t;
+        return fm.beginTransaction().replace(R.id.main_content, f, tag);
     }
 
     @Override

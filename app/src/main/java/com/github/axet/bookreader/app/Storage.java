@@ -679,7 +679,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        } else if (s.equals(WebViewCustom.SCHEME_HTTP)) {
+        } else if (s.startsWith(WebViewCustom.SCHEME_HTTP)) {
             try {
                 InputStream is;
                 HttpClient client = new HttpClient();

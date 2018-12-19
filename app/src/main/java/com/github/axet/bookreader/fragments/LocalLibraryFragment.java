@@ -111,9 +111,9 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
 
     public static String getPath(Context context, Uri uri) { // display purpose
         String s = uri.getScheme();
-        if (s.startsWith(ContentResolver.SCHEME_CONTENT)) {
+        if (s.equals(ContentResolver.SCHEME_CONTENT)) {
             return Storage.getDocumentPath(context, uri);
-        } else if (s.startsWith(ContentResolver.SCHEME_FILE)) {
+        } else if (s.equals(ContentResolver.SCHEME_FILE)) {
             File f = Storage.getFile(uri);
             return f.getPath();
         } else {
