@@ -1,15 +1,16 @@
 package com.github.axet.bookreader.app;
 
+import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.net.Uri;
-import android.os.Build;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.preference.PreferenceManager;
 
 import com.github.axet.androidlibrary.net.HttpClient;
+import com.github.axet.androidlibrary.widgets.ErrorDialog;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 
@@ -27,7 +28,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,6 +35,8 @@ import java.util.List;
 import java.util.Map;
 
 public class BooksCatalogs {
+    public static final String TAG = BooksCatalogs.class.getSimpleName();
+
     public Context context;
     public NetworkLibrary nlib;
     public ArrayList<BooksCatalog> list = new ArrayList<>();
@@ -58,7 +60,7 @@ public class BooksCatalogs {
         return all;
     }
 
-    public static NetworkLibrary getLib(final Context context) {
+    public static NetworkLibrary getLib(final Activity context) {
         NetworkLibrary nlib = NetworkLibrary.Instance(new Storage.Info(context));
         if (!nlib.isInitialized()) {
             try {
@@ -88,15 +90,16 @@ public class BooksCatalogs {
     }
 
     public static class NetworkContext extends AndroidNetworkContext {
-        Context context;
+        Activity a;
+        HttpClient client = new HttpClient();
 
-        public NetworkContext(Context context) {
-            this.context = context;
+        public NetworkContext(Activity a) {
+            this.a = a;
         }
 
         @Override
         protected Context getContext() {
-            return context;
+            return a;
         }
 
         @Override
@@ -106,7 +109,20 @@ public class BooksCatalogs {
 
         @Override
         protected void perform(ZLNetworkRequest request, int socketTimeout, int connectionTimeout) throws ZLNetworkException {
-            super.perform(request, HttpClient.CONNECTION_TIMEOUT, HttpClient.CONNECTION_TIMEOUT);
+            // super.perform(request, HttpClient.CONNECTION_TIMEOUT, HttpClient.CONNECTION_TIMEOUT);
+            request.doBefore();
+            boolean success = false;
+            try {
+                if (request instanceof ZLNetworkRequest.Get) {
+                    HttpClient.DownloadResponse w = client.getResponse(null, request.getURL());
+                    request.handleStream(w.getInputStream(), (int) w.contentLength);
+                }
+                success = true;
+            } catch (Exception e) {
+                ErrorDialog.Post(a, e);
+            } finally {
+                request.doAfter(success);
+            }
         }
     }
 
@@ -157,7 +173,6 @@ public class BooksCatalogs {
         builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                ;
             }
         });
         builder.show();
