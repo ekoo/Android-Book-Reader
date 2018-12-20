@@ -10,8 +10,8 @@ android {
         applicationId "com.github.axet.bookreader"
         minSdkVersion 9
         targetSdkVersion 26
-        versionCode 344
-        versionName "1.11.16"
+        versionCode 345
+        versionName "1.11.17"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
     }
@@ -57,48 +57,35 @@ android {
 // https://stackoverflow.com/questions/8413898
 //
 configurations {
-    localDeps
+    dexs
 }
 
 clean.doFirst {
     delete fileTree('src/main/assets') {
-        include '**/*.jar'
         include '**/*.dex'
     }
 }
 
-class DexJar extends DefaultTask {
-    @Input
-    Configuration deps
-
-    void from(Configuration deps) {
-        this.deps = deps;
-    }
-
-    @TaskAction
-    void copy() {
-        deps.each { File file ->
+task processDexs() {
+    doLast {
+        configurations.dexs.each { File file ->
             getProject().exec {
-                commandLine "${getProject().android.getSdkDirectory().getAbsolutePath()}/build-tools/${getProject().android.buildToolsVersion}/dx",
+                commandLine "${android.getSdkDirectory().getAbsolutePath()}/build-tools/${android.buildToolsVersion}/dx",
                         '--dex',
-                        "--output=${getProject().projectDir}/src/main/assets/${file.name.take(file.name.lastIndexOf('.'))}.dex",
+                        "--output=${projectDir}/src/main/assets/${file.name.take(file.name.lastIndexOf('.'))}.dex",
                         "${file.getAbsolutePath()}"
             }
         }
     }
 }
 
-task copyDependencies(type: DexJar) {
-    from configurations.localDeps
-}
-
 project.afterEvaluate {
-    preBuild.dependsOn copyDependencies
+    preBuild.dependsOn processDexs
 }
 
 dependencies {
     testImplementation 'junit:junit:4.12'
-    implementation 'com.github.axet:android-library:1.28.36' // implementation project(':android-library')
+    implementation 'com.github.axet:android-library:1.28.37' // implementation project(':android-library')
     implementation 'com.android.support:design:25.3.1'
     implementation 'com.android.support:support-vector-drawable:25.3.1'
     implementation 'com.android.support.constraint:constraint-layout:1.1.3'
@@ -106,14 +93,8 @@ dependencies {
     implementation 'com.github.axet:djvulibre:0.1.0'
     implementation 'com.github.axet:pdfium:2.0.7'
     implementation 'com.github.axet:k2pdfopt:0.1.3'
-    implementation('com.github.axet:java-unrar:1.7.0-8') {
-        exclude group: 'commons-logging', module: 'commons-logging'
-    }
+    implementation('com.github.axet:java-unrar:1.7.0-8') { exclude group: 'commons-logging', module: 'commons-logging' }
     implementation('com.github.axet:zip4j:1.3.2-2')
-    implementation('com.github.axet:wget:1.4.2') {
-        exclude group: 'com.thoughtworks.xstream', module: 'xstream'
-    }
-    localDeps('com.madgag.spongycastle:bctls-jdk15on:1.58.0.0') { // api 'com.madgag.spongycastle:bctls-jdk15on:1.58.0.0'
-        exclude module: 'junit'
-    }
+    implementation('com.github.axet:wget:1.4.2') { exclude group: 'com.thoughtworks.xstream', module: 'xstream' }
+    dexs ('com.madgag.spongycastle:bctls-jdk15on:1.58.0.0') { exclude module: 'junit' } // api 'com.madgag.spongycastle:bctls-jdk15on:1.58.0.0'
 }

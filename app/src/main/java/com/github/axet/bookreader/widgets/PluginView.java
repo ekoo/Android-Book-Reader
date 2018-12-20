@@ -554,11 +554,7 @@ public class PluginView {
     }
 
     public void draw(Canvas bitmap, int w, int h, ZLView.PageIndex index) {
-        try {
-            draw(bitmap, w, h, index, Bitmap.Config.ARGB_8888);
-        } catch (OutOfMemoryError e) {
-            draw(bitmap, w, h, index, Bitmap.Config.RGB_565);
-        }
+        draw(bitmap, w, h, index, Bitmap.Config.RGB_565);
     }
 
     public void drawPage(Canvas canvas, int w, int h, Bitmap bm) {
