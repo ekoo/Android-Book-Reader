@@ -340,21 +340,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         lib = NetworkLibrary.Instance(new Storage.Info(getContext()));
         books = new NetworkLibraryAdapter();
         n = (NetworkBooksCatalog) catalogs.find(u);
-        nc = new BooksCatalogs.NetworkContext(getContext());
-        ZLNetworkManager.Instance().setCredentialsCreator(new ZLNetworkManager.CredentialsCreator() {
-            @Override
-            protected void startAuthenticationDialog(String host, String area, String scheme, String username) {
-                final ZLNetworkManager.CredentialsCreator cred = this;
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        synchronized (cred) {
-                            cred.notifyAll();
-                        }
-                    }
-                });
-            }
-        });
+        nc = new BooksCatalogs.NetworkContext(getActivity());
 
         setHasOptionsMenu(true);
 

@@ -752,13 +752,13 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
     public void popBackStack(String tag, int flags) { // only pop existing TAG
         FragmentManager fm = getSupportFragmentManager();
         if (tag == null) {
-            fm.popBackStackImmediate(null, flags);
+            fm.popBackStack(null, flags);
             return;
         }
         for (int i = 0; i < fm.getBackStackEntryCount(); i++) {
             String n = fm.getBackStackEntryAt(i).getName();
             if (n != null && n.equals(tag)) {
-                fm.popBackStackImmediate(tag, flags);
+                fm.popBackStack(tag, flags);
                 return;
             }
         }

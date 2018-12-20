@@ -31,6 +31,7 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.services.StorageProvider;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.CacheImagesRecyclerAdapter;
@@ -43,6 +44,8 @@ import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.BookmarksDialog;
 import com.github.axet.bookreader.widgets.FBReaderView;
+
+import org.apache.commons.io.IOUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -352,6 +355,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     public static abstract class BooksAdapter extends CacheImagesRecyclerAdapter<BooksAdapter.BookHolder> {
         String filter;
         FragmentHolder holder;
+        HttpClient client = new HttpClient(); // images client
 
         public static class BookHolder extends RecyclerView.ViewHolder {
             TextView aa;
@@ -424,6 +428,16 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             });
             setText(h.aa, getAuthors(position));
             setText(h.tt, getTitle(position));
+        }
+
+        @Override
+        public Bitmap downloadImage(Uri cover, File f) throws IOException {
+            HttpClient.DownloadResponse w = client.getResponse(null, cover.toString());
+            FileOutputStream out = new FileOutputStream(f);
+            IOUtils.copy(w.getInputStream(), out);
+            w.getInputStream().close();
+            out.close();
+            return BitmapFactory.decodeStream(new FileInputStream(f));
         }
 
         @Override

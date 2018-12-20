@@ -10,8 +10,8 @@ android {
         applicationId "com.github.axet.bookreader"
         minSdkVersion 9
         targetSdkVersion 26
-        versionCode 343
-        versionName "1.11.15"
+        versionCode 344
+        versionName "1.11.16"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
     }
@@ -52,9 +52,53 @@ android {
     }
 }
 
+// if you are having 'LinearAlloc exceeded capacity' issue on old devices
+//
+// https://stackoverflow.com/questions/8413898
+//
+configurations {
+    localDeps
+}
+
+clean.doFirst {
+    delete fileTree('src/main/assets') {
+        include '**/*.jar'
+        include '**/*.dex'
+    }
+}
+
+class DexJar extends DefaultTask {
+    @Input
+    Configuration deps
+
+    void from(Configuration deps) {
+        this.deps = deps;
+    }
+
+    @TaskAction
+    void copy() {
+        deps.each { File file ->
+            getProject().exec {
+                commandLine "${getProject().android.getSdkDirectory().getAbsolutePath()}/build-tools/${getProject().android.buildToolsVersion}/dx",
+                        '--dex',
+                        "--output=${getProject().projectDir}/src/main/assets/${file.name.take(file.name.lastIndexOf('.'))}.dex",
+                        "${file.getAbsolutePath()}"
+            }
+        }
+    }
+}
+
+task copyDependencies(type: DexJar) {
+    from configurations.localDeps
+}
+
+project.afterEvaluate {
+    preBuild.dependsOn copyDependencies
+}
+
 dependencies {
     testImplementation 'junit:junit:4.12'
-    implementation 'com.github.axet:android-library:1.28.34' // implementation project(':android-library')
+    implementation 'com.github.axet:android-library:1.28.36' // implementation project(':android-library')
     implementation 'com.android.support:design:25.3.1'
     implementation 'com.android.support:support-vector-drawable:25.3.1'
     implementation 'com.android.support.constraint:constraint-layout:1.1.3'
@@ -68,5 +112,8 @@ dependencies {
     implementation('com.github.axet:zip4j:1.3.2-2')
     implementation('com.github.axet:wget:1.4.2') {
         exclude group: 'com.thoughtworks.xstream', module: 'xstream'
+    }
+    localDeps('com.madgag.spongycastle:bctls-jdk15on:1.58.0.0') { // api 'com.madgag.spongycastle:bctls-jdk15on:1.58.0.0'
+        exclude module: 'junit'
     }
 }
