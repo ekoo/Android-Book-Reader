@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'com.github.axet.dxplugin'
 
 import com.android.build.OutputFile
 
@@ -50,39 +51,6 @@ android {
             enableSplit = true
         }
     }
-}
-
-// if you are having 'LinearAlloc exceeded capacity' issue on old devices
-//
-// https://stackoverflow.com/questions/8413898
-//
-configurations {
-    assets
-}
-
-clean.doFirst {
-    if (!project.configurations.assets.empty) {
-        delete fileTree('src/main/assets') {
-            include '**/*.dex'
-        }
-    }
-}
-
-task processDexs() {
-    doLast {
-        configurations.assets.each { File file ->
-            exec {
-                commandLine "${android.getSdkDirectory().getAbsolutePath()}/build-tools/${android.buildToolsVersion}/dx",
-                        '--dex',
-                        "--output=${project.projectDir}/src/main/assets/${file.name.take(file.name.lastIndexOf('.'))}.dex",
-                        "${file.getAbsolutePath()}"
-            }
-        }
-    }
-}
-
-project.afterEvaluate {
-    preBuild.dependsOn processDexs
 }
 
 dependencies {
