@@ -983,15 +983,12 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (bm == null)
                 return;
             try {
-                float ratio = CacheImagesAdapter.COVER_SIZE / (float) bm.getWidth();
-                Bitmap sbm = Bitmap.createScaledBitmap(bm, (int) (bm.getWidth() * ratio), (int) (bm.getHeight() * ratio), true);
-                if (sbm != bm)
-                    bm.recycle();
+                bm = CacheImagesAdapter.createThumbnail(bm);
                 OutputStream os = new FileOutputStream(cover);
                 os = new BufferedOutputStream(os);
-                sbm.compress(Bitmap.CompressFormat.PNG, 100, os);
+                bm.compress(Bitmap.CompressFormat.PNG, 100, os);
                 os.close();
-                sbm.recycle();
+                bm.recycle();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -1006,7 +1003,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         int hs = View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY);
         v.measure(ws, hs);
         v.layout(0, 0, v.getMeasuredWidth(), v.getMeasuredHeight());
-        Bitmap bm = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Bitmap bm = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
         Canvas c = new Canvas(bm);
         v.draw(c);
         return bm;
