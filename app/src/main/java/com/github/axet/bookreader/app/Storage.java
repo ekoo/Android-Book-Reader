@@ -81,7 +81,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public static String TAG = Storage.class.getCanonicalName();
 
     public static final int MD5_SIZE = 32;
-    public static final int COVER_SIZE = 128;
     public static final String JSON_EXT = "json";
     public static final String ZIP_EXT = "zip";
 
@@ -960,7 +959,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 image = p.getRealImage();
             }
             if (image instanceof ZLStreamImage) {
-                bm = BitmapFactory.decodeStream(((ZLStreamImage) image).inputStream());
+                bm = CacheImagesAdapter.createThumbnail(((ZLStreamImage) image).inputStream());
             }
             if (image instanceof ZLBitmapImage) {
                 bm = ((ZLBitmapImage) image).getBitmap();
@@ -984,7 +983,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (bm == null)
                 return;
             try {
-                float ratio = COVER_SIZE / (float) bm.getWidth();
+                float ratio = CacheImagesAdapter.COVER_SIZE / (float) bm.getWidth();
                 Bitmap sbm = Bitmap.createScaledBitmap(bm, (int) (bm.getWidth() * ratio), (int) (bm.getHeight() * ratio), true);
                 if (sbm != bm)
                     bm.recycle();

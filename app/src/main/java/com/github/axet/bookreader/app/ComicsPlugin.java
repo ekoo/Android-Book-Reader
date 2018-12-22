@@ -10,6 +10,7 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.github.axet.androidlibrary.services.StorageProvider;
+import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.bookreader.widgets.PluginPage;
 import com.github.axet.bookreader.widgets.PluginRect;
@@ -60,33 +61,16 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
 
     public static boolean isImage(ArchiveFile a) {
         File f = new File(a.getPath());
-        String e = Storage.getExt(f).toLowerCase();
-        return isImage(e);
-    }
-
-    public static boolean isImage(String e) {
-        switch (e) {
-            case "bmp":
-            case "png":
-            case "gif":
-            case "jpeg":
-            case "jpg":
-            case "webp":
-                return true;
-        }
-        return false;
+        return CacheImagesAdapter.isImage(f.getName());
     }
 
     public static PluginRect getImageSize(InputStream is) {
         try {
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inJustDecodeBounds = true;
-            Rect outPadding = new Rect();
-            BitmapFactory.decodeStream(is, outPadding, options);
+            Rect size = CacheImagesAdapter.getImageSize(is);
             is.close();
-            if (options.outWidth == -1 || options.outHeight == -1)
+            if (size == null)
                 return null;
-            return new PluginRect(0, 0, options.outWidth, options.outHeight);
+            return new PluginRect(0, 0, size.width(), size.height());
         } catch (IOException e) {
             Log.d(TAG, "unable to close is", e);
             return null;
@@ -579,7 +563,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
     public ZLImage readCover(ZLFile file) {
         ComicsView view = new ComicsView(file);
         int m = Math.max(view.current.pageBox.w, view.current.pageBox.h);
-        double ratio = Storage.COVER_SIZE / (double) m;
+        double ratio = CacheImagesAdapter.COVER_SIZE / (double) m;
         int w = (int) (view.current.pageBox.w * ratio);
         int h = (int) (view.current.pageBox.h * ratio);
         Bitmap bm = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
