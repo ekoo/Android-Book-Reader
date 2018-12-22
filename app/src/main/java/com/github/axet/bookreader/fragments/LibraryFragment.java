@@ -437,7 +437,11 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             IOUtils.copy(w.getInputStream(), out);
             w.getInputStream().close();
             out.close();
-            return BitmapFactory.decodeStream(new FileInputStream(f));
+            Bitmap bm = CacheImagesAdapter.createThumbnail(new FileInputStream(f));
+            FileOutputStream os = new FileOutputStream(f);
+            bm.compress(Bitmap.CompressFormat.PNG, 100, os);
+            os.close();
+            return bm;
         }
 
         @Override
@@ -449,27 +453,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         @Override
         public Bitmap downloadImageTask(CacheImagesAdapter.DownloadImageTask task) {
             Uri u = (Uri) task.item;
-            Bitmap bm = downloadImage(u);
-            if (bm == null)
-                return null;
-            if (bm.getWidth() > Storage.COVER_SIZE || bm.getHeight() > Storage.COVER_SIZE) {
-                try {
-                    File cover = CacheImagesAdapter.cacheUri(getContext(), u);
-                    int m = Math.max(bm.getWidth(), bm.getHeight());
-                    float ratio = Storage.COVER_SIZE / (float) m;
-                    Bitmap sbm = Bitmap.createScaledBitmap(bm, (int) (bm.getWidth() * ratio), (int) (bm.getHeight() * ratio), true);
-                    if (sbm == bm)
-                        return bm;
-                    bm.recycle();
-                    FileOutputStream os = new FileOutputStream(cover);
-                    sbm.compress(Bitmap.CompressFormat.PNG, 100, os);
-                    os.close();
-                    return sbm;
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return bm;
+            return downloadImage(u);
         }
 
         void setText(TextView t, String s) {

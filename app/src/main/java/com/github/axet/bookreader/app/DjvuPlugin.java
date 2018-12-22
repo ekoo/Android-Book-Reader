@@ -6,6 +6,7 @@ import android.graphics.Rect;
 import android.util.SparseArray;
 
 import com.github.axet.androidlibrary.app.Natives;
+import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.bookreader.widgets.PluginPage;
 import com.github.axet.bookreader.widgets.PluginRect;
@@ -864,7 +865,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
     @Override
     public ZLImage readCover(ZLFile file) {
         DjvuView view = new DjvuView(file);
-        view.current.scale(Storage.COVER_SIZE, Storage.COVER_SIZE); // reduce render memory footprint
+        view.current.scale(CacheImagesAdapter.COVER_SIZE, CacheImagesAdapter.COVER_SIZE); // reduce render memory footprint
         Bitmap bm = Bitmap.createBitmap(view.current.pageBox.w, view.current.pageBox.h, Bitmap.Config.RGB_565);
         Canvas canvas = new Canvas(bm);
         view.drawWallpaper(canvas);
