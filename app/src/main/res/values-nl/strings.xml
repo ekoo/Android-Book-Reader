@@ -40,7 +40,7 @@
     <string name="pref_storagepath_title">Synchronisatiefolder</string>
     <string name="pref_storagepath_summary">Geen \'Synchronisatiefolder\' geselecteerd</string>
     <string name="pref_volume_title">Volumeknoppen Draaien</string>
-    <string name="pref_volume_summary">Gebruik volumeknoppen om tussen pagina's te navigeren</string>
+    <string name="pref_volume_summary">Gebruik volumeknoppen om tussen pagina\'s te navigeren</string>
 
     <string name="continue_reading">Ga door met lezen van:</string>
     <string name="sync_conflict">Synchroniseer conflict</string>
