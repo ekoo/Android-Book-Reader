@@ -6,7 +6,6 @@ import android.content.SharedPreferences;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.net.Uri;
 import android.os.Build;
@@ -204,7 +203,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         String s = book.url.getScheme();
         if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
             String id = book.md5 + "." + JSON_EXT;
-            Uri doc = DocumentsContract.buildDocumentUriUsingTree(Storage.getDocumentTreeUri(book.url), DocumentsContract.getTreeDocumentId(book.url));
+            Uri doc = Storage.getDocumentParent(context, book.url);
             return child(context, doc, id);
         } else if (s.equals(ContentResolver.SCHEME_FILE)) {
             return Uri.fromFile(recentFile(book));
