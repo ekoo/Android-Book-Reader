@@ -446,9 +446,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
             ComicsPage r = new ComicsPage((ComicsPage) current, index, w, h);
             if (index == ZLViewEnums.PageIndex.current)
                 current.updatePage(r);
-
             RenderRect render = r.renderRect();
-
             Bitmap bm = doc.render(r.pageNumber, c);
             if (bm != null) {
                 canvas.drawBitmap(bm, render.toRect(r.pageBox.w, r.pageBox.h), render.dst, paint);

@@ -6,7 +6,6 @@ import android.content.SharedPreferences;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.net.Uri;
 import android.os.Build;
@@ -204,7 +203,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         String s = book.url.getScheme();
         if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
             String id = book.md5 + "." + JSON_EXT;
-            Uri doc = DocumentsContract.buildDocumentUriUsingTree(Storage.getDocumentTreeUri(book.url), DocumentsContract.getTreeDocumentId(book.url));
+            Uri doc = Storage.getDocumentParent(context, book.url);
             return child(context, doc, id);
         } else if (s.equals(ContentResolver.SCHEME_FILE)) {
             return Uri.fromFile(recentFile(book));
@@ -753,9 +752,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
         String s = storage.getScheme();
 
-        if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
-            String ss = u.getScheme();
-            if (ss.equals(ContentResolver.SCHEME_CONTENT) && DocumentsContract.getDocumentId(u).startsWith(DocumentsContract.getTreeDocumentId(storage))) // else we can't get from content://storage to real path
+        if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT) && DocumentsContract.isDocumentUri(context, u)) {
+            if (DocumentsContract.getDocumentId(u).startsWith(DocumentsContract.getTreeDocumentId(storage))) // else we can't get from content://storage to real path
                 return new Book(context, DocumentsContract.buildDocumentUriUsingTree(storage, DocumentsContract.getDocumentId(u)));
         }
         if (s.equals(ContentResolver.SCHEME_FILE) && relative(storage.getPath(), u.getPath()) != null)
