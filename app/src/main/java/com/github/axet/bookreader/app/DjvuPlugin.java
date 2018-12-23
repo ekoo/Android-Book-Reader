@@ -709,10 +709,8 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             DjvuPage r = new DjvuPage((DjvuPage) current, index, w, h);
             if (index == ZLViewEnums.PageIndex.current)
                 current.updatePage(r);
-
             r.scale(w, h);
             RenderRect render = r.renderRect();
-
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);
             bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
             doc.renderPage(bm, r.pageNumber, 0, 0, r.pageBox.w, r.pageBox.h, render.x, render.y, render.w, render.h);

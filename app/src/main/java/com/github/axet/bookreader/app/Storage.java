@@ -752,9 +752,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
         String s = storage.getScheme();
 
-        if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
-            String ss = u.getScheme();
-            if (ss.equals(ContentResolver.SCHEME_CONTENT) && DocumentsContract.getDocumentId(u).startsWith(DocumentsContract.getTreeDocumentId(storage))) // else we can't get from content://storage to real path
+        if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT) && DocumentsContract.isDocumentUri(context, u)) {
+            if (DocumentsContract.getDocumentId(u).startsWith(DocumentsContract.getTreeDocumentId(storage))) // else we can't get from content://storage to real path
                 return new Book(context, DocumentsContract.buildDocumentUriUsingTree(storage, DocumentsContract.getDocumentId(u)));
         }
         if (s.equals(ContentResolver.SCHEME_FILE) && relative(storage.getPath(), u.getPath()) != null)

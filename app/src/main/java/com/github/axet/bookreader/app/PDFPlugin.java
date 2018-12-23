@@ -808,10 +808,8 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             PdfiumPage r = new PdfiumPage((PdfiumPage) current, index, w, h);
             if (index == ZLViewEnums.PageIndex.current)
                 current.updatePage(r);
-
             r.scale(w, h);
             RenderRect render = r.renderRect();
-
             Pdfium.Page p = doc.openPage(r.pageNumber);
             Bitmap bm = Bitmap.createBitmap(r.pageBox.w, r.pageBox.h, c);
             bm.eraseColor(FBReaderView.PAGE_PAPER_COLOR);
