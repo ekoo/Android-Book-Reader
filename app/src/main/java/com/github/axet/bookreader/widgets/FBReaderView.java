@@ -16,7 +16,6 @@ import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -27,7 +26,6 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.v4.view.GestureDetectorCompat;
-import android.support.v4.view.ScaleGestureDetectorCompat;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AlertDialog;
@@ -42,7 +40,6 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.MotionEvent;
-import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -56,6 +53,7 @@ import android.widget.TextView;
 
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
+import com.github.axet.androidlibrary.widgets.PinchView;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.androidlibrary.widgets.TopAlwaysSmoothScroller;
 import com.github.axet.bookreader.R;
@@ -2645,105 +2643,49 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
-    public class PinchGesture implements ScaleGestureDetector.OnScaleGestureListener {
-        ScaleGestureDetector scale;
-        boolean scaleTouch = false;
-        PinchView pinch;
-        Context context;
-
+    public class PinchGesture extends com.github.axet.androidlibrary.widgets.PinchGesture {
         public PinchGesture(Context context) {
-            this.context = context;
-            scale = new ScaleGestureDetector(context, this);
-            ScaleGestureDetectorCompat.setQuickScaleEnabled(scale, false);
+            super(context);
         }
 
-        boolean isScaleTouch(MotionEvent e) {
-            if (pinch != null)
-                return true;
+        public boolean isScaleTouch(MotionEvent e) {
             if (pluginview == null || pluginview.reflow)
                 return false;
-            if (e.getPointerCount() >= 2) {
-                return true;
-            }
-            return false;
-        }
-
-        public boolean onTouchEvent(MotionEvent e) {
-            if (isScaleTouch(e)) {
-                if (scaleTouch && (e.getAction() == MotionEvent.ACTION_UP || e.getAction() == MotionEvent.ACTION_DOWN) && e.getPointerCount() == 1)
-                    scaleTouch = false;
-                if (e.getPointerCount() == 2)
-                    scaleTouch = true;
-                scale.onTouchEvent(e);
-                if (pinch != null) {
-                    if (!scaleTouch)
-                        pinch.onTouchEvent(e);
-                    return true;
-                }
-                return true;
-            }
-            return false;
-        }
-
-        @Override
-        public boolean onScale(ScaleGestureDetector detector) {
-            scaleTouch = true;
-            if (pinch == null)
-                return false;
-            pinch.onScale(detector);
-            return true;
-        }
-
-        @Override
-        public boolean onScaleBegin(ScaleGestureDetector detector) {
-            scaleTouch = true;
-            if (pinch == null) {
-                float x = detector.getFocusX();
-                float y = detector.getFocusY();
-                onScaleBegin(x, y);
-            }
-            pinch.start = detector.getCurrentSpan();
-            return true;
-        }
-
-        public void onScaleBegin(float x, float y) {
-        }
-
-        @Override
-        public void onScaleEnd(ScaleGestureDetector detector) {
-            scaleTouch = true;
-            if (isPinch()) { // double end?
-                pinch.onScaleEnd();
-                if (pinch.end < 0)
-                    pinchClose();
-            }
-        }
-
-        public boolean isPinch() {
-            return pinch != null;
+            return super.isScaleTouch(e);
         }
 
         public void pinchOpen(int page, Rect v) {
             Bitmap bm = pluginview.render(v.width(), v.height(), page);
             pinch = new PinchView(context, v, bm) {
+                public int clip;
+
+                {
+                    if (widget instanceof ScrollView)
+                        clip = ((ScrollView) widget).getMainAreaHeight();
+                    else
+                        clip = ((ZLAndroidWidget) widget).getMainAreaHeight();
+                }
+
                 @Override
                 public void pinchClose() {
                     PinchGesture.this.pinchClose();
                 }
+
+                @Override
+                protected void dispatchDraw(Canvas canvas) {
+                    Rect c = canvas.getClipBounds();
+                    c.bottom = clip - getTop();
+                    canvas.clipRect(c);
+                    super.dispatchDraw(canvas);
+                }
             };
-            if (widget instanceof ScrollView)
-                pinch.clip = ((ScrollView) widget).getMainAreaHeight();
-            else
-                pinch.clip = ((ZLAndroidWidget) widget).getMainAreaHeight();
             FBReaderView.this.addView(pinch, new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         }
 
         public void pinchClose() {
-            if (pinch != null) {
+            if (pinch != null)
                 FBReaderView.this.removeView(pinch);
-                pinch.close();
-                pinch = null;
-            }
+            super.pinchClose();
         }
     }
 
