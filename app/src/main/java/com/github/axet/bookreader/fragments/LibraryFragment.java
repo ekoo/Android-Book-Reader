@@ -437,7 +437,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             IOUtils.copy(w.getInputStream(), out);
             w.getInputStream().close();
             out.close();
-            Bitmap bm = CacheImagesAdapter.createThumbnail(new FileInputStream(f));
+            Bitmap bm = CacheImagesAdapter.createScaled(new FileInputStream(f));
             FileOutputStream os = new FileOutputStream(f);
             bm.compress(Bitmap.CompressFormat.PNG, 100, os);
             os.close();
