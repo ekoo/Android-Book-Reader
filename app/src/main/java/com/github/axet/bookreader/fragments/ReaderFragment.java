@@ -84,6 +84,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     public static final int REFLOW_START = 3;
     public static final int REFLOW_END = 15;
 
+    Handler handler = new Handler();
     Storage storage;
     Storage.Book book;
     Storage.FBook fbook;
@@ -100,7 +101,14 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     View fontsizepopup_plus;
     boolean showRTL;
     PopupWindow popupWindow;
-    Handler handler = new Handler();
+    MenuItem searchMenu;
+    BroadcastReceiver battery;
+    Runnable invalidateOptionsMenu = new Runnable() {
+        @Override
+        public void run() {
+            ActivityCompat.invalidateOptionsMenu(getActivity());
+        }
+    };
     Runnable time = new Runnable() {
         @Override
         public void run() {
@@ -113,14 +121,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             handler.postDelayed(this, d);
             view.invalidateFooter();
             savePosition();
-        }
-    };
-    MenuItem searchMenu;
-    BroadcastReceiver battery;
-    Runnable invalidateOptionsMenu = new Runnable() {
-        @Override
-        public void run() {
-            ActivityCompat.invalidateOptionsMenu(getActivity());
         }
     };
 

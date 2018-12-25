@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.net.Uri;
 import android.os.Build;
@@ -957,7 +958,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 image = p.getRealImage();
             }
             if (image instanceof ZLStreamImage) {
-                bm = CacheImagesAdapter.createThumbnail(((ZLStreamImage) image).inputStream());
+                bm = CacheImagesAdapter.createScaled(((ZLStreamImage) image).inputStream());
             }
             if (image instanceof ZLBitmapImage) {
                 bm = ((ZLBitmapImage) image).getBitmap();
@@ -981,7 +982,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (bm == null)
                 return;
             try {
-                bm = CacheImagesAdapter.createThumbnail(bm);
+                bm = CacheImagesAdapter.createScaled(bm);
                 OutputStream os = new FileOutputStream(cover);
                 os = new BufferedOutputStream(os);
                 bm.compress(Bitmap.CompressFormat.PNG, 100, os);
