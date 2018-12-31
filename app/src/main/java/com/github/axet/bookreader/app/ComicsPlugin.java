@@ -9,6 +9,8 @@ import android.os.ParcelFileDescriptor;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import com.github.axet.androidlibrary.app.RarSAF;
+import com.github.axet.androidlibrary.app.ZipSAF;
 import com.github.axet.androidlibrary.services.StorageProvider;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.bookreader.widgets.FBReaderView;
@@ -74,38 +76,6 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         } catch (IOException e) {
             Log.d(TAG, "unable to close is", e);
             return null;
-        }
-    }
-
-    public static String getRarFileName(FileHeader header) {
-        String s = header.getFileNameW();
-        if (s == null || s.isEmpty())
-            s = header.getFileNameString();
-        if (header.getHostOS().equals(HostSystem.win32))
-            s = s.replaceAll("\\\\", "/");
-        return s;
-    }
-
-    public static class ZipInputStreamSafe extends InputStream {
-        ZipInputStream is;
-
-        public ZipInputStreamSafe(ZipInputStream is) {
-            this.is = is;
-        }
-
-        @Override
-        public int read() throws IOException {
-            return is.read();
-        }
-
-        @Override
-        public int read(@NonNull byte[] b, int off, int len) throws IOException {
-            return is.read(b, off, len);
-        }
-
-        @Override
-        public void close() throws IOException {
-            is.close(true);
         }
     }
 
@@ -234,7 +204,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
 
                         @Override
                         public String getPath() {
-                            return getRarFileName(header);
+                            return RarSAF.getRarFileName(header);
                         }
 
                         @Override
@@ -327,7 +297,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
                         @Override
                         public InputStream open() {
                             try {
-                                return new ZipInputStreamSafe(zip.getInputStream(zipEntry));
+                                return new ZipSAF.ZipInputStreamSafe(zip.getInputStream(zipEntry));
                             } catch (Exception e) {
                                 throw new RuntimeException(e);
                             }
