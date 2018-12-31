@@ -22,6 +22,7 @@ import android.widget.TextView;
 
 import com.github.axet.androidlibrary.app.AlarmManager;
 import com.github.axet.androidlibrary.app.FileTypeDetector;
+import com.github.axet.androidlibrary.app.RarSAF;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
@@ -818,7 +819,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                             if (h.isDirectory())
                                 continue;
 
-                            ZipEntry entry = new ZipEntry(ComicsPlugin.getRarFileName(h));
+                            ZipEntry entry = new ZipEntry(RarSAF.getRarFileName(h));
                             out.putNextEntry(entry);
 
                             archive.extractFile(h, out);

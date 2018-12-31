@@ -2,6 +2,7 @@ package com.github.axet.bookreader.widgets;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.support.annotation.Keep;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
@@ -9,6 +10,7 @@ import android.util.AttributeSet;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
 
+@Keep
 public class ToolbarRTLView extends ToolbarButtonView {
     public ToolbarRTLView(@NonNull Context context) {
         super(context);
