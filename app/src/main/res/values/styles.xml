@@ -14,6 +14,7 @@
 
     <style name="AppThemeDark" parent="AppThemeDarkLib">
         <item name="side_nav_bar">@drawable/side_nav_bar_dark</item>
+        <item name="android:navigationBarColor">@color/black</item>
     </style>
 
     <style name="AppThemeDark.NoActionBar">
