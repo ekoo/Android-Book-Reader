@@ -826,27 +826,41 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             updateToolbar();
         }
         if (id == R.id.action_fontsize) {
-            fontsPopup = new FontsPopup(getContext()) {
-                @Override
-                public void setFont(String f) {
-                    SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
-                    SharedPreferences.Editor edit = shared.edit();
-                    edit.putString(BookApplication.PREFERENCE_FONTFAMILY_FBREADER, f);
-                    edit.apply();
-                    view.setFontFB(f);
-                    updateToolbar();
-                }
+            if (view.pluginview == null) {
+                fontsPopup = new FontsPopup(getContext()) {
+                    @Override
+                    public void setFont(String f) {
+                        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+                        SharedPreferences.Editor edit = shared.edit();
+                        edit.putString(BookApplication.PREFERENCE_FONTFAMILY_FBREADER, f);
+                        edit.apply();
+                        view.setFontFB(f);
+                        updateToolbar();
+                    }
 
-                @Override
-                public void setFontsize(int f) {
-                    if (view.pluginview == null) {
+                    @Override
+                    public void setFontsize(int f) {
                         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
                         SharedPreferences.Editor edit = shared.edit();
                         edit.putInt(BookApplication.PREFERENCE_FONTSIZE_FBREADER, f);
                         edit.apply();
                         view.setFontsizeFB(f);
                         updateToolbar();
-                    } else {
+                    }
+
+                    @Override
+                    public void updateFontsize(int f) {
+                        fontsizepopup_text.setText(Integer.toString(f));
+                    }
+                };
+                fontsPopup.loadFonts();
+                fontsPopup.fonts.select(view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
+                fontsPopup.fontsList.scrollToPosition(fontsPopup.fonts.selected);
+                fontsPopup.updateFontsize(FONT_START, FONT_END, view.getFontsizeFB());
+            } else {
+                fontsPopup = new FontsPopup(getContext()) {
+                    @Override
+                    public void setFontsize(int f) {
                         float p = f / 10f;
                         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
                         SharedPreferences.Editor editor = shared.edit();
@@ -855,27 +869,13 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                         view.setFontsizeReflow(p);
                         updateToolbar();
                     }
-                }
 
-                @Override
-                public void updateFontsize(int f) {
-                    if (view.pluginview == null) {
-                        fontsizepopup_text.setText(Integer.toString(f));
-                    } else {
+                    @Override
+                    public void updateFontsize(int f) {
                         fontsizepopup_text.setText(String.format("%.1f", f / 10f));
                     }
-                }
-            };
-            if (view.pluginview == null) {
-                fontsPopup.loadFonts();
-            } else {
+                };
                 fontsPopup.fontsFrame.setVisibility(View.GONE);
-            }
-            fontsPopup.fonts.select(view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
-            fontsPopup.fontsList.scrollToPosition(fontsPopup.fonts.selected);
-            if (view.pluginview == null) {
-                fontsPopup.updateFontsize(FONT_START, FONT_END, view.getFontsizeFB());
-            } else {
                 fontsPopup.updateFontsize(REFLOW_START, REFLOW_END, (int) (getFontsizeReflow() * 10));
             }
             View v = MenuItemCompat.getActionView(item);
