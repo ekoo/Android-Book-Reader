@@ -718,14 +718,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         savePosition();
     }
 
-    public void setFontFB(String f) {
-        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
-        SharedPreferences.Editor edit = shared.edit();
-        edit.putString(BookApplication.PREFERENCE_FONTFAMILY_FBREADER, f);
-        edit.apply();
-        view.setFontFB(f);
-    }
-
     public float getFontsizeReflow() {
         Float fontsize = view.getFontsizeReflow();
         if (fontsize != null)
@@ -836,8 +828,12 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         if (id == R.id.action_fontsize) {
             fontsPopup = new FontsPopup(getContext()) {
                 @Override
-                public void setFont(String str) {
-                    setFontFB(str);
+                public void setFont(String f) {
+                    SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+                    SharedPreferences.Editor edit = shared.edit();
+                    edit.putString(BookApplication.PREFERENCE_FONTFAMILY_FBREADER, f);
+                    edit.apply();
+                    view.setFontFB(f);
                     updateToolbar();
                 }
 
