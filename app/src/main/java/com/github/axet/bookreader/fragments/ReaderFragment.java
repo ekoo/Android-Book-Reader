@@ -623,8 +623,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         view.pageTurningListener = new FBReaderView.PageTurningListener() {
             @Override
             public void onScrollingFinished(ZLViewEnums.PageIndex index) {
-                if (fontsPopup != null)
+                if (fontsPopup != null) {
                     fontsPopup.dismiss();
+                    fontsPopup = null;
+                }
                 updateToolbar();
             }
 
@@ -762,8 +764,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         shared.unregisterOnSharedPreferenceChangeListener(this);
         handler.removeCallbacks(time);
         ScreenlockPreference.onUserInteractionRemove();
-        if (fontsPopup != null)
+        if (fontsPopup != null) {
             fontsPopup.dismiss();
+            fontsPopup = null;
+        }
         if (fbook != null) {
             fbook.close();
             fbook = null;
@@ -778,8 +782,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (fontsPopup != null)
+        if (fontsPopup != null) {
             fontsPopup.dismiss();
+            fontsPopup = null;
+        }
         int id = item.getItemId();
         if (id == R.id.action_toc) {
             showTOC();
