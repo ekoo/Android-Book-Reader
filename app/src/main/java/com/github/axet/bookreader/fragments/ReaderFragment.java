@@ -90,17 +90,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     Storage.FBook fbook;
     FBReaderView view;
     AlertDialog tocdialog;
-    FontAdapter fonts;
-    View fontsFrame;
-    RecyclerView fontsList;
-    TextView fontsText;
-    View fontsize_popup;
-    TextView fontsizepopup_text;
-    SeekBar fontsizepopup_seek;
-    View fontsizepopup_minus;
-    View fontsizepopup_plus;
     boolean showRTL;
-    PopupWindow popupWindow;
+    FontsPopup fontsPopup;
     MenuItem searchMenu;
     BroadcastReceiver battery;
     Runnable invalidateOptionsMenu = new Runnable() {
@@ -140,6 +131,112 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             }
         }
         return null;
+    }
+
+    public static class FontsPopup extends PopupWindow {
+        FontAdapter fonts;
+        View fontsFrame;
+        RecyclerView fontsList;
+        TextView fontsText;
+        View fontsize_popup;
+        TextView fontsizepopup_text;
+        SeekBar fontsizepopup_seek;
+        View fontsizepopup_minus;
+        View fontsizepopup_plus;
+
+        public FontsPopup(Context context) {
+            fontsize_popup = LayoutInflater.from(context).inflate(R.layout.font_popup, new FrameLayout(context), false);
+            fontsizepopup_text = (TextView) fontsize_popup.findViewById(R.id.fontsize_text);
+            fontsizepopup_plus = fontsize_popup.findViewById(R.id.fontsize_plus);
+            fontsizepopup_minus = fontsize_popup.findViewById(R.id.fontsize_minus);
+            fontsizepopup_seek = (SeekBar) fontsize_popup.findViewById(R.id.fontsize_seek);
+            fonts = new FontAdapter(context);
+            fonts.clickListener = new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                    fonts.select(position);
+                    setFont(fonts.ff.get(position).name);
+                }
+            };
+            fontsFrame = fontsize_popup.findViewById(R.id.fonts_frame);
+            fontsText = (TextView) fontsize_popup.findViewById(R.id.fonts_text);
+            fontsText.setText(context.getString(R.string.add_more_fonts_to, FONTS.toString()));
+            fontsList = (RecyclerView) fontsize_popup.findViewById(R.id.fonts_list);
+            fontsList.setLayoutManager(new LinearLayoutManager(context));
+            setContentView(fontsize_popup);
+        }
+
+        public void setFont(String str) {
+        }
+
+        public void setFontsize(int f) {
+        }
+
+        public void updateFontsize(int f) {
+        }
+
+        public void loadFonts() {
+            fontsFrame.setVisibility(View.VISIBLE);
+            fontsList.setAdapter(fonts);
+            fonts.addBasics();
+            List<File> files = new ArrayList<>();
+            for (String f : enumerateFonts().keySet())
+                files.add(new File(f));
+            AndroidFontUtil.ourFileSet = new TreeSet<>();
+            AndroidFontUtil.ourFontFileMap = new ZLTTFInfoDetector().collectFonts(files);
+            for (String s : AndroidFontUtil.ourFontFileMap.keySet()) {
+                File[] ff = AndroidFontUtil.ourFontFileMap.get(s);
+                for (File f : ff) {
+                    if (f != null) {
+                        fonts.ff.add(new FontView(s, f));
+                        break; // regular first
+                    }
+                }
+            }
+        }
+
+        public void updateFontsize(final int start, final int end, int f) {
+            fontsizepopup_seek.setMax(end - start);
+            fontsizepopup_seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    updateFontsize(progress + start);
+                }
+
+                @Override
+                public void onStartTrackingTouch(SeekBar seekBar) {
+                }
+
+                @Override
+                public void onStopTrackingTouch(SeekBar seekBar) {
+                    int p = fontsizepopup_seek.getProgress();
+                    setFontsize(start + p);
+                }
+            });
+            fontsizepopup_seek.setProgress(f - start);
+            fontsizepopup_minus.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    int p = fontsizepopup_seek.getProgress();
+                    p--;
+                    if (p < 0)
+                        p = 0;
+                    fontsizepopup_seek.setProgress(p);
+                    setFontsize(start + p);
+                }
+            });
+            fontsizepopup_plus.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    int p = fontsizepopup_seek.getProgress();
+                    p++;
+                    if (p >= end - start)
+                        p = end - start;
+                    fontsizepopup_seek.setProgress(p);
+                    setFontsize(start + p);
+                }
+            });
+        }
     }
 
     public static class FontView {
@@ -520,33 +617,16 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                              Bundle savedInstanceState) {
         final View v = inflater.inflate(R.layout.fragment_reader, container, false);
 
-        fontsize_popup = inflater.inflate(R.layout.font_popup, new FrameLayout(getContext()), false);
-        fontsizepopup_text = (TextView) fontsize_popup.findViewById(R.id.fontsize_text);
-        fontsizepopup_plus = fontsize_popup.findViewById(R.id.fontsize_plus);
-        fontsizepopup_minus = fontsize_popup.findViewById(R.id.fontsize_minus);
-        fontsizepopup_seek = (SeekBar) fontsize_popup.findViewById(R.id.fontsize_seek);
-        fonts = new FontAdapter(getContext());
-        fonts.clickListener = new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                fonts.select(position);
-                setFontFB(fonts.ff.get(position).name);
-                updateToolbar();
-            }
-        };
-        fontsFrame = fontsize_popup.findViewById(R.id.fonts_frame);
-        fontsText = (TextView) fontsize_popup.findViewById(R.id.fonts_text);
-        fontsText.setText(getString(R.string.add_more_fonts_to, FONTS.toString()));
-        fontsList = (RecyclerView) fontsize_popup.findViewById(R.id.fonts_list);
-        fontsList.setLayoutManager(new LinearLayoutManager(getContext()));
         final MainActivity main = (MainActivity) getActivity();
         view = (FBReaderView) v.findViewById(R.id.main_view);
 
         view.pageTurningListener = new FBReaderView.PageTurningListener() {
             @Override
             public void onScrollingFinished(ZLViewEnums.PageIndex index) {
-                if (popupWindow != null)
-                    popupWindow.dismiss();
+                if (fontsPopup != null) {
+                    fontsPopup.dismiss();
+                    fontsPopup = null;
+                }
                 updateToolbar();
             }
 
@@ -564,8 +644,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         String mode = shared.getString(BookApplication.PREFERENCE_VIEW_MODE, "");
         view.setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
-
-        Context context = getContext();
 
         view.setWindow(getActivity().getWindow());
         view.setActivity(getActivity());
@@ -585,29 +663,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             main.openLibrary();
         }
 
-        if (view.pluginview == null) {
-            fontsFrame.setVisibility(View.VISIBLE);
-            fontsList.setAdapter(fonts);
-            List<File> files = new ArrayList<>();
-            for (String f : enumerateFonts().keySet()) {
-                files.add(new File(f));
-            }
-            AndroidFontUtil.ourFileSet = new TreeSet<>();
-            AndroidFontUtil.ourFontFileMap = new ZLTTFInfoDetector().collectFonts(files);
-            fonts.addBasics();
-            for (String s : AndroidFontUtil.ourFontFileMap.keySet()) {
-                File[] ff = AndroidFontUtil.ourFontFileMap.get(s);
-                for (File f : ff) {
-                    if (f != null) {
-                        fonts.ff.add(new FontView(s, f));
-                        break; // regular first
-                    }
-                }
-            }
-        } else {
-            fontsFrame.setVisibility(View.GONE);
-        }
-
         updateToolbar();
 
         handler.post(new Runnable() {
@@ -623,110 +678,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     void updateToolbar() {
         invalidateOptionsMenu.run();
-    }
-
-    void updateFontsize() {
-        if (view.pluginview == null) {
-            int f = view.getFontsizeFB();
-            final int start = FONT_START;
-            final int end = FONT_END;
-            fontsizepopup_seek.setMax(end - start);
-            fontsizepopup_seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-                @Override
-                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                    fontsizepopup_text.setText(Integer.toString(progress + start));
-                }
-
-                @Override
-                public void onStartTrackingTouch(SeekBar seekBar) {
-                }
-
-                @Override
-                public void onStopTrackingTouch(SeekBar seekBar) {
-                    int p = fontsizepopup_seek.getProgress();
-                    setFontsizeFB(start + p);
-                    updateToolbar();
-                }
-            });
-            fontsizepopup_seek.setProgress(f - start);
-            fontsizepopup_minus.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    int p = fontsizepopup_seek.getProgress();
-                    p--;
-                    if (p < 0)
-                        p = 0;
-                    fontsizepopup_seek.setProgress(p);
-                    setFontsizeFB(start + p);
-                    updateToolbar();
-                }
-            });
-            fontsizepopup_plus.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    int p = fontsizepopup_seek.getProgress();
-                    p++;
-                    if (p >= end - start)
-                        p = end - start;
-                    fontsizepopup_seek.setProgress(p);
-                    setFontsizeFB(start + p);
-                    updateToolbar();
-                }
-            });
-        } else {
-            int f = (int) (getFontsizeReflow() * 10);
-            final int start = REFLOW_START;
-            final int end = REFLOW_END;
-            final int step = 1;
-            fontsizepopup_seek.setMax(end - start);
-            fontsizepopup_seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-                @Override
-                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                    fontsizepopup_text.setText(String.format("%.1f", (start + progress) / 10f));
-                }
-
-                @Override
-                public void onStartTrackingTouch(SeekBar seekBar) {
-                }
-
-                @Override
-                public void onStopTrackingTouch(SeekBar seekBar) {
-                    float p = fontsizepopup_seek.getProgress();
-                    setFontsizeReflow((start + p) / 10f);
-                    updateToolbar();
-                }
-            });
-            fontsizepopup_seek.setProgress(f - start);
-            fontsizepopup_minus.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    int p = fontsizepopup_seek.getProgress();
-                    p -= step;
-                    if (p < 0)
-                        p = 0;
-                    fontsizepopup_seek.setProgress(p);
-                    setFontsizeReflow((start + p) / 10f);
-                    updateToolbar();
-                }
-            });
-            fontsizepopup_plus.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    int p = fontsizepopup_seek.getProgress();
-                    p += step;
-                    if (p >= end - start)
-                        p = end - start;
-                    fontsizepopup_seek.setProgress(p);
-                    setFontsizeReflow((start + p) / 10f);
-                    updateToolbar();
-                }
-            });
-        }
-    }
-
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
     }
 
     @Override
@@ -769,36 +720,12 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         savePosition();
     }
 
-    public void setFontsizeFB(int p) {
-        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
-        SharedPreferences.Editor edit = shared.edit();
-        edit.putInt(BookApplication.PREFERENCE_FONTSIZE_FBREADER, p);
-        edit.apply();
-        view.setFontsizeFB(p);
-    }
-
-    public void setFontFB(String f) {
-        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
-        SharedPreferences.Editor edit = shared.edit();
-        edit.putString(BookApplication.PREFERENCE_FONTFAMILY_FBREADER, f);
-        edit.apply();
-        view.setFontFB(f);
-    }
-
     public float getFontsizeReflow() {
         Float fontsize = view.getFontsizeReflow();
         if (fontsize != null)
             return fontsize;
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         return shared.getFloat(BookApplication.PREFERENCE_FONTSIZE_REFLOW, BookApplication.PREFERENCE_FONTSIZE_REFLOW_DEFAULT);
-    }
-
-    public void setFontsizeReflow(float p) {
-        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
-        SharedPreferences.Editor editor = shared.edit();
-        editor.putFloat(BookApplication.PREFERENCE_FONTSIZE_REFLOW, p);
-        editor.apply();
-        view.setFontsizeReflow(p);
     }
 
     void savePosition() {
@@ -837,8 +764,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         shared.unregisterOnSharedPreferenceChangeListener(this);
         handler.removeCallbacks(time);
         ScreenlockPreference.onUserInteractionRemove();
-        if (popupWindow != null)
-            popupWindow.dismiss();
+        if (fontsPopup != null) {
+            fontsPopup.dismiss();
+            fontsPopup = null;
+        }
         if (fbook != null) {
             fbook.close();
             fbook = null;
@@ -853,8 +782,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (popupWindow != null)
-            popupWindow.dismiss();
+        if (fontsPopup != null) {
+            fontsPopup.dismiss();
+            fontsPopup = null;
+        }
         int id = item.getItemId();
         if (id == R.id.action_toc) {
             showTOC();
@@ -901,14 +832,62 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             updateToolbar();
         }
         if (id == R.id.action_fontsize) {
-            popupWindow = new PopupWindow(fontsize_popup);
-            fonts.select(view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
-            fontsList.scrollToPosition(fonts.selected);
-            updateFontsize();
+            if (view.pluginview == null) {
+                fontsPopup = new FontsPopup(getContext()) {
+                    @Override
+                    public void setFont(String f) {
+                        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+                        SharedPreferences.Editor edit = shared.edit();
+                        edit.putString(BookApplication.PREFERENCE_FONTFAMILY_FBREADER, f);
+                        edit.apply();
+                        view.setFontFB(f);
+                        updateToolbar();
+                    }
+
+                    @Override
+                    public void setFontsize(int f) {
+                        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+                        SharedPreferences.Editor edit = shared.edit();
+                        edit.putInt(BookApplication.PREFERENCE_FONTSIZE_FBREADER, f);
+                        edit.apply();
+                        view.setFontsizeFB(f);
+                        updateToolbar();
+                    }
+
+                    @Override
+                    public void updateFontsize(int f) {
+                        fontsizepopup_text.setText(Integer.toString(f));
+                    }
+                };
+                fontsPopup.loadFonts();
+                fontsPopup.fonts.select(view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
+                fontsPopup.fontsList.scrollToPosition(fontsPopup.fonts.selected);
+                fontsPopup.updateFontsize(FONT_START, FONT_END, view.getFontsizeFB());
+            } else {
+                fontsPopup = new FontsPopup(getContext()) {
+                    @Override
+                    public void setFontsize(int f) {
+                        float p = f / 10f;
+                        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+                        SharedPreferences.Editor editor = shared.edit();
+                        editor.putFloat(BookApplication.PREFERENCE_FONTSIZE_REFLOW, p);
+                        editor.apply();
+                        view.setFontsizeReflow(p);
+                        updateToolbar();
+                    }
+
+                    @Override
+                    public void updateFontsize(int f) {
+                        fontsizepopup_text.setText(String.format("%.1f", f / 10f));
+                    }
+                };
+                fontsPopup.fontsFrame.setVisibility(View.GONE);
+                fontsPopup.updateFontsize(REFLOW_START, REFLOW_END, (int) (getFontsizeReflow() * 10));
+            }
             View v = MenuItemCompat.getActionView(item);
             if (v == null || !ViewCompat.isAttachedToWindow(v))
                 v = getOverflowMenuButton(getActivity());
-            PopupWindowCompat.showAsTooltip(popupWindow, v, Gravity.BOTTOM,
+            PopupWindowCompat.showAsTooltip(fontsPopup, v, Gravity.BOTTOM,
                     ThemeUtils.getThemeColor(getContext(), R.attr.colorButtonNormal), // v has overflow ThemedContext
                     ThemeUtils.dp2px(getContext(), 300));
         }
