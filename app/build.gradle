@@ -10,8 +10,8 @@ android {
         applicationId "com.github.axet.bookreader"
         minSdkVersion 9
         targetSdkVersion 26
-        versionCode 355
-        versionName "1.11.27"
+        versionCode 356
+        versionName "1.11.28"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
     }
@@ -60,7 +60,7 @@ dependencies {
     implementation 'com.android.support.constraint:constraint-layout:1.1.3'
     implementation 'com.github.axet.fbreader:library:0.1.14'
     implementation 'com.github.axet:djvulibre:0.1.2'
-    implementation 'com.github.axet:pdfium:2.0.12'
+    implementation 'com.github.axet:pdfium:2.0.14'
     implementation 'com.github.axet:k2pdfopt:0.1.6'
     implementation('com.github.axet:wget:1.4.2') { exclude group: 'com.thoughtworks.xstream', module: 'xstream' }
 }

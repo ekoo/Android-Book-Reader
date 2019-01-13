@@ -7,9 +7,8 @@ import android.os.Build;
 import android.os.Handler;
 
 public class TimeAnimatorCompat {
-
+    Handler handler = new Handler();
     TimeListener listener;
-
     TimeAnimator t;
     ValueAnimator v;
     Runnable run = new Runnable() {
@@ -17,10 +16,9 @@ public class TimeAnimatorCompat {
         public void run() {
             if (listener != null)
                 listener.onTimeUpdate(TimeAnimatorCompat.this, 0, 0);
-            handler.postDelayed(run, 10);
+            handler.postDelayed(run, 1000 / 24); // 24 FPS
         }
     };
-    Handler handler = new Handler();
 
     interface TimeListener {
         void onTimeUpdate(TimeAnimatorCompat animation, long totalTime, long deltaTime);
@@ -30,13 +28,8 @@ public class TimeAnimatorCompat {
         if (Build.VERSION.SDK_INT >= 16) {
             t = new TimeAnimator();
         } else if (Build.VERSION.SDK_INT >= 11) {
-            v = new ValueAnimator();
+            v = ValueAnimator.ofFloat(0f, 1f);
         }
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
     }
 
     public void start() {
@@ -64,7 +57,8 @@ public class TimeAnimatorCompat {
             t.setTimeListener(new TimeAnimator.TimeListener() {
                 @Override
                 public void onTimeUpdate(TimeAnimator animation, long totalTime, long deltaTime) {
-                    listener.onTimeUpdate(TimeAnimatorCompat.this, totalTime, deltaTime);
+                    if (listener != null)
+                        listener.onTimeUpdate(TimeAnimatorCompat.this, totalTime, deltaTime);
                 }
             });
         } else if (Build.VERSION.SDK_INT >= 11) {
@@ -72,13 +66,11 @@ public class TimeAnimatorCompat {
                 @TargetApi(11)
                 @Override
                 public void onAnimationUpdate(ValueAnimator animation) {
-                    if (listener != null) {
+                    if (listener != null)
                         listener.onTimeUpdate(TimeAnimatorCompat.this, 0, 0);
-                    }
                 }
             });
         }
         listener = l;
     }
-
 }
