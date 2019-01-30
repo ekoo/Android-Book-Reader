@@ -24,6 +24,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.os.PowerManager;
 import android.support.annotation.NonNull;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.ViewCompat;
@@ -327,6 +328,15 @@ public class FBReaderView extends RelativeLayout {
             ZLAndroidPaintContext context = createContext(new Canvas());
             setContext(context);
             return context;
+        }
+
+        @Override
+        public Animation getAnimationType() {
+            PowerManager pm = (PowerManager) FBReaderView.this.getContext().getSystemService(Context.POWER_SERVICE);
+            if (Build.VERSION.SDK_INT >= 21 && pm.isPowerSaveMode())
+                return Animation.none;
+            else
+                return super.getAnimationType();
         }
 
         public void setScalingType(ZLTextImageElement imageElement, ZLPaintContext.ScalingType s) {
@@ -1787,7 +1797,7 @@ public class FBReaderView extends RelativeLayout {
             }
         }
 
-        public ScrollView(Context context) {
+        public ScrollView(final Context context) {
             super(context);
 
             lm = new LinearLayoutManager(context) {
@@ -1801,9 +1811,14 @@ public class FBReaderView extends RelativeLayout {
 
                 @Override
                 public void smoothScrollToPosition(RecyclerView recyclerView, State state, int position) {
-                    RecyclerView.SmoothScroller smoothScroller = new TopAlwaysSmoothScroller(recyclerView.getContext());
-                    smoothScroller.setTargetPosition(position);
-                    startSmoothScroll(smoothScroller);
+                    PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+                    if (Build.VERSION.SDK_INT >= 21 && pm.isPowerSaveMode()) {
+                        scrollToPositionWithOffset(position, 0);
+                    } else {
+                        RecyclerView.SmoothScroller smoothScroller = new TopAlwaysSmoothScroller(recyclerView.getContext());
+                        smoothScroller.setTargetPosition(position);
+                        startSmoothScroll(smoothScroller);
+                    }
                 }
 
                 @Override
