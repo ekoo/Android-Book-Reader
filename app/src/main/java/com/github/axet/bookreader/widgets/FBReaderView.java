@@ -3039,6 +3039,9 @@ public class FBReaderView extends RelativeLayout {
             config.setValue(app.ViewOptions.ColorProfileName, ColorProfile.NIGHT);
         } else {
             config.setValue(app.ViewOptions.ColorProfileName, ColorProfile.DAY);
+            ColorProfile p = ColorProfile.get(ColorProfile.DAY);
+            config.setValue(p.BackgroundOption, 0xF5E5CC);
+            config.setValue(p.WallpaperOption, "");
         }
     }
 
