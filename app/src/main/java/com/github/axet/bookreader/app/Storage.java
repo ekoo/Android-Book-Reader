@@ -67,8 +67,10 @@ import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -337,6 +339,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         public Map<String, ZLPaintContext.ScalingType> scales = new HashMap<>(); // individual scales
         public FBView.ImageFitting scale; // all images
         public Integer fontsize; // FBView size or Reflow / 100
+        public Map<String, Integer> fontsizes = new TreeMap<>();
         public Bookmarks bookmarks;
 
         public RecentInfo() {
@@ -412,9 +415,16 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
             }
             String androidId = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
-            fontsize = o.optInt("fontsize_" + androidId, -1);
+            String fontsizeId = "fontsize_" + androidId;
+            fontsize = o.optInt(fontsizeId, -1);
             if (fontsize == -1)
                 fontsize = null;
+            Iterator<String> kk = o.keys();
+            while (kk.hasNext()) {
+                String k = kk.next();
+                if (k.startsWith("fontsize_") && !k.equals(fontsizeId))
+                    fontsizes.put(k, o.optInt(k));
+            }
             JSONArray b = o.optJSONArray("bookmarks");
             if (b != null && b.length() > 0)
                 bookmarks = new Bookmarks(b);
@@ -437,6 +447,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 String androidId = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
                 o.put("fontsize_" + androidId, fontsize);
             }
+            for (String k : fontsizes.keySet())
+                o.put(k, fontsizes.get(k));
             if (bookmarks != null && bookmarks.size() > 0)
                 o.put("bookmarks", bookmarks.save());
             return o;
@@ -462,6 +474,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             }
             if (fontsize == null || last < info.last)
                 fontsize = info.fontsize;
+            merge(info.fontsizes, info.last);
             if (bookmarks == null) {
                 bookmarks = info.bookmarks;
             } else if (info.bookmarks != null) {
@@ -478,6 +491,25 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         bookmarks.add(b);
                 }
             }
+        }
+
+        public void merge(Map<String, Integer> fontsizes, long last) {
+            for (String k : fontsizes.keySet()) {
+                if (!this.fontsizes.containsKey(k) || this.last < last)
+                    this.fontsizes.put(k, fontsizes.get(k));
+            }
+        }
+
+        public boolean equals(Map<String, Integer> fontsizes) {
+            if (this.fontsizes.size() != fontsizes.size())
+                return false;
+            for (String k : fontsizes.keySet()) {
+                if (!this.fontsizes.containsKey(k))
+                    return false;
+                if (!this.fontsizes.get(k).equals(fontsizes.get(k)))
+                    return false;
+            }
+            return true;
         }
     }
 
