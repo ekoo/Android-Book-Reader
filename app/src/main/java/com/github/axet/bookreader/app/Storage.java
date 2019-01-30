@@ -6,7 +6,6 @@ import android.content.SharedPreferences;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.net.Uri;
 import android.os.Build;
@@ -14,6 +13,7 @@ import android.os.ParcelFileDescriptor;
 import android.preference.PreferenceManager;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -356,10 +356,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 bookmarks = new Bookmarks(info.bookmarks);
         }
 
-        public RecentInfo(File f) {
+        public RecentInfo(Context context, File f) {
             try {
                 FileInputStream is = new FileInputStream(f);
-                load(is);
+                load(context, is);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -377,24 +377,24 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 } else {
                     throw new UnknownUri();
                 }
-                load(is);
+                load(context, is);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
 
-        public RecentInfo(JSONObject o) throws JSONException {
-            load(o);
+        public RecentInfo(Context context, JSONObject o) throws JSONException {
+            load(context, o);
         }
 
-        public void load(InputStream is) throws Exception {
+        public void load(Context context, InputStream is) throws Exception {
             String json = IOUtils.toString(is, Charset.defaultCharset());
             JSONObject j = new JSONObject(json);
-            load(j);
+            load(context, j);
             is.close();
         }
 
-        public void load(JSONObject o) throws JSONException {
+        public void load(Context context, JSONObject o) throws JSONException {
             created = o.optLong("created", 0);
             last = o.getLong("last");
             authors = o.optString("authors", null);
@@ -411,7 +411,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     this.scales.put(key, ZLPaintContext.ScalingType.valueOf(v));
                 }
             }
-            fontsize = o.optInt("fontsize", -1);
+            String androidId = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
+            fontsize = o.optInt("fontsize_" + androidId, -1);
             if (fontsize == -1)
                 fontsize = null;
             JSONArray b = o.optJSONArray("bookmarks");
@@ -419,7 +420,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 bookmarks = new Bookmarks(b);
         }
 
-        public JSONObject save() throws JSONException {
+        public JSONObject save(Context context) throws JSONException {
             JSONObject o = new JSONObject();
             o.put("created", created);
             o.put("last", last);
@@ -432,8 +433,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 o.put("scale", scale.name());
             if (!scales.isEmpty())
                 o.put("scales", WebViewCustom.toJSON(scales));
-            if (fontsize != null)
-                o.put("fontsize", fontsize);
+            if (fontsize != null) {
+                String androidId = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
+                o.put("fontsize_" + androidId, fontsize);
+            }
             if (bookmarks != null && bookmarks.size() > 0)
                 o.put("bookmarks", bookmarks.save());
             return o;
@@ -624,7 +627,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             }
             FileDescriptor out = fd.getFileDescriptor();
             try {
-                String json = book.info.save().toString(2);
+                String json = book.info.save(context).toString(2);
                 Writer w = new FileWriter(out);
                 IOUtils.write(json, w);
                 w.close();
@@ -634,7 +637,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         } else if (s.equals(ContentResolver.SCHEME_FILE)) {
             try {
                 File f = Storage.getFile(u);
-                String json = book.info.save().toString(2);
+                String json = book.info.save(context).toString(2);
                 Writer w = new FileWriter(f);
                 IOUtils.write(json, w);
                 w.close();
@@ -1040,7 +1043,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             File r = recentFile(b);
             if (r.exists()) {
                 try {
-                    b.info = new RecentInfo(r);
+                    b.info = new RecentInfo(context, r);
                 } catch (RuntimeException e) {
                     Log.d(TAG, "Unable to load info", e);
                 }

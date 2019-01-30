@@ -382,7 +382,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
                 File r = recentFile(book);
                 if (r.exists()) {
                     try {
-                        book.info = new Storage.RecentInfo(r);
+                        book.info = new Storage.RecentInfo(getContext(), r);
                     } catch (RuntimeException e) {
                         Log.e(TAG, "Unable to load info", e);
                     }
@@ -425,7 +425,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
             File r = recentFile(book);
             if (r.exists())
                 try {
-                    book.info = new Storage.RecentInfo(r);
+                    book.info = new Storage.RecentInfo(getContext(), r);
                 } catch (RuntimeException e) {
                     Log.d(TAG, "Unable to load info", e);
                 }
@@ -467,7 +467,7 @@ public class LocalLibraryFragment extends Fragment implements MainActivity.Searc
         book.info.last = System.currentTimeMillis();
         File f = recentFile(book);
         try {
-            String json = book.info.save().toString();
+            String json = book.info.save(getContext()).toString();
             Writer w = new FileWriter(f);
             IOUtils.write(json, w);
             w.close();
