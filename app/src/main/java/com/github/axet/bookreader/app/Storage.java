@@ -474,10 +474,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             }
             if (fontsize == null || last < info.last)
                 fontsize = info.fontsize;
-            for (String k : info.fontsizes.keySet()) {
-                if (!fontsizes.containsKey(k) || last < info.last)
-                    fontsizes.put(k, info.fontsizes.get(k));
-            }
+            merge(info.fontsizes, info.last);
             if (bookmarks == null) {
                 bookmarks = info.bookmarks;
             } else if (info.bookmarks != null) {
@@ -494,6 +491,25 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         bookmarks.add(b);
                 }
             }
+        }
+
+        public void merge(Map<String, Integer> fontsizes, long last) {
+            for (String k : fontsizes.keySet()) {
+                if (!this.fontsizes.containsKey(k) || this.last < last)
+                    this.fontsizes.put(k, fontsizes.get(k));
+            }
+        }
+
+        public boolean equals(Map<String, Integer> fontsizes) {
+            if (this.fontsizes.size() != fontsizes.size())
+                return false;
+            for (String k : fontsizes.keySet()) {
+                if (!this.fontsizes.containsKey(k))
+                    return false;
+                if (!this.fontsizes.get(k).equals(fontsizes.get(k)))
+                    return false;
+            }
+            return true;
         }
     }
 

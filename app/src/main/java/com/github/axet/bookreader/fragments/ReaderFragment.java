@@ -731,7 +731,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     void savePosition() {
         if (book == null)
             return;
-        if (view.book == null) // when book insn't loaded and view clsosed
+        if (view.book == null) // when book isn't loaded and view closed
             return;
         Storage.RecentInfo save = new Storage.RecentInfo(view.book.info);
         save.position = view.getPosition();
@@ -741,12 +741,14 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 Storage.RecentInfo info = new Storage.RecentInfo(getContext(), u);
                 if (info.position != null && save.position.samePositionAs(info.position)) {
                     if (save.fontsize == null || info.fontsize != null && save.fontsize.equals(info.fontsize)) {
-                        if (save.bookmarks == null || info.bookmarks != null && save.bookmarks.equals(info.bookmarks))
-                            return; // nothing to save
+                        if (save.equals(info.fontsizes))
+                            if (save.bookmarks == null || info.bookmarks != null && save.bookmarks.equals(info.bookmarks))
+                                return; // nothing to save
                     }
                 }
                 if (book.info.last != info.last) // file changed between saves?
                     storage.move(u, storage.getStoragePath()); // yes. create conflict (1)
+                save.merge(info.fontsizes, info.last);
             } catch (RuntimeException e) {
                 Log.d(TAG, "Unable to load JSON", e);
             }
