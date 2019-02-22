@@ -2,16 +2,25 @@ package com.github.axet.bookreader.widgets;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
+import android.database.ContentObserver;
+import android.os.Handler;
+import android.os.Looper;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.support.v7.preference.SwitchPreferenceCompat;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.Display;
 
 import com.github.axet.bookreader.R;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class RotatePreferenceCompat extends SwitchPreferenceCompat {
 
@@ -19,8 +28,33 @@ public class RotatePreferenceCompat extends SwitchPreferenceCompat {
 
     public static boolean PHONES_ONLY = true; // hide option for tablets
 
-    public static void onCreate(Activity a, String key) {
+    public static Map<Activity, ContentObserver> map = new HashMap<>();
+    public static Handler handler = new Handler(Looper.getMainLooper());
+
+    public static void setRequestedOrientationLock(Activity a) { // SCREEN_ORIENTATION_NOSENSOR, nor SCREEN_ORIENTATION_LOCKED working
+        if (a.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+        } else {
+            a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
+        }
+    }
+
+    public static void onCreate(final Activity a, final String key) {
+        ContentResolver resolver = a.getContentResolver();
+        ContentObserver o = new ContentObserver(handler) {
+            @Override
+            public void onChange(boolean selfChange) {
+                onResume(a, key);
+            }
+        };
+        resolver.registerContentObserver(Settings.System.getUriFor(Settings.System.ACCELEROMETER_ROTATION), true, o);
+        map.put(a, o);
         onResume(a, key);
+    }
+
+    public static void onDestroy(final Activity a) {
+        ContentResolver resolver = a.getContentResolver();
+        resolver.unregisterContentObserver(map.remove(a));
     }
 
     public static void onResume(Activity a, String key) {
@@ -41,7 +75,7 @@ public class RotatePreferenceCompat extends SwitchPreferenceCompat {
         if (rotate)
             a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
         else
-            a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            setRequestedOrientationLock(a);
     }
 
     @TargetApi(21)
