@@ -240,13 +240,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         libraryMenu = navigationView.getMenu().findItem(R.id.nav_library);
 
         TextView ver = (TextView) navigationHeader.findViewById(R.id.nav_version);
-        try {
-            PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
-            String version = "v" + pInfo.versionName;
-            ver.setText(version);
-        } catch (PackageManager.NameNotFoundException e) {
-            ver.setVisibility(View.GONE);
-        }
+        AboutPreferenceCompat.setVersion(ver);
 
         Menu m = navigationView.getMenu();
         networkMenu = m.addSubMenu(R.string.books_catalogs);
@@ -266,6 +260,8 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         openLibrary();
 
         loadIntent(getIntent());
+
+        RotatePreferenceCompat.onCreate(this, BookApplication.PREFERENCE_ROTATE);
     }
 
     void reloadMenu() {
@@ -847,6 +843,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
     protected void onDestroy() {
         super.onDestroy();
         unregisterReceiver(receiver);
+        RotatePreferenceCompat.onDestroy(this);
         catalogs.save();
     }
 

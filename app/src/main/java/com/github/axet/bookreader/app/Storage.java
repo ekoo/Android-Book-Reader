@@ -114,6 +114,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
     }
 
+    public static String getAndroidId(Context context) {
+        String id = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
+        if (id == null || id.isEmpty())
+            id = Build.SERIAL;
+        return id;
+    }
+
     public static class Info implements SystemInfo {
         public Context context;
 
@@ -339,7 +346,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         public Map<String, ZLPaintContext.ScalingType> scales = new HashMap<>(); // individual scales
         public FBView.ImageFitting scale; // all images
         public Integer fontsize; // FBView size or Reflow / 100
-        public Map<String, Integer> fontsizes = new TreeMap<>();
+        public Map<String, Integer> fontsizes = new TreeMap<>(); // per device fontsize
         public Bookmarks bookmarks;
 
         public RecentInfo() {
@@ -414,8 +421,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                     this.scales.put(key, ZLPaintContext.ScalingType.valueOf(v));
                 }
             }
-            String androidId = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
-            String fontsizeId = "fontsize_" + androidId;
+            String fontsizeId = "fontsize_" + getAndroidId(context);
             fontsize = o.optInt(fontsizeId, -1);
             if (fontsize == -1)
                 fontsize = null;
@@ -443,10 +449,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 o.put("scale", scale.name());
             if (!scales.isEmpty())
                 o.put("scales", WebViewCustom.toJSON(scales));
-            if (fontsize != null) {
-                String androidId = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
-                o.put("fontsize_" + androidId, fontsize);
-            }
+            if (fontsize != null)
+                o.put("fontsize_" + getAndroidId(context), fontsize);
             for (String k : fontsizes.keySet())
                 o.put(k, fontsizes.get(k));
             if (bookmarks != null && bookmarks.size() > 0)
