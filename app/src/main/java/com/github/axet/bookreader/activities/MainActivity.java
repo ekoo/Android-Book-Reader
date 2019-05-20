@@ -8,8 +8,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -35,6 +33,7 @@ import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -45,6 +44,7 @@ import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.ErrorDialog;
 import com.github.axet.androidlibrary.widgets.OpenChoicer;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
+import com.github.axet.androidlibrary.widgets.RemoteNotificationCompat;
 import com.github.axet.androidlibrary.widgets.SearchView;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
@@ -241,6 +241,9 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
 
         TextView ver = (TextView) navigationHeader.findViewById(R.id.nav_version);
         AboutPreferenceCompat.setVersion(ver);
+
+        ImageView v = (ImageView) navigationHeader.findViewById(R.id.imageView);
+        RemoteNotificationCompat.setAdaptiveIcon(v, R.drawable.ic_launcher_foreground);
 
         Menu m = navigationView.getMenu();
         networkMenu = m.addSubMenu(R.string.books_catalogs);
