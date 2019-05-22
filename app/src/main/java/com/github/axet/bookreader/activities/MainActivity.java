@@ -242,9 +242,6 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         TextView ver = (TextView) navigationHeader.findViewById(R.id.nav_version);
         AboutPreferenceCompat.setVersion(ver);
 
-        ImageView v = (ImageView) navigationHeader.findViewById(R.id.imageView);
-        RemoteNotificationCompat.setAdaptiveIcon(v, R.drawable.ic_launcher_foreground);
-
         Menu m = navigationView.getMenu();
         networkMenu = m.addSubMenu(R.string.books_catalogs);
 
