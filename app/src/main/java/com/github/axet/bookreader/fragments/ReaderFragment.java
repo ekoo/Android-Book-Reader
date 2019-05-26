@@ -639,6 +639,12 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             public void onBookmarksUpdate() {
                 updateToolbar();
             }
+
+            @Override
+            public void onDismissDialog() {
+                if (main.fullscreen)
+                    main.hideSystemUI();
+            }
         };
 
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());

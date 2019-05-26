@@ -6,7 +6,7 @@
         android:icon="@drawable/ic_search_white_24dp"
         android:title="@string/search"
         app:actionViewClass="com.github.axet.androidlibrary.widgets.SearchView"
-        app:showAsAction="collapseActionView|ifRoom" />
+        app:showAsAction="collapseActionView|always" />
     <item
         android:id="@+id/action_grid"
         android:icon="@drawable/ic_view_list_black_24dp"

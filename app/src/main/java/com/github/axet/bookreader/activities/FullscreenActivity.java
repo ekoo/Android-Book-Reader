@@ -52,9 +52,8 @@ public class FullscreenActivity extends AppCompatFullscreenThemeActivity {
         List<Fragment> ff = fm.getFragments();
         if (ff != null) {
             for (Fragment f : ff) {
-                if (f instanceof FullscreenActivity.FullscreenListener) {
+                if (f instanceof FullscreenActivity.FullscreenListener)
                     ((FullscreenActivity.FullscreenListener) f).onFullscreenChanged(b);
-                }
             }
         }
     }
