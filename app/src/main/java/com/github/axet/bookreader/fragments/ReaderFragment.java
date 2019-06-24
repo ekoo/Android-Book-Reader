@@ -663,8 +663,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             main.openLibrary();
         }
 
-        updateToolbar();
-
         handler.post(new Runnable() {
             @Override
             public void run() {
