@@ -54,4 +54,11 @@
     <string name="pref_volume_summary">Использовать кнопки громкости для перелистывания страниц</string>
     <string name="bookmark_edit">Редактировать</string>
     <string name="book_font">Шрифт</string>
+    <string name="sort_by">Сортировка ...</string>
+    <string name="sort_by_name_a_z">Имя А-Я</string>
+    <string name="sort_by_name_z_a">Имя Я-А</string>
+    <string name="sort_by_added_asc">Добавлено по возрастанию</string>
+    <string name="sort_by_added_desc">Добавлено по убыванию</string>
+    <string name="sort_by_opened_asc">Открыто по возрастанию</string>
+    <string name="sort_by_opened_desc">Открыто по убыванию</string>
 </resources>

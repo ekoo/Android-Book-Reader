@@ -121,6 +121,20 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         return id;
     }
 
+    public static Bitmap renderView(View v) {
+        DisplayMetrics m = v.getContext().getResources().getDisplayMetrics();
+        int w = (int) (720 * m.density / 2);
+        int h = (int) (1280 * m.density / 2);
+        int ws = View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY);
+        int hs = View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY);
+        v.measure(ws, hs);
+        v.layout(0, 0, v.getMeasuredWidth(), v.getMeasuredHeight());
+        Bitmap bm = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
+        Canvas c = new Canvas(bm);
+        v.draw(c);
+        return bm;
+    }
+
     public static class Info implements SystemInfo {
         public Context context;
 
@@ -1031,20 +1045,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 throw new RuntimeException(e);
             }
         }
-    }
-
-    Bitmap renderView(View v) {
-        DisplayMetrics m = getContext().getResources().getDisplayMetrics();
-        int w = (int) (720 * m.density / 2);
-        int h = (int) (1280 * m.density / 2);
-        int ws = View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY);
-        int hs = View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY);
-        v.measure(ws, hs);
-        v.layout(0, 0, v.getMeasuredWidth(), v.getMeasuredHeight());
-        Bitmap bm = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
-        Canvas c = new Canvas(bm);
-        v.draw(c);
-        return bm;
     }
 
     public void list(ArrayList<Book> list, File storage) {

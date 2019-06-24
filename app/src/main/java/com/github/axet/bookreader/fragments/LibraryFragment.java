@@ -22,6 +22,7 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -222,6 +223,13 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         }
     }
 
+    public static class ByName implements Comparator<Storage.Book> {
+        @Override
+        public int compare(Storage.Book o1, Storage.Book o2) {
+            return Storage.getTitle(o1.info).compareTo(Storage.getTitle(o2.info));
+        }
+    }
+
     public class LibraryAdapter extends BooksAdapter {
         ArrayList<Storage.Book> all = new ArrayList<>();
         ArrayList<Storage.Book> list = new ArrayList<>();
@@ -282,12 +290,38 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                 clearTasks();
             } else {
                 for (Storage.Book b : all) {
-                    if (SearchView.filter(filter, Storage.getTitle(b.info))) {
+                    if (SearchView.filter(filter, Storage.getTitle(b.info)))
                         list.add(b);
-                    }
                 }
             }
-            Collections.sort(list, new ByCreated());
+            sort();
+        }
+
+        public void sort() {
+            SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+            int selected = getContext().getResources().getIdentifier(shared.getString(BookApplication.PREFERENCE_SORT, getContext().getResources().getResourceEntryName(R.id.sort_add_ask)), "id", getContext().getPackageName());
+            switch (selected) {
+                case R.id.sort_add_ask:
+                    Collections.sort(list, new ByCreated());
+                    break;
+                case R.id.sort_add_desc:
+                    Collections.sort(list, Collections.reverseOrder(new ByCreated()));
+                    break;
+                case R.id.sort_name_ask:
+                    Collections.sort(list, new ByName());
+                    break;
+                case R.id.sort_name_desc:
+                    Collections.sort(list, Collections.reverseOrder(new ByName()));
+                    break;
+                case R.id.sort_open_ask:
+                    Collections.sort(list, new ByRecent());
+                    break;
+                case R.id.sort_open_desc:
+                    Collections.sort(list, Collections.reverseOrder(new ByRecent()));
+                    break;
+                default:
+                    Collections.sort(list, new ByCreated());
+            }
             notifyDataSetChanged();
         }
 
@@ -634,6 +668,22 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         MenuItem debug = menu.findItem(R.id.action_debug);
         MenuItem rtl = menu.findItem(R.id.action_rtl);
         MenuItem mode = menu.findItem(R.id.action_mode);
+        MenuItem sort = menu.findItem(R.id.action_sort);
+
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+        int selected = getContext().getResources().getIdentifier(shared.getString(BookApplication.PREFERENCE_SORT, getContext().getResources().getResourceEntryName(R.id.sort_add_ask)), "id", getContext().getPackageName());
+        SubMenu sorts = sort.getSubMenu();
+        for (int i = 0; i < sorts.size(); i++) {
+            MenuItem m = sorts.getItem(i);
+            if (m.getItemId() == selected)
+                m.setChecked(true);
+            m.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+                @Override
+                public boolean onMenuItemClick(MenuItem item) {
+                    return false;
+                }
+            });
+        }
 
         reflow.setVisible(false);
         searchMenu.setVisible(true);
@@ -654,29 +704,39 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             invalidateOptionsMenu.run();
             return true;
         }
-        int id = item.getItemId();
-        if (id == R.id.action_bm) {
-            BookmarksDialog dialog = new BookmarksDialog(getContext()) {
-                @Override
-                public void selected(Storage.Book b, Storage.Bookmark bm) {
-                    MainActivity main = ((MainActivity) getActivity());
-                    main.openBook(b.url, new FBReaderView.ZLTextIndexPosition(bm.start, bm.end));
-                }
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+        switch (item.getItemId()) {
+            case R.id.sort_add_ask:
+            case R.id.sort_add_desc:
+            case R.id.sort_name_ask:
+            case R.id.sort_name_desc:
+            case R.id.sort_open_ask:
+            case R.id.sort_open_desc:
+                shared.edit().putString(BookApplication.PREFERENCE_SORT, getContext().getResources().getResourceEntryName(item.getItemId())).commit();
+                books.sort();
+                return true;
+            case R.id.action_bm:
+                BookmarksDialog dialog = new BookmarksDialog(getContext()) {
+                    @Override
+                    public void onSelected(Storage.Book b, Storage.Bookmark bm) {
+                        MainActivity main = ((MainActivity) getActivity());
+                        main.openBook(b.url, new FBReaderView.ZLTextIndexPosition(bm.start, bm.end));
+                    }
 
-                @Override
-                public void save(Storage.Book book, Storage.Bookmark bm) {
-                    storage.save(book);
-                }
+                    @Override
+                    public void onSave(Storage.Book book, Storage.Bookmark bm) {
+                        storage.save(book);
+                    }
 
-                @Override
-                public void delete(Storage.Book book, Storage.Bookmark bm) {
-                    book.info.bookmarks.remove(bm);
-                    storage.save(book);
-                }
-            };
-            dialog.load(books.all);
-            dialog.show();
-            return true;
+                    @Override
+                    public void onDelete(Storage.Book book, Storage.Bookmark bm) {
+                        book.info.bookmarks.remove(bm);
+                        storage.save(book);
+                    }
+                };
+                dialog.load(books.all);
+                dialog.show();
+                return true;
         }
         return super.onOptionsItemSelected(item);
     }

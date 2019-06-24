@@ -25,6 +25,7 @@ public class BookApplication extends MainApplication {
     public static String PREFERENCE_ROTATE = "rotate";
     public static String PREFERENCE_VIEW_MODE = "view_mode";
     public static String PREFERENCE_STORAGE = "storage_path";
+    public static String PREFERENCE_SORT = "sort";
 
     public ZLAndroidApplication zlib;
 

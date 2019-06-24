@@ -500,15 +500,12 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         return super.onOptionsItemSelected(item);
     }
 
-    @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
-        // Handle navigation view item clicks here.
         int id = item.getItemId();
 
-        if (id == R.id.nav_library) {
+        if (id == R.id.nav_library)
             openLibrary();
-        }
 
         Intent i = item.getIntent();
         if (i != null) {
@@ -822,12 +819,10 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
 
     public void clearMenu() {
         Menu m = navigationView.getMenu();
-        for (int i = 0; i < m.size(); i++) {
+        for (int i = 0; i < m.size(); i++)
             m.getItem(i).setChecked(false);
-        }
-        for (int i = 0; i < networkMenu.size(); i++) {
+        for (int i = 0; i < networkMenu.size(); i++)
             networkMenu.getItem(i).setChecked(false);
-        }
     }
 
     public FragmentTransaction addFragment(Fragment f, String tag) {

@@ -95,7 +95,7 @@ public class BookmarksDialog extends AlertDialog.Builder {
                 @Override
                 public void onClick(View v) {
                     Storage.Bookmark n = (Storage.Bookmark) getItem(h.getAdapterPosition(BMAdapter.this)).tag;
-                    selected(n);
+                    onSelected(n);
                     dialog.dismiss();
                 }
             });
@@ -115,10 +115,10 @@ public class BookmarksDialog extends AlertDialog.Builder {
                                         @Override
                                         public void onDismiss() {
                                             if (t.parent == root) {
-                                                save(tt);
+                                                onSave(tt);
                                             } else {
                                                 Storage.Book b = (Storage.Book) t.parent.tag;
-                                                save(b, tt);
+                                                onSave(b, tt);
                                             }
                                             notifyDataSetChanged();
                                         }
@@ -127,10 +127,10 @@ public class BookmarksDialog extends AlertDialog.Builder {
                                     break;
                                 case R.id.action_open:
                                     if (t.parent == root) {
-                                        save(tt);
+                                        onSave(tt);
                                     } else {
                                         Storage.Book b = (Storage.Book) t.parent.tag;
-                                        save(b, tt);
+                                        onSave(b, tt);
                                     }
                                     break;
                                 case R.id.action_share:
@@ -159,10 +159,10 @@ public class BookmarksDialog extends AlertDialog.Builder {
                                         @Override
                                         public void onClick(DialogInterface dialog, int which) {
                                             if (t.parent == root) {
-                                                delete(tt);
+                                                onDelete(tt);
                                             } else {
                                                 Storage.Book b = (Storage.Book) t.parent.tag;
-                                                delete(b, tt);
+                                                onDelete(b, tt);
                                             }
                                             items.remove(t);
                                             notifyDataSetChanged();
@@ -212,7 +212,7 @@ public class BookmarksDialog extends AlertDialog.Builder {
                     public void onClick(View v) {
                         Storage.Book tt = (Storage.Book) t.parent.tag;
                         Storage.Bookmark n = (Storage.Bookmark) getItem(h.getAdapterPosition(BMAdapterBooks.this)).tag;
-                        selected(tt, n);
+                        onSelected(tt, n);
                         dialog.dismiss();
                     }
                 });
@@ -282,21 +282,21 @@ public class BookmarksDialog extends AlertDialog.Builder {
         return super.show();
     }
 
-    public void selected(Storage.Bookmark b) {
+    public void onSelected(Storage.Bookmark b) {
     }
 
-    public void selected(Storage.Book book, Storage.Bookmark bm) {
+    public void onSelected(Storage.Book book, Storage.Bookmark bm) {
     }
 
-    public void save(Storage.Book book, Storage.Bookmark bm) {
+    public void onSave(Storage.Book book, Storage.Bookmark bm) {
     }
 
-    public void save(Storage.Bookmark bm) {
+    public void onSave(Storage.Bookmark bm) {
     }
 
-    public void delete(Storage.Book book, Storage.Bookmark bm) {
+    public void onDelete(Storage.Book book, Storage.Bookmark bm) {
     }
 
-    public void delete(Storage.Bookmark bm) {
+    public void onDelete(Storage.Bookmark bm) {
     }
 }
