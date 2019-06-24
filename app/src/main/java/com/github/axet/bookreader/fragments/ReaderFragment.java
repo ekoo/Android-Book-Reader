@@ -12,12 +12,10 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.BatteryManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.preference.PreferenceManager;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v4.view.ViewCompat;
@@ -42,6 +40,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.widgets.ErrorDialog;
+import com.github.axet.androidlibrary.widgets.InvalidateOptionsMenuCompat;
 import com.github.axet.androidlibrary.widgets.PopupWindowCompat;
 import com.github.axet.androidlibrary.widgets.ScreenlockPreference;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
@@ -94,12 +93,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     FontsPopup fontsPopup;
     MenuItem searchMenu;
     BroadcastReceiver battery;
-    Runnable invalidateOptionsMenu = new Runnable() {
-        @Override
-        public void run() {
-            ActivityCompat.invalidateOptionsMenu(getActivity());
-        }
-    };
+    Runnable invalidateOptionsMenu;
     Runnable time = new Runnable() {
         @Override
         public void run() {
@@ -926,14 +920,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     public void onCreateOptionsMenu(final Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
 
-        if (Build.VERSION.SDK_INT < 11) {
-            invalidateOptionsMenu = new Runnable() {
-                @Override
-                public void run() {
-                    onCreateOptionsMenu(menu, null);
-                }
-            };
-        }
+        invalidateOptionsMenu = InvalidateOptionsMenuCompat.onCreateOptionsMenu(this, menu, inflater);
 
         MenuItem homeMenu = menu.findItem(R.id.action_home);
         MenuItem tocMenu = menu.findItem(R.id.action_toc);
