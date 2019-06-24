@@ -7,10 +7,8 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.GridLayoutManager;
@@ -295,7 +293,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
         public void sort() {
             SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
-            int selected = getContext().getResources().getIdentifier(shared.getString(BookApplication.PREFERENCE_SORT, getContext().getResources().getResourceEntryName(R.id.sort_add_desc)), "id", getContext().getPackageName());
+            int selected = getContext().getResources().getIdentifier(shared.getString(BookApplication.PREFERENCE_SORT, getContext().getResources().getResourceEntryName(R.id.sort_add_ask)), "id", getContext().getPackageName());
             switch (selected) {
                 case R.id.sort_name_ask:
                     Collections.sort(list, new ByName());
@@ -304,16 +302,16 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
                     Collections.sort(list, Collections.reverseOrder(new ByName()));
                     break;
                 case R.id.sort_add_ask:
-                    Collections.sort(list, Collections.reverseOrder(new ByCreated()));
-                    break;
-                case R.id.sort_add_desc:
                     Collections.sort(list, new ByCreated());
                     break;
+                case R.id.sort_add_desc:
+                    Collections.sort(list, Collections.reverseOrder(new ByCreated()));
+                    break;
                 case R.id.sort_open_ask:
-                    Collections.sort(list, Collections.reverseOrder(new ByRecent()));
+                    Collections.sort(list, new ByRecent());
                     break;
                 case R.id.sort_open_desc:
-                    Collections.sort(list, new ByRecent());
+                    Collections.sort(list, Collections.reverseOrder(new ByRecent()));
                     break;
                 default:
                     Collections.sort(list, new ByCreated());
@@ -660,7 +658,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         MenuItem sort = menu.findItem(R.id.action_sort);
 
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
-        int selected = getContext().getResources().getIdentifier(shared.getString(BookApplication.PREFERENCE_SORT, getContext().getResources().getResourceEntryName(R.id.sort_add_desc)), "id", getContext().getPackageName());
+        int selected = getContext().getResources().getIdentifier(shared.getString(BookApplication.PREFERENCE_SORT, getContext().getResources().getResourceEntryName(R.id.sort_add_ask)), "id", getContext().getPackageName());
         SubMenu sorts = sort.getSubMenu();
         for (int i = 0; i < sorts.size(); i++) {
             MenuItem m = sorts.getItem(i);
