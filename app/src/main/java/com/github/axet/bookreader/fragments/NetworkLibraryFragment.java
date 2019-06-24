@@ -28,6 +28,7 @@ import com.github.axet.androidlibrary.crypto.MD5;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.ErrorDialog;
+import com.github.axet.androidlibrary.widgets.InvalidateOptionsMenuCompat;
 import com.github.axet.androidlibrary.widgets.SearchView;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
@@ -101,12 +102,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     String useragent;
     ArrayList<NetworkItemsLoader> toolbarItems = new ArrayList<>();
     Handler handler = new Handler();
-    Runnable invalidateOptionsMenu = new Runnable() {
-        @Override
-        public void run() {
-            ActivityCompat.invalidateOptionsMenu(getActivity());
-        }
-    };
+    Runnable invalidateOptionsMenu;
 
     public static String formatMime(String mime) {
         switch (mime) {
@@ -897,14 +893,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
     public void onCreateOptionsMenu(final Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
 
-        if (Build.VERSION.SDK_INT < 11) {
-            invalidateOptionsMenu = new Runnable() {
-                @Override
-                public void run() {
-                    onCreateOptionsMenu(menu, null);
-                }
-            };
-        }
+        invalidateOptionsMenu = InvalidateOptionsMenuCompat.onCreateOptionsMenu(this, menu, inflater);
 
         MenuItem homeMenu = menu.findItem(R.id.action_home);
         MenuItem tocMenu = menu.findItem(R.id.action_toc);

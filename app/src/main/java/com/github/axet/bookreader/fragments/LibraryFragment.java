@@ -36,6 +36,7 @@ import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.androidlibrary.services.StorageProvider;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.CacheImagesRecyclerAdapter;
+import com.github.axet.androidlibrary.widgets.InvalidateOptionsMenuCompat;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.androidlibrary.widgets.SearchView;
 import com.github.axet.androidlibrary.widgets.TextMax;
@@ -63,12 +64,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     Storage storage;
     String lastSearch = "";
     FragmentHolder holder;
-    Runnable invalidateOptionsMenu = new Runnable() {
-        @Override
-        public void run() {
-            ActivityCompat.invalidateOptionsMenu(getActivity());
-        }
-    };
+    Runnable invalidateOptionsMenu;
 
     public static class FragmentHolder {
         RecyclerView grid;
@@ -299,25 +295,25 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
         public void sort() {
             SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
-            int selected = getContext().getResources().getIdentifier(shared.getString(BookApplication.PREFERENCE_SORT, getContext().getResources().getResourceEntryName(R.id.sort_add_ask)), "id", getContext().getPackageName());
+            int selected = getContext().getResources().getIdentifier(shared.getString(BookApplication.PREFERENCE_SORT, getContext().getResources().getResourceEntryName(R.id.sort_add_desc)), "id", getContext().getPackageName());
             switch (selected) {
-                case R.id.sort_add_ask:
-                    Collections.sort(list, new ByCreated());
-                    break;
-                case R.id.sort_add_desc:
-                    Collections.sort(list, Collections.reverseOrder(new ByCreated()));
-                    break;
                 case R.id.sort_name_ask:
                     Collections.sort(list, new ByName());
                     break;
                 case R.id.sort_name_desc:
                     Collections.sort(list, Collections.reverseOrder(new ByName()));
                     break;
+                case R.id.sort_add_ask:
+                    Collections.sort(list, Collections.reverseOrder(new ByCreated()));
+                    break;
+                case R.id.sort_add_desc:
+                    Collections.sort(list, new ByCreated());
+                    break;
                 case R.id.sort_open_ask:
-                    Collections.sort(list, new ByRecent());
+                    Collections.sort(list, Collections.reverseOrder(new ByRecent()));
                     break;
                 case R.id.sort_open_desc:
-                    Collections.sort(list, Collections.reverseOrder(new ByRecent()));
+                    Collections.sort(list, new ByRecent());
                     break;
                 default:
                     Collections.sort(list, new ByCreated());
@@ -650,14 +646,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     public void onCreateOptionsMenu(final Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
 
-        if (Build.VERSION.SDK_INT < 11) {
-            invalidateOptionsMenu = new Runnable() {
-                @Override
-                public void run() {
-                    onCreateOptionsMenu(menu, null);
-                }
-            };
-        }
+        invalidateOptionsMenu = InvalidateOptionsMenuCompat.onCreateOptionsMenu(this, menu, inflater);
 
         MenuItem homeMenu = menu.findItem(R.id.action_home);
         MenuItem tocMenu = menu.findItem(R.id.action_toc);
@@ -671,7 +660,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         MenuItem sort = menu.findItem(R.id.action_sort);
 
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
-        int selected = getContext().getResources().getIdentifier(shared.getString(BookApplication.PREFERENCE_SORT, getContext().getResources().getResourceEntryName(R.id.sort_add_ask)), "id", getContext().getPackageName());
+        int selected = getContext().getResources().getIdentifier(shared.getString(BookApplication.PREFERENCE_SORT, getContext().getResources().getResourceEntryName(R.id.sort_add_desc)), "id", getContext().getPackageName());
         SubMenu sorts = sort.getSubMenu();
         for (int i = 0; i < sorts.size(); i++) {
             MenuItem m = sorts.getItem(i);
@@ -714,6 +703,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             case R.id.sort_open_desc:
                 shared.edit().putString(BookApplication.PREFERENCE_SORT, getContext().getResources().getResourceEntryName(item.getItemId())).commit();
                 books.sort();
+                invalidateOptionsMenu.run();
                 return true;
             case R.id.action_bm:
                 BookmarksDialog dialog = new BookmarksDialog(getContext()) {
