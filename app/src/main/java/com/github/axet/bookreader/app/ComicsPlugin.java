@@ -6,7 +6,6 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.ParcelFileDescriptor;
-import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.github.axet.androidlibrary.app.RarSAF;
@@ -20,7 +19,6 @@ import com.github.axet.bookreader.widgets.PluginView;
 import com.github.axet.bookreader.widgets.RenderRect;
 
 import net.lingala.zip4j.core.ZipFile;
-import net.lingala.zip4j.io.ZipInputStream;
 
 import org.apache.commons.io.IOUtils;
 import org.geometerplus.fbreader.book.AbstractBook;
@@ -53,13 +51,12 @@ import de.innosystec.unrar.Archive;
 import de.innosystec.unrar.NativeStorage;
 import de.innosystec.unrar.exception.RarException;
 import de.innosystec.unrar.rarfile.FileHeader;
-import de.innosystec.unrar.rarfile.HostSystem;
 
 public class ComicsPlugin extends BuiltinFormatPlugin {
     public static String TAG = ComicsPlugin.class.getSimpleName();
 
-    public static final String EXTZ = "cbz";
-    public static final String EXTR = "cbr";
+    public static final String CBZ = "cbz";
+    public static final String CBR = "cbr";
 
     public static boolean isImage(ArchiveFile a) {
         File f = new File(a.getPath());
@@ -386,9 +383,9 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
 
         public ComicsView(ZLFile f) {
             File file = new File(f.getPath());
-            if (file.getPath().toLowerCase().endsWith("." + EXTZ))
+            if (file.getPath().toLowerCase().endsWith("." + CBZ))
                 doc = new ZipDecoder(file);
-            if (file.getPath().toLowerCase().endsWith("." + EXTR))
+            if (file.getPath().toLowerCase().endsWith("." + CBR))
                 doc = new RarDecoder(file);
             current = new ComicsPage(doc);
         }
@@ -512,7 +509,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
     }
 
     public ComicsPlugin(Storage.Info info) {
-        super(info, EXTZ);
+        super(info, CBZ);
     }
 
     @Override

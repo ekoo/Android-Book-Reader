@@ -103,8 +103,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 return PDFPlugin.create(info);
             case DjvuPlugin.EXT:
                 return DjvuPlugin.create(info);
-            case ComicsPlugin.EXTZ:
-            case ComicsPlugin.EXTR:
+            case ComicsPlugin.CBZ:
+            case ComicsPlugin.CBR:
                 return new ComicsPlugin(info);
         }
         try {
@@ -119,6 +119,20 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         if (id == null || id.isEmpty())
             id = Build.SERIAL;
         return id;
+    }
+
+    public static Bitmap renderView(View v) {
+        DisplayMetrics m = v.getContext().getResources().getDisplayMetrics();
+        int w = (int) (720 * m.density / 2);
+        int h = (int) (1280 * m.density / 2);
+        int ws = View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY);
+        int hs = View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY);
+        v.measure(ws, hs);
+        v.layout(0, 0, v.getMeasuredWidth(), v.getMeasuredHeight());
+        Bitmap bm = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
+        Canvas c = new Canvas(bm);
+        v.draw(c);
+        return bm;
     }
 
     public static class Info implements SystemInfo {
@@ -256,9 +270,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 }
             });
             if (ff != null) {
-                for (File f : ff) {
+                for (File f : ff)
                     list.add(Uri.fromFile(f));
-                }
             }
         } else {
             throw new UnknownUri();
@@ -295,13 +308,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
 
     public static class FileCbz extends FileTypeDetector.FileZip { // we not treating all zip archives as comics, ext must be cbz
         public FileCbz() {
-            super(ComicsPlugin.EXTZ);
+            super(ComicsPlugin.CBZ);
         }
     }
 
     public static class FileCbr extends FileTypeDetector.FileRar { // we not treating all rar archives as comics, ext must be cbr
         public FileCbr() {
-            super(ComicsPlugin.EXTR);
+            super(ComicsPlugin.CBR);
         }
     }
 
@@ -844,7 +857,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             if (book.ext == null)
                 throw new RuntimeException("Unsupported format");
 
-            if (book.ext.equals(ComicsPlugin.EXTR)) { // handling cbz solid archives
+            if (book.ext.equals(ComicsPlugin.CBR)) { // handling cbz solid archives
                 File cbz = null;
                 try {
                     final Archive archive = new Archive(new NativeStorage(file));
@@ -866,7 +879,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         out.close();
                         if (tmp)
                             file.delete();
-                        book.ext = ComicsPlugin.EXTZ;
+                        book.ext = ComicsPlugin.CBZ;
                         file = cbz;
                         tmp = true;
                     }
@@ -1032,20 +1045,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 throw new RuntimeException(e);
             }
         }
-    }
-
-    Bitmap renderView(View v) {
-        DisplayMetrics m = getContext().getResources().getDisplayMetrics();
-        int w = (int) (720 * m.density / 2);
-        int h = (int) (1280 * m.density / 2);
-        int ws = View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY);
-        int hs = View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY);
-        v.measure(ws, hs);
-        v.layout(0, 0, v.getMeasuredWidth(), v.getMeasuredHeight());
-        Bitmap bm = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
-        Canvas c = new Canvas(bm);
-        v.draw(c);
-        return bm;
     }
 
     public void list(ArrayList<Book> list, File storage) {

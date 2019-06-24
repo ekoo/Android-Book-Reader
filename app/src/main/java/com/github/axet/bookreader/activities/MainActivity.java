@@ -8,8 +8,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -35,6 +33,7 @@ import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -45,6 +44,7 @@ import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.ErrorDialog;
 import com.github.axet.androidlibrary.widgets.OpenChoicer;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
+import com.github.axet.androidlibrary.widgets.RemoteNotificationCompat;
 import com.github.axet.androidlibrary.widgets.SearchView;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
@@ -500,15 +500,12 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         return super.onOptionsItemSelected(item);
     }
 
-    @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
-        // Handle navigation view item clicks here.
         int id = item.getItemId();
 
-        if (id == R.id.nav_library) {
+        if (id == R.id.nav_library)
             openLibrary();
-        }
 
         Intent i = item.getIntent();
         if (i != null) {
@@ -822,12 +819,10 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
 
     public void clearMenu() {
         Menu m = navigationView.getMenu();
-        for (int i = 0; i < m.size(); i++) {
+        for (int i = 0; i < m.size(); i++)
             m.getItem(i).setChecked(false);
-        }
-        for (int i = 0; i < networkMenu.size(); i++) {
+        for (int i = 0; i < networkMenu.size(); i++)
             networkMenu.getItem(i).setChecked(false);
-        }
     }
 
     public FragmentTransaction addFragment(Fragment f, String tag) {

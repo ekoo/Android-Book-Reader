@@ -2,7 +2,9 @@ package com.github.axet.bookreader.app;
 
 import android.content.Context;
 
+import com.github.axet.androidlibrary.app.AssetsDexLoader;
 import com.github.axet.androidlibrary.app.MainApplication;
+import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.bookreader.R;
 
 import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
@@ -23,6 +25,7 @@ public class BookApplication extends MainApplication {
     public static String PREFERENCE_ROTATE = "rotate";
     public static String PREFERENCE_VIEW_MODE = "view_mode";
     public static String PREFERENCE_STORAGE = "storage_path";
+    public static String PREFERENCE_SORT = "sort";
 
     public ZLAndroidApplication zlib;
 
@@ -39,5 +42,6 @@ public class BookApplication extends MainApplication {
                 onCreate();
             }
         };
+        new HttpClient.SpongyLoader(this, false);
     }
 }

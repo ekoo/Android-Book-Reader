@@ -639,6 +639,12 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             public void onBookmarksUpdate() {
                 updateToolbar();
             }
+
+            @Override
+            public void onDismissDialog() {
+                if (main.fullscreen)
+                    main.hideSystemUI();
+            }
         };
 
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
@@ -796,18 +802,18 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         if (id == R.id.action_bm) {
             BookmarksDialog dialog = new BookmarksDialog(getContext()) {
                 @Override
-                public void selected(Storage.Bookmark b) {
+                public void onSelected(Storage.Bookmark b) {
                     view.gotoPosition(new FBReaderView.ZLTextIndexPosition(b.start, b.end));
                 }
 
                 @Override
-                public void save(Storage.Bookmark bm) {
+                public void onSave(Storage.Bookmark bm) {
                     view.bookmarksUpdate();
                     savePosition();
                 }
 
                 @Override
-                public void delete(Storage.Bookmark bm) {
+                public void onDelete(Storage.Bookmark bm) {
                     int i = book.info.bookmarks.indexOf(bm);
                     book.info.bookmarks.remove(i);
                     i = view.book.info.bookmarks.indexOf(bm);
@@ -940,6 +946,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         MenuItem grid = menu.findItem(R.id.action_grid);
         MenuItem mode = menu.findItem(R.id.action_mode);
         MenuItem theme = menu.findItem(R.id.action_theme);
+        MenuItem sort = menu.findItem(R.id.action_sort);
 
         boolean search;
 
@@ -957,22 +964,21 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         grid.setVisible(false);
         homeMenu.setVisible(false);
+        sort.setVisible(false);
         tocMenu.setVisible(view.app.Model.TOCTree != null && view.app.Model.TOCTree.hasChildren());
         searchMenu.setVisible(search);
         reflow.setVisible(view.pluginview != null && !(view.pluginview instanceof ComicsPlugin.ComicsView));
 
-        if (BuildConfig.DEBUG && view.pluginview != null && !(view.pluginview instanceof ComicsPlugin.ComicsView)) {
+        if (BuildConfig.DEBUG && view.pluginview != null && !(view.pluginview instanceof ComicsPlugin.ComicsView))
             debug.setVisible(true);
-        } else {
+        else
             debug.setVisible(false);
-        }
 
         fontsize.setVisible((view.pluginview == null || view.pluginview.reflow) ? true : false);
-        if (view.pluginview == null) {
+        if (view.pluginview == null)
             ((ToolbarButtonView) MenuItemCompat.getActionView(fontsize)).text.setText("" + view.getFontsizeFB());
-        } else {
+        else
             ((ToolbarButtonView) MenuItemCompat.getActionView(fontsize)).text.setText(String.format("%.1f", getFontsizeReflow()));
-        }
         MenuItemCompat.getActionView(fontsize).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -984,11 +990,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         mode.setTitle(view.widget instanceof FBReaderView.ScrollView ? R.string.view_mode_paging : R.string.view_mode_continuous); // text next
 
         showRTL |= !view.app.BookTextView.rtlMode && view.app.BookTextView.rtlDetected;
-        if (showRTL) {
+        if (showRTL)
             rtl.setVisible(true);
-        } else {
+        else
             rtl.setVisible(false);
-        }
         MenuItemCompat.getActionView(rtl).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1076,12 +1081,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     }
 
     public boolean onKeyUp(int keyCode, KeyEvent event) {
-        if ((keyCode == KeyEvent.KEYCODE_VOLUME_DOWN)) {
+        if ((keyCode == KeyEvent.KEYCODE_VOLUME_DOWN))
             return true;
-        }
-        if ((keyCode == KeyEvent.KEYCODE_VOLUME_UP)) {
+        if ((keyCode == KeyEvent.KEYCODE_VOLUME_UP))
             return true;
-        }
         return false;
     }
 

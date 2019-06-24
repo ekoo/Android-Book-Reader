@@ -301,6 +301,8 @@ public class FBReaderView extends RelativeLayout {
         void onSearchClose();
 
         void onBookmarksUpdate();
+
+        void onDismissDialog();
     }
 
     public class CustomView extends FBView {
@@ -3825,6 +3827,7 @@ public class FBReaderView extends RelativeLayout {
         builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
             @Override
             public void onDismiss(DialogInterface dialog) {
+                pageTurningListener.onDismissDialog();
             }
         });
         if (label.ModelId == null) {

@@ -6,7 +6,7 @@
         android:icon="@drawable/ic_search_white_24dp"
         android:title="@string/search"
         app:actionViewClass="com.github.axet.androidlibrary.widgets.SearchView"
-        app:showAsAction="collapseActionView|ifRoom" />
+        app:showAsAction="collapseActionView|always" />
     <item
         android:id="@+id/action_grid"
         android:icon="@drawable/ic_view_list_black_24dp"
@@ -60,6 +60,32 @@
         android:icon="@drawable/ic_home_white_24dp"
         android:title="@string/catalog_home"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_sort"
+        android:title="@string/sort_by">
+        <menu>
+            <group android:checkableBehavior="single">
+                <item
+                    android:id="@+id/sort_name_ask"
+                    android:title="@string/sort_by_name_a_z" />
+                <item
+                    android:id="@+id/sort_name_desc"
+                    android:title="@string/sort_by_name_z_a" />
+                <item
+                    android:id="@+id/sort_add_ask"
+                    android:title="@string/sort_by_added_asc" />
+                <item
+                    android:id="@+id/sort_add_desc"
+                    android:title="@string/sort_by_added_desc" />
+                <item
+                    android:id="@+id/sort_open_ask"
+                    android:title="@string/sort_by_opened_asc" />
+                <item
+                    android:id="@+id/sort_open_desc"
+                    android:title="@string/sort_by_opened_desc" />
+            </group>
+        </menu>
+    </item>
     <item
         android:id="@+id/action_file"
         android:orderInCategory="100"

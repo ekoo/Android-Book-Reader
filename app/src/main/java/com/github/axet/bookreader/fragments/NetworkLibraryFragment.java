@@ -915,6 +915,7 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         MenuItem debug = menu.findItem(R.id.action_debug);
         MenuItem rtl = menu.findItem(R.id.action_rtl);
         MenuItem mode = menu.findItem(R.id.action_mode);
+        MenuItem sort = menu.findItem(R.id.action_sort);
 
         reflow.setVisible(false);
         fontsize.setVisible(false);
@@ -923,13 +924,13 @@ public class NetworkLibraryFragment extends Fragment implements MainActivity.Sea
         tocMenu.setVisible(false);
         bookmarksMenu.setVisible(false);
         mode.setVisible(false);
+        sort.setVisible(false);
 
         host = n.home.get("get");
-        if (host == null || host.isEmpty()) {
+        if (host == null || host.isEmpty())
             searchMenu.setVisible(false);
-        } else {
+        else
             searchMenu.setVisible(true);
-        }
 
         if (host == null || host.isEmpty())
             homeMenu.setVisible(false);
