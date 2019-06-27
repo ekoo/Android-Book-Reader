@@ -90,16 +90,6 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             }
             return p;
         }
-
-        @Override
-        protected byte[] read(int len) {
-            return super.read(len);
-        }
-
-        @Override
-        protected long tell() {
-            return super.tell();
-        }
     }
 
     public static class SelectionPage {
