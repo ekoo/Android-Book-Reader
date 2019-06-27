@@ -13,7 +13,6 @@ import com.github.axet.bookreader.widgets.PluginRect;
 import com.github.axet.bookreader.widgets.PluginView;
 import com.github.axet.bookreader.widgets.RenderRect;
 import com.github.axet.djvulibre.Config;
-import com.github.axet.djvulibre.DjvuLibre;
 
 import org.geometerplus.fbreader.book.AbstractBook;
 import org.geometerplus.fbreader.book.BookUtil;
@@ -34,8 +33,12 @@ import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.ui.android.image.ZLBitmapImage;
 
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -69,6 +72,24 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         PluginView.Selection.Point p1 = toDevice(info, w, h, new PluginView.Selection.Point(rect.left, rect.top));
         PluginView.Selection.Point p2 = toDevice(info, w, h, new PluginView.Selection.Point(rect.right, rect.bottom));
         return new Rect(p1.x, p2.y, p2.x, p1.y);
+    }
+
+    public static class DjvuLibre extends com.github.axet.djvulibre.DjvuLibre {
+        SparseArray<DjvuLibre.Page> cache = new SparseArray<>();
+
+        public DjvuLibre(FileDescriptor fd) {
+            super(fd);
+        }
+
+        @Override
+        public Page getPageInfo(int index) {
+            DjvuLibre.Page p = cache.get(index);
+            if (p == null) {
+                p = super.getPageInfo(index);
+                cache.put(index, p);
+            }
+            return p;
+        }
     }
 
     public static class SelectionPage {

@@ -36,6 +36,7 @@ import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -1245,9 +1246,13 @@ public class FBReaderView extends RelativeLayout {
                             }
                             return;
                         }
+                        long now = System.currentTimeMillis();
                         open(c);
+                        Log.d("NOW", "" + (System.currentTimeMillis() - now));
+                        now = System.currentTimeMillis();
                         pluginview.drawOnCanvas(getContext(), draw, getWidth(), getHeight(), ZLViewEnums.PageIndex.current, (CustomView) app.BookTextView, book.info);
                         update();
+                        Log.d("NOW", "" + (System.currentTimeMillis() - now));
                     } else {
                         open(c);
                         final ZLAndroidPaintContext context = new ZLAndroidPaintContext(
