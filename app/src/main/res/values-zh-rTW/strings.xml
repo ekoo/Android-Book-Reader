@@ -57,13 +57,13 @@
     <string name="bookmarks">書籤</string>
     <string name="pref_volume_title">音量鍵翻頁</string>
     <string name="pref_volume_summary">使用音量鍵翻頁</string>
-    <string name="bookmark_edit">Edit</string>
-    <string name="book_font">Font</string>
-    <string name="sort_by">Sort By ...</string>
-    <string name="sort_by_name_a_z">Name A-Z</string>
-    <string name="sort_by_name_z_a">Name Z-A</string>
-    <string name="sort_by_added_asc">Added Asc</string>
-    <string name="sort_by_added_desc">Added Desc</string>
-    <string name="sort_by_opened_asc">Opened Asc</string>
-    <string name="sort_by_opened_desc">Opened Desc</string>
+    <string name="bookmark_edit">編輯</string>
+    <string name="book_font">字型</string>
+    <string name="sort_by">排序依...</string>
+    <string name="sort_by_name_a_z">名稱 A-Z</string>
+    <string name="sort_by_name_z_a">名稱 Z-A</string>
+    <string name="sort_by_added_asc">加入遞增</string>
+    <string name="sort_by_added_desc">加入遞減</string>
+    <string name="sort_by_opened_asc">開啟遞增</string>
+    <string name="sort_by_opened_desc">開啟遞減</string>
 </resources>
