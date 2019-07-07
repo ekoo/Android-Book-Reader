@@ -1246,13 +1246,9 @@ public class FBReaderView extends RelativeLayout {
                             }
                             return;
                         }
-                        long now = System.currentTimeMillis();
                         open(c);
-                        Log.d("NOW", "" + (System.currentTimeMillis() - now));
-                        now = System.currentTimeMillis();
                         pluginview.drawOnCanvas(getContext(), draw, getWidth(), getHeight(), ZLViewEnums.PageIndex.current, (CustomView) app.BookTextView, book.info);
                         update();
-                        Log.d("NOW", "" + (System.currentTimeMillis() - now));
                     } else {
                         open(c);
                         final ZLAndroidPaintContext context = new ZLAndroidPaintContext(
