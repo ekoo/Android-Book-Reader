@@ -36,7 +36,6 @@ import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -688,7 +687,7 @@ public class FBReaderView extends RelativeLayout {
                 }
 
                 if (selectionPage != null && !selectionPage.samePositionAs(position)) {
-                    post(new Runnable() {
+                    FBReaderView.this.post(new Runnable() {
                         @Override
                         public void run() {
                             selectionClose();
@@ -1057,6 +1056,29 @@ public class FBReaderView extends RelativeLayout {
         public LinearLayoutManager lm;
         public ScrollAdapter adapter = new ScrollAdapter();
         Gestures gesturesListener = new Gestures(getContext());
+        int dy;
+        Runnable idle = new Runnable() {
+            @Override
+            public void run() {
+                if (dy >= 0) {
+                    int page = findLastPage();
+                    int next = page + 1;
+                    if (next < adapter.pages.size()) {
+                        RecyclerView.ViewHolder h = findViewHolderForAdapterPosition(next);
+                        if (h != null)
+                            h.itemView.draw(new Canvas());
+                    }
+                } else {
+                    int page = findFirstPage();
+                    int prev = page - 1;
+                    if (prev >= 0) {
+                        RecyclerView.ViewHolder h = findViewHolderForAdapterPosition(prev);
+                        if (h != null)
+                            h.itemView.draw(new Canvas());
+                    }
+                }
+            }
+        };
 
         public class ScrollAdapter extends RecyclerView.Adapter<ScrollAdapter.PageHolder> {
             public ArrayList<PageCursor> pages = new ArrayList<>();
@@ -1246,13 +1268,9 @@ public class FBReaderView extends RelativeLayout {
                             }
                             return;
                         }
-                        long now = System.currentTimeMillis();
                         open(c);
-                        Log.d("NOW", "" + (System.currentTimeMillis() - now));
-                        now = System.currentTimeMillis();
                         pluginview.drawOnCanvas(getContext(), draw, getWidth(), getHeight(), ZLViewEnums.PageIndex.current, (CustomView) app.BookTextView, book.info);
                         update();
-                        Log.d("NOW", "" + (System.currentTimeMillis() - now));
                     } else {
                         open(c);
                         final ZLAndroidPaintContext context = new ZLAndroidPaintContext(
@@ -1821,6 +1839,8 @@ public class FBReaderView extends RelativeLayout {
                     PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
                     if (Build.VERSION.SDK_INT >= 21 && pm.isPowerSaveMode()) {
                         scrollToPositionWithOffset(position, 0);
+                        dy = position - findFirstPage();
+                        ScrollView.this.onScrollStateChanged(SCROLL_STATE_IDLE);
                     } else {
                         RecyclerView.SmoothScroller smoothScroller = new TopAlwaysSmoothScroller(recyclerView.getContext());
                         smoothScroller.setTargetPosition(position);
@@ -1833,6 +1853,11 @@ public class FBReaderView extends RelativeLayout {
                     super.onLayoutCompleted(state);
                     if (pluginview != null)
                         updateOverlays();
+                }
+
+                @Override
+                protected int getExtraLayoutSpace(State state) {
+                    return 1;
                 }
             };
 
@@ -1909,10 +1934,11 @@ public class FBReaderView extends RelativeLayout {
 
         public int getViewPercent(View view) {
             int h = 0;
+            int b = getMainAreaHeight();
             if (view.getBottom() > 0)
                 h = view.getBottom(); // visible height
-            if (getBottom() < view.getBottom())
-                h -= view.getBottom() - getBottom();
+            if (b < view.getBottom())
+                h -= view.getBottom() - b;
             if (view.getTop() > 0)
                 h -= view.getTop();
             int hp = h * 100 / view.getHeight();
@@ -1955,6 +1981,20 @@ public class FBReaderView extends RelativeLayout {
             if (v != null)
                 return ((ScrollAdapter.PageView) v).holder.getAdapterPosition();
             return -1;
+        }
+
+        int findLastPage() {
+            TreeMap<Integer, View> hp0 = new TreeMap<>();
+            for (int i = 0; i < lm.getChildCount(); i++) {
+                View v = lm.getChildAt(i);
+                int hp = getViewPercent(v);
+                if (hp > 0)
+                    hp0.put(v.getTop(), v);
+            }
+            if (hp0.isEmpty())
+                return -1;
+            ScrollAdapter.PageView v = (ScrollAdapter.PageView) hp0.lastEntry().getValue();
+            return v.holder.getAdapterPosition();
         }
 
         @Override
@@ -2116,7 +2156,7 @@ public class FBReaderView extends RelativeLayout {
             if (search != null) {
                 if (searchPagePending != -1) {
                     final int p = searchPagePending;
-                    post(new Runnable() {
+                    FBReaderView.this.post(new Runnable() {
                         @Override
                         public void run() {
                             searchPage(p);
@@ -2126,7 +2166,7 @@ public class FBReaderView extends RelativeLayout {
                 }
             }
             if (selection != null) {
-                post(new Runnable() {
+                FBReaderView.this.post(new Runnable() {
                     @Override
                     public void run() {
                         updateOverlays();
@@ -2160,7 +2200,7 @@ public class FBReaderView extends RelativeLayout {
                                 int screen = (int) ((s.top - offset) / ratio);
                                 int off = info.src.get(s).top - screen;
                                 scrollBy(0, off);
-                                post(new Runnable() {
+                                FBReaderView.this.post(new Runnable() {
                                     @Override
                                     public void run() {
                                         updateOverlays();
@@ -2285,6 +2325,19 @@ public class FBReaderView extends RelativeLayout {
                     bookmarksRemove(view);
                 }
             }
+        }
+
+        @Override
+        public void onScrollStateChanged(int state) {
+            super.onScrollStateChanged(state);
+            FBReaderView.this.removeCallbacks(idle);
+            FBReaderView.this.postDelayed(idle, 1000);
+        }
+
+        @Override
+        public void onScrolled(int dx, int dy) {
+            super.onScrolled(dx, dy);
+            this.dy = dy;
         }
 
         public void bookmarksUpdate() {
@@ -2772,7 +2825,7 @@ public class FBReaderView extends RelativeLayout {
 
         public void close() {
             final ArrayList<View> old = new ArrayList<>(links); // can be called during RelativeLayout onLayout
-            post(new Runnable() {
+            FBReaderView.this.post(new Runnable() {
                 @Override
                 public void run() {
                     for (View v : old) {
@@ -2883,7 +2936,7 @@ public class FBReaderView extends RelativeLayout {
 
         public void close() {
             final ArrayList<View> old = new ArrayList<>(bookmarks); // can be called during RelativeLayout onLayout
-            post(new Runnable() {
+            FBReaderView.this.post(new Runnable() {
                 @Override
                 public void run() {
                     for (View v : old) {
@@ -2971,7 +3024,7 @@ public class FBReaderView extends RelativeLayout {
 
         public void close() {
             final ArrayList<View> old = new ArrayList<>(words); // can be called during RelativeLayout onLayout
-            post(new Runnable() {
+            FBReaderView.this.post(new Runnable() {
                 @Override
                 public void run() {
                     for (View v : old) {
@@ -3435,7 +3488,7 @@ public class FBReaderView extends RelativeLayout {
                             FBReaderView.this.removeView(anchor);
                         }
                     });
-                    post(new Runnable() { // allow anchor view to be placed
+                    FBReaderView.this.post(new Runnable() { // allow anchor view to be placed
                         @Override
                         public void run() {
                             menu.show();
@@ -3545,7 +3598,7 @@ public class FBReaderView extends RelativeLayout {
                 a.startActivity(Intent.createChooser(intent, null));
 
                 if (widget instanceof ScrollView) {
-                    getHandler().post(new Runnable() { // do not clear immidiallty. let onPause to be called before p.text = null
+                    FBReaderView.this.post(new Runnable() { // do not clear immidiallty. let onPause to be called before p.text = null
                         @Override
                         public void run() {
                             ((ScrollView) widget).adapter.processInvalidate();
@@ -3613,7 +3666,7 @@ public class FBReaderView extends RelativeLayout {
                             bookmarksUpdate();
                         }
                     };
-                    post(new Runnable() {
+                    FBReaderView.this.post(new Runnable() {
                         @Override
                         public void run() {
                             b.show();
@@ -3658,7 +3711,7 @@ public class FBReaderView extends RelativeLayout {
                             final int page = search.prev();
                             if (page == -1)
                                 return;
-                            post(new Runnable() {
+                            FBReaderView.this.post(new Runnable() {
                                 @Override
                                 public void run() {
                                     if (widget instanceof ScrollView) {
@@ -3691,7 +3744,7 @@ public class FBReaderView extends RelativeLayout {
                             final int page = search.next();
                             if (page == -1)
                                 return;
-                            post(new Runnable() {
+                            FBReaderView.this.post(new Runnable() {
                                 @Override
                                 public void run() {
                                     if (widget instanceof ScrollView) {
