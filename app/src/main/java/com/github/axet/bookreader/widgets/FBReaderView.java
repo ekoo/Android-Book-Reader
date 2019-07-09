@@ -1056,15 +1056,25 @@ public class FBReaderView extends RelativeLayout {
         public LinearLayoutManager lm;
         public ScrollAdapter adapter = new ScrollAdapter();
         Gestures gesturesListener = new Gestures(getContext());
+        int dy;
         Runnable idle = new Runnable() {
             @Override
             public void run() {
-                int page = findLastPage();
-                int next = page + 1;
-                if (next < adapter.pages.size()) {
-                    RecyclerView.ViewHolder h = findViewHolderForAdapterPosition(next);
-                    if (h != null) {
-                        h.itemView.draw(new Canvas());
+                if (dy >= 0) {
+                    int page = findLastPage();
+                    int next = page + 1;
+                    if (next < adapter.pages.size()) {
+                        RecyclerView.ViewHolder h = findViewHolderForAdapterPosition(next);
+                        if (h != null)
+                            h.itemView.draw(new Canvas());
+                    }
+                } else {
+                    int page = findFirstPage();
+                    int prev = page - 1;
+                    if (prev >= 0) {
+                        RecyclerView.ViewHolder h = findViewHolderForAdapterPosition(prev);
+                        if (h != null)
+                            h.itemView.draw(new Canvas());
                     }
                 }
             }
@@ -2315,6 +2325,12 @@ public class FBReaderView extends RelativeLayout {
             super.onScrollStateChanged(state);
             removeCallbacks(idle);
             postDelayed(idle, 1000);
+        }
+
+        @Override
+        public void onScrolled(int dx, int dy) {
+            super.onScrolled(dx, dy);
+            this.dy = dy;
         }
 
         public void bookmarksUpdate() {
