@@ -1840,7 +1840,7 @@ public class FBReaderView extends RelativeLayout {
                     if (Build.VERSION.SDK_INT >= 21 && pm.isPowerSaveMode()) {
                         scrollToPositionWithOffset(position, 0);
                         dy = position - findFirstPage();
-                        onScrollStateChanged(SCROLL_STATE_IDLE);
+                        ScrollView.this.onScrollStateChanged(SCROLL_STATE_IDLE);
                     } else {
                         RecyclerView.SmoothScroller smoothScroller = new TopAlwaysSmoothScroller(recyclerView.getContext());
                         smoothScroller.setTargetPosition(position);
