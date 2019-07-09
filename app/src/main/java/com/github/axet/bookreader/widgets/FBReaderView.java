@@ -36,7 +36,6 @@ import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -1057,6 +1056,19 @@ public class FBReaderView extends RelativeLayout {
         public LinearLayoutManager lm;
         public ScrollAdapter adapter = new ScrollAdapter();
         Gestures gesturesListener = new Gestures(getContext());
+        Runnable idle = new Runnable() {
+            @Override
+            public void run() {
+                int page = findLastPage();
+                int next = page + 1;
+                if (next < adapter.pages.size()) {
+                    RecyclerView.ViewHolder h = findViewHolderForAdapterPosition(next);
+                    if (h != null) {
+                        h.itemView.draw(new Canvas());
+                    }
+                }
+            }
+        };
 
         public class ScrollAdapter extends RecyclerView.Adapter<ScrollAdapter.PageHolder> {
             public ArrayList<PageCursor> pages = new ArrayList<>();
@@ -1905,10 +1917,11 @@ public class FBReaderView extends RelativeLayout {
 
         public int getViewPercent(View view) {
             int h = 0;
+            int b = getMainAreaHeight();
             if (view.getBottom() > 0)
                 h = view.getBottom(); // visible height
-            if (getBottom() < view.getBottom())
-                h -= view.getBottom() - getBottom();
+            if (b < view.getBottom())
+                h -= view.getBottom() - b;
             if (view.getTop() > 0)
                 h -= view.getTop();
             int hp = h * 100 / view.getHeight();
@@ -1951,6 +1964,20 @@ public class FBReaderView extends RelativeLayout {
             if (v != null)
                 return ((ScrollAdapter.PageView) v).holder.getAdapterPosition();
             return -1;
+        }
+
+        int findLastPage() {
+            TreeMap<Integer, View> hp0 = new TreeMap<>();
+            for (int i = 0; i < lm.getChildCount(); i++) {
+                View v = lm.getChildAt(i);
+                int hp = getViewPercent(v);
+                if (hp > 0)
+                    hp0.put(v.getTop(), v);
+            }
+            if (hp0.isEmpty())
+                return -1;
+            ScrollAdapter.PageView v = (ScrollAdapter.PageView) hp0.lastEntry().getValue();
+            return v.holder.getAdapterPosition();
         }
 
         @Override
@@ -2281,6 +2308,13 @@ public class FBReaderView extends RelativeLayout {
                     bookmarksRemove(view);
                 }
             }
+        }
+
+        @Override
+        public void onScrollStateChanged(int state) {
+            super.onScrollStateChanged(state);
+            removeCallbacks(idle);
+            postDelayed(idle, 1000);
         }
 
         public void bookmarksUpdate() {
