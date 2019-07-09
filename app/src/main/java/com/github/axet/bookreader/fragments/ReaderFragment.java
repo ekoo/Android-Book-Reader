@@ -773,6 +773,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             fbook = null;
         }
         book = null;
+        if(view != null)
+            view.getHandler().removeCallbacksAndMessages(null);
     }
 
     @Override
