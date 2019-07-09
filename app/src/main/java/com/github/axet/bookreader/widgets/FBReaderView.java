@@ -1852,6 +1852,11 @@ public class FBReaderView extends RelativeLayout {
                     if (pluginview != null)
                         updateOverlays();
                 }
+
+                @Override
+                protected int getExtraLayoutSpace(State state) {
+                    return 1;
+                }
             };
 
             setLayoutManager(lm);
