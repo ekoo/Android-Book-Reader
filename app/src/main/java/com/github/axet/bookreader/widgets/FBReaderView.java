@@ -1056,29 +1056,6 @@ public class FBReaderView extends RelativeLayout {
         public LinearLayoutManager lm;
         public ScrollAdapter adapter = new ScrollAdapter();
         Gestures gesturesListener = new Gestures(getContext());
-        int dy;
-        Runnable idle = new Runnable() {
-            @Override
-            public void run() {
-                if (dy >= 0) {
-                    int page = findLastPage();
-                    int next = page + 1;
-                    if (next < adapter.pages.size()) {
-                        RecyclerView.ViewHolder h = findViewHolderForAdapterPosition(next);
-                        if (h != null)
-                            h.itemView.draw(new Canvas());
-                    }
-                } else {
-                    int page = findFirstPage();
-                    int prev = page - 1;
-                    if (prev >= 0) {
-                        RecyclerView.ViewHolder h = findViewHolderForAdapterPosition(prev);
-                        if (h != null)
-                            h.itemView.draw(new Canvas());
-                    }
-                }
-            }
-        };
 
         public class ScrollAdapter extends RecyclerView.Adapter<ScrollAdapter.PageHolder> {
             public ArrayList<PageCursor> pages = new ArrayList<>();
@@ -1826,11 +1803,37 @@ public class FBReaderView extends RelativeLayout {
             super(context);
 
             lm = new LinearLayoutManager(context) {
+                int idley;
+                Runnable idle = new Runnable() {
+                    @Override
+                    public void run() {
+                        if (idley >= 0) {
+                            int page = findLastPage();
+                            int next = page + 1;
+                            if (next < adapter.pages.size()) {
+                                RecyclerView.ViewHolder h = findViewHolderForAdapterPosition(next);
+                                if (h != null)
+                                    h.itemView.draw(new Canvas());
+                            }
+                        } else {
+                            int page = findFirstPage();
+                            int prev = page - 1;
+                            if (prev >= 0) {
+                                RecyclerView.ViewHolder h = findViewHolderForAdapterPosition(prev);
+                                if (h != null)
+                                    h.itemView.draw(new Canvas());
+                            }
+                        }
+                    }
+                };
+
                 @Override
                 public int scrollVerticallyBy(int dy, Recycler recycler, State state) {
                     int off = super.scrollVerticallyBy(dy, recycler, state);
                     if (pluginview != null)
                         updateOverlays();
+                    idley = dy;
+                    FBReaderView.this.removeCallbacks(idle);
                     return off;
                 }
 
@@ -1839,13 +1842,20 @@ public class FBReaderView extends RelativeLayout {
                     PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
                     if (Build.VERSION.SDK_INT >= 21 && pm.isPowerSaveMode()) {
                         scrollToPositionWithOffset(position, 0);
-                        dy = position - findFirstPage();
-                        ScrollView.this.onScrollStateChanged(SCROLL_STATE_IDLE);
+                        idley = position - findFirstPage();
+                        onScrollStateChanged(SCROLL_STATE_IDLE);
                     } else {
                         RecyclerView.SmoothScroller smoothScroller = new TopAlwaysSmoothScroller(recyclerView.getContext());
                         smoothScroller.setTargetPosition(position);
                         startSmoothScroll(smoothScroller);
                     }
+                }
+
+                @Override
+                public void onScrollStateChanged(int state) {
+                    super.onScrollStateChanged(state);
+                    FBReaderView.this.removeCallbacks(idle);
+                    FBReaderView.this.postDelayed(idle, 1000);
                 }
 
                 @Override
@@ -1857,7 +1867,7 @@ public class FBReaderView extends RelativeLayout {
 
                 @Override
                 protected int getExtraLayoutSpace(State state) {
-                    return 1;
+                    return getMainAreaHeight(); // when we need to start preloading to work = full screen
                 }
             };
 
@@ -2265,11 +2275,10 @@ public class FBReaderView extends RelativeLayout {
 
                 final PluginView.Selection.Page page;
 
-                if (c.start == null || c.end == null) {
+                if (c.start == null || c.end == null)
                     page = null;
-                } else {
+                else
                     page = pluginview.selectPage(c.start, view.info, view.getWidth(), view.getHeight());
-                }
 
                 if (page != null && (!pluginview.reflow || view.info != null) && view.getParent() != null) { // cached views has no parrent
                     if (view.links == null)
@@ -2286,9 +2295,8 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public void bookmarksClose() {
-            for (ScrollAdapter.PageHolder h : adapter.holders) {
+            for (ScrollAdapter.PageHolder h : adapter.holders)
                 bookmarksRemove(h.page);
-            }
         }
 
         public void bookmarksRemove(ScrollAdapter.PageView view) {
@@ -2307,11 +2315,10 @@ public class FBReaderView extends RelativeLayout {
 
                 final PluginView.Selection.Page page;
 
-                if (c.start == null || c.end == null) {
+                if (c.start == null || c.end == null)
                     page = null;
-                } else {
+                else
                     page = pluginview.selectPage(c.start, view.info, view.getWidth(), view.getHeight());
-                }
 
                 if (page != null && (!pluginview.reflow || view.info != null) && view.getParent() != null) { // cached views has no parrent
                     if (view.bookmarks == null)
@@ -2325,19 +2332,6 @@ public class FBReaderView extends RelativeLayout {
                     bookmarksRemove(view);
                 }
             }
-        }
-
-        @Override
-        public void onScrollStateChanged(int state) {
-            super.onScrollStateChanged(state);
-            FBReaderView.this.removeCallbacks(idle);
-            FBReaderView.this.postDelayed(idle, 1000);
-        }
-
-        @Override
-        public void onScrolled(int dx, int dy) {
-            super.onScrolled(dx, dy);
-            this.dy = dy;
         }
 
         public void bookmarksUpdate() {
