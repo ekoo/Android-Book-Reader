@@ -704,28 +704,29 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public static class PinchGesture extends com.github.axet.androidlibrary.widgets.PinchGesture {
-        FBReaderView view;
+        FBReaderView fb;
 
         public PinchGesture(FBReaderView view) {
             super(view.getContext());
+            this.fb = view;
         }
 
         public boolean isScaleTouch(MotionEvent e) {
-            if (view.pluginview == null || view.pluginview.reflow)
+            if (fb.pluginview == null || fb.pluginview.reflow)
                 return false;
             return super.isScaleTouch(e);
         }
 
         public void pinchOpen(int page, Rect v) {
-            Bitmap bm = view.pluginview.render(v.width(), v.height(), page);
+            Bitmap bm = fb.pluginview.render(v.width(), v.height(), page);
             pinch = new PinchView(context, v, bm) {
                 public int clip;
 
                 {
-                    if (view.widget instanceof ScrollWidget)
-                        clip = ((ScrollWidget) view.widget).getMainAreaHeight();
+                    if (fb.widget instanceof ScrollWidget)
+                        clip = ((ScrollWidget) fb.widget).getMainAreaHeight();
                     else
-                        clip = ((ZLAndroidWidget) view.widget).getMainAreaHeight();
+                        clip = ((ZLAndroidWidget) fb.widget).getMainAreaHeight();
                 }
 
                 @Override
@@ -741,12 +742,12 @@ public class FBReaderView extends RelativeLayout {
                     super.dispatchDraw(canvas);
                 }
             };
-            view.addView(pinch, new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            fb.addView(pinch, new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         }
 
         public void pinchClose() {
             if (pinch != null)
-                view.removeView(pinch);
+                fb.removeView(pinch);
             super.pinchClose();
         }
     }
