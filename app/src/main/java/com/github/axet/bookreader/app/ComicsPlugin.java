@@ -12,11 +12,11 @@ import com.github.axet.androidlibrary.app.RarSAF;
 import com.github.axet.androidlibrary.app.ZipSAF;
 import com.github.axet.androidlibrary.services.StorageProvider;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
-import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.bookreader.widgets.PluginPage;
 import com.github.axet.bookreader.widgets.PluginRect;
 import com.github.axet.bookreader.widgets.PluginView;
 import com.github.axet.bookreader.widgets.RenderRect;
+import com.github.axet.bookreader.widgets.ScrollWidget;
 
 import net.lingala.zip4j.core.ZipFile;
 
@@ -391,7 +391,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public PluginPage getPageInfo(int w, int h, FBReaderView.ScrollView.ScrollAdapter.PageCursor c) {
+        public PluginPage getPageInfo(int w, int h, ScrollWidget.ScrollAdapter.PageCursor c) {
             int page;
             if (c.start == null)
                 page = c.end.getParagraphIndex() - 1;

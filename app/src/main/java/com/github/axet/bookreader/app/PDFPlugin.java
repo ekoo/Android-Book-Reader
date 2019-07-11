@@ -15,6 +15,7 @@ import com.github.axet.bookreader.widgets.PluginPage;
 import com.github.axet.bookreader.widgets.PluginRect;
 import com.github.axet.bookreader.widgets.PluginView;
 import com.github.axet.bookreader.widgets.RenderRect;
+import com.github.axet.bookreader.widgets.ScrollWidget;
 import com.github.axet.pdfium.Config;
 import com.github.axet.pdfium.Pdfium;
 
@@ -782,7 +783,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public PluginPage getPageInfo(int w, int h, FBReaderView.ScrollView.ScrollAdapter.PageCursor c) {
+        public PluginPage getPageInfo(int w, int h, ScrollWidget.ScrollAdapter.PageCursor c) {
             int page;
             if (c.start == null)
                 page = c.end.getParagraphIndex() - 1;

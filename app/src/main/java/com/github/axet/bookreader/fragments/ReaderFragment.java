@@ -56,6 +56,7 @@ import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.BookmarksDialog;
 import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.bookreader.widgets.PluginView;
+import com.github.axet.bookreader.widgets.ScrollWidget;
 import com.github.axet.bookreader.widgets.ToolbarButtonView;
 
 import org.geometerplus.fbreader.bookmodel.TOCTree;
@@ -614,7 +615,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         final MainActivity main = (MainActivity) getActivity();
         view = (FBReaderView) v.findViewById(R.id.main_view);
 
-        view.pageTurningListener = new FBReaderView.PageTurningListener() {
+        view.listener = new FBReaderView.Listener() {
             @Override
             public void onScrollingFinished(ZLViewEnums.PageIndex index) {
                 if (fontsPopup != null) {
@@ -897,7 +898,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             updateToolbar();
         }
         if (id == R.id.action_mode) {
-            FBReaderView.Widgets m = view.widget instanceof FBReaderView.ScrollView ? FBReaderView.Widgets.PAGING : FBReaderView.Widgets.CONTINUOUS;
+            FBReaderView.Widgets m = view.widget instanceof ScrollWidget ? FBReaderView.Widgets.PAGING : FBReaderView.Widgets.CONTINUOUS;
             SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
             SharedPreferences.Editor edit = shared.edit();
             edit.putString(BookApplication.PREFERENCE_VIEW_MODE, m.toString());
@@ -971,8 +972,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             }
         });
 
-        mode.setIcon(view.widget instanceof FBReaderView.ScrollView ? R.drawable.ic_view_day_black_24dp : R.drawable.ic_view_carousel_black_24dp); // icon current
-        mode.setTitle(view.widget instanceof FBReaderView.ScrollView ? R.string.view_mode_paging : R.string.view_mode_continuous); // text next
+        mode.setIcon(view.widget instanceof ScrollWidget ? R.drawable.ic_view_day_black_24dp : R.drawable.ic_view_carousel_black_24dp); // icon current
+        mode.setTitle(view.widget instanceof ScrollWidget ? R.string.view_mode_paging : R.string.view_mode_continuous); // text next
 
         showRTL |= !view.app.BookTextView.rtlMode && view.app.BookTextView.rtlDetected;
         if (showRTL)
