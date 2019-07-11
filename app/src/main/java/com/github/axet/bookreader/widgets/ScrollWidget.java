@@ -52,7 +52,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
     FBReaderView fb;
     public LinearLayoutManager lm;
     public ScrollAdapter adapter = new ScrollAdapter();
-    Gestures gesturesListener = new Gestures(getContext());
+    Gestures gesturesListener;
 
     public class ScrollAdapter extends RecyclerView.Adapter<ScrollAdapter.PageHolder> {
         public ArrayList<PageCursor> pages = new ArrayList<>();
@@ -622,8 +622,8 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
         GestureDetectorCompat gestures;
         FBReaderView.BrightnessGesture brightness;
 
-        Gestures(Context context) {
-            gestures = new GestureDetectorCompat(context, this);
+        Gestures() {
+            gestures = new GestureDetectorCompat(fb.getContext(), this);
             brightness = new FBReaderView.BrightnessGesture(fb);
 
             if (Looper.myLooper() != null) {
@@ -799,6 +799,8 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
     public ScrollWidget(final FBReaderView view) {
         super(view.getContext());
         this.fb = view;
+
+        gesturesListener = new Gestures();
 
         lm = new LinearLayoutManager(view.getContext()) {
             int idley;
