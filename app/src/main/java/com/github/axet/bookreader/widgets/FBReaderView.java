@@ -753,18 +753,18 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public static class LinksView {
-        FBReaderView view;
+        FBReaderView fb;
         public ArrayList<View> links = new ArrayList<>();
 
         public LinksView(final FBReaderView view, PluginView.Link[] ll, Reflow.Info info) {
-            this.view = view;
+            this.fb = view;
             if (ll == null)
                 return;
             for (int i = 0; i < ll.length; i++) {
                 final PluginView.Link l = ll[i];
                 Rect[] rr;
-                if (view.pluginview.reflow) {
-                    rr = view.pluginview.boundsUpdate(new Rect[]{l.rect}, info);
+                if (fb.pluginview.reflow) {
+                    rr = fb.pluginview.boundsUpdate(new Rect[]{l.rect}, info);
                     if (rr.length == 0)
                         continue;
                 } else {
@@ -772,21 +772,21 @@ public class FBReaderView extends RelativeLayout {
                 }
                 for (Rect r : rr) {
                     MarginLayoutParams lp = new MarginLayoutParams(r.width(), r.height());
-                    View v = new View(view.getContext());
+                    View v = new View(fb.getContext());
                     v.setLayoutParams(lp);
                     v.setTag(r);
                     v.setOnClickListener(new OnClickListener() {
                         @Override
                         public void onClick(View v) {
                             if (l.index != -1) {
-                                view.app.runAction(ActionCode.PROCESS_HYPERLINK, new BookModel.Label(null, l.index));
+                                fb.app.runAction(ActionCode.PROCESS_HYPERLINK, new BookModel.Label(null, l.index));
                             } else {
-                                AboutPreferenceCompat.openUrlDialog(view.getContext(), l.url);
+                                AboutPreferenceCompat.openUrlDialog(fb.getContext(), l.url);
                             }
                         }
                     });
                     links.add(v);
-                    view.addView(v);
+                    fb.addView(v);
                 }
             }
         }
@@ -815,11 +815,11 @@ public class FBReaderView extends RelativeLayout {
 
         public void close() {
             final ArrayList<View> old = new ArrayList<>(links); // can be called during RelativeLayout onLayout
-            view.post(new Runnable() {
+            fb.post(new Runnable() {
                 @Override
                 public void run() {
                     for (View v : old)
-                        view.removeView(v);
+                        fb.removeView(v);
                 }
             });
             links.clear();
@@ -827,7 +827,7 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public static class BookmarksView {
-        FBReaderView view;
+        FBReaderView fb;
         public ArrayList<View> bookmarks = new ArrayList<>();
         int clip;
 
@@ -846,11 +846,11 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public BookmarksView(final FBReaderView view, PluginView.Selection.Page page, Storage.Bookmarks bms, Reflow.Info info) {
-            this.view = view;
-            if (view.widget instanceof ScrollWidget)
-                clip = ((ScrollWidget) view.widget).getMainAreaHeight();
+            this.fb = view;
+            if (fb.widget instanceof ScrollWidget)
+                clip = ((ScrollWidget) fb.widget).getMainAreaHeight();
             else
-                clip = ((ZLAndroidWidget) view.widget).getMainAreaHeight();
+                clip = ((ZLAndroidWidget) fb.widget).getMainAreaHeight();
             if (bms == null)
                 return;
             ArrayList<Storage.Bookmark> ll = bms.getBookmarks(page);
@@ -859,13 +859,13 @@ public class FBReaderView extends RelativeLayout {
             for (int i = 0; i < ll.size(); i++) {
                 final ArrayList<View> bmv = new ArrayList<>();
                 final Storage.Bookmark l = ll.get(i);
-                PluginView.Selection s = view.pluginview.select(l.start, l.end);
+                PluginView.Selection s = fb.pluginview.select(l.start, l.end);
                 PluginView.Selection.Bounds bb = s.getBounds(page);
                 s.close();
                 Rect union = null;
                 Rect[] rr;
-                if (view.pluginview.reflow) {
-                    rr = view.pluginview.boundsUpdate(bb.rr, info);
+                if (fb.pluginview.reflow) {
+                    rr = fb.pluginview.boundsUpdate(bb.rr, info);
                 } else {
                     rr = bb.rr;
                 }
@@ -876,7 +876,7 @@ public class FBReaderView extends RelativeLayout {
                     else
                         union.union(r);
                     MarginLayoutParams lp = new MarginLayoutParams(r.width(), r.height());
-                    WordView v = new WordView(view.getContext());
+                    WordView v = new WordView(fb.getContext());
                     v.setLayoutParams(lp);
                     v.setTag(r);
                     v.setOnClickListener(new OnClickListener() {
@@ -885,20 +885,20 @@ public class FBReaderView extends RelativeLayout {
                             BookmarkPopup b = new BookmarkPopup(v, l, bmv) {
                                 @Override
                                 public void onDelete(Storage.Bookmark l) {
-                                    view.book.info.bookmarks.remove(l);
-                                    view.bookmarksUpdate();
-                                    if (view.listener != null)
-                                        view.listener.onBookmarksUpdate();
+                                    fb.book.info.bookmarks.remove(l);
+                                    fb.bookmarksUpdate();
+                                    if (fb.listener != null)
+                                        fb.listener.onBookmarksUpdate();
                                 }
                             };
                             b.show();
                         }
                     });
-                    int color = l.color == 0 ? view.app.BookTextView.getHighlightingBackgroundColor().intValue() : l.color;
+                    int color = l.color == 0 ? fb.app.BookTextView.getHighlightingBackgroundColor().intValue() : l.color;
                     v.setBackgroundColor(SelectionView.SELECTION_ALPHA << 24 | (color & 0xffffff));
                     bmv.add(v);
                     bookmarks.add(v);
-                    view.addView(v);
+                    fb.addView(v);
                 }
             }
         }
@@ -927,11 +927,11 @@ public class FBReaderView extends RelativeLayout {
 
         public void close() {
             final ArrayList<View> old = new ArrayList<>(bookmarks); // can be called during RelativeLayout onLayout
-            view.post(new Runnable() {
+            fb.post(new Runnable() {
                 @Override
                 public void run() {
                     for (View v : old) {
-                        view.removeView(v);
+                        fb.removeView(v);
                     }
                 }
             });
@@ -940,7 +940,7 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public static class SearchView {
-        FBReaderView view;
+        FBReaderView fb;
         public ArrayList<View> words = new ArrayList<>();
         int padding;
         int clip;
@@ -961,35 +961,35 @@ public class FBReaderView extends RelativeLayout {
 
         @SuppressWarnings("unchecked")
         public SearchView(FBReaderView view, PluginView.Search.Bounds bb, Reflow.Info info) {
-            this.view = view;
-            if (view.widget instanceof ScrollWidget)
-                clip = ((ScrollWidget) view.widget).getMainAreaHeight();
+            this.fb = view;
+            if (fb.widget instanceof ScrollWidget)
+                clip = ((ScrollWidget) fb.widget).getMainAreaHeight();
             else
-                clip = ((ZLAndroidWidget) view.widget).getMainAreaHeight();
-            padding = ThemeUtils.dp2px(view.getContext(), SelectionView.SELECTION_PADDING);
+                clip = ((ZLAndroidWidget) fb.widget).getMainAreaHeight();
+            padding = ThemeUtils.dp2px(fb.getContext(), SelectionView.SELECTION_PADDING);
             if (bb == null || bb.rr == null)
                 return;
-            if (view.pluginview.reflow)
-                bb.rr = view.pluginview.boundsUpdate(bb.rr, info);
+            if (fb.pluginview.reflow)
+                bb.rr = fb.pluginview.boundsUpdate(bb.rr, info);
             HashSet hh = null;
             if (bb.highlight != null) {
-                if (view.pluginview.reflow)
-                    hh = new HashSet(Arrays.asList(view.pluginview.boundsUpdate(bb.highlight, info)));
+                if (fb.pluginview.reflow)
+                    hh = new HashSet(Arrays.asList(fb.pluginview.boundsUpdate(bb.highlight, info)));
                 else
                     hh = new HashSet(Arrays.asList(bb.highlight));
             }
             for (int i = 0; i < bb.rr.length; i++) {
                 final Rect l = bb.rr[i];
                 MarginLayoutParams lp = new MarginLayoutParams(l.width(), l.height());
-                WordView v = new WordView(view.getContext());
+                WordView v = new WordView(fb.getContext());
                 v.setLayoutParams(lp);
                 v.setTag(l);
                 if (hh != null && hh.contains(l))
                     v.setBackgroundColor(SelectionView.SELECTION_ALPHA << 24 | 0x990000);
                 else
-                    v.setBackgroundColor(SelectionView.SELECTION_ALPHA << 24 | view.app.BookTextView.getHighlightingBackgroundColor().intValue());
+                    v.setBackgroundColor(SelectionView.SELECTION_ALPHA << 24 | fb.app.BookTextView.getHighlightingBackgroundColor().intValue());
                 words.add(v);
-                view.addView(v);
+                fb.addView(v);
             }
         }
 
@@ -1017,11 +1017,11 @@ public class FBReaderView extends RelativeLayout {
 
         public void close() {
             final ArrayList<View> old = new ArrayList<>(words); // can be called during RelativeLayout onLayout
-            view.post(new Runnable() {
+            fb.post(new Runnable() {
                 @Override
                 public void run() {
                     for (View v : old) {
-                        view.removeView(v);
+                        fb.removeView(v);
                     }
                 }
             });
