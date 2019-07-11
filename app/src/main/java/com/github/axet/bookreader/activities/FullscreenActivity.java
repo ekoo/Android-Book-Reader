@@ -35,6 +35,11 @@ public class FullscreenActivity extends AppCompatFullscreenThemeActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
+    @Override
     public int getAppTheme() {
         return BookApplication.getTheme(this, R.style.AppThemeLight_NoActionBar, R.style.AppThemeDark_NoActionBar);
     }
@@ -58,6 +63,7 @@ public class FullscreenActivity extends AppCompatFullscreenThemeActivity {
         }
     }
 
+    @Override
     public void hideSystemUI() {
         super.hideSystemUI();
         if (Build.VERSION.SDK_INT >= 14)
@@ -65,6 +71,7 @@ public class FullscreenActivity extends AppCompatFullscreenThemeActivity {
         drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
     }
 
+    @Override
     public void showSystemUI() {
         super.showSystemUI();
         if (Build.VERSION.SDK_INT >= 14)
@@ -72,16 +79,16 @@ public class FullscreenActivity extends AppCompatFullscreenThemeActivity {
         drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
     }
 
+    @SuppressLint("RestrictedApi")
     @Override
     public void onUserInteraction() {
         super.onUserInteraction();
         FragmentManager fm = getSupportFragmentManager();
-        @SuppressLint("RestrictedApi") List<Fragment> ff = fm.getFragments();
+        List<Fragment> ff = fm.getFragments();
         if (ff != null) {
             for (Fragment f : ff) {
-                if (f != null && f instanceof FullscreenListener) {
+                if (f instanceof FullscreenListener)
                     ((FullscreenListener) f).onUserInteraction();
-                }
             }
         }
     }
