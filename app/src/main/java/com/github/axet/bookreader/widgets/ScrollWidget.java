@@ -121,7 +121,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
             @Override
             protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
                 int w = getDefaultSize(getSuggestedMinimumWidth(), widthMeasureSpec);
-                int h = ScrollWidget.this.getMainAreaHeight();
+                int h = getMainAreaHeight();
                 if (fb.pluginview != null) {
                     if (!fb.pluginview.reflow) {
                         PageCursor c = current();
@@ -601,7 +601,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
         }
 
         void processInvalidate() {
-            for (ScrollWidget.ScrollAdapter.PageHolder h : invalidates) {
+            for (ScrollAdapter.PageHolder h : invalidates) {
                 h.page.recycle();
                 h.page.invalidate();
             }
@@ -630,13 +630,13 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                 pinch = new FBReaderView.PinchGesture(fb) {
                     @Override
                     public void onScaleBegin(float x, float y) {
-                        ScrollWidget.ScrollAdapter.PageView v = ScrollWidget.this.findView(x, y);
+                        ScrollAdapter.PageView v = findView(x, y);
                         if (v == null)
                             return;
                         int pos = v.holder.getAdapterPosition();
                         if (pos == -1)
                             return;
-                        ScrollWidget.ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+                        ScrollAdapter.PageCursor c = adapter.pages.get(pos);
                         int page;
                         if (c.start == null)
                             page = c.end.getParagraphIndex() - 1;
@@ -1073,7 +1073,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
         if (first == -1)
             return;
 
-        ScrollWidget.ScrollAdapter.PageCursor c = adapter.pages.get(first);
+        ScrollAdapter.PageCursor c = adapter.pages.get(first);
 
         ZLTextPosition pos = c.start;
         if (pos == null)
