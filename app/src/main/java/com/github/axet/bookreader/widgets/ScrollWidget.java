@@ -1247,7 +1247,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
     }
 
     public void overlayUpdate(ScrollAdapter.PageView view) {
-        if (view.selection != null)
+        if (fb.selection != null)
             selectionUpdate(view);
         linksUpdate(view);
         bookmarksUpdate(view);
