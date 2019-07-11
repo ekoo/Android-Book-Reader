@@ -5,15 +5,10 @@ import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
-import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.v4.view.ViewCompat;
 import android.view.Gravity;
-import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.LinearInterpolator;
-import android.view.animation.RotateAnimation;
 import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -159,8 +154,8 @@ public class ActiveAreasView extends RelativeLayout {
         }
         if (app.MiscOptions.AllowScreenBrightnessAdjustment.getValue()) {
             int bw;
-            if (app.getViewWidget() instanceof FBReaderView.ScrollView) {
-                bw = ((FBReaderView.ScrollView) app.getViewWidget()).gesturesListener.brightness.areaWidth * PERC / ww;
+            if (app.getViewWidget() instanceof ScrollWidget) {
+                bw = ((ScrollWidget) app.getViewWidget()).gesturesListener.brightness.areaWidth * PERC / ww;
             } else {
                 bw = PERC / 10; // FBView.onFingerPress
             }

@@ -12,6 +12,7 @@ import com.github.axet.bookreader.widgets.PluginPage;
 import com.github.axet.bookreader.widgets.PluginRect;
 import com.github.axet.bookreader.widgets.PluginView;
 import com.github.axet.bookreader.widgets.RenderRect;
+import com.github.axet.bookreader.widgets.ScrollWidget;
 import com.github.axet.djvulibre.Config;
 
 import org.geometerplus.fbreader.book.AbstractBook;
@@ -36,9 +37,6 @@ import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -706,7 +704,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public PluginPage getPageInfo(int w, int h, FBReaderView.ScrollView.ScrollAdapter.PageCursor c) {
+        public PluginPage getPageInfo(int w, int h, ScrollWidget.ScrollAdapter.PageCursor c) {
             int page;
             if (c.start == null)
                 page = c.end.getParagraphIndex() - 1;

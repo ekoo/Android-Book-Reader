@@ -1028,9 +1028,9 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 bm = renderView(v);
             }
             if (bm == null) {
-                FBReaderView v = new FBReaderView(getContext());
-                v.loadBook(fbook);
-                bm = renderView(v);
+                FBReaderView fb = new FBReaderView(getContext());
+                fb.loadBook(fbook);
+                bm = renderView(fb);
             }
             if (bm == null)
                 return;

@@ -56,6 +56,7 @@ import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.BookmarksDialog;
 import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.bookreader.widgets.PluginView;
+import com.github.axet.bookreader.widgets.ScrollWidget;
 import com.github.axet.bookreader.widgets.ToolbarButtonView;
 
 import org.geometerplus.fbreader.bookmodel.TOCTree;
@@ -87,7 +88,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     Storage storage;
     Storage.Book book;
     Storage.FBook fbook;
-    FBReaderView view;
+    FBReaderView fb;
     AlertDialog tocdialog;
     boolean showRTL;
     FontsPopup fontsPopup;
@@ -104,7 +105,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             if (d < 1000)
                 d = s60 + d;
             handler.postDelayed(this, d);
-            view.invalidateFooter();
+            fb.invalidateFooter();
             savePosition();
         }
     };
@@ -407,7 +408,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                     TOCTree n = (TOCTree) getItem(h.getAdapterPosition(TOCAdapter.this)).tag;
                     if (n.hasChildren())
                         return;
-                    view.gotoPosition(n.getReference());
+                    fb.gotoPosition(n.getReference());
                     tocdialog.dismiss();
                 }
             });
@@ -612,9 +613,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         final View v = inflater.inflate(R.layout.fragment_reader, container, false);
 
         final MainActivity main = (MainActivity) getActivity();
-        view = (FBReaderView) v.findViewById(R.id.main_view);
+        fb = (FBReaderView) v.findViewById(R.id.main_view);
 
-        view.pageTurningListener = new FBReaderView.PageTurningListener() {
+        fb.listener = new FBReaderView.Listener() {
             @Override
             public void onScrollingFinished(ZLViewEnums.PageIndex index) {
                 if (fontsPopup != null) {
@@ -643,11 +644,11 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         String mode = shared.getString(BookApplication.PREFERENCE_VIEW_MODE, "");
-        view.setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
+        fb.setWidget(mode.equals(FBReaderView.Widgets.CONTINUOUS.toString()) ? FBReaderView.Widgets.CONTINUOUS : FBReaderView.Widgets.PAGING);
 
-        view.setWindow(getActivity().getWindow());
-        view.setActivity(getActivity());
-        view.setDrawer(main.drawer);
+        fb.setWindow(getActivity().getWindow());
+        fb.setActivity(getActivity());
+        fb.setDrawer(main.drawer);
 
         Uri uri = getArguments().getParcelable("uri");
         FBReaderView.ZLTextIndexPosition pos = getArguments().getParcelable("pos");
@@ -655,9 +656,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         try {
             book = storage.load(uri);
             fbook = storage.read(book);
-            view.loadBook(fbook);
+            fb.loadBook(fbook);
             if (pos != null)
-                view.gotoPosition(pos);
+                fb.gotoPosition(pos);
         } catch (RuntimeException e) {
             ErrorDialog.Error(main, e);
             main.openLibrary();
@@ -667,7 +668,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             @Override
             public void run() {
                 updateToolbar(); // update toolbar after page been drawn to detect RTL
-                view.showControls(); //  update toolbar after page been drawn, getWidth() == 0
+                fb.showControls(); //  update toolbar after page been drawn, getWidth() == 0
             }
         });
 
@@ -687,8 +688,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             public void onReceive(Context context, Intent intent) {
                 int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
                 int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
-                view.battery = level * 100 / scale;
-                view.invalidateFooter();
+                fb.battery = level * 100 / scale;
+                fb.invalidateFooter();
             }
         };
         battery.onReceive(getContext(), getContext().registerReceiver(battery, new IntentFilter(Intent.ACTION_BATTERY_CHANGED)));
@@ -719,7 +720,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     }
 
     public float getFontsizeReflow() {
-        Float fontsize = view.getFontsizeReflow();
+        Float fontsize = fb.getFontsizeReflow();
         if (fontsize != null)
             return fontsize;
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
@@ -729,10 +730,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     void savePosition() {
         if (book == null)
             return;
-        if (view.book == null) // when book isn't loaded and view closed
+        if (fb.book == null) // when book isn't loaded and view closed
             return;
-        Storage.RecentInfo save = new Storage.RecentInfo(view.book.info);
-        save.position = view.getPosition();
+        Storage.RecentInfo save = new Storage.RecentInfo(fb.book.info);
+        save.position = fb.getPosition();
         Uri u = storage.recentUri(book);
         if (Storage.exists(getContext(), u)) { // file can be changed during sync, check for conflicts
             try {
@@ -795,12 +796,12 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             BookmarksDialog dialog = new BookmarksDialog(getContext()) {
                 @Override
                 public void onSelected(Storage.Bookmark b) {
-                    view.gotoPosition(new FBReaderView.ZLTextIndexPosition(b.start, b.end));
+                    fb.gotoPosition(new FBReaderView.ZLTextIndexPosition(b.start, b.end));
                 }
 
                 @Override
                 public void onSave(Storage.Bookmark bm) {
-                    view.bookmarksUpdate();
+                    fb.bookmarksUpdate();
                     savePosition();
                 }
 
@@ -808,31 +809,31 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 public void onDelete(Storage.Bookmark bm) {
                     int i = book.info.bookmarks.indexOf(bm);
                     book.info.bookmarks.remove(i);
-                    i = view.book.info.bookmarks.indexOf(bm);
-                    view.book.info.bookmarks.remove(i);
-                    view.bookmarksUpdate();
+                    i = fb.book.info.bookmarks.indexOf(bm);
+                    fb.book.info.bookmarks.remove(i);
+                    fb.bookmarksUpdate();
                     savePosition();
                 }
             };
-            dialog.load(view.book.info.bookmarks);
+            dialog.load(fb.book.info.bookmarks);
             dialog.show();
             return true;
         }
         if (id == R.id.action_reflow) {
-            view.setReflow(!view.isReflow());
+            fb.setReflow(!fb.isReflow());
             updateToolbar();
         }
         if (id == R.id.action_debug) {
-            view.pluginview.reflowDebug = !view.pluginview.reflowDebug;
-            if (view.pluginview.reflowDebug) {
-                view.pluginview.reflow = true;
-                view.setWidget(FBReaderView.Widgets.PAGING);
+            fb.pluginview.reflowDebug = !fb.pluginview.reflowDebug;
+            if (fb.pluginview.reflowDebug) {
+                fb.pluginview.reflow = true;
+                fb.setWidget(FBReaderView.Widgets.PAGING);
             }
-            view.reset();
+            fb.reset();
             updateToolbar();
         }
         if (id == R.id.action_fontsize) {
-            if (view.pluginview == null) {
+            if (fb.pluginview == null) {
                 fontsPopup = new FontsPopup(getContext()) {
                     @Override
                     public void setFont(String f) {
@@ -840,7 +841,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                         SharedPreferences.Editor edit = shared.edit();
                         edit.putString(BookApplication.PREFERENCE_FONTFAMILY_FBREADER, f);
                         edit.apply();
-                        view.setFontFB(f);
+                        fb.setFontFB(f);
                         updateToolbar();
                     }
 
@@ -850,7 +851,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                         SharedPreferences.Editor edit = shared.edit();
                         edit.putInt(BookApplication.PREFERENCE_FONTSIZE_FBREADER, f);
                         edit.apply();
-                        view.setFontsizeFB(f);
+                        fb.setFontsizeFB(f);
                         updateToolbar();
                     }
 
@@ -860,9 +861,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                     }
                 };
                 fontsPopup.loadFonts();
-                fontsPopup.fonts.select(view.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
+                fontsPopup.fonts.select(fb.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
                 fontsPopup.fontsList.scrollToPosition(fontsPopup.fonts.selected);
-                fontsPopup.updateFontsize(FONT_START, FONT_END, view.getFontsizeFB());
+                fontsPopup.updateFontsize(FONT_START, FONT_END, fb.getFontsizeFB());
             } else {
                 fontsPopup = new FontsPopup(getContext()) {
                     @Override
@@ -872,7 +873,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                         SharedPreferences.Editor editor = shared.edit();
                         editor.putFloat(BookApplication.PREFERENCE_FONTSIZE_REFLOW, p);
                         editor.apply();
-                        view.setFontsizeReflow(p);
+                        fb.setFontsizeReflow(p);
                         updateToolbar();
                     }
 
@@ -892,18 +893,18 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                     ThemeUtils.dp2px(getContext(), 300));
         }
         if (id == R.id.action_rtl) {
-            view.app.BookTextView.rtlMode = !view.app.BookTextView.rtlMode;
-            view.reset();
+            fb.app.BookTextView.rtlMode = !fb.app.BookTextView.rtlMode;
+            fb.reset();
             updateToolbar();
         }
         if (id == R.id.action_mode) {
-            FBReaderView.Widgets m = view.widget instanceof FBReaderView.ScrollView ? FBReaderView.Widgets.PAGING : FBReaderView.Widgets.CONTINUOUS;
+            FBReaderView.Widgets m = fb.widget instanceof ScrollWidget ? FBReaderView.Widgets.PAGING : FBReaderView.Widgets.CONTINUOUS;
             SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
             SharedPreferences.Editor edit = shared.edit();
             edit.putString(BookApplication.PREFERENCE_VIEW_MODE, m.toString());
             edit.apply();
-            view.setWidget(m);
-            view.reset();
+            fb.setWidget(m);
+            fb.reset();
             updateToolbar();
         }
 
@@ -911,7 +912,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     }
 
     public void updateTheme() {
-        view.updateTheme();
+        fb.updateTheme();
     }
 
     @Override
@@ -935,10 +936,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         boolean search;
 
-        if (view.pluginview == null) {
+        if (fb.pluginview == null) {
             search = true;
         } else {
-            PluginView.Search s = view.pluginview.search("");
+            PluginView.Search s = fb.pluginview.search("");
             if (s == null) {
                 search = false;
             } else {
@@ -950,18 +951,18 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         grid.setVisible(false);
         homeMenu.setVisible(false);
         sort.setVisible(false);
-        tocMenu.setVisible(view.app.Model.TOCTree != null && view.app.Model.TOCTree.hasChildren());
+        tocMenu.setVisible(fb.app.Model.TOCTree != null && fb.app.Model.TOCTree.hasChildren());
         searchMenu.setVisible(search);
-        reflow.setVisible(view.pluginview != null && !(view.pluginview instanceof ComicsPlugin.ComicsView));
+        reflow.setVisible(fb.pluginview != null && !(fb.pluginview instanceof ComicsPlugin.ComicsView));
 
-        if (BuildConfig.DEBUG && view.pluginview != null && !(view.pluginview instanceof ComicsPlugin.ComicsView))
+        if (BuildConfig.DEBUG && fb.pluginview != null && !(fb.pluginview instanceof ComicsPlugin.ComicsView))
             debug.setVisible(true);
         else
             debug.setVisible(false);
 
-        fontsize.setVisible((view.pluginview == null || view.pluginview.reflow) ? true : false);
-        if (view.pluginview == null)
-            ((ToolbarButtonView) MenuItemCompat.getActionView(fontsize)).text.setText("" + view.getFontsizeFB());
+        fontsize.setVisible((fb.pluginview == null || fb.pluginview.reflow) ? true : false);
+        if (fb.pluginview == null)
+            ((ToolbarButtonView) MenuItemCompat.getActionView(fontsize)).text.setText("" + fb.getFontsizeFB());
         else
             ((ToolbarButtonView) MenuItemCompat.getActionView(fontsize)).text.setText(String.format("%.1f", getFontsizeReflow()));
         MenuItemCompat.getActionView(fontsize).setOnClickListener(new View.OnClickListener() {
@@ -971,10 +972,10 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             }
         });
 
-        mode.setIcon(view.widget instanceof FBReaderView.ScrollView ? R.drawable.ic_view_day_black_24dp : R.drawable.ic_view_carousel_black_24dp); // icon current
-        mode.setTitle(view.widget instanceof FBReaderView.ScrollView ? R.string.view_mode_paging : R.string.view_mode_continuous); // text next
+        mode.setIcon(fb.widget instanceof ScrollWidget ? R.drawable.ic_view_day_black_24dp : R.drawable.ic_view_carousel_black_24dp); // icon current
+        mode.setTitle(fb.widget instanceof ScrollWidget ? R.string.view_mode_paging : R.string.view_mode_continuous); // text next
 
-        showRTL |= !view.app.BookTextView.rtlMode && view.app.BookTextView.rtlDetected;
+        showRTL |= !fb.app.BookTextView.rtlMode && fb.app.BookTextView.rtlDetected;
         if (showRTL)
             rtl.setVisible(true);
         else
@@ -985,18 +986,18 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 onOptionsItemSelected(rtl);
             }
         });
-        rtl.setTitle(view.app.BookTextView.rtlMode ? "RTL" : "LTR");
-        ((ToolbarButtonView) MenuItemCompat.getActionView(rtl)).text.setText(view.app.BookTextView.rtlMode ? "RTL" : "LTR");
-        bookmarksMenu.setVisible(view.book.info.bookmarks != null && view.book.info.bookmarks.size() > 0);
+        rtl.setTitle(fb.app.BookTextView.rtlMode ? "RTL" : "LTR");
+        ((ToolbarButtonView) MenuItemCompat.getActionView(rtl)).text.setText(fb.app.BookTextView.rtlMode ? "RTL" : "LTR");
+        bookmarksMenu.setVisible(fb.book.info.bookmarks != null && fb.book.info.bookmarks.size() > 0);
 
-        if (view.pluginview instanceof ComicsPlugin.ComicsView)
+        if (fb.pluginview instanceof ComicsPlugin.ComicsView)
             theme.setVisible(false);
     }
 
     void showTOC() {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        final TOCTree current = view.app.getCurrentTOCElement();
-        final TOCAdapter a = new TOCAdapter(view.app.Model.TOCTree.subtrees(), current);
+        final TOCTree current = fb.app.getCurrentTOCElement();
+        final TOCAdapter a = new TOCAdapter(fb.app.Model.TOCTree.subtrees(), current);
         final TreeRecyclerView tree = new TreeRecyclerView(getContext());
         tree.setAdapter(a);
         builder.setView(tree);
@@ -1019,22 +1020,22 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public void search(String s) {
-        view.app.runAction(ActionCode.SEARCH, s);
+        fb.app.runAction(ActionCode.SEARCH, s);
     }
 
     @Override
     public void searchClose() {
-        view.searchClose();
+        fb.searchClose();
     }
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         if (key.equals(BookApplication.PREFERENCE_VIEW_MODE)) {
-            view.configWidget(sharedPreferences);
-            view.showControls();
+            fb.configWidget(sharedPreferences);
+            fb.showControls();
         }
         if (key.equals(BookApplication.PREFERENCE_THEME)) {
-            view.configColorProfile(sharedPreferences);
+            fb.configColorProfile(sharedPreferences);
         }
     }
 
@@ -1045,7 +1046,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public void onFullscreenChanged(boolean f) {
-        view.onConfigurationChanged(null);
+        fb.onConfigurationChanged(null);
     }
 
     @Override
@@ -1055,11 +1056,11 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if ((keyCode == KeyEvent.KEYCODE_VOLUME_DOWN)) {
-            view.app.runAction(ActionCode.VOLUME_KEY_SCROLL_FORWARD);
+            fb.app.runAction(ActionCode.VOLUME_KEY_SCROLL_FORWARD);
             return true;
         }
         if ((keyCode == KeyEvent.KEYCODE_VOLUME_UP)) {
-            view.app.runAction(ActionCode.VOLUME_KEY_SCROLL_BACK);
+            fb.app.runAction(ActionCode.VOLUME_KEY_SCROLL_BACK);
             return true;
         }
         return false;
@@ -1075,8 +1076,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public boolean onBackPressed() {
-        if (view.isPinch()) {
-            view.pinchClose();
+        if (fb.isPinch()) {
+            fb.pinchClose();
             return true;
         }
         return false;
