@@ -960,7 +960,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         else
             debug.setVisible(false);
 
-        fontsize.setVisible((fb.pluginview == null || fb.pluginview.reflow) ? true : false);
+        fontsize.setVisible(fb.pluginview == null || fb.pluginview.reflow);
         if (fb.pluginview == null)
             ((ToolbarButtonView) MenuItemCompat.getActionView(fontsize)).text.setText("" + fb.getFontsizeFB());
         else
