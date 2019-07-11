@@ -1209,7 +1209,8 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                             scrollToPosition(i);
                             int screen = (int) ((s.top - offset) / ratio);
                             int off = info.src.get(s).top - screen;
-                            scrollBy(0, off);
+                            if (off > 0)
+                                scrollBy(0, off);
                             fb.post(new Runnable() {
                                 @Override
                                 public void run() {
