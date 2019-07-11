@@ -802,7 +802,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
 
         gesturesListener = new Gestures();
 
-        lm = new LinearLayoutManager(view.getContext()) {
+        lm = new LinearLayoutManager(fb.getContext()) {
             int idley;
             Runnable idle = new Runnable() {
                 @Override
@@ -830,16 +830,16 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
             @Override
             public int scrollVerticallyBy(int dy, Recycler recycler, State state) {
                 int off = super.scrollVerticallyBy(dy, recycler, state);
-                if (view.pluginview != null)
+                if (fb.pluginview != null)
                     updateOverlays();
                 idley = dy;
-                view.removeCallbacks(idle);
+                fb.removeCallbacks(idle);
                 return off;
             }
 
             @Override
             public void smoothScrollToPosition(RecyclerView recyclerView, State state, int position) {
-                PowerManager pm = (PowerManager) view.getContext().getSystemService(Context.POWER_SERVICE);
+                PowerManager pm = (PowerManager) fb.getContext().getSystemService(Context.POWER_SERVICE);
                 if (Build.VERSION.SDK_INT >= 21 && pm.isPowerSaveMode()) {
                     scrollToPositionWithOffset(position, 0);
                     idley = position - findFirstPage();
@@ -854,14 +854,14 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
             @Override
             public void onScrollStateChanged(int state) {
                 super.onScrollStateChanged(state);
-                view.removeCallbacks(idle);
-                view.postDelayed(idle, 1000);
+                fb.removeCallbacks(idle);
+                fb.postDelayed(idle, 1000);
             }
 
             @Override
             public void onLayoutCompleted(State state) {
                 super.onLayoutCompleted(state);
-                if (view.pluginview != null)
+                if (fb.pluginview != null)
                     updateOverlays();
             }
 
@@ -874,16 +874,16 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
         setLayoutManager(lm);
         setAdapter(adapter);
 
-        DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(view.getContext(), DividerItemDecoration.VERTICAL);
+        DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(fb.getContext(), DividerItemDecoration.VERTICAL);
         addItemDecoration(dividerItemDecoration);
 
-        FBView.Footer footer = view.app.BookTextView.getFooterArea();
+        FBView.Footer footer = fb.app.BookTextView.getFooterArea();
         if (footer != null)
             setPadding(0, 0, 0, footer.getHeight());
 
         setItemAnimator(null);
 
-        view.config.setValue(view.app.PageTurningOptions.FingerScrolling, PageTurningOptions.FingerScrollingType.byFlick);
+        fb.config.setValue(fb.app.PageTurningOptions.FingerScrolling, PageTurningOptions.FingerScrollingType.byFlick);
     }
 
     @Override
@@ -1224,6 +1224,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                 }
             }
         }
+        lm.onScrollStateChanged(SCROLL_STATE_IDLE);
     }
 
     public void overlayRemove(ScrollAdapter.PageView view) {
