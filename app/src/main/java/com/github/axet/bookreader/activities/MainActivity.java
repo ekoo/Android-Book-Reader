@@ -39,7 +39,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.app.FileTypeDetector;
-import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
+import com.github.axet.androidlibrary.preferences.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.ErrorDialog;
 import com.github.axet.androidlibrary.widgets.OpenChoicer;

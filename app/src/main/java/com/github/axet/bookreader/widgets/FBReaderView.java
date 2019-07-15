@@ -41,7 +41,7 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
 import com.github.axet.androidlibrary.net.HttpClient;
-import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
+import com.github.axet.androidlibrary.preferences.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.PinchView;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
