@@ -33,6 +33,10 @@ public class RotatePreferenceCompat extends SwitchPreferenceCompat {
         return !PHONES_ONLY || !context.getResources().getBoolean(R.bool.is_tablet);
     }
 
+    public static void setRequestedOrientationDefault(Activity a) {
+        a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+    }
+
     public static void setRequestedOrientationLock(Activity a) { // SCREEN_ORIENTATION_NOSENSOR, nor SCREEN_ORIENTATION_LOCKED working
         if (a.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE)
             a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
@@ -73,9 +77,9 @@ public class RotatePreferenceCompat extends SwitchPreferenceCompat {
             else if (!system && user)
                 a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
             else // system && user || !system && !user
-                a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED); // default
+                setRequestedOrientationDefault(a);
         } else {
-            a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED); // default
+            setRequestedOrientationDefault(a);
         }
     }
 
