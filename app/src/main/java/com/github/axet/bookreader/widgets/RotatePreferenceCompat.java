@@ -15,7 +15,6 @@ import android.provider.Settings;
 import android.support.v7.preference.SwitchPreferenceCompat;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.Display;
 
 import com.github.axet.bookreader.R;
 
@@ -23,7 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class RotatePreferenceCompat extends SwitchPreferenceCompat {
-
     public static final String TAG = RotatePreferenceCompat.class.getSimpleName();
 
     public static boolean PHONES_ONLY = true; // hide option for tablets
@@ -31,12 +29,15 @@ public class RotatePreferenceCompat extends SwitchPreferenceCompat {
     public static Map<Activity, ContentObserver> map = new HashMap<>();
     public static Handler handler = new Handler(Looper.getMainLooper());
 
+    public static boolean isEnabled(Context context) {
+        return !PHONES_ONLY || !context.getResources().getBoolean(R.bool.is_tablet);
+    }
+
     public static void setRequestedOrientationLock(Activity a) { // SCREEN_ORIENTATION_NOSENSOR, nor SCREEN_ORIENTATION_LOCKED working
-        if (a.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+        if (a.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE)
             a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
-        } else {
+        else
             a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
-        }
     }
 
     public static void onCreate(final Activity a, final String key) {
@@ -64,18 +65,18 @@ public class RotatePreferenceCompat extends SwitchPreferenceCompat {
         try {
             system = Settings.System.getInt(a.getContentResolver(), Settings.System.ACCELEROMETER_ROTATION) == 1;
         } catch (Settings.SettingNotFoundException e) {
-            Log.d(TAG, "Unable to read settings", e);
+            Log.e(TAG, "Unable to read settings", e);
         }
-        boolean rotate;
-        if (PHONES_ONLY && a.getResources().getBoolean(R.bool.is_tablet)) { // tables has no user option to disable rotate
-            rotate = system;
+        if (isEnabled(a)) { // tables has no user option to disable rotate
+            if (system && !user)
+                setRequestedOrientationLock(a);
+            else if (!system && user)
+                a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
+            else // system && user || !system && !user
+                a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED); // default
         } else {
-            rotate = user && system;
+            a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED); // default
         }
-        if (rotate)
-            a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
-        else
-            setRequestedOrientationLock(a);
     }
 
     @TargetApi(21)
@@ -104,8 +105,7 @@ public class RotatePreferenceCompat extends SwitchPreferenceCompat {
     }
 
     public void onResume() {
-        if (PHONES_ONLY && getContext().getResources().getBoolean(R.bool.is_tablet)) {
+        if (!isEnabled(getContext()))
             setVisible(false);
-        }
     }
 }
