@@ -9,7 +9,6 @@ import android.os.Handler;
 public class TimeAnimatorCompat {
     Handler handler = new Handler();
     TimeListener listener;
-    TimeAnimator t;
     ValueAnimator v;
     Runnable run = new Runnable() {
         @Override
@@ -25,36 +24,29 @@ public class TimeAnimatorCompat {
     }
 
     public TimeAnimatorCompat() {
-        if (Build.VERSION.SDK_INT >= 16) {
-            t = new TimeAnimator();
-        } else if (Build.VERSION.SDK_INT >= 11) {
+        if (Build.VERSION.SDK_INT >= 16)
+            v = new TimeAnimator();
+        else if (Build.VERSION.SDK_INT >= 11)
             v = ValueAnimator.ofFloat(0f, 1f);
-        }
     }
 
     public void start() {
-        if (Build.VERSION.SDK_INT >= 16) {
-            t.start();
-        } else if (Build.VERSION.SDK_INT >= 11) {
+        if (Build.VERSION.SDK_INT >= 11)
             v.start();
-        } else {
+        else
             run.run();
-        }
     }
 
     public void cancel() {
-        if (Build.VERSION.SDK_INT >= 16) {
-            t.cancel();
-        } else if (Build.VERSION.SDK_INT >= 11) {
+        if (Build.VERSION.SDK_INT >= 11)
             v.cancel();
-        } else {
+        else
             handler.removeCallbacks(run);
-        }
     }
 
     public void setTimeListener(TimeListener l) {
         if (Build.VERSION.SDK_INT >= 16) {
-            t.setTimeListener(new TimeAnimator.TimeListener() {
+            ((TimeAnimator) v).setTimeListener(new TimeAnimator.TimeListener() {
                 @Override
                 public void onTimeUpdate(TimeAnimator animation, long totalTime, long deltaTime) {
                     if (listener != null)
