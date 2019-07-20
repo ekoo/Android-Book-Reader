@@ -20,7 +20,7 @@
         android:summary="@string/pref_volume_summary"
         android:title="@string/pref_volume_title" />
 
-    <com.github.axet.androidlibrary.preferences.ScreenlockPreference
+    <com.github.axet.androidlibrary.widgets.ScreenlockPreference
         android:defaultValue="0"
         android:entries="@array/screen_lock_text"
         android:entryValues="@array/screen_lock_values"

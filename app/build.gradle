@@ -55,6 +55,6 @@ dependencies {
     implementation 'com.github.axet:djvulibre:0.1.4'
     implementation 'com.github.axet:pdfium:2.0.14'
     implementation 'com.github.axet:k2pdfopt:0.1.6'
-    implementation('com.github.axet:wget:1.4.2') { exclude group: 'com.thoughtworks.xstream', module: 'xstream' }
+    implementation('com.github.axet:wget:1.6.1') { exclude group: 'org.json', module: 'json' }
     assets('com.madgag.spongycastle:bctls-jdk15on:1.58.0.0') { exclude module: 'junit' }
 }

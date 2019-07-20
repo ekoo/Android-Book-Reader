@@ -41,7 +41,7 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
 import com.github.axet.androidlibrary.net.HttpClient;
-import com.github.axet.androidlibrary.preferences.AboutPreferenceCompat;
+import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.PinchView;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
@@ -1355,9 +1355,8 @@ public class FBReaderView extends RelativeLayout {
                         case FBHyperlinkType.INTERNAL:
                         case FBHyperlinkType.FOOTNOTE: {
                             final AutoTextSnippet snippet = app.getFootnoteData(hyperlink.Id);
-                            if (snippet == null) {
+                            if (snippet == null)
                                 break;
-                            }
 
                             app.Collection.markHyperlinkAsVisited(app.getCurrentBook(), hyperlink.Id);
                             final boolean showToast;

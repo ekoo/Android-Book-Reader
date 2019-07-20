@@ -15,7 +15,7 @@ import com.github.axet.bookreader.app.Storage;
 
 import java.io.File;
 
-public class StoragePathPreferenceCompat extends com.github.axet.androidlibrary.preferences.StoragePathPreferenceCompat {
+public class StoragePathPreferenceCompat extends com.github.axet.androidlibrary.widgets.StoragePathPreferenceCompat {
     CharSequence defSummary;
 
     public StoragePathPreferenceCompat(Context context, AttributeSet attrs, int defStyleAttr) {
