@@ -2,7 +2,6 @@ package com.github.axet.bookreader.app;
 
 import android.content.Context;
 
-import com.github.axet.androidlibrary.app.AssetsDexLoader;
 import com.github.axet.androidlibrary.app.MainApplication;
 import com.github.axet.androidlibrary.net.HttpClient;
 import com.github.axet.bookreader.R;

@@ -206,14 +206,24 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                             }
                             if (thread != null) {
                                 if (time == null) {
-                                    time = new TimeAnimatorCompat();
-                                    time.start();
-                                    time.setTimeListener(new TimeAnimatorCompat.TimeListener() {
-                                        @Override
-                                        public void onTimeUpdate(TimeAnimatorCompat animation, long totalTime, long deltaTime) {
-                                            invalidate();
-                                        }
-                                    });
+                                    PowerManager pm = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
+                                    if (Build.VERSION.SDK_INT >= 21 && pm.isPowerSaveMode()) {
+                                        fb.postDelayed(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                invalidate();
+                                            }
+                                        }, 1000);
+                                    } else {
+                                        time = new TimeAnimatorCompat();
+                                        time.start();
+                                        time.setTimeListener(new TimeAnimatorCompat.TimeListener() {
+                                            @Override
+                                            public void onTimeUpdate(TimeAnimatorCompat animation, long totalTime, long deltaTime) {
+                                                invalidate();
+                                            }
+                                        });
+                                    }
                                 }
                                 drawProgress(draw, page, index);
                                 return;

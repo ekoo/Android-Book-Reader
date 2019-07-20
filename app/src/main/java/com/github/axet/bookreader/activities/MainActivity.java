@@ -33,7 +33,6 @@ import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -44,7 +43,6 @@ import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.ErrorDialog;
 import com.github.axet.androidlibrary.widgets.OpenChoicer;
 import com.github.axet.androidlibrary.widgets.OpenFileDialog;
-import com.github.axet.androidlibrary.widgets.RemoteNotificationCompat;
 import com.github.axet.androidlibrary.widgets.SearchView;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
@@ -259,7 +257,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
 
         openLibrary();
 
-        loadIntent(getIntent());
+        openIntent(getIntent());
 
         RotatePreferenceCompat.onCreate(this, BookApplication.PREFERENCE_ROTATE);
     }
@@ -536,10 +534,10 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        loadIntent(intent);
+        openIntent(intent);
     }
 
-    void loadIntent(Intent intent) {
+    void openIntent(Intent intent) {
         if (intent == null)
             return;
         String a = intent.getAction();
@@ -548,13 +546,17 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         Uri u = intent.getParcelableExtra(Intent.EXTRA_STREAM);
         if (u == null)
             u = intent.getData();
+        if (u == null) {
+            String t = intent.getStringExtra(Intent.EXTRA_TEXT); // handling SEND intents
+            if (t != null && t.startsWith(WebViewCustom.SCHEME_HTTP))
+                u = Uri.parse(t);
+        }
         if (u == null)
             return;
-        if (a.equals(VIEW_CATALOG)) {
+        if (a.equals(VIEW_CATALOG))
             openLibrary(catalogs.find(u.toString()));
-            return;
-        }
-        loadBook(u, null);
+        else
+            loadBook(u, null);
     }
 
     public void loadBook(final Uri u, final Runnable success) {

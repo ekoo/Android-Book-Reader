@@ -130,11 +130,11 @@ public class FBReaderView extends RelativeLayout {
     public ConfigShadow config;
     public ZLViewWidget widget;
     public int battery;
-    public String title;
-    public Window w;
     public Storage.FBook book;
     public PluginView pluginview;
     public Listener listener;
+    String title;
+    Window w;
     SelectionView selection;
     ZLTextPosition scrollDelayed;
     DrawerLayout drawer;
@@ -778,11 +778,10 @@ public class FBReaderView extends RelativeLayout {
                     v.setOnClickListener(new OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            if (l.index != -1) {
+                            if (l.index != -1)
                                 fb.app.runAction(ActionCode.PROCESS_HYPERLINK, new BookModel.Label(null, l.index));
-                            } else {
+                            else
                                 AboutPreferenceCompat.openUrlDialog(fb.getContext(), l.url);
-                            }
                         }
                     });
                     links.add(v);
@@ -814,8 +813,8 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public void close() {
-            final ArrayList<View> old = new ArrayList<>(links); // can be called during RelativeLayout onLayout
-            fb.post(new Runnable() {
+            final ArrayList<View> old = new ArrayList<>(links);
+            fb.post(new Runnable() { // can be called during RelativeLayout onLayout
                 @Override
                 public void run() {
                     for (View v : old)
@@ -864,11 +863,10 @@ public class FBReaderView extends RelativeLayout {
                 s.close();
                 Rect union = null;
                 Rect[] rr;
-                if (fb.pluginview.reflow) {
+                if (fb.pluginview.reflow)
                     rr = fb.pluginview.boundsUpdate(bb.rr, info);
-                } else {
+                else
                     rr = bb.rr;
-                }
                 List<Rect> kk = SelectionView.lines(rr);
                 for (Rect r : kk) {
                     if (union == null)
@@ -930,9 +928,8 @@ public class FBReaderView extends RelativeLayout {
             fb.post(new Runnable() {
                 @Override
                 public void run() {
-                    for (View v : old) {
+                    for (View v : old)
                         fb.removeView(v);
-                    }
                 }
             });
             bookmarks.clear();
@@ -1016,13 +1013,12 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public void close() {
-            final ArrayList<View> old = new ArrayList<>(words); // can be called during RelativeLayout onLayout
-            fb.post(new Runnable() {
+            final ArrayList<View> old = new ArrayList<>(words);
+            fb.post(new Runnable() { // can be called during RelativeLayout onLayout
                 @Override
                 public void run() {
-                    for (View v : old) {
+                    for (View v : old)
                         fb.removeView(v);
-                    }
                 }
             });
             words.clear();
@@ -1359,9 +1355,8 @@ public class FBReaderView extends RelativeLayout {
                         case FBHyperlinkType.INTERNAL:
                         case FBHyperlinkType.FOOTNOTE: {
                             final AutoTextSnippet snippet = app.getFootnoteData(hyperlink.Id);
-                            if (snippet == null) {
+                            if (snippet == null)
                                 break;
-                            }
 
                             app.Collection.markHyperlinkAsVisited(app.getCurrentBook(), hyperlink.Id);
                             final boolean showToast;
