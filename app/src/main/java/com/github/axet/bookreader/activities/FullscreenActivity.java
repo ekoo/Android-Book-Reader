@@ -9,7 +9,7 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.widget.Toolbar;
 
-import com.github.axet.androidlibrary.widgets.AppCompatFullscreenThemeActivity;
+import com.github.axet.androidlibrary.activities.AppCompatFullscreenThemeActivity;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.BookApplication;
 

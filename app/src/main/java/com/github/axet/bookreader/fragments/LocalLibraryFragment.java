@@ -30,7 +30,7 @@ import android.widget.Toast;
 
 import com.github.axet.androidlibrary.app.FileTypeDetector;
 import com.github.axet.androidlibrary.crypto.MD5;
-import com.github.axet.androidlibrary.widgets.AboutPreferenceCompat;
+import com.github.axet.androidlibrary.preferences.AboutPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.ErrorDialog;
 import com.github.axet.androidlibrary.widgets.InvalidateOptionsMenuCompat;

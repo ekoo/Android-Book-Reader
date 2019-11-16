@@ -12,8 +12,8 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.preference.PreferenceFragmentCompat;
 import android.view.MenuItem;
 
-import com.github.axet.androidlibrary.widgets.AppCompatSettingsThemeActivity;
-import com.github.axet.androidlibrary.widgets.StoragePathPreferenceCompat;
+import com.github.axet.androidlibrary.activities.AppCompatSettingsThemeActivity;
+import com.github.axet.androidlibrary.preferences.StoragePathPreferenceCompat;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.Storage;

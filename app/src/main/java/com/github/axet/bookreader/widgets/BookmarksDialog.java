@@ -16,7 +16,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.net.HttpClient;
-import com.github.axet.androidlibrary.widgets.OptimizationPreferenceCompat;
+import com.github.axet.androidlibrary.preferences.OptimizationPreferenceCompat;
 import com.github.axet.androidlibrary.widgets.TextMax;
 import com.github.axet.androidlibrary.widgets.TreeListView;
 import com.github.axet.androidlibrary.widgets.TreeRecyclerView;
