@@ -207,8 +207,11 @@ public class PagerWidget extends ZLAndroidWidget {
             final Rect dst = getPageRect();
             int x = dst.left;
             int y = dst.top;
-            if (fb.pluginview.reflow)
-                x += getInfo().margin.left;
+            if (fb.pluginview.reflow) {
+                Reflow.Info info = getInfo();
+                if (info != null) // in onDrawInScrolling onScrollingFinished called before onDrawStatic, causing info == null
+                    x += getInfo().margin.left;
+            }
 
             ZLTextPosition position = getPosition();
 
@@ -352,9 +355,8 @@ public class PagerWidget extends ZLAndroidWidget {
     public void reset() {
         super.reset();
         if (fb.pluginview != null) {
-            if (fb.pluginview.reflower != null) {
+            if (fb.pluginview.reflower != null)
                 fb.pluginview.reflower.reset();
-            }
         }
         infos.clear();
         linksClose();

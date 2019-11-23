@@ -39,10 +39,10 @@ import android.widget.PopupWindow;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.github.axet.androidlibrary.preferences.ScreenlockPreference;
 import com.github.axet.androidlibrary.widgets.ErrorDialog;
 import com.github.axet.androidlibrary.widgets.InvalidateOptionsMenuCompat;
 import com.github.axet.androidlibrary.widgets.PopupWindowCompat;
-import com.github.axet.androidlibrary.preferences.ScreenlockPreference;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.androidlibrary.widgets.TreeListView;
 import com.github.axet.androidlibrary.widgets.TreeRecyclerView;
@@ -661,7 +661,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 fb.gotoPosition(pos);
         } catch (RuntimeException e) {
             ErrorDialog.Error(main, e);
-            main.openLibrary();
+            if (!main.isFinishing())
+                main.openLibrary();
         }
 
         handler.post(new Runnable() {
@@ -676,7 +677,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     }
 
     void updateToolbar() {
-        invalidateOptionsMenu.run();
+        if (invalidateOptionsMenu != null)
+            invalidateOptionsMenu.run();
     }
 
     @Override
