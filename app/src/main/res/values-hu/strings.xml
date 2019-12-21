@@ -61,11 +61,11 @@
     <string name="bookmarks">Könyvjelzők</string>
     <string name="bookmark_edit">Módosít</string>
     <string name="book_font">Betűtípus</string>
-    <string name="sort_by">Sort By ...</string>
-    <string name="sort_by_name_a_z">Name A-Z</string>
-    <string name="sort_by_name_z_a">Name Z-A</string>
-    <string name="sort_by_added_asc">Added Asc</string>
-    <string name="sort_by_added_desc">Added Desc</string>
-    <string name="sort_by_opened_asc">Opened Asc</string>
-    <string name="sort_by_opened_desc">Opened Desc</string>
+    <string name="sort_by">Sorbarendezés ...</string>
+    <string name="sort_by_name_a_z">Név szerint, A-Z</string>
+    <string name="sort_by_name_z_a">Név szerint, Z-A</string>
+    <string name="sort_by_added_asc">Utoljára hozzáadott a végén</string>
+    <string name="sort_by_added_desc">Utoljára hozzáadott az elején</string>
+    <string name="sort_by_opened_asc">Utoljára olvasott a végén</string>
+    <string name="sort_by_opened_desc">Utoljára olvasott az elején</string>
 </resources>
