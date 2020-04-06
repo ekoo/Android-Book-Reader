@@ -622,9 +622,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         }
 
         public void load(JSONArray json) throws JSONException {
-            for (int i = 0; i < json.length(); i++) {
+            for (int i = 0; i < json.length(); i++)
                 add(new Bookmark(json.getJSONObject(i)));
-            }
         }
 
         public int indexOf(Bookmark b) {
