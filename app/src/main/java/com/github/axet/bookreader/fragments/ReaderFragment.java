@@ -648,7 +648,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         fb.setWindow(getActivity().getWindow());
         fb.setActivity(getActivity());
-        fb.setDrawer(main.drawer);
 
         Uri uri = getArguments().getParcelable("uri");
         FBReaderView.ZLTextIndexPosition pos = getArguments().getParcelable("pos");

@@ -2003,13 +2003,15 @@ public class FBReaderView extends RelativeLayout {
         selection = new SelectionView(getContext(), (CustomView) app.BookTextView, s) {
             @Override
             public void onTouchLock() {
-                drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+                if (drawer != null)
+                    drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
                 app.runAction(ActionCode.SELECTION_HIDE_PANEL);
             }
 
             @Override
             public void onTouchUnlock() {
-                drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+                if (drawer != null)
+                    drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
                 app.runAction(ActionCode.SELECTION_SHOW_PANEL);
             }
         };
