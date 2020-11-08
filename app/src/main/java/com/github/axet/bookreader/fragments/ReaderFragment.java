@@ -604,7 +604,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     @Override
     public void onStart() {
         super.onStart();
-        ((MainActivity) getActivity()).clearMenu();
     }
 
     @Override

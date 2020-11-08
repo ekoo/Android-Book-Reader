@@ -620,8 +620,6 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         super.onStart();
         MainActivity main = ((MainActivity) getActivity());
         main.setFullscreen(false);
-        main.clearMenu();
-        main.libraryMenu.setChecked(true);
     }
 
     @Override

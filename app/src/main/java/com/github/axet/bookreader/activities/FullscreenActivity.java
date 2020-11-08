@@ -16,7 +16,6 @@ import com.github.axet.bookreader.app.BookApplication;
 import java.util.List;
 
 public class FullscreenActivity extends AppCompatFullscreenThemeActivity {
-    public NavigationView navigationView;
     public Toolbar toolbar;
 
     public interface FullscreenListener {

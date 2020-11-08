@@ -71,20 +71,11 @@ import java.util.TreeMap;
 public class MainActivity extends FullscreenActivity implements NavigationView.OnNavigationItemSelectedListener {
     public static final String TAG = MainActivity.class.getSimpleName();
 
-    public static final String LIBRARY = "library";
-    public static final String ADD_CATALOG = "add_catalog";
-    public static final String SCHEME_CATALOG = "catalog";
-    public static final String VIEW_CATALOG = "VIEW_CATALOG";
-
     public static final int RESULT_FILE = 1;
     public static final int RESULT_ADD_CATALOG = 2;
 
     Storage storage;
     OpenChoicer choicer;
-    SubMenu networkMenu;
-    SubMenu settingsMenu;
-    Map<String, MenuItem> networkMenuMap = new TreeMap<>();
-    public MenuItem libraryMenu; // navigation drawer
     boolean isRunning;
     String lastSearch;
     LibraryFragment libraryFragment = LibraryFragment.newInstance();
@@ -217,27 +208,6 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         storage = new Storage(this);
 
         registerReceiver(receiver, new IntentFilter(FBReaderView.ACTION_MENU));
-
-        navigationView = (NavigationView) findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
-        View navigationHeader = navigationView.getHeaderView(0);
-
-        libraryMenu = navigationView.getMenu().findItem(R.id.nav_library);
-
-        TextView ver = (TextView) navigationHeader.findViewById(R.id.nav_version);
-        AboutPreferenceCompat.setVersion(ver);
-
-        Menu m = navigationView.getMenu();
-        networkMenu = m.addSubMenu(R.string.books_catalogs);
-
-        settingsMenu = m.addSubMenu(R.string.menu_settings);
-        settingsMenu.setIcon(R.drawable.ic_settings_black_24dp);
-        MenuItem add = settingsMenu.add(R.string.add_catalog);
-        add.setIntent(new Intent(ADD_CATALOG));
-        add.setIcon(R.drawable.ic_add_black_24dp);
-        MenuItem desc = settingsMenu.add("");
-        desc.setIntent(new Intent(ADD_CATALOG));
-        MenuItemCompat.setActionView(desc, new FullWidthActionView(this, R.layout.nav_footer_main));
 
         openLibrary();
 
@@ -641,21 +611,6 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         onResume(); // update theme if changed
     }
 
-    public void restoreNetworkSelection(Fragment f) {
-        clearMenu();
-        String u = f.getArguments().getString("url");
-        MenuItem m = networkMenuMap.get(u);
-        m.setChecked(true);
-    }
-
-    public void clearMenu() {
-        Menu m = navigationView.getMenu();
-        for (int i = 0; i < m.size(); i++)
-            m.getItem(i).setChecked(false);
-        for (int i = 0; i < networkMenu.size(); i++)
-            networkMenu.getItem(i).setChecked(false);
-    }
-
     public FragmentTransaction addFragment(Fragment f, String tag) {
         return openFragment(f, tag).addToBackStack(tag);
     }
@@ -751,12 +706,5 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         } else if (f instanceof LibraryFragment) {
             super.restartActivity();
         }
-    }
-
-    public void restartActivity(String url) {
-        Uri uri = Uri.parse(url);
-        finish();
-        startActivity(new Intent(this, getClass()).setAction(VIEW_CATALOG).putExtra(Intent.EXTRA_STREAM, uri));
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
     }
 }
