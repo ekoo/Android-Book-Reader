@@ -24,7 +24,7 @@ android {
     defaultConfig {
         minSdkVersion 9
         targetSdkVersion 23 // 24+ - unable to start intent with 'file://'
-        versionCode 1
+        versionCode = project(':app').android.defaultConfig.versionCode
         versionName = project(':app').android.defaultConfig.versionName
         consumerProguardFiles 'proguard-rules.pro'
     }
@@ -36,10 +36,10 @@ android {
     sourceSets {
         main {
             java {
-                srcDir '../app/src/main/java'
+                srcDirs += project(':app').android.sourceSets.main.java.srcDirs
             }
             res {
-                srcDir '../app/src/main/res'
+                srcDirs += project(':app').android.sourceSets.main.res.srcDirs
             }
         }
     }
