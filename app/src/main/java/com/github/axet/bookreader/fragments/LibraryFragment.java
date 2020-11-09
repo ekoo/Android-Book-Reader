@@ -293,27 +293,20 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         public void sort() {
             SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
             int selected = getContext().getResources().getIdentifier(shared.getString(BookApplication.PREFERENCE_SORT, getContext().getResources().getResourceEntryName(R.id.sort_add_ask)), "id", getContext().getPackageName());
-            switch (selected) {
-                case R.id.sort_name_ask:
-                    Collections.sort(list, new ByName());
-                    break;
-                case R.id.sort_name_desc:
-                    Collections.sort(list, Collections.reverseOrder(new ByName()));
-                    break;
-                case R.id.sort_add_ask:
-                    Collections.sort(list, new ByCreated());
-                    break;
-                case R.id.sort_add_desc:
-                    Collections.sort(list, Collections.reverseOrder(new ByCreated()));
-                    break;
-                case R.id.sort_open_ask:
-                    Collections.sort(list, new ByRecent());
-                    break;
-                case R.id.sort_open_desc:
-                    Collections.sort(list, Collections.reverseOrder(new ByRecent()));
-                    break;
-                default:
-                    Collections.sort(list, new ByCreated());
+            if (selected == R.id.sort_name_ask) {
+                Collections.sort(list, new ByName());
+            } else if (selected == R.id.sort_name_desc) {
+                Collections.sort(list, Collections.reverseOrder(new ByName()));
+            } else if (selected == R.id.sort_add_ask) {
+                Collections.sort(list, new ByCreated());
+            } else if (selected == R.id.sort_add_desc) {
+                Collections.sort(list, Collections.reverseOrder(new ByCreated()));
+            } else if (selected == R.id.sort_open_ask) {
+                Collections.sort(list, new ByRecent());
+            } else if (selected == R.id.sort_open_desc) {
+                Collections.sort(list, Collections.reverseOrder(new ByRecent()));
+            } else {
+                Collections.sort(list, new ByCreated());
             }
             notifyDataSetChanged();
         }
@@ -690,39 +683,34 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             return true;
         }
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
-        switch (item.getItemId()) {
-            case R.id.sort_add_ask:
-            case R.id.sort_add_desc:
-            case R.id.sort_name_ask:
-            case R.id.sort_name_desc:
-            case R.id.sort_open_ask:
-            case R.id.sort_open_desc:
-                shared.edit().putString(BookApplication.PREFERENCE_SORT, getContext().getResources().getResourceEntryName(item.getItemId())).commit();
-                books.sort();
-                invalidateOptionsMenu.run();
-                return true;
-            case R.id.action_bm:
-                BookmarksDialog dialog = new BookmarksDialog(getContext()) {
-                    @Override
-                    public void onSelected(Storage.Book b, Storage.Bookmark bm) {
-                        MainActivity main = ((MainActivity) getActivity());
-                        main.openBook(b.url, new FBReaderView.ZLTextIndexPosition(bm.start, bm.end));
-                    }
+        int id = item.getItemId();
+        if (id == R.id.sort_add_ask || id == R.id.sort_add_desc || id == R.id.sort_name_ask || id == R.id.sort_name_desc || id == R.id.sort_open_ask || id == R.id.sort_open_desc) {
+            shared.edit().putString(BookApplication.PREFERENCE_SORT, getContext().getResources().getResourceEntryName(item.getItemId())).commit();
+            books.sort();
+            invalidateOptionsMenu.run();
+            return true;
+        } else if (id == R.id.action_bm) {
+            BookmarksDialog dialog = new BookmarksDialog(getContext()) {
+                @Override
+                public void onSelected(Storage.Book b, Storage.Bookmark bm) {
+                    MainActivity main = ((MainActivity) getActivity());
+                    main.openBook(b.url, new FBReaderView.ZLTextIndexPosition(bm.start, bm.end));
+                }
 
-                    @Override
-                    public void onSave(Storage.Book book, Storage.Bookmark bm) {
-                        storage.save(book);
-                    }
+                @Override
+                public void onSave(Storage.Book book, Storage.Bookmark bm) {
+                    storage.save(book);
+                }
 
-                    @Override
-                    public void onDelete(Storage.Book book, Storage.Bookmark bm) {
-                        book.info.bookmarks.remove(bm);
-                        storage.save(book);
-                    }
-                };
-                dialog.load(books.all);
-                dialog.show();
-                return true;
+                @Override
+                public void onDelete(Storage.Book book, Storage.Bookmark bm) {
+                    book.info.bookmarks.remove(bm);
+                    storage.save(book);
+                }
+            };
+            dialog.load(books.all);
+            dialog.show();
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }

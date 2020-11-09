@@ -1428,42 +1428,34 @@ public class FBReaderView extends RelativeLayout {
                     menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                         @Override
                         public boolean onMenuItemClick(MenuItem item) {
-                            switch (item.getItemId()) {
-                                case R.id.action_open: {
-                                    String name = image.ImageElement.Id;
-                                    Uri uri = Uri.parse(image.ImageElement.URL);
-                                    Intent intent = ImagesProvider.getProvider().openIntent(uri, name);
-                                    getContext().startActivity(intent);
-                                    break;
-                                }
-                                case R.id.action_share: {
-                                    String name = image.ImageElement.Id;
-                                    String type = Storage.getTypeByExt(ImagesProvider.EXT);
-                                    Uri uri = Uri.parse(image.ImageElement.URL);
-                                    Intent intent = ImagesProvider.getProvider().shareIntent(uri, name, type, Storage.getTitle(book.info) + " (" + name + ")");
-                                    getContext().startActivity(intent);
-                                    break;
-                                }
-                                case R.id.action_original:
-                                    ((CustomView) app.BookTextView).setScalingType(image.ImageElement, ZLPaintContext.ScalingType.OriginalSize);
-                                    resetCaches();
-                                    break;
-                                case R.id.action_zoom:
-                                    ((CustomView) app.BookTextView).setScalingType(image.ImageElement, ZLPaintContext.ScalingType.FitMaximum);
-                                    resetCaches();
-                                    break;
-                                case R.id.action_original_all:
-                                    book.info.scales.clear();
-                                    book.info.scale = FBView.ImageFitting.covers;
-                                    config.setValue(app.ImageOptions.FitToScreen, FBView.ImageFitting.covers);
-                                    resetCaches();
-                                    break;
-                                case R.id.action_zoom_all:
-                                    book.info.scales.clear();
-                                    book.info.scale = FBView.ImageFitting.all;
-                                    config.setValue(app.ImageOptions.FitToScreen, FBView.ImageFitting.all);
-                                    resetCaches();
-                                    break;
+                            int id = item.getItemId();
+                            if (id == R.id.action_open) {
+                                String name = image.ImageElement.Id;
+                                Uri uri = Uri.parse(image.ImageElement.URL);
+                                Intent intent = ImagesProvider.getProvider().openIntent(uri, name);
+                                getContext().startActivity(intent);
+                            } else if (id == R.id.action_share) {
+                                String name = image.ImageElement.Id;
+                                String type = Storage.getTypeByExt(ImagesProvider.EXT);
+                                Uri uri = Uri.parse(image.ImageElement.URL);
+                                Intent intent = ImagesProvider.getProvider().shareIntent(uri, name, type, Storage.getTitle(book.info) + " (" + name + ")");
+                                getContext().startActivity(intent);
+                            } else if (id == R.id.action_original) {
+                                ((CustomView) app.BookTextView).setScalingType(image.ImageElement, ZLPaintContext.ScalingType.OriginalSize);
+                                resetCaches();
+                            } else if (id == R.id.action_zoom) {
+                                ((CustomView) app.BookTextView).setScalingType(image.ImageElement, ZLPaintContext.ScalingType.FitMaximum);
+                                resetCaches();
+                            } else if (id == R.id.action_original_all) {
+                                book.info.scales.clear();
+                                book.info.scale = FBView.ImageFitting.covers;
+                                config.setValue(app.ImageOptions.FitToScreen, FBView.ImageFitting.covers);
+                                resetCaches();
+                            } else if (id == R.id.action_zoom_all) {
+                                book.info.scales.clear();
+                                book.info.scale = FBView.ImageFitting.all;
+                                config.setValue(app.ImageOptions.FitToScreen, FBView.ImageFitting.all);
+                                resetCaches();
                             }
                             return true;
                         }
