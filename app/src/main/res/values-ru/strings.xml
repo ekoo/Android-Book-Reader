@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Book Reader</string>
+    <string name="app_name">Книги</string>
 
     <string-array name="theme_text">
         <item>Светлая тема</item>
