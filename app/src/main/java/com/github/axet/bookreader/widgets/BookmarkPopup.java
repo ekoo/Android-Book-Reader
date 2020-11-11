@@ -21,7 +21,9 @@ import com.github.axet.bookreader.app.Storage;
 
 import java.util.ArrayList;
 
-public class BookmarkPopup {
+public class BookmarkPopup { // bookmark click popup
+    public static int COLORS[] = new int[]{0xffff0000, 0xffFF8000, 0xffFFFF00, 0xff00FF00, 0xff0000FF, 0xff3F00FF, 0xff7F00FF};
+
     public Context context;
     public PopupWindow w;
     public View v;
@@ -35,7 +37,6 @@ public class BookmarkPopup {
         name.setText(l.name);
         if (l.name != null)
             name.setSelection(l.name.length());
-        int colors[] = new int[]{0xffff0000, 0xffFF8000, 0xffFFFF00, 0xff00FF00, 0xff0000FF, 0xff3F00FF, 0xff7F00FF};
         LinearLayout ll = new LinearLayout(getContext()) {
             @Override
             protected void onDetachedFromWindow() {
@@ -51,7 +52,7 @@ public class BookmarkPopup {
         hh.setPadding(dp5, dp5, dp5, dp5);
         int dp1 = ThemeUtils.dp2px(getContext(), 1);
         int dp2 = ThemeUtils.dp2px(getContext(), 2);
-        for (int c : colors) {
+        for (int c : COLORS) {
             final View color = inflater.inflate(R.layout.bm_color, null);
             ImageView image = (ImageView) color.findViewById(R.id.color);
             image.setColorFilter(c);

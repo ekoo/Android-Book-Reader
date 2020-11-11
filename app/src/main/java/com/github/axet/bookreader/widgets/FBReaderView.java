@@ -395,8 +395,7 @@ public class FBReaderView extends RelativeLayout {
             } else {
                 super.onScrollingFinished(pageIndex);
             }
-            if (listener != null)
-                listener.onScrollingFinished(pageIndex);
+            FBReaderView.this.onScrollingFinished(pageIndex);
             if (widget instanceof ZLAndroidWidget)
                 ((PagerWidget) widget).updateOverlays();
         }
@@ -1253,8 +1252,7 @@ public class FBReaderView extends RelativeLayout {
                                     last = new ZLTextFixedPosition(wordCursor);
                                     wordCursor.previousWord();
                                     e = wordCursor.getElement();
-                                }
-                                while (e instanceof ZLTextControlElement && wordCursor.compareTo(c.start) >= 0);
+                                } while (e instanceof ZLTextControlElement && wordCursor.compareTo(c.start) >= 0);
                                 return last;
                             }
                         }
@@ -1293,12 +1291,10 @@ public class FBReaderView extends RelativeLayout {
                                         UIMessageUtil.showErrorMessage(a, "textNotFound");
                                         popup.StartPosition = null;
                                     } else {
-                                        if (widget instanceof ScrollWidget) {
+                                        if (widget instanceof ScrollWidget)
                                             ((ScrollWidget) widget).updateOverlays();
-                                        }
-                                        if (widget instanceof PagerWidget) {
+                                        if (widget instanceof PagerWidget)
                                             ((PagerWidget) widget).updateOverlaysReset();
-                                        }
                                         app.showPopup(popup.getId());
                                     }
                                 }
@@ -1357,7 +1353,6 @@ public class FBReaderView extends RelativeLayout {
                             final AutoTextSnippet snippet = app.getFootnoteData(hyperlink.Id);
                             if (snippet == null)
                                 break;
-
                             app.Collection.markHyperlinkAsVisited(app.getCurrentBook(), hyperlink.Id);
                             final boolean showToast;
                             switch (app.MiscOptions.ShowFootnoteToast.getValue()) {
@@ -1761,31 +1756,39 @@ public class FBReaderView extends RelativeLayout {
         app.addAction(ActionCode.VOLUME_KEY_SCROLL_FORWARD, new FBAction(app) {
             @Override
             protected void run(Object... params) {
-                final PageTurningOptions preferences = app.PageTurningOptions;
-                widget.startAnimatedScrolling(
-                        FBView.PageIndex.next,
-                        preferences.Horizontal.getValue()
-                                ? FBView.Direction.rightToLeft : FBView.Direction.up,
-                        preferences.AnimationSpeed.getValue()
-                );
+                scrollNextPage();
             }
         });
         app.addAction(ActionCode.VOLUME_KEY_SCROLL_BACK, new FBAction(app) {
             @Override
             protected void run(Object... params) {
-                final PageTurningOptions preferences = app.PageTurningOptions;
-                widget.startAnimatedScrolling(
-                        FBView.PageIndex.previous,
-                        preferences.Horizontal.getValue()
-                                ? FBView.Direction.rightToLeft : FBView.Direction.up,
-                        preferences.AnimationSpeed.getValue()
-                );
+                scrollPrevPage();
             }
         });
 
         ((PopupPanel) app.getPopupById(TextSearchPopup.ID)).setPanelInfo(a, this);
         ((NavigationPopup) app.getPopupById(NavigationPopup.ID)).setPanelInfo(a, this);
         ((PopupPanel) app.getPopupById(SelectionPopup.ID)).setPanelInfo(a, this);
+    }
+
+    public void scrollNextPage() {
+        final PageTurningOptions preferences = app.PageTurningOptions;
+        widget.startAnimatedScrolling(
+                FBView.PageIndex.next,
+                preferences.Horizontal.getValue()
+                        ? FBView.Direction.rightToLeft : FBView.Direction.up,
+                preferences.AnimationSpeed.getValue()
+        );
+    }
+
+    public void scrollPrevPage() {
+        final PageTurningOptions preferences = app.PageTurningOptions;
+        widget.startAnimatedScrolling(
+                FBView.PageIndex.previous,
+                preferences.Horizontal.getValue()
+                        ? FBView.Direction.rightToLeft : FBView.Direction.up,
+                preferences.AnimationSpeed.getValue()
+        );
     }
 
     public void setDrawer(DrawerLayout drawer) {
@@ -2161,5 +2164,10 @@ public class FBReaderView extends RelativeLayout {
         ZLTextPosition scrollDelayed = getPosition();
         reset();
         gotoPosition(scrollDelayed);
+    }
+
+    public void onScrollingFinished(ZLViewEnums.PageIndex pageIndex) {
+        if (listener != null)
+            listener.onScrollingFinished(pageIndex);
     }
 }

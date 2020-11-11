@@ -26,7 +26,7 @@ import com.github.axet.bookreader.app.Storage;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BookmarksDialog extends AlertDialog.Builder {
+public class BookmarksDialog extends AlertDialog.Builder { // bookmarks list dialog
     BMAdapter a;
     TreeRecyclerView tree;
     AlertDialog dialog;
