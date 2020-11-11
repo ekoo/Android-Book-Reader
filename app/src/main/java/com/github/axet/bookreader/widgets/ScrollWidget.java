@@ -55,7 +55,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
     Gestures gesturesListener;
 
     public class ScrollAdapter extends RecyclerView.Adapter<ScrollAdapter.PageHolder> {
-        public ArrayList<PageCursor> pages = new ArrayList<>();
+        public ArrayList<PageCursor> pages = new ArrayList<>(); // adapter items
         final Object lock = new Object();
         Thread thread;
         PluginRect size = new PluginRect(); // ScrollView size, after reset
@@ -180,7 +180,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                             }
                             if (fb.pluginview.reflower == null) {
                                 if (thread == null) {
-                                    thread = new Thread() {
+                                    thread = new Thread("reflow load thread") {
                                         @Override
                                         public void run() {
                                             int i = index;
@@ -750,7 +750,6 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
             fb.app.BookTextView.onFingerLongPress(x, y);
             fb.app.BookTextView.onFingerReleaseAfterLongPress(x, y);
             v.invalidate();
-            fb.app.BookTextView.myCurrentPage.TextElementMap = new ZLTextElementAreaVector();
             adapter.invalidates.add(v.holder);
             closeText();
         }
@@ -1245,15 +1244,13 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
     }
 
     public void overlaysClose() {
-        for (ScrollAdapter.PageHolder h : adapter.holders) {
+        for (ScrollAdapter.PageHolder h : adapter.holders)
             overlayRemove(h.page);
-        }
     }
 
     public void updateOverlays() {
-        for (ScrollAdapter.PageHolder h : adapter.holders) {
+        for (ScrollAdapter.PageHolder h : adapter.holders)
             overlayUpdate(h.page);
-        }
     }
 
     public void overlayUpdate(ScrollAdapter.PageView view) {
@@ -1266,9 +1263,8 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
     }
 
     public void linksClose() {
-        for (ScrollAdapter.PageHolder h : adapter.holders) {
+        for (ScrollAdapter.PageHolder h : adapter.holders)
             linksRemove(h.page);
-        }
     }
 
     public void linksRemove(ScrollAdapter.PageView view) {
