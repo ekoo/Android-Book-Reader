@@ -94,6 +94,7 @@ import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.view.ZLTextControlElement;
 import org.geometerplus.zlibrary.text.view.ZLTextElement;
 import org.geometerplus.zlibrary.text.view.ZLTextElementArea;
+import org.geometerplus.zlibrary.text.view.ZLTextElementAreaVector;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextHighlighting;
 import org.geometerplus.zlibrary.text.view.ZLTextHyperlink;
@@ -105,6 +106,7 @@ import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextRegion;
 import org.geometerplus.zlibrary.text.view.ZLTextSimpleHighlighting;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
+import org.geometerplus.zlibrary.text.view.ZLTextWord;
 import org.geometerplus.zlibrary.text.view.ZLTextWordCursor;
 import org.geometerplus.zlibrary.text.view.ZLTextWordRegionSoul;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidPaintContext;
@@ -139,6 +141,7 @@ public class FBReaderView extends RelativeLayout {
     ZLTextPosition scrollDelayed;
     DrawerLayout drawer;
     PluginView.Search search;
+    public TTSPopup tts;
     int searchPagePending;
 
     public static void showControls(final ViewGroup p, final View areas) {
@@ -277,6 +280,12 @@ public class FBReaderView extends RelativeLayout {
         }
     }
 
+    public static class ZLTTSMark extends ZLBookmark {
+        public ZLTTSMark(FBView view, Storage.Bookmark m) {
+            super(view, m);
+        }
+    }
+
     public interface Listener {
         void onScrollingFinished(ZLViewEnums.PageIndex index);
 
@@ -395,8 +404,7 @@ public class FBReaderView extends RelativeLayout {
             } else {
                 super.onScrollingFinished(pageIndex);
             }
-            if (listener != null)
-                listener.onScrollingFinished(pageIndex);
+            FBReaderView.this.onScrollingFinished(pageIndex);
             if (widget instanceof ZLAndroidWidget)
                 ((PagerWidget) widget).updateOverlays();
         }
@@ -895,10 +903,14 @@ public class FBReaderView extends RelativeLayout {
                     int color = l.color == 0 ? fb.app.BookTextView.getHighlightingBackgroundColor().intValue() : l.color;
                     v.setBackgroundColor(SelectionView.SELECTION_ALPHA << 24 | (color & 0xffffff));
                     bmv.add(v);
-                    bookmarks.add(v);
-                    fb.addView(v);
+                    addView(v);
                 }
             }
+        }
+
+        public void addView(View v) {
+            bookmarks.add(v);
+            fb.addView(v);
         }
 
         public void update(int x, int y) {
@@ -933,6 +945,18 @@ public class FBReaderView extends RelativeLayout {
                 }
             });
             bookmarks.clear();
+        }
+    }
+
+    public static class TTSView extends BookmarksView {
+        public TTSView(final FBReaderView view, PluginView.Selection.Page page, Reflow.Info info) {
+            super(view, page, view.tts.marks, info);
+        }
+
+        @Override
+        public void addView(View v) {
+            super.addView(v);
+            v.setOnClickListener(null);
         }
     }
 
@@ -1253,8 +1277,7 @@ public class FBReaderView extends RelativeLayout {
                                     last = new ZLTextFixedPosition(wordCursor);
                                     wordCursor.previousWord();
                                     e = wordCursor.getElement();
-                                }
-                                while (e instanceof ZLTextControlElement && wordCursor.compareTo(c.start) >= 0);
+                                } while (e instanceof ZLTextControlElement && wordCursor.compareTo(c.start) >= 0);
                                 return last;
                             }
                         }
@@ -1293,12 +1316,10 @@ public class FBReaderView extends RelativeLayout {
                                         UIMessageUtil.showErrorMessage(a, "textNotFound");
                                         popup.StartPosition = null;
                                     } else {
-                                        if (widget instanceof ScrollWidget) {
+                                        if (widget instanceof ScrollWidget)
                                             ((ScrollWidget) widget).updateOverlays();
-                                        }
-                                        if (widget instanceof PagerWidget) {
+                                        if (widget instanceof PagerWidget)
                                             ((PagerWidget) widget).updateOverlaysReset();
-                                        }
                                         app.showPopup(popup.getId());
                                     }
                                 }
@@ -1357,7 +1378,6 @@ public class FBReaderView extends RelativeLayout {
                             final AutoTextSnippet snippet = app.getFootnoteData(hyperlink.Id);
                             if (snippet == null)
                                 break;
-
                             app.Collection.markHyperlinkAsVisited(app.getCurrentBook(), hyperlink.Id);
                             final boolean showToast;
                             switch (app.MiscOptions.ShowFootnoteToast.getValue()) {
@@ -1428,42 +1448,34 @@ public class FBReaderView extends RelativeLayout {
                     menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                         @Override
                         public boolean onMenuItemClick(MenuItem item) {
-                            switch (item.getItemId()) {
-                                case R.id.action_open: {
-                                    String name = image.ImageElement.Id;
-                                    Uri uri = Uri.parse(image.ImageElement.URL);
-                                    Intent intent = ImagesProvider.getProvider().openIntent(uri, name);
-                                    getContext().startActivity(intent);
-                                    break;
-                                }
-                                case R.id.action_share: {
-                                    String name = image.ImageElement.Id;
-                                    String type = Storage.getTypeByExt(ImagesProvider.EXT);
-                                    Uri uri = Uri.parse(image.ImageElement.URL);
-                                    Intent intent = ImagesProvider.getProvider().shareIntent(uri, name, type, Storage.getTitle(book.info) + " (" + name + ")");
-                                    getContext().startActivity(intent);
-                                    break;
-                                }
-                                case R.id.action_original:
-                                    ((CustomView) app.BookTextView).setScalingType(image.ImageElement, ZLPaintContext.ScalingType.OriginalSize);
-                                    resetCaches();
-                                    break;
-                                case R.id.action_zoom:
-                                    ((CustomView) app.BookTextView).setScalingType(image.ImageElement, ZLPaintContext.ScalingType.FitMaximum);
-                                    resetCaches();
-                                    break;
-                                case R.id.action_original_all:
-                                    book.info.scales.clear();
-                                    book.info.scale = FBView.ImageFitting.covers;
-                                    config.setValue(app.ImageOptions.FitToScreen, FBView.ImageFitting.covers);
-                                    resetCaches();
-                                    break;
-                                case R.id.action_zoom_all:
-                                    book.info.scales.clear();
-                                    book.info.scale = FBView.ImageFitting.all;
-                                    config.setValue(app.ImageOptions.FitToScreen, FBView.ImageFitting.all);
-                                    resetCaches();
-                                    break;
+                            int id = item.getItemId();
+                            if (id == R.id.action_open) {
+                                String name = image.ImageElement.Id;
+                                Uri uri = Uri.parse(image.ImageElement.URL);
+                                Intent intent = ImagesProvider.getProvider().openIntent(uri, name);
+                                getContext().startActivity(intent);
+                            } else if (id == R.id.action_share) {
+                                String name = image.ImageElement.Id;
+                                String type = Storage.getTypeByExt(ImagesProvider.EXT);
+                                Uri uri = Uri.parse(image.ImageElement.URL);
+                                Intent intent = ImagesProvider.getProvider().shareIntent(uri, name, type, Storage.getTitle(book.info) + " (" + name + ")");
+                                getContext().startActivity(intent);
+                            } else if (id == R.id.action_original) {
+                                ((CustomView) app.BookTextView).setScalingType(image.ImageElement, ZLPaintContext.ScalingType.OriginalSize);
+                                resetCaches();
+                            } else if (id == R.id.action_zoom) {
+                                ((CustomView) app.BookTextView).setScalingType(image.ImageElement, ZLPaintContext.ScalingType.FitMaximum);
+                                resetCaches();
+                            } else if (id == R.id.action_original_all) {
+                                book.info.scales.clear();
+                                book.info.scale = FBView.ImageFitting.covers;
+                                config.setValue(app.ImageOptions.FitToScreen, FBView.ImageFitting.covers);
+                                resetCaches();
+                            } else if (id == R.id.action_zoom_all) {
+                                book.info.scales.clear();
+                                book.info.scale = FBView.ImageFitting.all;
+                                config.setValue(app.ImageOptions.FitToScreen, FBView.ImageFitting.all);
+                                resetCaches();
                             }
                             return true;
                         }
@@ -1769,31 +1781,39 @@ public class FBReaderView extends RelativeLayout {
         app.addAction(ActionCode.VOLUME_KEY_SCROLL_FORWARD, new FBAction(app) {
             @Override
             protected void run(Object... params) {
-                final PageTurningOptions preferences = app.PageTurningOptions;
-                widget.startAnimatedScrolling(
-                        FBView.PageIndex.next,
-                        preferences.Horizontal.getValue()
-                                ? FBView.Direction.rightToLeft : FBView.Direction.up,
-                        preferences.AnimationSpeed.getValue()
-                );
+                scrollNextPage();
             }
         });
         app.addAction(ActionCode.VOLUME_KEY_SCROLL_BACK, new FBAction(app) {
             @Override
             protected void run(Object... params) {
-                final PageTurningOptions preferences = app.PageTurningOptions;
-                widget.startAnimatedScrolling(
-                        FBView.PageIndex.previous,
-                        preferences.Horizontal.getValue()
-                                ? FBView.Direction.rightToLeft : FBView.Direction.up,
-                        preferences.AnimationSpeed.getValue()
-                );
+                scrollPrevPage();
             }
         });
 
         ((PopupPanel) app.getPopupById(TextSearchPopup.ID)).setPanelInfo(a, this);
         ((NavigationPopup) app.getPopupById(NavigationPopup.ID)).setPanelInfo(a, this);
         ((PopupPanel) app.getPopupById(SelectionPopup.ID)).setPanelInfo(a, this);
+    }
+
+    public void scrollNextPage() {
+        final PageTurningOptions preferences = app.PageTurningOptions;
+        widget.startAnimatedScrolling(
+                FBView.PageIndex.next,
+                preferences.Horizontal.getValue()
+                        ? FBView.Direction.rightToLeft : FBView.Direction.up,
+                preferences.AnimationSpeed.getValue()
+        );
+    }
+
+    public void scrollPrevPage() {
+        final PageTurningOptions preferences = app.PageTurningOptions;
+        widget.startAnimatedScrolling(
+                FBView.PageIndex.previous,
+                preferences.Horizontal.getValue()
+                        ? FBView.Direction.rightToLeft : FBView.Direction.up,
+                preferences.AnimationSpeed.getValue()
+        );
     }
 
     public void setDrawer(DrawerLayout drawer) {
@@ -1985,11 +2005,10 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void invalidateFooter() {
-        if (widget instanceof ScrollWidget) {
+        if (widget instanceof ScrollWidget)
             ((ScrollWidget) widget).invalidate();
-        } else {
+        else
             widget.repaint();
-        }
     }
 
     public void clearReflowPage() {
@@ -2003,13 +2022,15 @@ public class FBReaderView extends RelativeLayout {
         selection = new SelectionView(getContext(), (CustomView) app.BookTextView, s) {
             @Override
             public void onTouchLock() {
-                drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+                if (drawer != null)
+                    drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
                 app.runAction(ActionCode.SELECTION_HIDE_PANEL);
             }
 
             @Override
             public void onTouchUnlock() {
-                drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+                if (drawer != null)
+                    drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
                 app.runAction(ActionCode.SELECTION_SHOW_PANEL);
             }
         };
@@ -2073,6 +2094,56 @@ public class FBReaderView extends RelativeLayout {
         }
         if (widget instanceof PagerWidget)
             ((PagerWidget) widget).updateOverlaysReset();
+    }
+
+    public void ttsClose() {
+        if (widget instanceof ScrollWidget)
+            ((ScrollWidget) widget).ttsClose();
+        if (widget instanceof PagerWidget)
+            ((PagerWidget) widget).ttsClose();
+        if (pluginview == null) {
+            app.BookTextView.removeHighlightings(ZLTTSMark.class);
+            if (widget instanceof ScrollWidget) {
+                for (ScrollWidget.ScrollAdapter.PageHolder h : ((ScrollWidget) widget).adapter.holders) {
+                    h.page.recycle();
+                    h.page.invalidate();
+                }
+            }
+        }
+    }
+
+    public void ttsUpdate() {
+        if (pluginview == null) {
+            app.BookTextView.removeHighlightings(ZLTTSMark.class);
+            if (tts != null) {
+                ArrayList<ZLTextHighlighting> hi = new ArrayList<>();
+                for (Storage.Bookmark m : tts.marks) {
+                    ZLTTSMark h = new ZLTTSMark(app.BookTextView, m);
+                    hi.add(h);
+                }
+                app.BookTextView.addHighlightings(hi);
+            }
+        }
+        if (widget instanceof ScrollWidget) {
+            if (pluginview == null) {
+                for (ScrollWidget.ScrollAdapter.PageHolder h : ((ScrollWidget) widget).adapter.holders) {
+                    h.page.recycle();
+                    h.page.invalidate();
+                }
+            } else {
+                ((ScrollWidget) widget).ttsUpdate();
+            }
+        }
+        if (widget instanceof PagerWidget)
+            ((PagerWidget) widget).updateOverlaysReset();
+
+        tts.view.bringToFront();
+    }
+
+    public void ttsOpen() {
+        tts = new TTSPopup(this);
+        tts.show();
+        ttsUpdate();
     }
 
     public void searchClose() {
@@ -2167,5 +2238,10 @@ public class FBReaderView extends RelativeLayout {
         ZLTextPosition scrollDelayed = getPosition();
         reset();
         gotoPosition(scrollDelayed);
+    }
+
+    public void onScrollingFinished(ZLViewEnums.PageIndex pageIndex) {
+        if (listener != null)
+            listener.onScrollingFinished(pageIndex);
     }
 }

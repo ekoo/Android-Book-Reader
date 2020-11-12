@@ -68,4 +68,6 @@
     <string name="sort_by_added_desc">Eklenme Azalan</string>
     <string name="sort_by_opened_asc">Açılma Artan</string>
     <string name="sort_by_opened_desc">Açılma Azalan</string>
+    <string name="tts_default">System Default</string>
+    <string name="pref_tts_title">TTS Language</string>
 </resources>

@@ -66,4 +66,6 @@
     <string name="sort_by_added_desc">加入遞減</string>
     <string name="sort_by_opened_asc">開啟遞增</string>
     <string name="sort_by_opened_desc">開啟遞減</string>
+    <string name="tts_default">System Default</string>
+    <string name="pref_tts_title">TTS Language</string>
 </resources>

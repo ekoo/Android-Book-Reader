@@ -68,4 +68,6 @@
     <string name="sort_by_added_desc">Utoljára hozzáadott az elején</string>
     <string name="sort_by_opened_asc">Utoljára olvasott a végén</string>
     <string name="sort_by_opened_desc">Utoljára olvasott az elején</string>
+    <string name="tts_default">System Default</string>
+    <string name="pref_tts_title">TTS Language</string>
 </resources>

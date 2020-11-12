@@ -16,8 +16,6 @@ import com.github.axet.bookreader.app.BookApplication;
 import java.util.List;
 
 public class FullscreenActivity extends AppCompatFullscreenThemeActivity {
-    public DrawerLayout drawer;
-    public NavigationView navigationView;
     public Toolbar toolbar;
 
     public interface FullscreenListener {
@@ -66,17 +64,11 @@ public class FullscreenActivity extends AppCompatFullscreenThemeActivity {
     @Override
     public void hideSystemUI() {
         super.hideSystemUI();
-        if (Build.VERSION.SDK_INT >= 14)
-            drawer.setFitsSystemWindows(false);
-        drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
     }
 
     @Override
     public void showSystemUI() {
         super.showSystemUI();
-        if (Build.VERSION.SDK_INT >= 14)
-            drawer.setFitsSystemWindows(true);
-        drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
     }
 
     @SuppressLint("RestrictedApi")

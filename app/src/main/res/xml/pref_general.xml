@@ -34,6 +34,12 @@
         android:summary="@string/pref_rotate_summary"
         android:title="@string/pref_rotate_title" />
 
+    <com.github.axet.bookreader.widgets.TTSPreferenceCompat
+        android:key="tts_pref"
+        android:negativeButtonText="@null"
+        android:positiveButtonText="@null"
+        android:title="@string/pref_tts_title" />
+
     <ListPreference
         android:defaultValue="@string/Theme_Light"
         android:entries="@array/theme_text"

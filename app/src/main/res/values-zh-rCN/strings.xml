@@ -61,4 +61,6 @@
     <string name="sort_by_added_desc">添加时间降序</string>
     <string name="sort_by_opened_asc">打开时间升序</string>
     <string name="sort_by_opened_desc">打开时间降序</string>
+    <string name="tts_default">System Default</string>
+    <string name="pref_tts_title">TTS Language</string>
 </resources>

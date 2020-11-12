@@ -26,7 +26,7 @@ import com.github.axet.bookreader.app.Storage;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BookmarksDialog extends AlertDialog.Builder {
+public class BookmarksDialog extends AlertDialog.Builder { // bookmarks list dialog
     BMAdapter a;
     TreeRecyclerView tree;
     AlertDialog dialog;
@@ -109,72 +109,67 @@ public class BookmarksDialog extends AlertDialog.Builder {
                         @Override
                         public boolean onMenuItemClick(MenuItem item) {
                             int id = item.getItemId();
-                            switch (id) {
-                                case R.id.action_edit:
-                                    BookmarkPopup popup = new BookmarkPopup(h.itemView, tt, new ArrayList<View>()) {
-                                        @Override
-                                        public void onDismiss() {
-                                            if (t.parent == root) {
-                                                onSave(tt);
-                                            } else {
-                                                Storage.Book b = (Storage.Book) t.parent.tag;
-                                                onSave(b, tt);
-                                            }
-                                            notifyDataSetChanged();
+                            if (id == R.id.action_edit) {
+                                BookmarkPopup popup = new BookmarkPopup(h.itemView, tt, new ArrayList<View>()) {
+                                    @Override
+                                    public void onDismiss() {
+                                        if (t.parent == root) {
+                                            onSave(tt);
+                                        } else {
+                                            Storage.Book b = (Storage.Book) t.parent.tag;
+                                            onSave(b, tt);
                                         }
-                                    };
-                                    popup.show();
-                                    break;
-                                case R.id.action_open:
-                                    if (t.parent == root) {
-                                        onSave(tt);
-                                    } else {
-                                        Storage.Book b = (Storage.Book) t.parent.tag;
-                                        onSave(b, tt);
+                                        notifyDataSetChanged();
                                     }
-                                    break;
-                                case R.id.action_share:
-                                    String subject;
-                                    String text;
-                                    if (t.parent == root) {
-                                        subject = tt.name;
-                                    } else {
-                                        Storage.Book b = (Storage.Book) t.parent.tag;
-                                        subject = Storage.getTitle(b.info);
+                                };
+                                popup.show();
+                            } else if (id == R.id.action_open) {
+                                if (t.parent == root) {
+                                    onSave(tt);
+                                } else {
+                                    Storage.Book b = (Storage.Book) t.parent.tag;
+                                    onSave(b, tt);
+                                }
+                            } else if (id == R.id.action_share) {
+                                String subject;
+                                String text;
+                                if (t.parent == root) {
+                                    subject = tt.name;
+                                } else {
+                                    Storage.Book b = (Storage.Book) t.parent.tag;
+                                    subject = Storage.getTitle(b.info);
+                                }
+                                text = tt.text + "\n\n" + tt.name;
+                                Intent intent = new Intent(Intent.ACTION_SEND);
+                                intent.setType(HttpClient.CONTENTTYPE_TEXT);
+                                intent.putExtra(Intent.EXTRA_EMAIL, "");
+                                intent.putExtra(Intent.EXTRA_SUBJECT, subject);
+                                intent.putExtra(Intent.EXTRA_TEXT, text);
+                                if (OptimizationPreferenceCompat.isCallable(getContext(), intent))
+                                    getContext().startActivity(intent);
+                            } else if (id == R.id.action_delete) {
+                                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                                builder.setTitle(R.string.delete_bookmark);
+                                builder.setMessage(R.string.are_you_sure);
+                                builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        if (t.parent == root) {
+                                            onDelete(tt);
+                                        } else {
+                                            Storage.Book b = (Storage.Book) t.parent.tag;
+                                            onDelete(b, tt);
+                                        }
+                                        items.remove(t);
+                                        notifyDataSetChanged();
                                     }
-                                    text = tt.text + "\n\n" + tt.name;
-                                    Intent intent = new Intent(Intent.ACTION_SEND);
-                                    intent.setType(HttpClient.CONTENTTYPE_TEXT);
-                                    intent.putExtra(Intent.EXTRA_EMAIL, "");
-                                    intent.putExtra(Intent.EXTRA_SUBJECT, subject);
-                                    intent.putExtra(Intent.EXTRA_TEXT, text);
-                                    if (OptimizationPreferenceCompat.isCallable(getContext(), intent))
-                                        getContext().startActivity(intent);
-                                    break;
-                                case R.id.action_delete:
-                                    AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                                    builder.setTitle(R.string.delete_bookmark);
-                                    builder.setMessage(R.string.are_you_sure);
-                                    builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                                        @Override
-                                        public void onClick(DialogInterface dialog, int which) {
-                                            if (t.parent == root) {
-                                                onDelete(tt);
-                                            } else {
-                                                Storage.Book b = (Storage.Book) t.parent.tag;
-                                                onDelete(b, tt);
-                                            }
-                                            items.remove(t);
-                                            notifyDataSetChanged();
-                                        }
-                                    });
-                                    builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
-                                        @Override
-                                        public void onClick(DialogInterface dialog, int which) {
-                                        }
-                                    });
-                                    builder.show();
-                                    break;
+                                });
+                                builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                    }
+                                });
+                                builder.show();
                             }
                             return true;
                         }

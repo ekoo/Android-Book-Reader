@@ -54,11 +54,10 @@ public class SelectionView extends FrameLayout {
         final int unit = dpi / 120;
         final int xCenter = which == SelectionCursor.Which.Left ? x - unit - 1 : x + unit + 1;
         HotRect rect = new HotRect(xCenter - unit, y - dpi / 8, xCenter + unit, y + dpi / 8, x, y);
-        if (which == SelectionCursor.Which.Left) {
+        if (which == SelectionCursor.Which.Left)
             rect.rect.union(circleRect(xCenter, y - dpi / 8, unit * 6));
-        } else {
+        else
             rect.rect.union(circleRect(xCenter, y + dpi / 8, unit * 6));
-        }
         return rect;
     }
 
@@ -67,11 +66,10 @@ public class SelectionView extends FrameLayout {
         final int unit = dpi / 120;
         final int xCenter = which == SelectionCursor.Which.Left ? x - unit - 1 : x + unit + 1;
         canvas.drawRect(xCenter - unit, y - dpi / 8, xCenter + unit, y + dpi / 8, handles);
-        if (which == SelectionCursor.Which.Left) {
+        if (which == SelectionCursor.Which.Left)
             canvas.drawCircle(xCenter, y - dpi / 8, unit * 6, handles);
-        } else {
+        else
             canvas.drawCircle(xCenter, y + dpi / 8, unit * 6, handles);
-        }
     }
 
     public static Rect union(List<Rect> rr) {
@@ -276,11 +274,10 @@ public class SelectionView extends FrameLayout {
         }
 
         public void drawRect(Rect rect) {
-            if (touch != null) {
+            if (touch != null)
                 draw = new HotPoint(touch);
-            } else {
+            else
                 draw = new Point(this.rect.hotx, this.rect.hoty);
-            }
             draw.x -= rect.left;
             draw.y -= rect.top;
         }
@@ -378,9 +375,8 @@ public class SelectionView extends FrameLayout {
     }
 
     public void remove(PageView page) {
-        if (touch == page) {
+        if (touch == page)
             touch = null;
-        }
         removeView(page);
         update();
     }

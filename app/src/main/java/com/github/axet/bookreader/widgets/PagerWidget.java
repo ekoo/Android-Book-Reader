@@ -32,6 +32,7 @@ public class PagerWidget extends ZLAndroidWidget {
     ReflowMap<Reflow.Info> infos = new ReflowMap<>();
     ReflowMap<FBReaderView.LinksView> links = new ReflowMap<>();
     ReflowMap<FBReaderView.BookmarksView> bookmarks = new ReflowMap<>();
+    ReflowMap<FBReaderView.TTSView> tts = new ReflowMap<>();
     ReflowMap<FBReaderView.SearchView> searchs = new ReflowMap<>();
 
     public class ReflowMap<V> extends HashMap<ZLTextPosition, V> {
@@ -172,13 +173,19 @@ public class PagerWidget extends ZLAndroidWidget {
             Rect dst = getPageRect();
             PluginView.Selection.Page page = fb.pluginview.selectPage(position, info, dst.width(), dst.height());
             FBReaderView.LinksView l = new FBReaderView.LinksView(fb, fb.pluginview.getLinks(page), info);
-            FBReaderView.LinksView old = links.put(position, l);
-            if (old != null)
-                old.close();
+            FBReaderView.LinksView lold = links.put(position, l);
+            if (lold != null)
+                lold.close();
             FBReaderView.BookmarksView b = new FBReaderView.BookmarksView(fb, page, fb.book.info.bookmarks, info);
             FBReaderView.BookmarksView bold = bookmarks.put(position, b);
             if (bold != null)
                 bold.close();
+            if (fb.tts != null) {
+                FBReaderView.TTSView t = new FBReaderView.TTSView(fb, page, info);
+                FBReaderView.TTSView told = tts.put(position, t);
+                if (told != null)
+                    told.close();
+            }
             if (fb.search != null) {
                 FBReaderView.SearchView s = new FBReaderView.SearchView(fb, fb.search.getBounds(page), info);
                 FBReaderView.SearchView sold = searchs.put(position, s);
@@ -235,6 +242,16 @@ public class PagerWidget extends ZLAndroidWidget {
                 b.update(x, y);
             }
 
+            for (FBReaderView.TTSView t : tts.values()) {
+                if (t != null)
+                    t.hide();
+            }
+            FBReaderView.TTSView t = tts.get(position);
+            if (t != null) {
+                t.show();
+                t.update(x, y);
+            }
+
             for (FBReaderView.SearchView s : searchs.values()) {
                 if (s != null)
                     s.hide();
@@ -271,6 +288,14 @@ public class PagerWidget extends ZLAndroidWidget {
                 l.close();
         }
         bookmarks.clear();
+    }
+
+    public void ttsClose() {
+        for (FBReaderView.TTSView l : tts.values()) {
+            if (l != null)
+                l.close();
+        }
+        tts.clear();
     }
 
     public void searchClose() {
@@ -313,9 +338,8 @@ public class PagerWidget extends ZLAndroidWidget {
                     if (bb.highlight != null) {
                         HashSet hh = new HashSet(Arrays.asList(fb.pluginview.boundsUpdate(bb.highlight, info)));
                         for (Rect r : bb.rr) {
-                            if (hh.contains(r)) {
+                            if (hh.contains(r))
                                 fb.pluginview.gotoPosition(new ZLTextFixedPosition(page, i, 0));
-                            }
                         }
                     }
                 }
@@ -333,9 +357,8 @@ public class PagerWidget extends ZLAndroidWidget {
                             int offset = 0;
                             int t = r.top + dst.top;
                             int b = r.bottom + dst.top;
-                            while (t - offset / fb.pluginview.current.ratio > getBottom() || b - offset / fb.pluginview.current.ratio > getBottom() && r.height() < getMainAreaHeight()) {
+                            while (t - offset / fb.pluginview.current.ratio > getBottom() || b - offset / fb.pluginview.current.ratio > getBottom() && r.height() < getMainAreaHeight())
                                 offset += fb.pluginview.current.pageStep;
-                            }
                             fb.pluginview.gotoPosition(new ZLTextFixedPosition(page, offset, 0));
                             resetCache();
                             return;
@@ -388,53 +411,64 @@ public class PagerWidget extends ZLAndroidWidget {
             ZLTextPosition pos = getPosition();
             final PluginView.Selection s = fb.pluginview.select(pos, getInfo(), dst.width(), dst.height(), x - dst.left, y - dst.top);
             if (s != null) {
-                selectionPage = pos;
-                fb.selectionOpen(s);
-                final PluginView.Selection.Page page = fb.pluginview.selectPage(pos, getInfo(), dst.width(), dst.height());
-                final Runnable run = new Runnable() {
-                    @Override
-                    public void run() {
-                        int x = dst.left;
-                        int y = dst.top;
-                        if (fb.pluginview.reflow)
-                            x += getInfo().margin.left;
-                        fb.selection.update((SelectionView.PageView) fb.selection.getChildAt(0), x, y);
-                    }
-                };
-                PluginView.Selection.Setter setter = new PluginView.Selection.Setter() {
-                    @Override
-                    public void setStart(int x, int y) {
-                        PluginView.Selection.Point point = fb.pluginview.selectPoint(getInfo(), x - dst.left, y - dst.top);
-                        if (point != null)
-                            s.setStart(page, point);
-                        run.run();
-                    }
-
-                    @Override
-                    public void setEnd(int x, int y) {
-                        PluginView.Selection.Point point = fb.pluginview.selectPoint(getInfo(), x - dst.left, y - dst.top);
-                        if (point != null)
-                            s.setEnd(page, point);
-                        run.run();
-                    }
-
-                    @Override
-                    public PluginView.Selection.Bounds getBounds() {
-                        PluginView.Selection.Bounds bounds = s.getBounds(page);
-                        if (fb.pluginview.reflow) {
-                            bounds.rr = fb.pluginview.boundsUpdate(bounds.rr, getInfo());
-                            bounds.start = true;
-                            bounds.end = true;
+                if (fb.tts != null) {
+                    fb.tts.selectionOpen(s);
+                } else {
+                    selectionPage = pos;
+                    fb.selectionOpen(s);
+                    final PluginView.Selection.Page page = fb.pluginview.selectPage(pos, getInfo(), dst.width(), dst.height());
+                    final Runnable run = new Runnable() {
+                        @Override
+                        public void run() {
+                            int x = dst.left;
+                            int y = dst.top;
+                            if (fb.pluginview.reflow)
+                                x += getInfo().margin.left;
+                            fb.selection.update((SelectionView.PageView) fb.selection.getChildAt(0), x, y);
                         }
-                        return bounds;
-                    }
-                };
-                SelectionView.PageView view = new SelectionView.PageView(getContext(), (FBReaderView.CustomView) fb.app.BookTextView, setter);
-                fb.selection.add(view);
-                run.run();
+                    };
+                    PluginView.Selection.Setter setter = new PluginView.Selection.Setter() {
+                        @Override
+                        public void setStart(int x, int y) {
+                            PluginView.Selection.Point point = fb.pluginview.selectPoint(getInfo(), x - dst.left, y - dst.top);
+                            if (point != null)
+                                s.setStart(page, point);
+                            run.run();
+                        }
+
+                        @Override
+                        public void setEnd(int x, int y) {
+                            PluginView.Selection.Point point = fb.pluginview.selectPoint(getInfo(), x - dst.left, y - dst.top);
+                            if (point != null)
+                                s.setEnd(page, point);
+                            run.run();
+                        }
+
+                        @Override
+                        public PluginView.Selection.Bounds getBounds() {
+                            PluginView.Selection.Bounds bounds = s.getBounds(page);
+                            if (fb.pluginview.reflow) {
+                                bounds.rr = fb.pluginview.boundsUpdate(bounds.rr, getInfo());
+                                bounds.start = true;
+                                bounds.end = true;
+                            }
+                            return bounds;
+                        }
+                    };
+                    SelectionView.PageView view = new SelectionView.PageView(getContext(), (FBReaderView.CustomView) fb.app.BookTextView, setter);
+                    fb.selection.add(view);
+                    run.run();
+                }
                 return true;
             }
-            fb.selectionClose();
+            if (fb.tts != null)
+                fb.tts.selectionClose();
+            else
+                fb.selectionClose();
+        }
+        if (fb.tts != null) {
+            fb.tts.selectionOpen(x, y);
+            return true;
         }
         return super.onLongClick(v);
     }

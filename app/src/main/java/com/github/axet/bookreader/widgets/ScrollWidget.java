@@ -34,6 +34,7 @@ import org.geometerplus.fbreader.fbreader.options.PageTurningOptions;
 import org.geometerplus.zlibrary.core.view.ZLView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.core.view.ZLViewWidget;
+import org.geometerplus.zlibrary.text.view.ZLTextElementArea;
 import org.geometerplus.zlibrary.text.view.ZLTextElementAreaVector;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
@@ -55,7 +56,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
     Gestures gesturesListener;
 
     public class ScrollAdapter extends RecyclerView.Adapter<ScrollAdapter.PageHolder> {
-        public ArrayList<PageCursor> pages = new ArrayList<>();
+        public ArrayList<PageCursor> pages = new ArrayList<>(); // adapter items
         final Object lock = new Object();
         Thread thread;
         PluginRect size = new PluginRect(); // ScrollView size, after reset
@@ -77,6 +78,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
             SelectionView.PageView selection;
             FBReaderView.LinksView links;
             FBReaderView.BookmarksView bookmarks;
+            FBReaderView.TTSView tts;
             FBReaderView.SearchView search;
 
             public PageView(ViewGroup parent) {
@@ -180,7 +182,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                             }
                             if (fb.pluginview.reflower == null) {
                                 if (thread == null) {
-                                    thread = new Thread() {
+                                    thread = new Thread("reflow load thread") {
                                         @Override
                                         public void run() {
                                             int i = index;
@@ -431,6 +433,38 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                     }
                 }
             }
+        }
+
+        public int findPage(PageCursor c) {
+            if (c.start != null && c.end != null) {
+                for (int i = 0; i < pages.size(); i++) {
+                    PageCursor k = pages.get(i);
+                    if (c.equals(k))
+                        return i;
+                }
+            } else if (c.start == null && c.end != null) {
+                return findPage(c.end);
+            } else if (c.start != null) {
+                return findPage(c.start);
+            }
+            return -1;
+        }
+
+        public int findPage(ZLTextPosition p) {
+            for (int i = 0; i < pages.size(); i++) {
+                PageCursor c = pages.get(i);
+                if (c.start != null && c.end != null) {
+                    if (c.start.compareTo(p) <= 0 && c.end.compareTo(p) > 0)
+                        return i;
+                } else if (c.start == null && c.end != null) {
+                    if (c.end.compareTo(p) > 0)
+                        return i;
+                } else if (c.start != null) {
+                    if (c.start.compareTo(p) <= 0)
+                        return i;
+                }
+            }
+            return -1;
         }
 
         public int findPos(ZLTextPosition p) {
@@ -740,17 +774,26 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
             if (fb.pluginview != null) {
                 PluginView.Selection s = fb.pluginview.select(c.start, v.info, v.getWidth(), v.getHeight(), x, y);
                 if (s != null) {
-                    fb.selectionOpen(s);
+                    if (fb.tts != null)
+                        fb.tts.selectionOpen(s);
+                    else
+                        fb.selectionOpen(s);
                     return;
                 }
-                fb.selectionClose();
+                if (fb.tts != null)
+                    fb.tts.selectionClose();
+                else
+                    fb.selectionClose();
             }
             if (!openText(e))
                 return;
-            fb.app.BookTextView.onFingerLongPress(x, y);
-            fb.app.BookTextView.onFingerReleaseAfterLongPress(x, y);
+            if (fb.tts != null) {
+                fb.tts.selectionOpen(c, x, y);
+            } else {
+                fb.app.BookTextView.onFingerLongPress(x, y);
+                fb.app.BookTextView.onFingerReleaseAfterLongPress(x, y);
+            }
             v.invalidate();
-            fb.app.BookTextView.myCurrentPage.TextElementMap = new ZLTextElementAreaVector();
             adapter.invalidates.add(v.holder);
             closeText();
         }
@@ -844,6 +887,8 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                     updateOverlays();
                 idley = dy;
                 fb.removeCallbacks(idle);
+                if (fb.tts != null)
+                    fb.tts.scrollVerticallyBy(dy);
                 return off;
             }
 
@@ -916,11 +961,21 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
         return null;
     }
 
-    ScrollAdapter.PageView findRegionView(ZLTextRegion.Soul soul) {
+    public ScrollAdapter.PageView findRegionView(ZLTextRegion.Soul soul) {
         for (ScrollAdapter.PageHolder h : adapter.holders) {
             ScrollAdapter.PageView view = h.page;
             if (view.text != null && view.text.getRegion(soul) != null)
                 return view;
+        }
+        return null;
+    }
+
+    public ScrollAdapter.PageView findViewPage(ScrollAdapter.PageCursor c) {
+        for (ScrollAdapter.PageHolder h : adapter.holders) {
+            int pos = h.getAdapterPosition();
+            ScrollAdapter.PageCursor p = adapter.pages.get(pos);
+            if (p.equals(c))
+                return h.page;
         }
         return null;
     }
@@ -1134,10 +1189,11 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                 }
             }
         }
-        if (!pos.equals(adapter.oldTurn)) {
-            if (fb.listener != null)
-                fb.listener.onScrollingFinished(ZLViewEnums.PageIndex.current);
+        if (!pos.equals(adapter.oldTurn) && getScrollState() == SCROLL_STATE_IDLE) {
+            fb.onScrollingFinished(ZLViewEnums.PageIndex.current);
             adapter.oldTurn = pos;
+            if (fb.tts != null)
+                fb.tts.onScrollingFinished(ZLViewEnums.PageIndex.current);
         }
     }
 
@@ -1242,18 +1298,17 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
         selectionRemove(view);
         linksRemove(view);
         searchRemove(view);
+        ttsRemove(view);
     }
 
     public void overlaysClose() {
-        for (ScrollAdapter.PageHolder h : adapter.holders) {
+        for (ScrollAdapter.PageHolder h : adapter.holders)
             overlayRemove(h.page);
-        }
     }
 
     public void updateOverlays() {
-        for (ScrollAdapter.PageHolder h : adapter.holders) {
+        for (ScrollAdapter.PageHolder h : adapter.holders)
             overlayUpdate(h.page);
-        }
     }
 
     public void overlayUpdate(ScrollAdapter.PageView view) {
@@ -1263,12 +1318,13 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
         bookmarksUpdate(view);
         if (view.search != null)
             searchUpdate(view);
+        if (view.tts != null)
+            ttsUpdate(view);
     }
 
     public void linksClose() {
-        for (ScrollAdapter.PageHolder h : adapter.holders) {
+        for (ScrollAdapter.PageHolder h : adapter.holders)
             linksRemove(h.page);
-        }
     }
 
     public void linksRemove(ScrollAdapter.PageView view) {
@@ -1350,6 +1406,53 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
         for (ScrollAdapter.PageHolder h : adapter.holders) {
             bookmarksRemove(h.page);
             bookmarksUpdate(h.page);
+        }
+    }
+
+    public void ttsClose() {
+        for (ScrollAdapter.PageHolder h : adapter.holders)
+            ttsRemove(h.page);
+    }
+
+    public void ttsRemove(ScrollAdapter.PageView view) {
+        if (view.tts == null)
+            return;
+        view.tts.close();
+        view.tts = null;
+    }
+
+    public void ttsUpdate(ScrollAdapter.PageView view) {
+        int pos = view.holder.getAdapterPosition();
+        if (pos == -1) {
+            ttsRemove(view);
+        } else {
+            ScrollAdapter.PageCursor c = adapter.pages.get(pos);
+
+            final PluginView.Selection.Page page;
+
+            if (c.start == null || c.end == null)
+                page = null;
+            else
+                page = fb.pluginview.selectPage(c.start, view.info, view.getWidth(), view.getHeight());
+
+            if (page != null && (!fb.pluginview.reflow || view.info != null) && view.getParent() != null) { // cached views has no parrent
+                if (view.tts == null)
+                    view.tts = new FBReaderView.TTSView(fb, page, view.info);
+                int x = view.getLeft();
+                int y = view.getTop();
+                if (view.info != null)
+                    x += view.info.margin.left;
+                view.tts.update(x, y);
+            } else {
+                ttsRemove(view);
+            }
+        }
+    }
+
+    public void ttsUpdate() {
+        for (ScrollAdapter.PageHolder h : adapter.holders) {
+            ttsRemove(h.page);
+            ttsUpdate(h.page);
         }
     }
 
@@ -1487,9 +1590,8 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
     }
 
     public void selectionClose() {
-        for (ScrollAdapter.PageHolder h : adapter.holders) {
+        for (ScrollAdapter.PageHolder h : adapter.holders)
             selectionRemove(h.page);
-        }
     }
 
     public void selectionRemove(ScrollAdapter.PageView view) {
@@ -1528,9 +1630,8 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                 for (Rect b : bounds) {
                     for (Rect s : view.info.src.keySet()) {
                         Rect i = new Rect(b);
-                        if (i.intersect(s) && (i.height() * 100 / s.height() > SelectionView.ARTIFACT_PERCENTS || b.height() > 0 && i.height() * 100 / b.height() > SelectionView.ARTIFACT_PERCENTS)) {
+                        if (i.intersect(s) && (i.height() * 100 / s.height() > SelectionView.ARTIFACT_PERCENTS || b.height() > 0 && i.height() * 100 / b.height() > SelectionView.ARTIFACT_PERCENTS))
                             ii.add(i);
-                        }
                     }
                 }
                 Collections.sort(ii, new SelectionView.LinesUL(ii));

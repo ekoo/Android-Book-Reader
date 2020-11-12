@@ -237,6 +237,14 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             this.end.index = end.getElementIndex();
         }
 
+        public Selection(Pdfium pdfium, int page) {
+            this.pdfium = pdfium;
+            this.start = open(page);
+            this.start.index = 0;
+            this.end = open(page);
+            this.end.index = this.end.count;
+        }
+
         public boolean isEmpty() {
             if (start == null || end == null)
                 return true;
@@ -298,9 +306,8 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             if (start.count > 0) {
                 point = new Point(start.ppage.toPage(0, 0, page.w, page.h, 0, point.x, point.y));
                 int index = start.text.getIndex(point.x, point.y);
-                if (index == -1) {
+                if (index == -1)
                     return;
-                }
                 start.index = index;
                 this.start = start;
                 return;
@@ -313,9 +320,8 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             if (end.count > 0) {
                 point = new Point(end.ppage.toPage(0, 0, page.w, page.h, 0, point.x, point.y));
                 int index = end.text.getIndex(point.x, point.y);
-                if (index == -1) {
+                if (index == -1)
                     return;
-                }
                 end.index = index;
                 this.end = end;
                 return;
@@ -326,9 +332,8 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         public String getText() {
             SelectionBounds b = new SelectionBounds();
             StringBuilder text = new StringBuilder();
-            for (int i = b.s.page; i <= b.e.page; i++) {
+            for (int i = b.s.page; i <= b.e.page; i++)
                 text.append(getText(i));
-            }
             return text.toString();
         }
 
@@ -838,6 +843,16 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         @Override
         public Selection select(ZLTextPosition start, ZLTextPosition end) {
             PDFPlugin.Selection s = new PDFPlugin.Selection(doc, start, end);
+            if (s.isEmpty()) {
+                s.close();
+                return null;
+            }
+            return s;
+        }
+
+        @Override
+        public Selection select(int page) {
+            PDFPlugin.Selection s = new PDFPlugin.Selection(doc, page);
             if (s.isEmpty()) {
                 s.close();
                 return null;
