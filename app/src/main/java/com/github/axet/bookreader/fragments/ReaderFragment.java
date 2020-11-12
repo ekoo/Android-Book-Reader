@@ -771,6 +771,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         shared.unregisterOnSharedPreferenceChangeListener(this);
         handler.removeCallbacks(time);
         ScreenlockPreference.onUserInteractionRemove();
+        fb.closeBook();
         if (fontsPopup != null) {
             fontsPopup.dismiss();
             fontsPopup = null;

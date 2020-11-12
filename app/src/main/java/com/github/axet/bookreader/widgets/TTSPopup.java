@@ -647,12 +647,16 @@ public class TTSPopup {
         view.setVisibility(View.VISIBLE);
     }
 
-    public void dismiss() {
+    public void close() {
         view.setVisibility(View.GONE);
         fb.removeView(view);
-        fb.tts = null;
         fb.ttsClose();
         tts.close();
+    }
+
+    public void dismiss() {
+        close();
+        fb.tts = null;
     }
 
     public void ensureVisible(Storage.Bookmark bm) { // same page
