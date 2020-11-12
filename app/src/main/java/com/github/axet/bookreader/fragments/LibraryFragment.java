@@ -647,6 +647,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         MenuItem rtl = menu.findItem(R.id.action_rtl);
         MenuItem mode = menu.findItem(R.id.action_mode);
         MenuItem sort = menu.findItem(R.id.action_sort);
+        MenuItem tts = menu.findItem(R.id.action_tts);
 
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         int selected = getContext().getResources().getIdentifier(shared.getString(BookApplication.PREFERENCE_SORT, getContext().getResources().getResourceEntryName(R.id.sort_add_ask)), "id", getContext().getPackageName());
@@ -672,6 +673,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
         debug.setVisible(false);
         rtl.setVisible(false);
         mode.setVisible(false);
+        tts.setVisible(false);
 
         holder.onCreateOptionsMenu(menu);
     }

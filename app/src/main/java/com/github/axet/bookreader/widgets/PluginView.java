@@ -174,7 +174,6 @@ public class PluginView {
     }
 
     public static class Search {
-
         public static class Bounds {
             public Rect[] rr;
             public Rect[] highlight;
@@ -230,9 +229,8 @@ public class PluginView {
             float dx = wallpaper.getWidth();
             float dy = wallpaper.getHeight();
             for (int cw = 0; cw < canvas.getWidth() + dx; cw += dx) {
-                for (int ch = 0; ch < canvas.getHeight() + dy; ch += dy) {
+                for (int ch = 0; ch < canvas.getHeight() + dy; ch += dy)
                     canvas.drawBitmap(wallpaper, cw - dx, ch - dy, paint);
-                }
             }
         } else {
             canvas.drawColor(wallpaperColor);
@@ -443,9 +441,8 @@ public class PluginView {
 
     public void drawOnCanvas(Context context, Canvas canvas, int w, int h, ZLView.PageIndex index, FBReaderView.CustomView custom, Storage.RecentInfo info) {
         if (reflow) {
-            if (reflower == null) {
+            if (reflower == null)
                 reflower = new Reflow(context, w, h, current.pageNumber, custom, info);
-            }
             Bitmap bm = null;
             reflower.reset(w, h);
             int render = reflower.index; // render reflow page index
@@ -581,15 +578,17 @@ public class PluginView {
         TOCTree treeToSelect = null;
         for (TOCTree tree : TOCTree) {
             final TOCTree.Reference reference = tree.getReference();
-            if (reference == null) {
+            if (reference == null)
                 continue;
-            }
-            if (reference.ParagraphIndex > current.pageNumber) {
+            if (reference.ParagraphIndex > current.pageNumber)
                 break;
-            }
             treeToSelect = tree;
         }
         return treeToSelect;
+    }
+
+    public Selection select(int page) {
+        return null;
     }
 
     public Selection select(Selection.Page p, Selection.Point point) {
@@ -611,9 +610,8 @@ public class PluginView {
         x = x - info.margin.left;
         Map<Rect, Rect> dst = info.dst;
         for (Rect d : dst.keySet()) {
-            if (d.contains(x, y)) {
+            if (d.contains(x, y))
                 return dst.get(d);
-            }
         }
         return null;
     }
@@ -622,9 +620,8 @@ public class PluginView {
         if (reflow) {
             x = x - info.margin.left;
             for (Rect d : info.dst.keySet()) {
-                if (d.contains(x, y)) {
+                if (d.contains(x, y))
                     return new Selection.Point(info.fromDst(d, x, y));
-                }
             }
             return null;
         } else {

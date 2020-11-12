@@ -907,6 +907,14 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             fb.reset();
             updateToolbar();
         }
+        if (id == R.id.action_tts) {
+            if (fb.tts != null) {
+                fb.tts.dismiss();
+                fb.tts = null;
+            } else {
+                fb.ttsOpen();
+            }
+        }
 
         return super.onOptionsItemSelected(item);
     }
@@ -933,6 +941,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         MenuItem mode = menu.findItem(R.id.action_mode);
         MenuItem theme = menu.findItem(R.id.action_theme);
         MenuItem sort = menu.findItem(R.id.action_sort);
+        MenuItem tts = menu.findItem(R.id.action_tts);
 
         boolean search;
 
@@ -946,6 +955,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 s.close();
                 search = true;
             }
+            if (fb.pluginview.reflow)
+                tts.setVisible(false); // TODO possible and can be very practical
         }
 
         grid.setVisible(false);

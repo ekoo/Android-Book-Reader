@@ -68,4 +68,6 @@
     <string name="sort_by_added_desc">Lisäysaika, laskeva</string>
     <string name="sort_by_opened_asc">Avausaika, nouseva</string>
     <string name="sort_by_opened_desc">Avausaika, laskeva</string>
+    <string name="tts_default">System Default</string>
+    <string name="pref_tts_title">TTS Language</string>
 </resources>

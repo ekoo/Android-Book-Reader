@@ -68,4 +68,6 @@
     <string name="sort_by_added_desc">Adicionado Descendente</string>
     <string name="sort_by_opened_asc">Aberto Ascendente</string>
     <string name="sort_by_opened_desc">Aberto Descendente</string>
+    <string name="tts_default">System Default</string>
+    <string name="pref_tts_title">TTS Language</string>
 </resources>

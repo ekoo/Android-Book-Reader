@@ -61,4 +61,6 @@
     <string name="sort_by_added_desc">افزوده شده نزولی</string>
     <string name="sort_by_opened_asc">باز شده صعودی</string>
     <string name="sort_by_opened_desc">باز شده نزولی</string>
+    <string name="tts_default">System Default</string>
+    <string name="pref_tts_title">TTS Language</string>
 </resources>

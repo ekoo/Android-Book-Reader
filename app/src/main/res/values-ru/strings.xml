@@ -61,4 +61,6 @@
     <string name="sort_by_added_desc">Добавлено по убыванию</string>
     <string name="sort_by_opened_asc">Открыто по возрастанию</string>
     <string name="sort_by_opened_desc">Открыто по убыванию</string>
+    <string name="tts_default">System Default</string>
+    <string name="pref_tts_title">TTS Language</string>
 </resources>

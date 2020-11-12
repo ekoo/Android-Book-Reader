@@ -61,6 +61,11 @@
         android:title="@string/catalog_home"
         app:showAsAction="ifRoom" />
     <item
+        android:id="@+id/action_tts"
+        android:orderInCategory="100"
+        android:title="TTS"
+        app:showAsAction="ifRoom" />
+    <item
         android:id="@+id/action_sort"
         android:title="@string/sort_by"
         app:showAsAction="never">
