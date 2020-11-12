@@ -79,6 +79,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
     boolean isRunning;
     String lastSearch;
     LibraryFragment libraryFragment = LibraryFragment.newInstance();
+    public boolean volumeEnabled = true; // tmp enabled / disable volume keys
 
     BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
@@ -661,7 +662,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
-        if (shared.getBoolean(BookApplication.PREFERENCE_VOLUME_KEYS, false)) {
+        if (volumeEnabled && shared.getBoolean(BookApplication.PREFERENCE_VOLUME_KEYS, false)) {
             FragmentManager fm = getSupportFragmentManager();
             for (Fragment f : fm.getFragments()) {
                 if (f != null && f.isVisible() && f instanceof ReaderFragment) {
@@ -677,7 +678,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
-        if (shared.getBoolean(BookApplication.PREFERENCE_VOLUME_KEYS, false)) {
+        if (volumeEnabled && shared.getBoolean(BookApplication.PREFERENCE_VOLUME_KEYS, false)) {
             FragmentManager fm = getSupportFragmentManager();
             for (Fragment f : fm.getFragments()) {
                 if (f != null && f.isVisible() && f instanceof ReaderFragment) {

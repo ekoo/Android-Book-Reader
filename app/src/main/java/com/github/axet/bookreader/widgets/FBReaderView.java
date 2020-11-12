@@ -294,6 +294,8 @@ public class FBReaderView extends RelativeLayout {
         void onBookmarksUpdate();
 
         void onDismissDialog();
+
+        void ttsStatus(boolean enabled);
     }
 
     public class CustomView extends FBView {

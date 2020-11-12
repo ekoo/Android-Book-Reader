@@ -639,6 +639,12 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 if (main.fullscreen)
                     main.hideSystemUI();
             }
+
+            @Override
+            public void ttsStatus(boolean enabled) {
+                MainActivity main = (MainActivity) getActivity();
+                main.volumeEnabled = !enabled;
+            }
         };
 
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
