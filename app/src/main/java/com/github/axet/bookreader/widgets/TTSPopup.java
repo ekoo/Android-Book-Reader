@@ -452,6 +452,7 @@ public class TTSPopup {
     public void updatePlay() {
         boolean p = tts.dones.contains(speakNext);
         play.setImageResource(p ? R.drawable.ic_media_pause_dark : R.drawable.ic_media_play_dark);
+        fb.listener.ttsStatus(p);
     }
 
     public void selectPrev() {
@@ -646,12 +647,16 @@ public class TTSPopup {
         view.setVisibility(View.VISIBLE);
     }
 
-    public void dismiss() {
+    public void close() {
         view.setVisibility(View.GONE);
         fb.removeView(view);
-        fb.tts = null;
         fb.ttsClose();
         tts.close();
+    }
+
+    public void dismiss() {
+        close();
+        fb.tts = null;
     }
 
     public void ensureVisible(Storage.Bookmark bm) { // same page

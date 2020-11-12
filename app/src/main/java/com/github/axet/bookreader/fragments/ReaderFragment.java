@@ -639,6 +639,12 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 if (main.fullscreen)
                     main.hideSystemUI();
             }
+
+            @Override
+            public void ttsStatus(boolean enabled) {
+                MainActivity main = (MainActivity) getActivity();
+                main.volumeEnabled = !enabled;
+            }
         };
 
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
@@ -765,6 +771,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         shared.unregisterOnSharedPreferenceChangeListener(this);
         handler.removeCallbacks(time);
         ScreenlockPreference.onUserInteractionRemove();
+        final MainActivity main = (MainActivity) getActivity();
+        main.volumeEnabled = true;
+        fb.closeBook();
         if (fontsPopup != null) {
             fontsPopup.dismiss();
             fontsPopup = null;

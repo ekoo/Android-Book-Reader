@@ -294,6 +294,8 @@ public class FBReaderView extends RelativeLayout {
         void onBookmarksUpdate();
 
         void onDismissDialog();
+
+        void ttsStatus(boolean enabled);
     }
 
     public class CustomView extends FBView {
@@ -1223,6 +1225,9 @@ public class FBReaderView extends RelativeLayout {
         app.BookTextView.setModel(null);
         app.Model = null;
         book = null;
+        if (tts != null)
+            tts.close();
+        tts = null;
     }
 
     public ZLTextPosition getPosition() {
