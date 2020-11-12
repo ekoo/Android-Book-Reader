@@ -24,18 +24,22 @@ public class TTSPreferenceCompat extends ListPreference {
     ArrayList<CharSequence> text;
     ArrayList<CharSequence> value;
 
-    @TargetApi(11)
     public static HashSet<Locale> getInputLanguages(Context context) {
-        HashSet<Locale> list = new HashSet<>();
-        InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
-        List<InputMethodInfo> ims = imm.getEnabledInputMethodList();
-        for (InputMethodInfo method : ims) {
-            List<InputMethodSubtype> submethods = imm.getEnabledInputMethodSubtypeList(method, true);
-            for (InputMethodSubtype submethod : submethods) {
-                if (submethod.getMode().equals("keyboard")) {
-                    String currentLocale = submethod.getLocale();
-                    Locale locale = new Locale(currentLocale);
-                    list.add(locale);
+        HashSet<Locale> list = null;
+        if (android.os.Build.VERSION.SDK_INT >= 24) {
+            list = new HashSet<>();
+            LocaleList ll = LocaleList.getDefault();
+            for (int i = 0; i < ll.size(); i++)
+                list.add(ll.get(i));
+        } else if (Build.VERSION.SDK_INT >= 11) {
+            list = new HashSet<>();
+            InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
+            List<InputMethodInfo> ims = imm.getEnabledInputMethodList();
+            for (InputMethodInfo m : ims) {
+                List<InputMethodSubtype> ss = imm.getEnabledInputMethodSubtypeList(m, true);
+                for (InputMethodSubtype s : ss) {
+                    if (s.getMode().equals("keyboard"))
+                        list.add(new Locale(s.getLocale()));
                 }
             }
         }
@@ -67,18 +71,8 @@ public class TTSPreferenceCompat extends ListPreference {
         Set<Locale> ll = null;
         if (Build.VERSION.SDK_INT >= 21)
             ll = tts.tts.getAvailableLanguages();
-        if (ll == null) {
-            if (android.os.Build.VERSION.SDK_INT >= 24) {
-                LocaleList lll = LocaleList.getDefault();
-                if (lll != null) {
-                    ll = new HashSet<>();
-                    for (int i = 0; i < lll.size(); i++)
-                        ll.add(lll.get(i));
-                }
-            } else {
-                ll = getInputLanguages(getContext());
-            }
-        }
+        if (ll == null)
+            ll = getInputLanguages(getContext());
         if (ll == null) {
             ll = new HashSet<>();
             ll.add(Locale.US);
