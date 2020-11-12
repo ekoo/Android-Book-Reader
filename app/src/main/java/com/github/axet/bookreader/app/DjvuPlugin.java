@@ -119,9 +119,8 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
                 return -1;
             for (int i = 0; i < text.bounds.length; i++) {
                 Rect b = text.bounds[i];
-                if (b.contains(point.x, point.y)) {
+                if (b.contains(point.x, point.y))
                     return i;
-                }
             }
             return -1;
         }
@@ -227,9 +226,8 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
             String getText() {
                 StringBuilder bb = new StringBuilder();
-                for (int b = ss; b != ee; b++) {
+                for (int b = ss; b != ee; b++)
                     bb.append(page.getText(b));
-                }
                 return bb.toString();
             }
         }
@@ -247,6 +245,14 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             this.start.index = start.getElementIndex();
             this.end = open(end.getParagraphIndex());
             this.end.index = end.getElementIndex();
+        }
+
+        public DjvuSelection(DjvuLibre doc, int page) {
+            this.doc = doc;
+            this.start = open(page);
+            this.start.index = 0;
+            this.end = open(page);
+            this.end.index = end.text.text.length;
         }
 
         SelectionPage open(Page page) {
@@ -358,9 +364,8 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         public Rect[] getBoundsAll(Page page) {
             SelectionPage pp = open(page);
             Rect[] rr = new Rect[pp.text.bounds.length];
-            for (int i = 0; i < rr.length; i++) {
+            for (int i = 0; i < rr.length; i++)
                 rr[i] = toDevice(pp.info, page.w, page.h, pp.text.bounds[i]);
-            }
             return rr;
         }
 
@@ -372,9 +377,8 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             bounds.start = b.first;
             bounds.end = b.last;
             ArrayList<Rect> rr = new ArrayList<>();
-            for (int i = b.ss; i != b.ee; i++) {
+            for (int i = b.ss; i != b.ee; i++)
                 rr.add(toDevice(b.page.info, b.page.w, b.page.h, b.page.text.bounds[i]));
-            }
             bounds.rr = rr.toArray(new Rect[0]);
             return bounds;
         }
@@ -748,6 +752,14 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         @Override
         public Selection select(ZLTextPosition start, ZLTextPosition end) {
             DjvuSelection s = new DjvuSelection(doc, start, end);
+            if (s.isEmpty())
+                return null;
+            return s;
+        }
+
+        @Override
+        public Selection select(int page) {
+            DjvuSelection s = new DjvuSelection(doc, page);
             if (s.isEmpty())
                 return null;
             return s;
