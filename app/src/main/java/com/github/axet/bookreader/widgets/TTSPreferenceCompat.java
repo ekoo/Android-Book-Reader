@@ -78,7 +78,7 @@ public class TTSPreferenceCompat extends ListPreference {
             ll.add(Locale.US);
         }
         for (Locale l : ll) {
-            text.add(l.toString());
+            text.add(l.getDisplayLanguage());
             value.add(l.toString());
         }
         setEntries(text.toArray(new CharSequence[0]));
