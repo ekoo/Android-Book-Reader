@@ -12,11 +12,6 @@
         <item>@string/view_mode_continuous</item>
     </string-array>
 
-    <string name="navigation_drawer_open">Адчыніць скрыню навігацыі</string>
-    <string name="navigation_drawer_close">Зачыніць скрыню навігацыі</string>
-
-    <string name="add_catalog">Дадаць каталог кніг</string>
-    <string name="books_catalogs">Каталогі</string>
     <string name="loading_book">Загрузіць кнігу</string>
     <string name="open_file">Адкрыць файл</string>
     <string name="catalog_home">Галоўная</string>
@@ -27,11 +22,7 @@
     <string name="book_delete">Выдаліць</string>
     <string name="my_readings">Адкрытыя кнігі</string>
     <string name="search_local">Лакальны пошук&#8230;</string>
-    <string name="search_network">Пошук у сетцы&#8230;</string>
     <string name="search_book">Пошук кніг&#8230;</string>
-    <string name="more_books">Атрымаць іншыя каталогі кніг можна з меню \'Аб праграме\'</string>
-    <string name="from_local_folder">... з лакальная папкі</string>
-    <string name="from_json_file">... з (.json) файла</string>
     <string name="view_mode_continuous">Безперапынны выгляд</string>
     <string name="view_mode_paging">Пастаронкавы выгляд</string>
 
@@ -69,4 +60,5 @@
     <string name="sort_by_added_desc">Дадана па памяншэнню</string>
     <string name="sort_by_opened_asc">Адкрыта па ўзрастанні</string>
     <string name="sort_by_opened_desc">Адкрыта па памяншэнню</string>
+    <string name="pref_tts_title">TTS Language</string>
 </resources>

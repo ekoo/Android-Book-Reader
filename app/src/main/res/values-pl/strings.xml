@@ -6,11 +6,6 @@
 		<item>Ciemny motyw</item>
 	</string-array>
 
-    <string name="navigation_drawer_open">Otwórz menu sterowania</string>
-    <string name="navigation_drawer_close">Zamknij menu sterowania</string>
-
-    <string name="add_catalog">Dodaj katalog książek</string>
-    <string name="books_catalogs">Katalogi</string>
     <string name="loading_book">Wczytywanie książki</string>
     <string name="open_file">Otwórz plik</string>
     <string name="catalog_home">Dom</string>
@@ -21,14 +16,10 @@
     <string name="book_delete">Usuń</string>
     <string name="my_readings">Czytane</string>
 	<string name="search_local">Lokalne wyszukiwanie&#8230;</string>
-	<string name="search_network">Wyszukiwanie w sieci&#8230;</string>
-	<string name="search_book">Szukanie książki&#8230;</string>
+    <string name="search_book">Szukanie książki&#8230;</string>
     <string name="pref_theme_title">Motyw</string>
-    <string name="more_books">Dodaj więcej katalogów książek z menu „O programie”</string>
     <string name="pref_rotate_title">Obrót ekranu</string>
     <string name="pref_rotate_summary">Pozwól na obrót ekranu</string>
-	<string name="from_local_folder">... z lokalnego folderu</string>
-	<string name="from_json_file">... z pliku (.json)</string>
     <string name="view_mode_continuous">Ciągły widok</string>
     <string name="view_mode_paging">Widok stron</string>
     <string name="pref_storagepath_title">Folder synchronizacji</string>
@@ -61,6 +52,5 @@
     <string name="sort_by_added_desc">Added Desc</string>
     <string name="sort_by_opened_asc">Opened Asc</string>
     <string name="sort_by_opened_desc">Opened Desc</string>
-    <string name="tts_default">System Default</string>
     <string name="pref_tts_title">TTS Language</string>
 </resources>

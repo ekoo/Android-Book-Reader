@@ -11,11 +11,6 @@
         <item>@string/view_mode_continuous</item>
     </string-array>
 
-    <string name="navigation_drawer_open">Navigációs fiók megnyitása</string>
-    <string name="navigation_drawer_close">Navigációs fiók bezárása</string>
-
-    <string name="add_catalog">Katalógus hozzáadása</string>
-    <string name="books_catalogs">Katalógusok</string>
     <string name="loading_book">Könyv beolvasása</string>
     <string name="open_file">Fájl megnyitása</string>
     <string name="catalog_home">Kezdőoldal</string>
@@ -26,11 +21,7 @@
     <string name="book_delete">Törlés</string>
     <string name="my_readings">Könyveim</string>
     <string name="search_local">Keresés helyben&#8230;</string>
-    <string name="search_network">Keresés a hálózaton&#8230;</string>
     <string name="search_book">Könyvek keresése&#8230;</string>
-    <string name="more_books">További katalógusok keresése a "névjegy" menüből</string>
-    <string name="from_local_folder">... egy helyi mappából</string>
-    <string name="from_json_file">... egy (.json) fájlból</string>
     <string name="view_mode_continuous">Folyamatos nézet</string>
     <string name="view_mode_paging">Oldalakra tördelt nézet</string>
 
@@ -68,6 +59,5 @@
     <string name="sort_by_added_desc">Utoljára hozzáadott az elején</string>
     <string name="sort_by_opened_asc">Utoljára olvasott a végén</string>
     <string name="sort_by_opened_desc">Utoljára olvasott az elején</string>
-    <string name="tts_default">System Default</string>
     <string name="pref_tts_title">TTS Language</string>
 </resources>

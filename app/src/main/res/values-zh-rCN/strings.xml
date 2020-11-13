@@ -6,11 +6,6 @@
         <item>黑暗主题</item>
     </string-array>
 
-    <string name="navigation_drawer_open">打开导航菜单</string>
-    <string name="navigation_drawer_close">关闭导航菜单</string>
-
-    <string name="add_catalog">添加图书目录</string>
-    <string name="books_catalogs">目录</string>
     <string name="loading_book">正在加载图书</string>
     <string name="open_file">打开文件</string>
     <string name="catalog_home">首页</string>
@@ -21,14 +16,10 @@
     <string name="book_delete">删除</string>
     <string name="my_readings">我的阅读</string>
     <string name="search_local">本地搜索&#8230;</string>
-    <string name="search_network">网络搜索&#8230;</string>
     <string name="search_book">图书搜索&#8230;</string>
     <string name="pref_theme_title">主题</string>
-    <string name="more_books">从“关于”菜单获取更多图书目录</string>
     <string name="pref_rotate_title">旋转</string>
     <string name="pref_rotate_summary">允许屏幕旋转</string>
-    <string name="from_local_folder">... 从本地文件夹</string>
-    <string name="from_json_file">... 从 (.json) 文件</string>
     <string name="view_mode_continuous">连续视图</string>
     <string name="view_mode_paging">分页视图</string>
     <string name="pref_storagepath_title">同步文件夹</string>
@@ -61,6 +52,5 @@
     <string name="sort_by_added_desc">添加时间降序</string>
     <string name="sort_by_opened_asc">打开时间升序</string>
     <string name="sort_by_opened_desc">打开时间降序</string>
-    <string name="tts_default">System Default</string>
     <string name="pref_tts_title">TTS Language</string>
 </resources>

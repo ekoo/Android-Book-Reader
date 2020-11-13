@@ -6,11 +6,6 @@
         <item>Dunkles Aussehen</item>
     </string-array>
 
-    <string name="navigation_drawer_open">Öffne Navigationsübersicht</string>
-    <string name="navigation_drawer_close">Schließe Navigationsübersicht</string>
-
-    <string name="add_catalog">Bücherkatalog hinzufügen</string>
-    <string name="books_catalogs">Kataloge</string>
     <string name="loading_book">Lade Buch</string>
     <string name="open_file">Datei öffnen</string>
     <string name="catalog_home">Startseite</string>
@@ -21,14 +16,10 @@
     <string name="book_delete">Löschen</string>
     <string name="my_readings">Meine Bücher</string>
     <string name="search_local">Lokale Suche&#8230;</string>
-    <string name="search_network">Netzwerksuche&#8230;</string>
     <string name="search_book">Buchsuche&#8230;</string>
     <string name="pref_theme_title">Aussehen</string>
-    <string name="more_books">Mehr Buchkataloge sind im \'Über\'-Menü verfügbar</string>
     <string name="pref_rotate_title">Bildschirm drehen</string>
     <string name="pref_rotate_summary">Erlaube den Bildschirm zu drehen</string>
-    <string name="from_local_folder">&#8230; aus lokalem Ordner</string>
-    <string name="from_json_file">&#8230; aus (.json) Datei</string>
     <string name="view_mode_continuous">Kontinuierliche Anzeige</string>
     <string name="view_mode_paging">Seitenweise Anzeige</string>
     <string name="pref_storagepath_title">Synchronisierungsordner</string>
@@ -61,6 +52,5 @@
     <string name="sort_by_added_desc">Hinzugefügt (neueste zuerst)</string>
     <string name="sort_by_opened_asc">Zuletzt geöffnet (älteste zuerst)</string>
     <string name="sort_by_opened_desc">Zuletzt geöffnet (neueste zuerst)</string>
-    <string name="tts_default">System Default</string>
     <string name="pref_tts_title">TTS Language</string>
 </resources>

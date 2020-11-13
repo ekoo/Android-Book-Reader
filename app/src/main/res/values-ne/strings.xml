@@ -6,11 +6,6 @@
         <item>अँघ्यारो थिम</item>
     </string-array>
 
-    <string name="navigation_drawer_open">नेभिगेशन ड्रअर खोल्नुहोस्</string>
-    <string name="navigation_drawer_close">नेभिगेशन ड्रअर बन्द गर्नुहोस्</string>
-
-    <string name="add_catalog">किताबको सूची थप्नुहोस्</string>
-    <string name="books_catalogs">Catalogs</string>
     <string name="loading_book">किताब लोड हुँदैछ।</string>
     <string name="open_file">फाईल खोल्नुहोस्</string>
     <string name="catalog_home">गृह</string>
@@ -21,14 +16,10 @@
     <string name="book_delete">हटाउनुहोस्</string>
     <string name="my_readings">My Readings</string>
     <string name="search_local">स्थानीय खोजी&#8230;</string>
-    <string name="search_network">अन्लाइन खोजी&#8230;</string>
     <string name="search_book">किताब खोजी&#8230;</string>
     <string name="pref_theme_title">Theme</string>
-    <string name="more_books">Get more Books Catalogs from \'About\' menu</string>
     <string name="pref_rotate_title">Roate</string>
     <string name="pref_rotate_summary">Allow screen rotate</string>
-    <string name="from_local_folder">... from local folder</string>
-    <string name="from_json_file">... from (.json) file</string>
     <string name="view_mode_continuous">Continuous View</string>
     <string name="view_mode_paging">Paging View</string>
     <string name="pref_storagepath_title">Sync Folder</string>
@@ -61,6 +52,5 @@
     <string name="sort_by_added_desc">Added Desc</string>
     <string name="sort_by_opened_asc">Opened Asc</string>
     <string name="sort_by_opened_desc">Opened Desc</string>
-    <string name="tts_default">System Default</string>
     <string name="pref_tts_title">TTS Language</string>
 </resources>

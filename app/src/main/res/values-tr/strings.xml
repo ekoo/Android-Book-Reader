@@ -11,11 +11,6 @@
         <item>@string/view_mode_continuous</item>
     </string-array>
 
-    <string name="navigation_drawer_open">Gezinim çekmecesini aç</string>
-    <string name="navigation_drawer_close">Gezinim çekmecesini kapat</string>
-
-    <string name="add_catalog">Kitap Kataloğu Ekle</string>
-    <string name="books_catalogs">Kataloglar</string>
     <string name="loading_book">Kitap Yükleniyor</string>
     <string name="open_file">Dosya Aç</string>
     <string name="catalog_home">Ev</string>
@@ -26,11 +21,7 @@
     <string name="book_delete">Sil</string>
     <string name="my_readings">Okumalarım</string>
     <string name="search_local">Yerel Arama&#8230;</string>
-    <string name="search_network">Ağda Arama&#8230;</string>
     <string name="search_book">Kitap Arama&#8230;</string>
-    <string name="more_books">\'Hakkında\' menüsünden daha çok Kitap Kataloğu edin</string>
-    <string name="from_local_folder">... yerel klasörden</string>
-    <string name="from_json_file">... (.json) dosyasından</string>
     <string name="view_mode_continuous">Sürekli Görünüm</string>
     <string name="view_mode_paging">Sayfalı Görünüm</string>
 
@@ -68,6 +59,5 @@
     <string name="sort_by_added_desc">Eklenme Azalan</string>
     <string name="sort_by_opened_asc">Açılma Artan</string>
     <string name="sort_by_opened_desc">Açılma Azalan</string>
-    <string name="tts_default">System Default</string>
     <string name="pref_tts_title">TTS Language</string>
 </resources>
