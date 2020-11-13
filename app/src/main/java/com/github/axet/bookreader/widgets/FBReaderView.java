@@ -295,7 +295,7 @@ public class FBReaderView extends RelativeLayout {
 
         void onDismissDialog();
 
-        void ttsStatus(boolean enabled);
+        void ttsStatus(boolean speaking);
     }
 
     public class CustomView extends FBView {
