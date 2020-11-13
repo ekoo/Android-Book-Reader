@@ -764,7 +764,8 @@ public class TTSPopup {
                 ScrollWidget.ScrollAdapter.PageCursor c = ((ScrollWidget) fb.widget).adapter.pages.get(pos);
                 ScrollWidget.ScrollAdapter.PageView v = ((ScrollWidget) fb.widget).findViewPage(c);
                 view = v;
-                text = v.text;
+                if (v != null)
+                    text = v.text;
             }
             if (fb.widget instanceof PagerWidget) {
                 view = (View) fb.widget;
