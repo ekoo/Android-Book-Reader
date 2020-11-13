@@ -1,9 +1,10 @@
 package com.github.axet.bookreader.widgets;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Rect;
 import android.os.Handler;
-import android.os.SystemClock;
+import android.preference.PreferenceManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -13,10 +14,11 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
+import com.github.axet.androidlibrary.sound.TTS;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
+import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.Storage;
-import com.github.axet.bookreader.app.TTS;
 
 import org.geometerplus.fbreader.fbreader.TextBuildTraverser;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
@@ -32,6 +34,7 @@ import org.geometerplus.zlibrary.text.view.ZLTextWordCursor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Locale;
 
 public class TTSPopup {
     public static String[] EOL = {"\n", "\r"};
@@ -364,6 +367,22 @@ public class TTSPopup {
         this.context = v.getContext();
         this.fb = v;
         this.tts = new TTS(context) {
+            @Override
+            public Locale getUserLocale() {
+                SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
+
+                String lang = shared.getString(BookApplication.PREFERENCE_LANGUAGE, ""); // take user lang preferences
+
+                Locale locale;
+
+                if (lang.isEmpty()) // use system locale (system language)
+                    locale = Locale.getDefault();
+                else
+                    locale = new Locale(lang);
+
+                return locale;
+            }
+
             @Override
             public void onRangeStart(String utteranceId, int start, int end, int frame) {
                 if (fb.tts == null)

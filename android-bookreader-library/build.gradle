@@ -122,7 +122,7 @@ signing {
 
 dependencies {
     testImplementation 'junit:junit:4.12'
-    api 'com.github.axet:android-library:1.32.24' // implementation project(':android-library')
+    api 'com.github.axet:android-library:1.32.25' // implementation project(':android-library')
     api 'com.android.support:design:25.3.1'
     api 'com.android.support:support-vector-drawable:25.3.1'
     api 'com.android.support.constraint:constraint-layout:1.1.3'
