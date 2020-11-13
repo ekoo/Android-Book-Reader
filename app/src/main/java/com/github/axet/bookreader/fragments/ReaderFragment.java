@@ -641,9 +641,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             }
 
             @Override
-            public void ttsStatus(boolean enabled) {
+            public void ttsStatus(boolean speaking) {
                 MainActivity main = (MainActivity) getActivity();
-                main.volumeEnabled = !enabled;
+                main.volumeEnabled = !speaking;
             }
         };
 

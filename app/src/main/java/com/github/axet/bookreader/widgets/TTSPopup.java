@@ -708,6 +708,7 @@ public class TTSPopup {
 
     public void dismiss() {
         close();
+        fb.listener.ttsStatus(false);
         fb.tts = null;
     }
 
