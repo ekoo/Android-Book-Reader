@@ -3,6 +3,7 @@ package com.github.axet.bookreader.widgets;
 import android.content.Context;
 import android.graphics.Rect;
 import android.os.Handler;
+import android.os.SystemClock;
 import android.support.v7.widget.RecyclerView;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -19,19 +20,15 @@ import com.github.axet.bookreader.app.TTS;
 
 import org.geometerplus.fbreader.fbreader.TextBuildTraverser;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
-import org.geometerplus.zlibrary.text.view.ZLTextControlElement;
 import org.geometerplus.zlibrary.text.view.ZLTextElement;
 import org.geometerplus.zlibrary.text.view.ZLTextElementArea;
 import org.geometerplus.zlibrary.text.view.ZLTextElementAreaVector;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextParagraphCursor;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
-import org.geometerplus.zlibrary.text.view.ZLTextTraverser;
-import org.geometerplus.zlibrary.text.view.ZLTextView;
 import org.geometerplus.zlibrary.text.view.ZLTextWord;
 import org.geometerplus.zlibrary.text.view.ZLTextWordCursor;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -52,7 +49,7 @@ public class TTSPopup {
     public View panel;
     public View view;
     ImageView play;
-    ArrayList<Runnable> scrolls = new ArrayList<>();
+    ArrayList<Runnable> onScrollFinished = new ArrayList<>();
     Handler handler = new Handler();
     int gravity;
     Runnable updateGravity = new Runnable() {
@@ -415,14 +412,16 @@ public class TTSPopup {
                 dismiss();
             }
         });
-        int dp10 = ThemeUtils.dp2px(context, 10);
+        int dp20 = ThemeUtils.dp2px(context, 20);
         FrameLayout f = new FrameLayout(context);
-        view.setBackgroundColor(SelectionView.SELECTION_ALPHA << 24 | (ThemeUtils.getThemeColor(context, android.R.attr.windowBackground) & 0xffffff));
-        gravity = Gravity.CENTER_HORIZONTAL | Gravity.TOP;
-        f.addView(view, new FrameLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT, gravity));
-        f.setPadding(dp10, dp10, dp10, dp10);
+        FrameLayout round = new FrameLayout(context);
+        round.setBackgroundResource(R.drawable.panel);
+        round.addView(view);
+        gravity = Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM;
+        f.addView(round, new FrameLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT, gravity));
+        f.setPadding(dp20, dp20, dp20, dp20);
         this.view = f;
-        this.panel = view;
+        this.panel = round;
     }
 
     public Context getContext() {
@@ -441,17 +440,17 @@ public class TTSPopup {
         };
         if (fb.widget instanceof ScrollWidget) {
             if (((ScrollWidget) fb.widget).getScrollState() == RecyclerView.SCROLL_STATE_IDLE)
-                onScrollingFinished(null);
+                onScrollingFinished(ZLViewEnums.PageIndex.current);
         }
-        if (scrolls.isEmpty())
+        if (onScrollFinished.isEmpty())
             r.run();
         else
-            scrolls.add(r);
+            onScrollFinished.add(r);
     }
 
     public void updatePlay() {
         boolean p = tts.dones.contains(speakNext);
-        play.setImageResource(p ? R.drawable.ic_media_pause_dark : R.drawable.ic_media_play_dark);
+        play.setImageResource(p ? R.drawable.ic_outline_pause_24 : R.drawable.ic_outline_play_arrow_24);
         fb.listener.ttsStatus(p);
     }
 
@@ -480,7 +479,7 @@ public class TTSPopup {
                 return;
             nc = ((ScrollWidget) fb.widget).adapter.pages.get(pos);
             if (!nc.equals(((ScrollWidget) fb.widget).adapter.getCurrent())) {
-                scrolls.add(new Runnable() {
+                onScrollFinished.add(new Runnable() {
                     @Override
                     public void run() {
                     }
@@ -489,17 +488,33 @@ public class TTSPopup {
             } else {
                 ensureVisible(fragment.fragment);
             }
+            updateGravity();
         }
         if (fb.widget instanceof PagerWidget) {
             if (fb.pluginview == null) {
                 ZLTextPosition start = fb.app.BookTextView.getStartCursor();
-                if (start.compareTo(fragment.fragment.end) >= 0)
+                if (start.compareTo(fragment.fragment.end) >= 0) {
+                    onScrollFinished.add(new Runnable() {
+                        @Override
+                        public void run() {
+                            updateGravity();
+                        }
+                    });
                     fb.scrollPrevPage();
+                } else {
+                    updateGravity();
+                }
             } else {
                 PluginView.Selection s = fb.pluginview.select(fragment.fragment.start, fragment.fragment.end);
                 Rect dst = ((PagerWidget) fb.widget).getPageRect();
                 ZLTextPosition px = fb.pluginview.getPosition();
                 if (px.getParagraphIndex() > fragment.fragment.start.getParagraphIndex()) {
+                    onScrollFinished.add(new Runnable() {
+                        @Override
+                        public void run() {
+                            updateGravity();
+                        }
+                    });
                     fb.scrollPrevPage();
                 } else {
                     PluginView.Selection.Page page = fb.pluginview.selectPage(px, ((PagerWidget) fb.widget).getInfo(), dst.width(), dst.height());
@@ -512,8 +527,21 @@ public class TTSPopup {
                     ArrayList<Rect> ii = new ArrayList<>(Arrays.asList(bounds.rr));
                     Collections.sort(ii, new SelectionView.LinesUL(ii));
                     s.close();
-                    if (ii.get(ii.size() - 1).bottom < ((PagerWidget) fb.widget).getTop() + fb.pluginview.current.pageOffset / fb.pluginview.current.ratio)
+                    if (ii.get(ii.size() - 1).bottom < ((PagerWidget) fb.widget).getTop() + fb.pluginview.current.pageOffset / fb.pluginview.current.ratio) {
+                        onScrollFinished.add(new Runnable() {
+                            @Override
+                            public void run() {
+                                updateGravity();
+                            }
+                        });
                         fb.scrollPrevPage();
+                    } else {
+                        Rect r = SelectionView.union(Arrays.asList(bounds.rr));
+                        if (((PagerWidget) fb.widget).getHeight() / 2 < r.centerY())
+                            updateGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP);
+                        else
+                            updateGravity(Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM);
+                    }
                 }
             }
         }
@@ -545,18 +573,34 @@ public class TTSPopup {
             ScrollWidget.ScrollAdapter.PageCursor nc = ((ScrollWidget) fb.widget).adapter.pages.get(pos);
             if (!nc.equals(((ScrollWidget) fb.widget).adapter.getCurrent())) {
                 int page = ((ScrollWidget) fb.widget).adapter.findPage(nc);
-                scrolls.add(new Runnable() {
+                onScrollFinished.add(new Runnable() {
                     @Override
                     public void run() {
+                        updateGravity();
                     }
                 });
                 ((ScrollWidget) fb.widget).smoothScrollToPosition(page);
             } else {
                 ensureVisible(fragment.fragment);
+                updateGravity();
             }
         }
         if (fb.widget instanceof PagerWidget) {
-            if (fb.pluginview != null) {
+            if (fb.pluginview == null) {
+                ZLTextPosition end;
+                end = fb.app.BookTextView.getEndCursor();
+                if (end.compareTo(fragment.fragment.start) <= 0) {
+                    onScrollFinished.add(new Runnable() {
+                        @Override
+                        public void run() {
+                            updateGravity();
+                        }
+                    });
+                    fb.scrollNextPage();
+                } else {
+                    updateGravity();
+                }
+            } else {
                 PluginView.Selection s = fb.pluginview.select(fragment.fragment.start, fragment.fragment.end);
                 Rect dst = ((PagerWidget) fb.widget).getPageRect();
                 ZLTextPosition px = fb.pluginview.getPosition();
@@ -573,14 +617,22 @@ public class TTSPopup {
                     ArrayList<Rect> ii = new ArrayList<>(Arrays.asList(bounds.rr));
                     Collections.sort(ii, new SelectionView.LinesUL(ii));
                     s.close();
-                    if (ii.get(0).bottom > ((PagerWidget) fb.widget).getBottom() + fb.pluginview.current.pageOffset / fb.pluginview.current.ratio)
+                    if (ii.get(0).bottom > ((PagerWidget) fb.widget).getBottom() + fb.pluginview.current.pageOffset / fb.pluginview.current.ratio) {
+                        onScrollFinished.add(new Runnable() {
+                            @Override
+                            public void run() {
+                                updateGravity();
+                            }
+                        });
                         fb.scrollNextPage();
+                    } else {
+                        Rect r = SelectionView.union(Arrays.asList(bounds.rr));
+                        if (((PagerWidget) fb.widget).getHeight() / 2 < r.centerY())
+                            updateGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP);
+                        else
+                            updateGravity(Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM);
+                    }
                 }
-            } else {
-                ZLTextPosition end;
-                end = fb.app.BookTextView.getEndCursor();
-                if (end.compareTo(fragment.fragment.start) <= 0)
-                    fb.scrollNextPage();
             }
         }
         fb.ttsUpdate();
@@ -690,8 +742,76 @@ public class TTSPopup {
             gravity = Gravity.CENTER_HORIZONTAL | Gravity.TOP;
         else
             gravity = Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM;
+        updateGravity();
+    }
+
+    public void updateGravity(int g) {
+        gravity = g;
         handler.removeCallbacks(updateGravity);
         handler.postDelayed(updateGravity, 200);
+    }
+
+    public void updateGravity() {
+        if (fragment == null || marks.isEmpty()) {
+            updateGravity(gravity);
+            return;
+        }
+        if (fb.pluginview == null) {
+            View view = null;
+            ZLTextElementAreaVector text = null;
+            if (fb.widget instanceof ScrollWidget) {
+                int pos = ((ScrollWidget) fb.widget).adapter.findPage(fragment.fragment.start);
+                ScrollWidget.ScrollAdapter.PageCursor c = ((ScrollWidget) fb.widget).adapter.pages.get(pos);
+                ScrollWidget.ScrollAdapter.PageView v = ((ScrollWidget) fb.widget).findViewPage(c);
+                view = v;
+                text = v.text;
+            }
+            if (fb.widget instanceof PagerWidget) {
+                view = (View) fb.widget;
+                text = fb.app.BookTextView.myCurrentPage.TextElementMap;
+            }
+            if (view == null || text == null) { // happens when page just invalidated
+                updateGravity(gravity);
+            } else {
+                ArrayList<Rect> rr = new ArrayList<>();
+                for (ZLTextElementArea a : text.areas()) {
+                    if (a.compareTo(fragment.fragment.start) >= 0 && a.compareTo(fragment.fragment.end) <= 0)
+                        rr.add(new Rect(a.XStart, a.YStart, a.XEnd, a.YEnd));
+                }
+                if (rr.size() == 0) {
+                    updateGravity(gravity);
+                } else {
+                    Rect r = SelectionView.union(rr);
+                    if (((View) fb.widget).getHeight() / 2 < view.getTop() + r.centerY())
+                        updateGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP);
+                    else
+                        updateGravity(Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM);
+                }
+            }
+        } else {
+            View view = null;
+            Reflow.Info info = null;
+            if (fb.widget instanceof ScrollWidget) {
+                int pos = ((ScrollWidget) fb.widget).adapter.findPage(fragment.fragment.start);
+                ScrollWidget.ScrollAdapter.PageCursor c = ((ScrollWidget) fb.widget).adapter.pages.get(pos);
+                ScrollWidget.ScrollAdapter.PageView v = ((ScrollWidget) fb.widget).findViewPage(c);
+                view = v;
+                info = v.info;
+            }
+            if (fb.widget instanceof PagerWidget) {
+                view = (View) fb.widget;
+                info = ((PagerWidget) fb.widget).getInfo();
+            }
+            PluginView.Selection s = fb.pluginview.select(fragment.fragment.start, fragment.fragment.end);
+            PluginView.Selection.Page page = fb.pluginview.selectPage(fragment.fragment.start, info, view.getWidth(), view.getHeight());
+            PluginView.Selection.Bounds bounds = s.getBounds(page);
+            Rect r = SelectionView.union(Arrays.asList(bounds.rr));
+            if (((View) fb.widget).getHeight() / 2 < view.getTop() + r.centerY())
+                updateGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP);
+            else
+                updateGravity(Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM);
+            s.close();
+        }
     }
 
     public String getText(ZLTextPosition start, ZLTextPosition end) {
@@ -713,6 +833,7 @@ public class TTSPopup {
         bm = expandWord(bm);
         fragment = new Fragment(bm);
         marks.add(fragment.fragment);
+        updateGravity();
         fb.ttsUpdate();
     }
 
@@ -724,6 +845,7 @@ public class TTSPopup {
             fragment = new Fragment(bm);
             marks.add(fragment.fragment);
         }
+        updateGravity();
         fb.ttsUpdate();
     }
 
@@ -736,16 +858,20 @@ public class TTSPopup {
             fragment = new Fragment(bm);
             marks.add(fragment.fragment);
         }
+        updateGravity();
         fb.ttsUpdate();
     }
 
     public void selectionClose() {
+        marks.clear();
+        fb.ttsUpdate();
     }
 
     public void onScrollingFinished(ZLViewEnums.PageIndex pageIndex) {
-        for (Runnable r : scrolls)
+        for (Runnable r : onScrollFinished)
             r.run();
-        scrolls.clear();
+        onScrollFinished.clear();
+        updateGravity();
     }
 
     public Storage.Bookmark selectWord(ZLTextElementAreaVector text, int x, int y) {
