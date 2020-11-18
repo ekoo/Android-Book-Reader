@@ -398,31 +398,32 @@ public class TTSPopup {
                     marks.add(bm);
                     fragment.word = bm;
                 } // else do not clear 'word', to prevent page scroll jumping
-                if (fb.widget instanceof ScrollWidget && ((ScrollWidget) fb.widget).getScrollState() == RecyclerView.SCROLL_STATE_IDLE && onScrollFinished.isEmpty()) {
+                if (fb.widget instanceof ScrollWidget && ((ScrollWidget) fb.widget).getScrollState() == RecyclerView.SCROLL_STATE_IDLE) {
                     Storage.Bookmark page = isEmpty(fragment.word) ? fragment.fragment : fragment.word;
                     int pos = ((ScrollWidget) fb.widget).adapter.findPage(page.start);
                     if (pos != -1) {
                         ScrollWidget.ScrollAdapter.PageCursor c = ((ScrollWidget) fb.widget).adapter.pages.get(pos);
-                        ScrollWidget.ScrollAdapter.PageCursor cur = ((ScrollWidget) fb.widget).adapter.getCurrent();
-                        if (!c.equals(cur)) {
-                            Runnable gravity = new Runnable() {
-                                @Override
-                                public void run() {
-                                    updateGravity();
+                        int first = ((ScrollWidget) fb.widget).findFirstPage();
+                        if (first != -1) {
+                            ScrollWidget.ScrollAdapter.PageCursor cur = ((ScrollWidget) fb.widget).adapter.pages.get(first);
+                            if (!c.equals(cur)) {
+                                Runnable gravity = new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        updateGravity();
+                                    }
+                                };
+                                if (c.end != null && cur.start != null && c.end.compareTo(cur.start) <= 0) {
+                                    onScrollFinished.add(gravity);
+                                    fb.scrollPrevPage();
                                 }
-                            };
-                            if (c.end != null && c.end.compareTo(cur.start) <= 0) {
-                                onScrollFinished.add(gravity);
-                                fb.scrollPrevPage();
-                                Log.d(TAG, "prev " + c + " " + cur);
+                                if (c.start != null && cur.end != null && c.start.compareTo(cur.end) >= 0) {
+                                    onScrollFinished.add(gravity);
+                                    fb.scrollNextPage();
+                                }
+                            } else {
+                                ensureVisible(page);
                             }
-                            if (c.start != null && c.start.compareTo(cur.end) >= 0) {
-                                onScrollFinished.add(gravity);
-                                fb.scrollNextPage();
-                                Log.d(TAG, "next " + c + " " + cur);
-                            }
-                        } else {
-                            ensureVisible(page);
                         }
                     }
                 }
@@ -516,7 +517,8 @@ public class TTSPopup {
         marks.clear();
         if (fragment == null) {
             if (fb.widget instanceof ScrollWidget) {
-                ScrollWidget.ScrollAdapter.PageCursor c = ((ScrollWidget) fb.widget).adapter.getCurrent();
+                int first = ((ScrollWidget) fb.widget).findFirstPage();
+                ScrollWidget.ScrollAdapter.PageCursor c = ((ScrollWidget) fb.widget).adapter.pages.get(first);
                 Storage.Bookmark bm = expandWord(new Storage.Bookmark("", c.start, c.start));
                 fragment = new Fragment(bm);
             }
@@ -536,7 +538,9 @@ public class TTSPopup {
             if (pos == -1)
                 return;
             nc = ((ScrollWidget) fb.widget).adapter.pages.get(pos);
-            if (!nc.equals(((ScrollWidget) fb.widget).adapter.getCurrent())) {
+            int first = ((ScrollWidget) fb.widget).findFirstPage();
+            ScrollWidget.ScrollAdapter.PageCursor cur = ((ScrollWidget) fb.widget).adapter.pages.get(first);
+            if (!nc.equals(cur)) {
                 onScrollFinished.add(new Runnable() {
                     @Override
                     public void run() {
@@ -610,7 +614,8 @@ public class TTSPopup {
         marks.clear();
         if (fragment == null) {
             if (fb.widget instanceof ScrollWidget) {
-                ScrollWidget.ScrollAdapter.PageCursor c = ((ScrollWidget) fb.widget).adapter.getCurrent();
+                int first = ((ScrollWidget) fb.widget).findFirstPage();
+                ScrollWidget.ScrollAdapter.PageCursor c = ((ScrollWidget) fb.widget).adapter.pages.get(first);
                 Storage.Bookmark bm = expandWord(new Storage.Bookmark("", c.start, c.start));
                 fragment = new Fragment(bm);
             }
@@ -629,7 +634,9 @@ public class TTSPopup {
             if (pos == -1)
                 return;
             ScrollWidget.ScrollAdapter.PageCursor nc = ((ScrollWidget) fb.widget).adapter.pages.get(pos);
-            if (!nc.equals(((ScrollWidget) fb.widget).adapter.getCurrent())) {
+            int first = ((ScrollWidget) fb.widget).findFirstPage();
+            ScrollWidget.ScrollAdapter.PageCursor cur = ((ScrollWidget) fb.widget).adapter.pages.get(first);
+            if (!nc.equals(cur)) {
                 int page = ((ScrollWidget) fb.widget).adapter.findPage(nc);
                 onScrollFinished.add(new Runnable() {
                     @Override
