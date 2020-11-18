@@ -6,6 +6,7 @@ import android.graphics.Rect;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -38,7 +39,7 @@ import java.util.Locale;
 
 public class TTSPopup {
     public static String[] EOL = {"\n", "\r"};
-    public static String[] STOPS = {".", ",", ";", "\"", "'", "!", "?", "“", ":", "”"};
+    public static String[] STOPS = {".", ";"}; // "," , "\"", "'", "!", "?", "“", ":", "”"};
     public static int MAX_COUNT = 100;
     public static int TTS_BG_COLOR = 0xaaaaaa00;
     public static int TTS_WORD_COLOR = 0x33333333;
@@ -398,22 +399,31 @@ public class TTSPopup {
                 } else {
                     word = null;
                 }
-                if (fb.widget instanceof ScrollWidget && ((ScrollWidget) fb.widget).getScrollState() == RecyclerView.SCROLL_STATE_IDLE) {
+                if (fb.widget instanceof ScrollWidget && ((ScrollWidget) fb.widget).getScrollState() == RecyclerView.SCROLL_STATE_IDLE && onScrollFinished.isEmpty()) {
                     Storage.Bookmark page = isEmpty(word) ? fragment.fragment : word;
                     int pos = ((ScrollWidget) fb.widget).adapter.findPage(page.start);
                     if (pos != -1) {
                         ScrollWidget.ScrollAdapter.PageCursor c = ((ScrollWidget) fb.widget).adapter.pages.get(pos);
                         ScrollWidget.ScrollAdapter.PageCursor cur = ((ScrollWidget) fb.widget).adapter.getCurrent();
                         if (!c.equals(cur)) {
-                            onScrollFinished.add(new Runnable() {
-                                @Override
-                                public void run() {
-                                }
-                            });
-                            if (c.end != null && c.end.compareTo(cur.start) >= 0)
+                            if (c.end != null && c.end.compareTo(cur.start) <= 0) {
+                                onScrollFinished.add(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                    }
+                                });
                                 fb.scrollPrevPage();
-                            if (c.start != null && c.start.compareTo(cur.end) <= 0)
+                                Log.d(TAG, "prev " + c + " " + cur);
+                            }
+                            if (c.start != null && c.start.compareTo(cur.end) >= 0) {
+                                onScrollFinished.add(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                    }
+                                });
                                 fb.scrollNextPage();
+                                Log.d(TAG, "next " + c + " " + cur);
+                            }
                         } else {
                             ensureVisible(page);
                         }
@@ -428,6 +438,7 @@ public class TTSPopup {
         left.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                stop();
                 selectPrev();
             }
         });
@@ -435,6 +446,7 @@ public class TTSPopup {
         right.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                stop();
                 selectNext();
             }
         });
@@ -442,13 +454,10 @@ public class TTSPopup {
         play.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (tts.dones.contains(speakNext)) {
-                    tts.close();
-                    tts.dones.remove(speakNext);
-                    updatePlay();
-                } else {
+                if (tts.dones.contains(speakNext))
+                    stop();
+                else
                     speakNext();
-                }
             }
         });
         View close = view.findViewById(R.id.tts_close);
@@ -468,6 +477,12 @@ public class TTSPopup {
         f.setPadding(dp20, dp20, dp20, dp20);
         this.view = f;
         this.panel = round;
+    }
+
+    void stop() {
+        tts.close();
+        tts.dones.remove(speakNext);
+        updatePlay();
     }
 
     public Context getContext() {
