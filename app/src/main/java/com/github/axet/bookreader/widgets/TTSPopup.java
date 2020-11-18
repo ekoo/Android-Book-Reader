@@ -148,6 +148,8 @@ public class TTSPopup {
     }
 
     public static boolean isEmpty(Storage.Bookmark bm) {
+        if (bm == null)
+            return true;
         return bm.start == null || bm.end == null;
     }
 
@@ -390,8 +392,33 @@ public class TTSPopup {
                 marks.clear();
                 marks.add(fragment.fragment);
                 Storage.Bookmark bm = fragment.findWord(start, end);
-                if (bm != null) // words starting with STOP symbols are missing
+                if (bm != null) {// words starting with STOP symbols are missing
                     marks.add(bm);
+                    word = bm;
+                } else {
+                    word = null;
+                }
+                if (fb.widget instanceof ScrollWidget) {
+                    Storage.Bookmark page = isEmpty(word) ? fragment.fragment : word;
+                    int pos = ((ScrollWidget) fb.widget).adapter.findPage(page.start);
+                    if (pos != -1) {
+                        ScrollWidget.ScrollAdapter.PageCursor c = ((ScrollWidget) fb.widget).adapter.pages.get(pos);
+                        ScrollWidget.ScrollAdapter.PageCursor cur = ((ScrollWidget) fb.widget).adapter.getCurrent();
+                        if (!c.equals(cur)) {
+                            onScrollFinished.add(new Runnable() {
+                                @Override
+                                public void run() {
+                                }
+                            });
+                            if (c.end != null && c.end.compareTo(cur.start) >= 0)
+                                fb.scrollPrevPage();
+                            if (c.start != null && c.start.compareTo(cur.end) <= 0)
+                                fb.scrollNextPage();
+                        } else {
+                            ensureVisible(page);
+                        }
+                    }
+                }
                 fb.ttsUpdate();
             }
         };
@@ -743,6 +770,8 @@ public class TTSPopup {
             rect = getRect(page, s, bm);
             s.close();
         } else {
+            if (v.text == null)
+                return;
             rect = getRect(v.text, bm);
         }
         rect.top += v.getTop();
@@ -781,6 +810,8 @@ public class TTSPopup {
             ZLTextElementAreaVector text = null;
             if (fb.widget instanceof ScrollWidget) {
                 int pos = ((ScrollWidget) fb.widget).adapter.findPage(fragment.fragment.start);
+                if (pos == -1)
+                    return;
                 ScrollWidget.ScrollAdapter.PageCursor c = ((ScrollWidget) fb.widget).adapter.pages.get(pos);
                 ScrollWidget.ScrollAdapter.PageView v = ((ScrollWidget) fb.widget).findViewPage(c);
                 view = v;
@@ -814,6 +845,8 @@ public class TTSPopup {
             Reflow.Info info = null;
             if (fb.widget instanceof ScrollWidget) {
                 int pos = ((ScrollWidget) fb.widget).adapter.findPage(fragment.fragment.start);
+                if (pos == -1)
+                    return;
                 ScrollWidget.ScrollAdapter.PageCursor c = ((ScrollWidget) fb.widget).adapter.pages.get(pos);
                 ScrollWidget.ScrollAdapter.PageView v = ((ScrollWidget) fb.widget).findViewPage(c);
                 view = v;
