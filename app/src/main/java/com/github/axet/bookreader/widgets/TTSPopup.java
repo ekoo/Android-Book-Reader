@@ -398,7 +398,7 @@ public class TTSPopup {
                 } else {
                     word = null;
                 }
-                if (fb.widget instanceof ScrollWidget) {
+                if (fb.widget instanceof ScrollWidget && ((ScrollWidget) fb.widget).getScrollState() == RecyclerView.SCROLL_STATE_IDLE) {
                     Storage.Bookmark page = isEmpty(word) ? fragment.fragment : word;
                     int pos = ((ScrollWidget) fb.widget).adapter.findPage(page.start);
                     if (pos != -1) {
