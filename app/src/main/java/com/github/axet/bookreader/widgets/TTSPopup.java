@@ -396,9 +396,7 @@ public class TTSPopup {
                 if (bm != null) {// words starting with STOP symbols are missing
                     marks.add(bm);
                     word = bm;
-                } else {
-                    word = null;
-                }
+                } // else do not clear 'word', to prevent page scroll jumping
                 if (fb.widget instanceof ScrollWidget && ((ScrollWidget) fb.widget).getScrollState() == RecyclerView.SCROLL_STATE_IDLE && onScrollFinished.isEmpty()) {
                     Storage.Bookmark page = isEmpty(word) ? fragment.fragment : word;
                     int pos = ((ScrollWidget) fb.widget).adapter.findPage(page.start);
@@ -406,21 +404,19 @@ public class TTSPopup {
                         ScrollWidget.ScrollAdapter.PageCursor c = ((ScrollWidget) fb.widget).adapter.pages.get(pos);
                         ScrollWidget.ScrollAdapter.PageCursor cur = ((ScrollWidget) fb.widget).adapter.getCurrent();
                         if (!c.equals(cur)) {
+                            Runnable gravity = new Runnable() {
+                                @Override
+                                public void run() {
+                                    updateGravity();
+                                }
+                            };
                             if (c.end != null && c.end.compareTo(cur.start) <= 0) {
-                                onScrollFinished.add(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                    }
-                                });
+                                onScrollFinished.add(gravity);
                                 fb.scrollPrevPage();
                                 Log.d(TAG, "prev " + c + " " + cur);
                             }
                             if (c.start != null && c.start.compareTo(cur.end) >= 0) {
-                                onScrollFinished.add(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                    }
-                                });
+                                onScrollFinished.add(gravity);
                                 fb.scrollNextPage();
                                 Log.d(TAG, "next " + c + " " + cur);
                             }
