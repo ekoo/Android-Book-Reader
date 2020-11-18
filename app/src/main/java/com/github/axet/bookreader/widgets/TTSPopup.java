@@ -48,7 +48,6 @@ public class TTSPopup {
     public TTS tts;
     public FBReaderView fb;
     Fragment fragment;
-    public Storage.Bookmark word = new Storage.Bookmark();
     public Storage.Bookmarks marks = new Storage.Bookmarks();
     public View panel;
     public View view;
@@ -158,6 +157,7 @@ public class TTSPopup {
         public Storage.Bookmark fragment; // paragraph or line
         public String fragmentText;
         public ArrayList<Bookmark> fragmentWords;
+        public Storage.Bookmark word = new Storage.Bookmark();
 
         public class Bookmark extends Storage.Bookmark {
             public int strStart;
@@ -209,6 +209,7 @@ public class TTSPopup {
             fragmentWords = list;
             fragment = new Storage.Bookmark(bm);
             fragment.color = TTS_BG_COLOR;
+            word = null;
         }
 
         public Storage.Bookmark findWord(int start, int end) {
@@ -395,10 +396,10 @@ public class TTSPopup {
                 Storage.Bookmark bm = fragment.findWord(start, end);
                 if (bm != null) {// words starting with STOP symbols are missing
                     marks.add(bm);
-                    word = bm;
+                    fragment.word = bm;
                 } // else do not clear 'word', to prevent page scroll jumping
                 if (fb.widget instanceof ScrollWidget && ((ScrollWidget) fb.widget).getScrollState() == RecyclerView.SCROLL_STATE_IDLE && onScrollFinished.isEmpty()) {
-                    Storage.Bookmark page = isEmpty(word) ? fragment.fragment : word;
+                    Storage.Bookmark page = isEmpty(fragment.word) ? fragment.fragment : fragment.word;
                     int pos = ((ScrollWidget) fb.widget).adapter.findPage(page.start);
                     if (pos != -1) {
                         ScrollWidget.ScrollAdapter.PageCursor c = ((ScrollWidget) fb.widget).adapter.pages.get(pos);
