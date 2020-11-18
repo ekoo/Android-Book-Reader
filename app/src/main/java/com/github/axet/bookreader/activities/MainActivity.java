@@ -18,19 +18,13 @@ import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
-import android.support.v4.view.GravityCompat;
 import android.support.v4.view.MenuItemCompat;
-import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.widget.AppCompatImageButton;
-import android.support.v7.widget.PopupMenu;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
@@ -52,7 +46,6 @@ import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.fragments.LibraryFragment;
 import com.github.axet.bookreader.fragments.ReaderFragment;
 import com.github.axet.bookreader.widgets.FBReaderView;
-import com.github.axet.bookreader.widgets.FullWidthActionView;
 import com.github.axet.bookreader.widgets.RotatePreferenceCompat;
 
 import org.geometerplus.fbreader.fbreader.options.ImageOptions;
@@ -65,8 +58,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 public class MainActivity extends FullscreenActivity implements NavigationView.OnNavigationItemSelectedListener {
     public static final String TAG = MainActivity.class.getSimpleName();

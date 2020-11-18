@@ -39,7 +39,7 @@ import java.util.Locale;
 
 public class TTSPopup {
     public static String[] EOL = {"\n", "\r"};
-    public static String[] STOPS = {".", ";"}; // "," , "\"", "'", "!", "?", "“", ":", "”"};
+    public static String[] STOPS = {".", ";"}; // ",", "\"", "'", "!", "?", "“", "”", ":", "(", ")"};
     public static int MAX_COUNT = 100;
     public static int TTS_BG_COLOR = 0xaaaaaa00;
     public static int TTS_WORD_COLOR = 0x33333333;

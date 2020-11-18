@@ -8,15 +8,30 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.widget.Toolbar;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
 
 import com.github.axet.androidlibrary.activities.AppCompatFullscreenThemeActivity;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.BookApplication;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.List;
 
 public class FullscreenActivity extends AppCompatFullscreenThemeActivity {
     public Toolbar toolbar;
+
+    public void setFitsSystemWindows(View v, boolean b) {
+        if (Build.VERSION.SDK_INT >= 14) {
+            ViewGroup g = (ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) {
+                View c = g.getChildAt(i);
+                c.setFitsSystemWindows(b);
+            }
+        }
+    }
 
     public interface FullscreenListener {
         void onFullscreenChanged(boolean f);
@@ -27,7 +42,7 @@ public class FullscreenActivity extends AppCompatFullscreenThemeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.app_bar_main);
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
     }
@@ -64,11 +79,13 @@ public class FullscreenActivity extends AppCompatFullscreenThemeActivity {
     @Override
     public void hideSystemUI() {
         super.hideSystemUI();
+        setFitsSystemWindows(findViewById(android.R.id.content), false);
     }
 
     @Override
     public void showSystemUI() {
         super.showSystemUI();
+        setFitsSystemWindows(findViewById(android.R.id.content), true);
     }
 
     @SuppressLint("RestrictedApi")
