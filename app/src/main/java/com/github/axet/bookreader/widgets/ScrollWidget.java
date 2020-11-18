@@ -570,9 +570,8 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
             size.w = getWidth();
             size.h = getHeight();
             if (fb.pluginview != null) {
-                if (fb.pluginview.reflower != null) {
+                if (fb.pluginview.reflower != null)
                     fb.pluginview.reflower.reset();
-                }
             }
             getRecycledViewPool().clear();
             pages.clear();
@@ -593,13 +592,12 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                         ZLTextFixedPosition s = new ZLTextFixedPosition(fb.pluginview.reflower.page, fb.pluginview.reflower.index, 0);
                         ZLTextFixedPosition e;
                         int index = s.ElementIndex + 1;
-                        if (fb.pluginview.reflower.count() == -1) {
+                        if (fb.pluginview.reflower.count() == -1)
                             e = null;
-                        } else if (index >= fb.pluginview.reflower.count()) { // current points to next page +1
+                        else if (index >= fb.pluginview.reflower.count()) // current points to next page +1
                             e = new ZLTextFixedPosition(fb.pluginview.reflower.page + 1, 0, 0);
-                        } else {
+                        else
                             e = new ZLTextFixedPosition(s.ParagraphIndex, index, 0);
-                        }
                         return new PageCursor(s, e);
                     } else {
                         return new PageCursor(new ZLTextFixedPosition(fb.pluginview.current.pageNumber, 0, 0), null);
@@ -1029,12 +1027,10 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
             int hp = getViewPercent(view);
             if (hp > 15) // add only views atleast 15% visible
                 hp15.put(view.getTop(), view);
-            if (hp == 100) {
+            if (hp == 100)
                 hp100.put(view.getTop(), view);
-            }
-            if (hp > 0) {
+            if (hp > 0)
                 hp0.put(view.getTop(), view);
-            }
         }
         View v = null;
         for (Integer key : hp100.keySet()) {
