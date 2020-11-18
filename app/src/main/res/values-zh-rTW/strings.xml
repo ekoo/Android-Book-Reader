@@ -11,11 +11,6 @@
         <item>@string/Theme_Dark</item>
     </string-array>
 
-    <string name="navigation_drawer_open">開啟側邊選單</string>
-    <string name="navigation_drawer_close">關閉側邊選單</string>
-
-    <string name="add_catalog">加入書籍目錄</string>
-    <string name="books_catalogs">目錄</string>
     <string name="loading_book">正在載入書本</string>
     <string name="open_file">開啟檔案</string>
     <string name="catalog_home">首頁</string>
@@ -26,14 +21,10 @@
     <string name="book_delete">刪除</string>
     <string name="my_readings">我的閱讀</string>
     <string name="search_local">本地搜尋&#8230;</string>
-    <string name="search_network">網路搜尋&#8230;</string>
     <string name="search_book">書籍搜尋&#8230;</string>
     <string name="pref_theme_title">主題</string>
-    <string name="more_books">從「關於」選單獲取更多書籍目錄</string>
     <string name="pref_rotate_title">旋轉</string>
     <string name="pref_rotate_summary">允許螢幕旋轉</string>
-    <string name="from_local_folder">... 自本機資料夾</string>
-    <string name="from_json_file">... 自 (.json) 檔案</string>
     <string name="view_mode_continuous">連續檢視</string>
     <string name="view_mode_paging">分頁檢視</string>
     <string name="pref_storagepath_title">同步資料夾</string>
@@ -66,6 +57,5 @@
     <string name="sort_by_added_desc">加入遞減</string>
     <string name="sort_by_opened_asc">開啟遞增</string>
     <string name="sort_by_opened_desc">開啟遞減</string>
-    <string name="tts_default">System Default</string>
     <string name="pref_tts_title">TTS Language</string>
 </resources>

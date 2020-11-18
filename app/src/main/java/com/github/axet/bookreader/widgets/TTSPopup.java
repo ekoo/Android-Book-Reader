@@ -1,9 +1,10 @@
 package com.github.axet.bookreader.widgets;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Rect;
 import android.os.Handler;
-import android.os.SystemClock;
+import android.preference.PreferenceManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -13,10 +14,11 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
+import com.github.axet.androidlibrary.sound.TTS;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
+import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.Storage;
-import com.github.axet.bookreader.app.TTS;
 
 import org.geometerplus.fbreader.fbreader.TextBuildTraverser;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
@@ -32,6 +34,7 @@ import org.geometerplus.zlibrary.text.view.ZLTextWordCursor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Locale;
 
 public class TTSPopup {
     public static String[] EOL = {"\n", "\r"};
@@ -145,6 +148,8 @@ public class TTSPopup {
     }
 
     public static boolean isEmpty(Storage.Bookmark bm) {
+        if (bm == null)
+            return true;
         return bm.start == null || bm.end == null;
     }
 
@@ -365,14 +370,55 @@ public class TTSPopup {
         this.fb = v;
         this.tts = new TTS(context) {
             @Override
+            public Locale getUserLocale() {
+                SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
+
+                String lang = shared.getString(BookApplication.PREFERENCE_LANGUAGE, ""); // take user lang preferences
+
+                Locale locale;
+
+                if (lang.isEmpty()) // use system locale (system language)
+                    locale = Locale.getDefault();
+                else
+                    locale = new Locale(lang);
+
+                return locale;
+            }
+
+            @Override
             public void onRangeStart(String utteranceId, int start, int end, int frame) {
                 if (fb.tts == null)
                     return;
                 marks.clear();
                 marks.add(fragment.fragment);
                 Storage.Bookmark bm = fragment.findWord(start, end);
-                if (bm != null) // words starting with STOP symbols are missing
+                if (bm != null) {// words starting with STOP symbols are missing
                     marks.add(bm);
+                    word = bm;
+                } else {
+                    word = null;
+                }
+                if (fb.widget instanceof ScrollWidget) {
+                    Storage.Bookmark page = isEmpty(word) ? fragment.fragment : word;
+                    int pos = ((ScrollWidget) fb.widget).adapter.findPage(page.start);
+                    if (pos != -1) {
+                        ScrollWidget.ScrollAdapter.PageCursor c = ((ScrollWidget) fb.widget).adapter.pages.get(pos);
+                        ScrollWidget.ScrollAdapter.PageCursor cur = ((ScrollWidget) fb.widget).adapter.getCurrent();
+                        if (!c.equals(cur)) {
+                            onScrollFinished.add(new Runnable() {
+                                @Override
+                                public void run() {
+                                }
+                            });
+                            if (c.end != null && c.end.compareTo(cur.start) >= 0)
+                                fb.scrollPrevPage();
+                            if (c.start != null && c.start.compareTo(cur.end) <= 0)
+                                fb.scrollNextPage();
+                        } else {
+                            ensureVisible(page);
+                        }
+                    }
+                }
                 fb.ttsUpdate();
             }
         };
@@ -724,6 +770,8 @@ public class TTSPopup {
             rect = getRect(page, s, bm);
             s.close();
         } else {
+            if (v.text == null)
+                return;
             rect = getRect(v.text, bm);
         }
         rect.top += v.getTop();
@@ -762,6 +810,8 @@ public class TTSPopup {
             ZLTextElementAreaVector text = null;
             if (fb.widget instanceof ScrollWidget) {
                 int pos = ((ScrollWidget) fb.widget).adapter.findPage(fragment.fragment.start);
+                if (pos == -1)
+                    return;
                 ScrollWidget.ScrollAdapter.PageCursor c = ((ScrollWidget) fb.widget).adapter.pages.get(pos);
                 ScrollWidget.ScrollAdapter.PageView v = ((ScrollWidget) fb.widget).findViewPage(c);
                 view = v;
@@ -795,6 +845,8 @@ public class TTSPopup {
             Reflow.Info info = null;
             if (fb.widget instanceof ScrollWidget) {
                 int pos = ((ScrollWidget) fb.widget).adapter.findPage(fragment.fragment.start);
+                if (pos == -1)
+                    return;
                 ScrollWidget.ScrollAdapter.PageCursor c = ((ScrollWidget) fb.widget).adapter.pages.get(pos);
                 ScrollWidget.ScrollAdapter.PageView v = ((ScrollWidget) fb.widget).findViewPage(c);
                 view = v;

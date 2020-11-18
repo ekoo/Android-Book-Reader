@@ -6,11 +6,6 @@
         <item>پوسته تاریک</item>
     </string-array>
 
-    <string name="navigation_drawer_open">باز کردن کشوی جهت یابی</string>
-    <string name="navigation_drawer_close">بستن کشوی جهت یابی</string>
-
-    <string name="add_catalog">افزودن فهرست کتاب</string>
-    <string name="books_catalogs">فهرست‌ها</string>
     <string name="loading_book">در حال بارگذاری کتاب</string>
     <string name="open_file">باز کردن پرونده</string>
     <string name="catalog_home">خانه</string>
@@ -21,14 +16,10 @@
     <string name="book_delete">حذف</string>
     <string name="my_readings">خوانش‌های من</string>
     <string name="search_local">جستجوی محلی&#8230;</string>
-    <string name="search_network">جستجوی شبکه&#8230;</string>
     <string name="search_book">جستجوی کتاب&#8230;</string>
     <string name="pref_theme_title">پوسته</string>
-    <string name="more_books">دریافت فهرست کتاب‌های بیشتر از منوی \'درباره\'</string>
     <string name="pref_rotate_title">چرخش</string>
     <string name="pref_rotate_summary">اجازه به چرخش صفحه</string>
-    <string name="from_local_folder">... از پوشه محلی</string>
-    <string name="from_json_file">... از پرونده (.json)</string>
     <string name="view_mode_continuous">نمای مداوم</string>
     <string name="view_mode_paging">نمای صفحه بندی</string>
     <string name="pref_storagepath_title">همگام‌سازی پوشه</string>
@@ -61,6 +52,5 @@
     <string name="sort_by_added_desc">افزوده شده نزولی</string>
     <string name="sort_by_opened_asc">باز شده صعودی</string>
     <string name="sort_by_opened_desc">باز شده نزولی</string>
-    <string name="tts_default">System Default</string>
     <string name="pref_tts_title">TTS Language</string>
 </resources>

@@ -6,11 +6,6 @@
         <item>Tema oscuro</item>
     </string-array>
 
-    <string name="navigation_drawer_open">Abrir panel lateral</string>
-    <string name="navigation_drawer_close">Cerrar panel lateral</string>
-
-    <string name="add_catalog">A&#241;adir catálogo</string>
-    <string name="books_catalogs">Catálogo</string>
     <string name="loading_book">Cargando libro</string>
     <string name="open_file">Abrir archivo</string>
     <string name="catalog_home">Inicio</string>
@@ -21,14 +16,10 @@
     <string name="book_delete">Eliminar</string>
     <string name="my_readings">Mis lecturas</string>
     <string name="search_local">Búsqueda local&#8230;</string>
-    <string name="search_network">Búsqueda de red&#8230;</string>
     <string name="search_book">Búsqueda de libro&#8230;</string>
     <string name="pref_theme_title">Tema</string>
-    <string name="more_books">Obtén más catálogos de libros en el menú \'Acerca de\'</string>
     <string name="pref_rotate_title">Rotación</string>
     <string name="pref_rotate_summary">Permitir rotación de pantalla</string>
-    <string name="from_local_folder">... desde carpeta local</string>
-    <string name="from_json_file">... desde archivo (.json)</string>
     <string name="view_mode_continuous">Vista continua</string>
     <string name="view_mode_paging">Vista enpaginada</string>
     <string name="pref_storagepath_title">Sincronizar carpeta</string>
@@ -61,6 +52,5 @@
     <string name="sort_by_added_desc">Added Desc</string>
     <string name="sort_by_opened_asc">Opened Asc</string>
     <string name="sort_by_opened_desc">Opened Desc</string>
-    <string name="tts_default">System Default</string>
     <string name="pref_tts_title">TTS Language</string>
 </resources>

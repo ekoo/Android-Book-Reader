@@ -6,11 +6,6 @@
         <item>Темная тема</item>
     </string-array>
 
-    <string name="navigation_drawer_open">Открыть меню</string>
-    <string name="navigation_drawer_close">Закрыть меню</string>
-
-    <string name="add_catalog">Добавить каталог книг</string>
-    <string name="books_catalogs">Каталоги</string>
     <string name="loading_book">Загрузка книги</string>
     <string name="open_file">Открыть файл</string>
     <string name="catalog_home">Сайт</string>
@@ -21,14 +16,10 @@
     <string name="book_delete">Удалить</string>
     <string name="my_readings">Открытые книги</string>
     <string name="search_local">Поиск по списку&#8230;</string>
-    <string name="search_network">Поиск по сети&#8230;</string>
     <string name="search_book">Поиск по книге&#8230;</string>
     <string name="pref_theme_title">Тема приложения</string>
-    <string name="more_books">Дополнительные каталоги книг доступны из диалога \'О программе\'</string>
     <string name="pref_rotate_title">Поворот</string>
     <string name="pref_rotate_summary">Разрешить поворот экрана</string>
-    <string name="from_local_folder">... из локальной папки</string>
-    <string name="from_json_file">... из (.json) файла</string>
     <string name="view_mode_continuous">Прокрутка страниц</string>
     <string name="view_mode_paging">Постраничный режим</string>
     <string name="pref_storagepath_title">Папка синхронизации</string>
@@ -61,6 +52,5 @@
     <string name="sort_by_added_desc">Добавлено по убыванию</string>
     <string name="sort_by_opened_asc">Открыто по возрастанию</string>
     <string name="sort_by_opened_desc">Открыто по убыванию</string>
-    <string name="tts_default">Системный язык</string>
     <string name="pref_tts_title">TTS язык</string>
 </resources>

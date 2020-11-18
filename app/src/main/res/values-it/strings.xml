@@ -11,11 +11,6 @@
         <item>@string/view_mode_continuous</item>
     </string-array>
 
-    <string name="navigation_drawer_open">Apri barra di navigazione</string>
-    <string name="navigation_drawer_close">Chiudi barra di navigazione</string>
-
-    <string name="add_catalog">Aggiungi lista</string>
-    <string name="books_catalogs">Liste</string>
     <string name="loading_book">Carica libro</string>
     <string name="open_file">Apri file</string>
     <string name="catalog_home">Home</string>
@@ -26,11 +21,7 @@
     <string name="book_delete">Cancella</string>
     <string name="my_readings">Le mie letture</string>
     <string name="search_local">Ricerca locale&#8230;</string>
-    <string name="search_network">Ricerca remota&#8230;</string>
     <string name="search_book">Cerca libro&#8230;</string>
-    <string name="more_books">Ottieni più liste dal menu \'Informazioni\'</string>
-    <string name="from_local_folder">... da cartella locale</string>
-    <string name="from_json_file">... da file (.json) </string>
     <string name="view_mode_continuous">Modalità continua</string>
     <string name="view_mode_paging">Modalità a pagine</string>
 
@@ -68,6 +59,5 @@
     <string name="sort_by_added_desc">Added Desc</string>
     <string name="sort_by_opened_asc">Opened Asc</string>
     <string name="sort_by_opened_desc">Opened Desc</string>
-    <string name="tts_default">System Default</string>
     <string name="pref_tts_title">TTS Language</string>
 </resources>

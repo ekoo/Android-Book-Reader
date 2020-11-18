@@ -6,11 +6,6 @@
         <item>Thème sombre</item>
     </string-array>
 
-    <string name="navigation_drawer_open">Ouvrir le menu de navigation</string>
-    <string name="navigation_drawer_close">Fermer le menu de navigation</string>
-
-    <string name="add_catalog">Ajouter un catalogue de livres</string>
-    <string name="books_catalogs">Catalogues</string>
     <string name="loading_book">Chargement</string>
     <string name="open_file">Ouvrir un fichier</string>
     <string name="catalog_home">Accueil</string>
@@ -21,14 +16,10 @@
     <string name="book_delete">Supprimer</string>
     <string name="my_readings">Mes lectures</string>
     <string name="search_local">Recherche locale&#8230;</string>
-    <string name="search_network">Recherche sur le réseau&#8230;</string>
     <string name="search_book">Rechercher un livre&#8230;</string>
     <string name="pref_theme_title">Thème</string>
-    <string name="more_books">Des catalogues de livres sont disponibles depuis le menu « À propos »</string>
     <string name="pref_rotate_title">Rotation</string>
     <string name="pref_rotate_summary">L\'écran peut tourner</string>
-    <string name="from_local_folder">... depuis un dossier local</string>
-    <string name="from_json_file">... depuis un fichier (.json)</string>
     <string name="view_mode_continuous">Continu</string>
     <string name="view_mode_paging">Par page</string>
     <string name="pref_storagepath_title">Dossier de synchro</string>
@@ -61,7 +52,6 @@
     <string name="sort_by_added_desc">Added Desc</string>
     <string name="sort_by_opened_asc">Opened Asc</string>
     <string name="sort_by_opened_desc">Opened Desc</string>
-    <string name="tts_default">System Default</string>
     <string name="pref_tts_title">TTS Language</string>
 </resources>
 
