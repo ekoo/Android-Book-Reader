@@ -3,10 +3,11 @@ package com.github.axet.bookreader.widgets;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Rect;
+import android.os.Build;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.speech.tts.TextToSpeech;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -40,7 +41,7 @@ import java.util.Locale;
 public class TTSPopup {
     public static String[] EOL = {"\n", "\r"};
     public static String[] STOPS = {".", ";"}; // ",", "\"", "'", "!", "?", "“", "”", ":", "(", ")"};
-    public static int MAX_COUNT = 200;
+    public static int MAX_COUNT = getMaxCount(200);
     public static int TTS_BG_COLOR = 0xaaaaaa00;
     public static int TTS_WORD_COLOR = 0x33333333;
 
@@ -70,6 +71,14 @@ public class TTSPopup {
             speakNext();
         }
     };
+
+    public static int getMaxCount(int max) {
+        if (Build.VERSION.SDK_INT >= 18) {
+            if (max > TextToSpeech.getMaxSpeechInputLength())
+                return TextToSpeech.getMaxSpeechInputLength();
+        }
+        return max;
+    }
 
     public static Rect getRect(ZLTextElementAreaVector text, Storage.Bookmark bm) {
         Rect union = new Rect();
@@ -369,8 +378,8 @@ public class TTSPopup {
 
     public TTSPopup(FBReaderView v) {
         this.context = v.getContext();
-        this.fb = v;
-        this.tts = new TTS(context) {
+        fb = v;
+        tts = new TTS(context) {
             @Override
             public Locale getUserLocale() {
                 SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
@@ -430,6 +439,7 @@ public class TTSPopup {
                 fb.ttsUpdate();
             }
         };
+        tts.ttsCreate();
         LayoutInflater inflater = LayoutInflater.from(getContext());
         View view = inflater.inflate(R.layout.tts_popup, null);
         View left = view.findViewById(R.id.tts_left);
