@@ -41,7 +41,7 @@ import java.util.Locale;
 public class TTSPopup {
     public static String[] EOL = {"\n", "\r"};
     public static String[] STOPS = {".", ";"}; // ",", "\"", "'", "!", "?", "“", "”", ":", "(", ")"};
-    public static int MAX_COUNT = getMaxCount(200);
+    public static int MAX_COUNT = getMaxSpeechInputLength(200);
     public static int TTS_BG_COLOR = 0xaaaaaa00;
     public static int TTS_WORD_COLOR = 0x33333333;
 
@@ -72,7 +72,7 @@ public class TTSPopup {
         }
     };
 
-    public static int getMaxCount(int max) {
+    public static int getMaxSpeechInputLength(int max) {
         if (Build.VERSION.SDK_INT >= 18) {
             if (max > TextToSpeech.getMaxSpeechInputLength())
                 return TextToSpeech.getMaxSpeechInputLength();
