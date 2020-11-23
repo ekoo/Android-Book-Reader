@@ -503,7 +503,7 @@ public class TTSPopup {
         Runnable r = new Runnable() {
             @Override
             public void run() {
-                tts.playSpeech(fragment.fragmentText, speakNext);
+                tts.playSpeech(new TTS.Speak(tts.getTTSLocale(), fragment.fragmentText), speakNext);
                 updatePlay();
             }
         };
