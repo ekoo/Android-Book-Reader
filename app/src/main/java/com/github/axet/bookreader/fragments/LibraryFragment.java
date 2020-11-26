@@ -139,11 +139,10 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
 
             updateGrid();
 
-            if (layout == R.layout.book_item) {
+            if (layout == R.layout.book_item)
                 grid.setIcon(R.drawable.ic_view_module_black_24dp);
-            } else {
+            else
                 grid.setIcon(R.drawable.ic_view_list_black_24dp);
-            }
         }
 
         public boolean onOptionsItemSelected(MenuItem item) {
@@ -151,11 +150,10 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             int id = item.getItemId();
             if (id == R.id.action_grid) {
                 SharedPreferences.Editor editor = shared.edit();
-                if (layout == R.layout.book_list_item) {
+                if (layout == R.layout.book_list_item)
                     editor.putString(BookApplication.PREFERENCE_LIBRARY_LAYOUT + getLayout(), "book_item");
-                } else {
+                else
                     editor.putString(BookApplication.PREFERENCE_LIBRARY_LAYOUT + getLayout(), "book_list_item");
-                }
                 editor.commit();
                 updateGrid();
                 return true;
@@ -335,9 +333,8 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
             try {
                 fbook = storage.read(book);
                 File cover = Storage.coverFile(getContext(), book);
-                if (!cover.exists() || cover.length() == 0) {
+                if (!cover.exists() || cover.length() == 0)
                     storage.createCover(fbook, cover);
-                }
                 book.cover = cover;
                 try {
                     Bitmap bm = BitmapFactory.decodeStream(new FileInputStream(cover));
@@ -524,8 +521,7 @@ public class LibraryFragment extends Fragment implements MainActivity.SearchList
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_library, container, false);
 
         holder.create(v);

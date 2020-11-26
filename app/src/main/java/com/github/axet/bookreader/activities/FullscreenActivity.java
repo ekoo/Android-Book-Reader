@@ -1,6 +1,7 @@
 package com.github.axet.bookreader.activities;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.NavigationView;
@@ -22,16 +23,6 @@ import java.util.List;
 
 public class FullscreenActivity extends AppCompatFullscreenThemeActivity {
     public Toolbar toolbar;
-
-    public void setFitsSystemWindows(View v, boolean b) {
-        if (Build.VERSION.SDK_INT >= 14) {
-            ViewGroup g = (ViewGroup) v;
-            for (int i = 0; i < g.getChildCount(); i++) {
-                View c = g.getChildAt(i);
-                c.setFitsSystemWindows(b);
-            }
-        }
-    }
 
     public interface FullscreenListener {
         void onFullscreenChanged(boolean f);
@@ -79,13 +70,13 @@ public class FullscreenActivity extends AppCompatFullscreenThemeActivity {
     @Override
     public void hideSystemUI() {
         super.hideSystemUI();
-        setFitsSystemWindows(findViewById(android.R.id.content), false);
+        setFitsSystemWindows(this, false);
     }
 
     @Override
     public void showSystemUI() {
         super.showSystemUI();
-        setFitsSystemWindows(findViewById(android.R.id.content), true);
+        setFitsSystemWindows(this, true);
     }
 
     @SuppressLint("RestrictedApi")
