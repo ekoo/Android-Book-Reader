@@ -775,6 +775,8 @@ public class TTSPopup {
     }
 
     public void close() {
+        if (fb.listener != null)
+            fb.listener.ttsStatus(false);
         view.setVisibility(View.GONE);
         fb.removeView(view);
         fb.ttsClose();
@@ -783,7 +785,6 @@ public class TTSPopup {
 
     public void dismiss() {
         close();
-        fb.listener.ttsStatus(false);
         fb.tts = null;
     }
 

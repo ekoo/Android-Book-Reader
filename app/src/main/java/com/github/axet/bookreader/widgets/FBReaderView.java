@@ -1225,9 +1225,10 @@ public class FBReaderView extends RelativeLayout {
         app.BookTextView.setModel(null);
         app.Model = null;
         book = null;
-        if (tts != null)
+        if (tts != null) {
             tts.close();
-        tts = null;
+            tts = null;
+        }
     }
 
     public ZLTextPosition getPosition() {
