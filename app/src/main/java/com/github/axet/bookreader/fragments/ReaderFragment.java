@@ -773,7 +773,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         ScreenlockPreference.onUserInteractionRemove();
         final MainActivity main = (MainActivity) getActivity();
         main.volumeEnabled = true;
-        fb.closeBook();
+        if (fb != null) // onDestory without onCreate
+            fb.closeBook();
         if (fontsPopup != null) {
             fontsPopup.dismiss();
             fontsPopup = null;
