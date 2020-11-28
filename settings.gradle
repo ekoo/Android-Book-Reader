@@ -1,2 +1,2 @@
-include ':app', ':android-fbreader-library', ':android-library', ':android-bookreader-library'
+include ':app', ':android-fbreader-library', ':android-library'
 

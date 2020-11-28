@@ -5,8 +5,17 @@ buildscript {
         google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.1.0'
+        classpath 'com.android.tools.build:gradle:4.0.2'
         classpath 'digital.wup:android-maven-publish:3.6.2'
+        classpath 'com.github.axet:gradle-android-dx:0.0.4'
+    }
+}
+
+allprojects {
+    repositories {
+        mavenLocal()
+        google()
+        jcenter()
     }
 }
 
