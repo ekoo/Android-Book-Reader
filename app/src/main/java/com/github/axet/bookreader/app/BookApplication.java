@@ -10,9 +10,6 @@ import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
 
 public class BookApplication extends MainApplication {
     public static String PREFERENCE_THEME = "theme";
-    public static String PREFERENCE_CATALOGS = "catalogs";
-    public static String PREFERENCE_CATALOGS_PREFIX = "catalogs_";
-    public static String PREFERENCE_CATALOGS_COUNT = "count";
     public static String PREFERENCE_FONTFAMILY_FBREADER = "fontfamily_fb";
     public static String PREFERENCE_FONTSIZE_FBREADER = "fontsize_fb";
     public static String PREFERENCE_FONTSIZE_REFLOW = "fontsize_reflow";

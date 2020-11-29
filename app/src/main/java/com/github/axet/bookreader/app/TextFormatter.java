@@ -64,9 +64,8 @@ public class TextFormatter {
 
     public static boolean find(ArrayList<Replacement> reps, Matcher m) {
         for (Replacement s : reps) {
-            if (s.start <= m.start() && m.start() < s.end || s.start <= m.end() && m.end() < s.end) {
+            if (s.start <= m.start() && m.start() < s.end || s.start <= m.end() && m.end() < s.end)
                 return true;
-            }
         }
         return false;
     }
