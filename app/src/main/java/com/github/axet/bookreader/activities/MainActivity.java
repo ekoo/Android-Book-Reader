@@ -33,6 +33,7 @@ import android.widget.TextView;
 
 import com.github.axet.androidlibrary.app.FileTypeDetector;
 import com.github.axet.androidlibrary.preferences.AboutPreferenceCompat;
+import com.github.axet.androidlibrary.preferences.RotatePreferenceCompat;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.ErrorDialog;
 import com.github.axet.androidlibrary.widgets.OpenChoicer;
@@ -46,7 +47,6 @@ import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.fragments.LibraryFragment;
 import com.github.axet.bookreader.fragments.ReaderFragment;
 import com.github.axet.bookreader.widgets.FBReaderView;
-import com.github.axet.bookreader.widgets.RotatePreferenceCompat;
 
 import org.geometerplus.fbreader.fbreader.options.ImageOptions;
 import org.geometerplus.fbreader.fbreader.options.MiscOptions;
