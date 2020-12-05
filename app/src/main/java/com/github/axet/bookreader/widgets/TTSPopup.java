@@ -20,6 +20,7 @@ import com.github.axet.androidlibrary.sound.TTS;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.BookApplication;
+import com.github.axet.bookreader.app.Plugin;
 import com.github.axet.bookreader.app.Storage;
 
 import org.geometerplus.fbreader.fbreader.TextBuildTraverser;
@@ -89,9 +90,9 @@ public class TTSPopup {
         return union;
     }
 
-    public static Rect getRect(PluginView.Selection.Page page, PluginView.Selection s, Storage.Bookmark bm) {
+    public static Rect getRect(Plugin.View.Selection.Page page, Plugin.View.Selection s, Storage.Bookmark bm) {
         Rect union = new Rect();
-        PluginView.Selection.Bounds bb = s.getBounds(page);
+        Plugin.View.Selection.Bounds bb = s.getBounds(page);
         for (Rect r : bb.rr)
             union.union(r);
         return union;
@@ -113,7 +114,7 @@ public class TTSPopup {
         return false;
     }
 
-    public static boolean isEOL(PluginView.Selection s) {
+    public static boolean isEOL(Plugin.View.Selection s) {
         String str = s.getText();
         for (String e : EOL) {
             if (str.equals(e))
@@ -232,7 +233,7 @@ public class TTSPopup {
 
     public class PluginWordCursor extends ZLTextPosition {
         int p, e, c; // points to symbol
-        PluginView.Selection all;
+        Plugin.View.Selection all;
         String allText;
         String text;
 
@@ -315,7 +316,7 @@ public class TTSPopup {
                 s = select();
             } while (isWord(s) && !stopOnLeft(s));
             e = last;
-            PluginView.Selection m = fb.pluginview.select(new ZLTextFixedPosition(p, e, 0), new ZLTextFixedPosition(sp, k, 0));
+            Plugin.View.Selection m = fb.pluginview.select(new ZLTextFixedPosition(p, e, 0), new ZLTextFixedPosition(sp, k, 0));
             text = m.getText();
             m.close();
         }
@@ -351,7 +352,7 @@ public class TTSPopup {
                 s = select();
             } while (isWord(s) && !stopOnRight(s));
             e = last;
-            PluginView.Selection m = fb.pluginview.select(new ZLTextFixedPosition(sp, k, 0), new ZLTextFixedPosition(p, e, 0));
+            Plugin.View.Selection m = fb.pluginview.select(new ZLTextFixedPosition(sp, k, 0), new ZLTextFixedPosition(p, e, 0));
             text = m.getText();
             m.close();
         }
@@ -577,7 +578,7 @@ public class TTSPopup {
                     updateGravity();
                 }
             } else {
-                PluginView.Selection s = fb.pluginview.select(fragment.fragment.start, fragment.fragment.end);
+                Plugin.View.Selection s = fb.pluginview.select(fragment.fragment.start, fragment.fragment.end);
                 Rect dst = ((PagerWidget) fb.widget).getPageRect();
                 ZLTextPosition px = fb.pluginview.getPosition();
                 if (px.getParagraphIndex() > fragment.fragment.start.getParagraphIndex()) {
@@ -589,8 +590,8 @@ public class TTSPopup {
                     });
                     fb.scrollPrevPage();
                 } else {
-                    PluginView.Selection.Page page = fb.pluginview.selectPage(px, ((PagerWidget) fb.widget).getInfo(), dst.width(), dst.height());
-                    PluginView.Selection.Bounds bounds = s.getBounds(page);
+                    Plugin.View.Selection.Page page = fb.pluginview.selectPage(px, ((PagerWidget) fb.widget).getInfo(), dst.width(), dst.height());
+                    Plugin.View.Selection.Bounds bounds = s.getBounds(page);
                     if (fb.pluginview.reflow) {
                         bounds.rr = fb.pluginview.boundsUpdate(bounds.rr, ((PagerWidget) fb.widget).getInfo());
                         bounds.start = true;
@@ -676,14 +677,14 @@ public class TTSPopup {
                     updateGravity();
                 }
             } else {
-                PluginView.Selection s = fb.pluginview.select(fragment.fragment.start, fragment.fragment.end);
+                Plugin.View.Selection s = fb.pluginview.select(fragment.fragment.start, fragment.fragment.end);
                 Rect dst = ((PagerWidget) fb.widget).getPageRect();
                 ZLTextPosition px = fb.pluginview.getPosition();
                 if (px.getParagraphIndex() < fragment.fragment.start.getParagraphIndex()) {
                     fb.scrollNextPage();
                 } else {
-                    PluginView.Selection.Page page = fb.pluginview.selectPage(px, ((PagerWidget) fb.widget).getInfo(), dst.width(), dst.height());
-                    PluginView.Selection.Bounds bounds = s.getBounds(page);
+                    Plugin.View.Selection.Page page = fb.pluginview.selectPage(px, ((PagerWidget) fb.widget).getInfo(), dst.width(), dst.height());
+                    Plugin.View.Selection.Bounds bounds = s.getBounds(page);
                     if (fb.pluginview.reflow) {
                         bounds.rr = fb.pluginview.boundsUpdate(bounds.rr, ((PagerWidget) fb.widget).getInfo());
                         bounds.start = true;
@@ -795,8 +796,8 @@ public class TTSPopup {
         int bottom = fb.getTop() + ((ScrollWidget) fb.widget).getMainAreaHeight();
         Rect rect;
         if (fb.pluginview != null) {
-            PluginView.Selection.Page page = fb.pluginview.selectPage(bm.start, v.info, v.getWidth(), v.getHeight());
-            PluginView.Selection s = fb.pluginview.select(bm.start, bm.end);
+            Plugin.View.Selection.Page page = fb.pluginview.selectPage(bm.start, v.info, v.getWidth(), v.getHeight());
+            Plugin.View.Selection s = fb.pluginview.select(bm.start, bm.end);
             rect = getRect(page, s, bm);
             s.close();
         } else {
@@ -886,9 +887,9 @@ public class TTSPopup {
                 view = (View) fb.widget;
                 info = ((PagerWidget) fb.widget).getInfo();
             }
-            PluginView.Selection s = fb.pluginview.select(fragment.fragment.start, fragment.fragment.end);
-            PluginView.Selection.Page page = fb.pluginview.selectPage(fragment.fragment.start, info, view.getWidth(), view.getHeight());
-            PluginView.Selection.Bounds bounds = s.getBounds(page);
+            Plugin.View.Selection s = fb.pluginview.select(fragment.fragment.start, fragment.fragment.end);
+            Plugin.View.Selection.Page page = fb.pluginview.selectPage(fragment.fragment.start, info, view.getWidth(), view.getHeight());
+            Plugin.View.Selection.Bounds bounds = s.getBounds(page);
             Rect r = SelectionView.union(Arrays.asList(bounds.rr));
             if (((View) fb.widget).getHeight() / 2 < view.getTop() + r.centerY())
                 updateGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP);
@@ -900,7 +901,7 @@ public class TTSPopup {
 
     public String getText(ZLTextPosition start, ZLTextPosition end) {
         if (fb.pluginview != null) {
-            PluginView.Selection s = fb.pluginview.select(start, end);
+            Plugin.View.Selection s = fb.pluginview.select(start, end);
             String str = s.getText();
             s.close();
             return str;
@@ -911,7 +912,7 @@ public class TTSPopup {
         }
     }
 
-    public void selectionOpen(PluginView.Selection s) {
+    public void selectionOpen(Plugin.View.Selection s) {
         marks.clear();
         Storage.Bookmark bm = new Storage.Bookmark(s.getText(), s.getStart(), s.getEnd());
         bm = expandWord(bm);

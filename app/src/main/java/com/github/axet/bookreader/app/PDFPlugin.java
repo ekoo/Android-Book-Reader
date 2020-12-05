@@ -11,9 +11,6 @@ import android.util.SparseArray;
 import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.bookreader.widgets.FBReaderView;
-import com.github.axet.bookreader.widgets.PluginPage;
-import com.github.axet.bookreader.widgets.PluginRect;
-import com.github.axet.bookreader.widgets.PluginView;
 import com.github.axet.bookreader.widgets.RenderRect;
 import com.github.axet.bookreader.widgets.ScrollWidget;
 import com.github.axet.pdfium.Config;
@@ -46,7 +43,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
-public class PDFPlugin extends BuiltinFormatPlugin {
+public class PDFPlugin extends BuiltinFormatPlugin implements Plugin {
     public static String TAG = PDFPlugin.class.getSimpleName();
 
     public static final String EXT = "pdf";
@@ -59,9 +56,9 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         return new PDFPlugin(info);
     }
 
-    public static class UL implements Comparator<Rect> {
+    public static class UL implements Comparator<android.graphics.Rect> {
         @Override
-        public int compare(Rect o1, Rect o2) {
+        public int compare(android.graphics.Rect o1, android.graphics.Rect o2) {
             int r = Integer.valueOf(o2.top).compareTo(Integer.valueOf(o1.top));
             if (r != 0)
                 return r;
@@ -77,7 +74,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         int count; // total symbols
         int w;
         int h;
-        Rect[] sorted;
+        android.graphics.Rect[] sorted;
 
         public SelectionPage(SelectionPage s) {
             page = s.page;
@@ -90,7 +87,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             sorted = s.sorted;
         }
 
-        public SelectionPage(Pdfium pdfium, PluginView.Selection.Page page) {
+        public SelectionPage(Pdfium pdfium, View.Selection.Page page) {
             this(page.page, pdfium.openPage(page.page), page.w, page.h);
         }
 
@@ -111,8 +108,8 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         public int first() {
-            for (Rect r : sorted) {
-                Rect k = new Rect(r);
+            for (android.graphics.Rect r : sorted) {
+                android.graphics.Rect k = new android.graphics.Rect(r);
                 int index;
                 do {
                     index = text.getIndex(k.left, k.centerY());
@@ -129,7 +126,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class Selection extends PluginView.Selection {
+    public static class Selection extends View.Selection {
         Pdfium pdfium;
         SelectionPage start;
         SelectionPage end;
@@ -343,11 +340,11 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public Rect[] getBoundsAll(Page page) {
+        public android.graphics.Rect[] getBoundsAll(Page page) {
             SelectionPage p = open(page);
-            Rect[] rr = p.text.getBounds(0, p.count);
+            android.graphics.Rect[] rr = p.text.getBounds(0, p.count);
             for (int i = 0; i < rr.length; i++) {
-                Rect r = rr[i];
+                android.graphics.Rect r = rr[i];
                 r = p.ppage.toDevice(0, 0, p.w, p.h, 0, r);
                 rr[i] = r;
             }
@@ -363,7 +360,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             bounds.end = b.last;
             bounds.rr = b.page.text.getBounds(b.ss, b.cc);
             for (int i = 0; i < bounds.rr.length; i++) {
-                Rect r = bounds.rr[i];
+                android.graphics.Rect r = bounds.rr[i];
                 r = b.page.ppage.toDevice(0, 0, b.page.w, b.page.h, 0, r);
                 bounds.rr[i] = r;
             }
@@ -484,7 +481,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class PdfSearch extends PluginView.Search {
+    public static class PdfSearch extends View.Search {
         Pdfium pdfium;
         ArrayList<SearchResult> all = new ArrayList<>();
         SparseArray<ArrayList<SearchResult>> pages = new SparseArray<>();
@@ -537,28 +534,28 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public Bounds getBounds(PluginView.Selection.Page page) {
+        public Bounds getBounds(View.Selection.Page page) {
             Bounds bounds = new Bounds();
             ArrayList<SearchResult> list = pages.get(page.page);
             if (list == null)
                 return null;
             Pdfium.Page p = pdfium.openPage(page.page);
             Pdfium.Text t = p.open();
-            ArrayList<Rect> rr = new ArrayList<>();
+            ArrayList<android.graphics.Rect> rr = new ArrayList<>();
             for (int i = 0; i < list.size(); i++) {
                 SearchResult r = list.get(i);
-                ArrayList<Rect> hh = new ArrayList<>();
-                Rect[] bb = t.getBounds(r.start, r.count());
-                for (Rect b : bb) {
+                ArrayList<android.graphics.Rect> hh = new ArrayList<>();
+                android.graphics.Rect[] bb = t.getBounds(r.start, r.count());
+                for (android.graphics.Rect b : bb) {
                     b = p.toDevice(0, 0, page.w, page.h, 0, b);
                     rr.add(b);
                     hh.add(b);
                 }
                 if (index >= 0 && r == all.get(index)) {
-                    bounds.highlight = hh.toArray(new Rect[0]);
+                    bounds.highlight = hh.toArray(new android.graphics.Rect[0]);
                 }
             }
-            bounds.rr = rr.toArray(new Rect[0]);
+            bounds.rr = rr.toArray(new android.graphics.Rect[0]);
             t.close();
             p.close();
             return bounds;
@@ -626,7 +623,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             if (str == null || str.isEmpty())
                 return;
             for (int i = 0; i < pdfium.getPagesCount(); i++) {
-                all.addAll(search(PluginView.Selection.odd(page, i, pdfium.getPagesCount())));
+                all.addAll(search(View.Selection.odd(page, i, pdfium.getPagesCount())));
                 if (all.size() > 0)
                     return;
             }
@@ -638,7 +635,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     }
 
     @TargetApi(21)
-    public static class NativePage extends PluginPage {
+    public static class NativePage extends Page {
         public PdfRenderer doc;
         public PdfRenderer.Page page;
 
@@ -671,12 +668,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             if (page != null)
                 page.close();
             page = doc.openPage(pageNumber);
-            pageBox = new PluginRect(0, 0, page.getWidth(), page.getHeight());
+            pageBox = new Plugin.Rect(0, 0, page.getWidth(), page.getHeight());
         }
     }
 
     @TargetApi(21)
-    public static class NativeView extends PluginView {
+    public static class NativeView extends View {
         public PdfRenderer doc;
 
         public NativeView(ZLFile f) {
@@ -713,7 +710,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     }
 
-    public static class PdfiumPage extends PluginPage {
+    public static class PdfiumPage extends Page {
         public Pdfium doc;
 
         public PdfiumPage(PdfiumPage r) {
@@ -758,12 +755,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         void load(int index) {
             Pdfium.Size s = doc.getPageSize(index);
-            pageBox = new PluginRect(0, 0, s.width, s.height);
+            pageBox = new Plugin.Rect(0, 0, s.width, s.height);
             dpi = 72; // default Pdifium resolution
         }
     }
 
-    public static class PdfiumView extends PluginView {
+    public static class PdfiumView extends View {
         ParcelFileDescriptor fd;
         public Pdfium doc;
 
@@ -788,7 +785,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public PluginPage getPageInfo(int w, int h, ScrollWidget.ScrollAdapter.PageCursor c) {
+        public Page getPageInfo(int w, int h, ScrollWidget.ScrollAdapter.PageCursor c) {
             int page;
             if (c.start == null)
                 page = c.end.getParagraphIndex() - 1;
@@ -973,6 +970,11 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     public PDFPlugin(Storage.Info info) {
         super(info, EXT);
+    }
+
+    @Override
+    public View create(Storage.FBook fbook) {
+        return new PDFPlugin.PdfiumView(BookUtil.fileByBook(fbook.book));
     }
 
     @Override

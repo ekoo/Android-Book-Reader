@@ -8,8 +8,10 @@ import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.widget.FrameLayout;
 
+import com.github.axet.bookreader.app.Plugin;
+
 public class WallpaperLayout extends FrameLayout {
-    PluginView bg = new PluginView();
+    Plugin.View bg = new Plugin.View();
 
     public WallpaperLayout(@NonNull Context context) {
         super(context);

@@ -28,7 +28,6 @@ import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.androidlibrary.widgets.WebViewCustom;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.widgets.FBReaderView;
-import com.github.axet.bookreader.widgets.PluginView;
 import com.github.axet.wget.SpeedInfo;
 
 import org.apache.commons.io.IOUtils;
@@ -634,7 +633,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             return -1;
         }
 
-        public ArrayList<Bookmark> getBookmarks(PluginView.Selection.Page page) {
+        public ArrayList<Bookmark> getBookmarks(Plugin.View.Selection.Page page) {
             ArrayList<Bookmark> list = new ArrayList<>();
             for (Bookmark b : this) {
                 if (b.start.getParagraphIndex() == page.page || b.end.getParagraphIndex() == page.page)

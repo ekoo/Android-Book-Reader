@@ -13,6 +13,7 @@ import android.util.DisplayMetrics;
 
 import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.bookreader.app.BookApplication;
+import com.github.axet.bookreader.app.Plugin;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.k2pdfopt.Config;
 import com.github.axet.k2pdfopt.K2PdfOpt;
@@ -28,9 +29,9 @@ public class Reflow {
     public int page; // document page
     public int index = 0; // current view position
     public int pending = 0; // pending action, so we can cancel it
-    int w;
-    int h;
-    int rw;
+    public int w;
+    public int h;
+    public int rw;
     Context context;
     public Bitmap bm; // source bm, in case or errors, recycled otherwise
     public Storage.RecentInfo info;
@@ -223,7 +224,7 @@ public class Reflow {
         recycle();
     }
 
-    public Bitmap drawSrc(PluginView pluginview, Info info, Rect r) {
+    public Bitmap drawSrc(Plugin.View pluginview, Info info, Rect r) {
         Bitmap bm = drawSrc(pluginview, info);
         Canvas c = new Canvas(bm);
         Paint paint = new Paint();
@@ -235,7 +236,7 @@ public class Reflow {
         return bm;
     }
 
-    public Bitmap drawSrc(PluginView pluginview, Info info, Point p) {
+    public Bitmap drawSrc(Plugin.View pluginview, Info info, Point p) {
         Bitmap bm = drawSrc(pluginview, info);
         Canvas c = new Canvas(bm);
         Paint paint = new Paint();
@@ -247,7 +248,7 @@ public class Reflow {
         return bm;
     }
 
-    public Bitmap drawSrc(PluginView pluginview, Info info) {
+    public Bitmap drawSrc(Plugin.View pluginview, Info info) {
         Bitmap b = pluginview.render(w, h, Reflow.this.page);
         Canvas canvas = new Canvas(b);
         draw(canvas, info.src.keySet());

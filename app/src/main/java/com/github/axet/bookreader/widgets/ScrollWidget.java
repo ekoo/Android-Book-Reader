@@ -27,6 +27,7 @@ import android.widget.TextView;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.androidlibrary.widgets.TopAlwaysSmoothScroller;
 import com.github.axet.bookreader.app.PDFPlugin;
+import com.github.axet.bookreader.app.Plugin;
 import com.github.axet.bookreader.app.Storage;
 
 import org.geometerplus.fbreader.fbreader.FBView;
@@ -34,7 +35,6 @@ import org.geometerplus.fbreader.fbreader.options.PageTurningOptions;
 import org.geometerplus.zlibrary.core.view.ZLView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.core.view.ZLViewWidget;
-import org.geometerplus.zlibrary.text.view.ZLTextElementArea;
 import org.geometerplus.zlibrary.text.view.ZLTextElementAreaVector;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextPosition;
@@ -59,7 +59,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
         public ArrayList<PageCursor> pages = new ArrayList<>(); // adapter items
         final Object lock = new Object();
         Thread thread;
-        PluginRect size = new PluginRect(); // ScrollView size, after reset
+        Plugin.Rect size = new Plugin.Rect(); // ScrollView size, after reset
         Set<PageHolder> invalidates = new HashSet<>(); // pending invalidates
         ArrayList<PageHolder> holders = new ArrayList<>(); // keep all active holders, including Recycler.mCachedViews
         ZLTextPosition oldTurn; // last page shown
@@ -186,8 +186,9 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                                         @Override
                                         public void run() {
                                             int i = index;
+                                            final Plugin.View pluginview = fb.pluginview; // closeBook
                                             Reflow reflower = new Reflow(getContext(), w, h, page, (FBReaderView.CustomView) fb.app.BookTextView, fb.book.info);
-                                            Bitmap bm = fb.pluginview.render(reflower.w, reflower.h, page);
+                                            Bitmap bm = pluginview.render(reflower.w, reflower.h, page);
                                             reflower.load(bm);
                                             if (reflower.count() > 0)
                                                 bm.recycle();
@@ -197,7 +198,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                                             }
                                             reflower.index = i;
                                             synchronized (lock) {
-                                                fb.pluginview.reflower = reflower;
+                                                pluginview.reflower = reflower;
                                                 thread = null;
                                             }
                                         }
@@ -770,7 +771,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
             if (!openCursor(e))
                 return;
             if (fb.pluginview != null) {
-                PluginView.Selection s = fb.pluginview.select(c.start, v.info, v.getWidth(), v.getHeight(), x, y);
+                Plugin.View.Selection s = fb.pluginview.select(c.start, v.info, v.getWidth(), v.getHeight(), x, y);
                 if (s != null) {
                     if (fb.tts != null)
                         fb.tts.selectionOpen(s);
@@ -1157,13 +1158,13 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
             adapter.open(c);
             if (fb.scrollDelayed != null) {
                 if (fb.pluginview != null) {
-                    PluginPage info = fb.pluginview.getPageInfo(getWidth(), getHeight(), c);
+                    Plugin.Page info = fb.pluginview.getPageInfo(getWidth(), getHeight(), c);
                     for (ScrollAdapter.PageCursor p : adapter.pages) {
                         if (p.start != null && p.start.getParagraphIndex() == fb.scrollDelayed.getParagraphIndex()) {
                             if (fb.scrollDelayed instanceof FBReaderView.ZLTextIndexPosition) {
-                                PluginView.Selection s = fb.pluginview.select(fb.scrollDelayed, ((FBReaderView.ZLTextIndexPosition) fb.scrollDelayed).end);
-                                PluginView.Selection.Page page = fb.pluginview.selectPage(fb.scrollDelayed, null, info.w, info.h);
-                                PluginView.Selection.Bounds bb = s.getBounds(page);
+                                Plugin.View.Selection s = fb.pluginview.select(fb.scrollDelayed, ((FBReaderView.ZLTextIndexPosition) fb.scrollDelayed).end);
+                                Plugin.View.Selection.Page page = fb.pluginview.selectPage(fb.scrollDelayed, null, info.w, info.h);
+                                Plugin.View.Selection.Bounds bb = s.getBounds(page);
                                 s.close();
                                 Rect union = SelectionView.union(Arrays.asList(bb.rr));
                                 int offset = union.top;
@@ -1249,7 +1250,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
             adapter.loadPages(fb.pluginview.reflower);
             for (int i = 0; i < adapter.pages.size(); i++) {
                 ScrollAdapter.PageCursor c = adapter.pages.get(i);
-                PluginPage pinfo = fb.pluginview.getPageInfo(getWidth(), getHeight(), c);
+                Plugin.Page pinfo = fb.pluginview.getPageInfo(getWidth(), getHeight(), c);
                 if (c.start != null && c.start.getParagraphIndex() == fb.scrollDelayed.getParagraphIndex()) {
                     Reflow.Info info = new Reflow.Info(fb.pluginview.reflower, c.start.getElementIndex());
                     double ratio = info.bm.width() / (double) getWidth();
@@ -1257,9 +1258,9 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                     Collections.sort(ss, new SelectionView.UL());
                     int offset;
                     if (fb.scrollDelayed instanceof FBReaderView.ZLTextIndexPosition) {
-                        PluginView.Selection s = fb.pluginview.select(fb.scrollDelayed, ((FBReaderView.ZLTextIndexPosition) fb.scrollDelayed).end);
-                        PluginView.Selection.Page page = fb.pluginview.selectPage(fb.scrollDelayed, info, pinfo.w, pinfo.h);
-                        PluginView.Selection.Bounds bb = s.getBounds(page);
+                        Plugin.View.Selection s = fb.pluginview.select(fb.scrollDelayed, ((FBReaderView.ZLTextIndexPosition) fb.scrollDelayed).end);
+                        Plugin.View.Selection.Page page = fb.pluginview.selectPage(fb.scrollDelayed, info, pinfo.w, pinfo.h);
+                        Plugin.View.Selection.Bounds bb = s.getBounds(page);
                         s.close();
                         Rect union = SelectionView.union(Arrays.asList(bb.rr));
                         offset = union.top;
@@ -1337,7 +1338,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
         } else {
             ScrollAdapter.PageCursor c = adapter.pages.get(pos);
 
-            final PluginView.Selection.Page page;
+            final Plugin.View.Selection.Page page;
 
             if (c.start == null || c.end == null)
                 page = null;
@@ -1377,7 +1378,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
         } else {
             ScrollAdapter.PageCursor c = adapter.pages.get(pos);
 
-            final PluginView.Selection.Page page;
+            final Plugin.View.Selection.Page page;
 
             if (c.start == null || c.end == null)
                 page = null;
@@ -1424,7 +1425,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
         } else {
             ScrollAdapter.PageCursor c = adapter.pages.get(pos);
 
-            final PluginView.Selection.Page page;
+            final Plugin.View.Selection.Page page;
 
             if (c.start == null || c.end == null)
                 page = null;
@@ -1459,8 +1460,8 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                 for (int i = 0; i < fb.pluginview.reflower.count(); i++) {
                     Reflow.Info info = new Reflow.Info(fb.pluginview.reflower, i);
                     ZLTextPosition pos = new ZLTextFixedPosition(page, i, 0);
-                    PluginView.Selection.Page p = fb.pluginview.selectPage(pos, info, fb.pluginview.reflower.w, fb.pluginview.reflower.h);
-                    PluginView.Search.Bounds bb = fb.search.getBounds(p);
+                    Plugin.View.Selection.Page p = fb.pluginview.selectPage(pos, info, fb.pluginview.reflower.w, fb.pluginview.reflower.h);
+                    Plugin.View.Search.Bounds bb = fb.search.getBounds(p);
                     if (bb.rr != null) {
                         bb.rr = fb.pluginview.boundsUpdate(bb.rr, info);
                         if (bb.highlight != null) {
@@ -1493,8 +1494,8 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                 if (pos != -1) {
                     ScrollAdapter.PageCursor c = adapter.pages.get(pos);
                     if (c.start != null && c.start.getParagraphIndex() == page) {
-                        PluginView.Selection.Page p = fb.pluginview.selectPage(c.start, holder.page.info, holder.page.getWidth(), holder.page.getHeight());
-                        PluginView.Search.Bounds bb = fb.search.getBounds(p);
+                        Plugin.View.Selection.Page p = fb.pluginview.selectPage(c.start, holder.page.info, holder.page.getWidth(), holder.page.getHeight());
+                        Plugin.View.Search.Bounds bb = fb.search.getBounds(p);
                         if (bb.rr != null) {
                             if (bb.highlight != null) {
                                 HashSet hh = new HashSet(Arrays.asList(bb.highlight));
@@ -1563,7 +1564,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
         } else {
             ScrollAdapter.PageCursor c = adapter.pages.get(pos);
 
-            final PluginView.Selection.Page page;
+            final Plugin.View.Selection.Page page;
 
             if (c.start == null || c.end == null) {
                 page = null;
@@ -1605,7 +1606,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
             ScrollAdapter.PageCursor c = adapter.pages.get(pos);
 
             boolean selected = true;
-            final PluginView.Selection.Page page;
+            final Plugin.View.Selection.Page page;
 
             if (c.start == null || c.end == null) {
                 selected = false;
@@ -1637,7 +1638,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                 for (int i = 0; !a && i < ii.size(); i++) {
                     f = ii.get(i);
                     do {
-                        a = fb.selection.selection.isValid(page, new PluginView.Selection.Point(f.left, f.centerY()));
+                        a = fb.selection.selection.isValid(page, new Plugin.View.Selection.Point(f.left, f.centerY()));
                     } while (!a && ++f.left < f.right);
                 }
                 first = f;
@@ -1647,12 +1648,12 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                 for (int i = ii.size() - 1; !b && i >= 0; i--) {
                     l = ii.get(i);
                     do {
-                        b = fb.selection.selection.isValid(page, new PluginView.Selection.Point(l.right, l.centerY()));
+                        b = fb.selection.selection.isValid(page, new Plugin.View.Selection.Point(l.right, l.centerY()));
                     } while (!b && --l.right > l.left);
                 }
                 last = l;
 
-                Boolean r = fb.selection.selection.inBetween(page, new PluginView.Selection.Point(f.left, f.centerY()), new PluginView.Selection.Point(l.right, l.centerY()));
+                Boolean r = fb.selection.selection.inBetween(page, new Plugin.View.Selection.Point(f.left, f.centerY()), new Plugin.View.Selection.Point(l.right, l.centerY()));
 
                 selected = r != null && r;
             } else {
@@ -1664,7 +1665,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
 
             if (selected) {
                 if (view.selection == null) {
-                    PluginView.Selection.Setter setter = new PDFPlugin.Selection.Setter() {
+                    Plugin.View.Selection.Setter setter = new PDFPlugin.Selection.Setter() {
                         @Override
                         public void setStart(int x, int y) {
                             int pos = NO_POSITION;
@@ -1675,8 +1676,8 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                                     ScrollAdapter.PageCursor c = adapter.pages.get(pos);
                                     x = x - v.getLeft();
                                     y = y - v.getTop();
-                                    PluginView.Selection.Page page = fb.pluginview.selectPage(c.start, v.info, v.getWidth(), v.getHeight());
-                                    PluginView.Selection.Point point = fb.pluginview.selectPoint(v.info, x, y);
+                                    Plugin.View.Selection.Page page = fb.pluginview.selectPage(c.start, v.info, v.getWidth(), v.getHeight());
+                                    Plugin.View.Selection.Point point = fb.pluginview.selectPoint(v.info, x, y);
                                     if (point != null)
                                         fb.selection.selection.setStart(page, point);
                                 }
@@ -1696,8 +1697,8 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                                     ScrollAdapter.PageCursor c = adapter.pages.get(pos);
                                     x = x - v.getLeft();
                                     y = y - v.getTop();
-                                    PluginView.Selection.Page page = fb.pluginview.selectPage(c.start, v.info, v.getWidth(), v.getHeight());
-                                    PluginView.Selection.Point point = fb.pluginview.selectPoint(v.info, x, y);
+                                    Plugin.View.Selection.Page page = fb.pluginview.selectPage(c.start, v.info, v.getWidth(), v.getHeight());
+                                    Plugin.View.Selection.Point point = fb.pluginview.selectPoint(v.info, x, y);
                                     if (point != null)
                                         fb.selection.selection.setEnd(page, point);
                                 }
@@ -1708,13 +1709,13 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
                         }
 
                         @Override
-                        public PluginView.Selection.Bounds getBounds() {
-                            PluginView.Selection.Bounds bounds = fb.selection.selection.getBounds(page);
+                        public Plugin.View.Selection.Bounds getBounds() {
+                            Plugin.View.Selection.Bounds bounds = fb.selection.selection.getBounds(page);
                             if (fb.pluginview.reflow) {
                                 bounds.rr = fb.pluginview.boundsUpdate(bounds.rr, view.info);
 
-                                Boolean a = fb.selection.selection.isAbove(page, new PluginView.Selection.Point(first.left, first.centerY()));
-                                Boolean b = fb.selection.selection.isBelow(page, new PluginView.Selection.Point(last.right, last.centerY()));
+                                Boolean a = fb.selection.selection.isAbove(page, new Plugin.View.Selection.Point(first.left, first.centerY()));
+                                Boolean b = fb.selection.selection.isBelow(page, new Plugin.View.Selection.Point(last.right, last.centerY()));
 
                                 bounds.start = a != null && !a;
                                 bounds.end = b != null && !b;

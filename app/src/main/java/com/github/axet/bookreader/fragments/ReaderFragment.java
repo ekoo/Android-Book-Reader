@@ -52,10 +52,10 @@ import com.github.axet.bookreader.activities.FullscreenActivity;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.ComicsPlugin;
+import com.github.axet.bookreader.app.Plugin;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.BookmarksDialog;
 import com.github.axet.bookreader.widgets.FBReaderView;
-import com.github.axet.bookreader.widgets.PluginView;
 import com.github.axet.bookreader.widgets.ScrollWidget;
 import com.github.axet.bookreader.widgets.ToolbarButtonView;
 
@@ -608,7 +608,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public View onCreateView(final LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+                                          Bundle savedInstanceState) {
         final View v = inflater.inflate(R.layout.fragment_reader, container, false);
 
         final MainActivity main = (MainActivity) getActivity();
@@ -956,7 +956,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         if (fb.pluginview == null) {
             search = true;
         } else {
-            PluginView.Search s = fb.pluginview.search("");
+            Plugin.View.Search s = fb.pluginview.search("");
             if (s == null) {
                 search = false;
             } else {
