@@ -924,6 +924,12 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
             protected int getExtraLayoutSpace(State state) {
                 return getMainAreaHeight(); // when we need to start preloading to work = full screen
             }
+
+            @Override
+            public void onDetachedFromWindow(RecyclerView view, Recycler recycler) {
+                super.onDetachedFromWindow(view, recycler);
+                fb.removeCallbacks(idle); // drawCache() crash after closeBook()
+            }
         };
 
         setLayoutManager(lm);
