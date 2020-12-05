@@ -664,7 +664,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         String s = u.getScheme();
         if (Build.VERSION.SDK_INT >= 21 && s.equals(ContentResolver.SCHEME_CONTENT)) {
             Uri root = Storage.getDocumentTreeUri(u);
-            Uri o = createFile(context, root, Storage.getDocumentChildPath(u));
+            String id = DocumentsContract.getTreeDocumentId(u);
+            String path;
+            if (!id.contains(COLON)) // downloads/home/etc
+                path = getDocumentName(context, u);
+            else
+                path = Storage.getDocumentChildPath(u);
+            Uri o = createFile(context, root, path);
             ContentResolver resolver = context.getContentResolver();
             ParcelFileDescriptor fd;
             try {
@@ -898,9 +904,13 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         String t = childCursor.getString(childCursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME));
                         String n = Storage.getNameNoExt(t);
                         String e = Storage.getExt(t);
-                        if (n.equals(book.md5) && !e.equals(JSON_EXT)) { // delete all but json
+                        if (n.equals(book.md5) && !e.equals(JSON_EXT)) { // delete all but book and json
                             Uri k = DocumentsContract.buildDocumentUriUsingTree(childrenUri, id);
-                            delete(context, k);
+                            try {
+                                delete(context, k);
+                            } catch (RuntimeException e1) {
+                                Log.w(TAG, e1);
+                            }
                         }
                     }
                 }
@@ -1154,8 +1164,11 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         if (book.cover != null)
             book.cover.delete();
 
-        delete(context, recentUri(book));
-
+        try {
+            delete(context, recentUri(book));
+        } catch (RuntimeException e) {
+            Log.e(TAG, "failed to delete json", e); // not exists? IllegalArgument if not exists
+        }
         // delete all md5.* files (old, cover images, and sync conflicts files)
         Uri storage = getStoragePath();
         String s = storage.getScheme();
