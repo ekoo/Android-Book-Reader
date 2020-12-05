@@ -608,7 +608,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
     @Override
     public View onCreateView(final LayoutInflater inflater, ViewGroup container,
-                                          Bundle savedInstanceState) {
+                             Bundle savedInstanceState) {
         final View v = inflater.inflate(R.layout.fragment_reader, container, false);
 
         final MainActivity main = (MainActivity) getActivity();
@@ -665,8 +665,13 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 fb.gotoPosition(pos);
         } catch (RuntimeException e) {
             ErrorDialog.Error(main, e);
-            if (!main.isFinishing())
-                main.openLibrary();
+            handler.post(new Runnable() { // or openLibrary crash with java.lang.IllegalStateException on FragmentActivity.onResume
+                @Override
+                public void run() {
+                    if (!main.isFinishing())
+                        main.openLibrary();
+                }
+            });
         }
 
         handler.post(new Runnable() {
