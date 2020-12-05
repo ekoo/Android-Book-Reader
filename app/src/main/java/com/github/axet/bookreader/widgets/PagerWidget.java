@@ -7,6 +7,9 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 
+import com.github.axet.bookreader.app.Plugin;
+import com.github.axet.bookreader.app.Reflow;
+
 import org.geometerplus.fbreader.fbreader.options.PageTurningOptions;
 import org.geometerplus.zlibrary.core.application.ZLApplication;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
@@ -56,9 +59,8 @@ public class PagerWidget extends ZLAndroidWidget {
                 if (key.getElementIndex() == 0) {
                     int p = key.getParagraphIndex() - 1;
                     for (ZLTextPosition k : keySet()) {
-                        if (k.getParagraphIndex() == p && get(k) == null) {
+                        if (k.getParagraphIndex() == p && get(k) == null)
                             super.put(k, value); // update (2,3,0) == (3,0,0)
-                        }
                     }
                 }
             }
@@ -109,7 +111,7 @@ public class PagerWidget extends ZLAndroidWidget {
         if (fb.pluginview.reflow) {
             dst = new Rect(0, 0, getWidth(), getHeight());
         } else {
-            PluginPage p = fb.pluginview.current; // not using current.renderRect() show partial page
+            Plugin.Page p = fb.pluginview.current; // not using current.renderRect() show partial page
             if (p.pageOffset < 0) { // show empty space at beginig
                 int t = (int) (-p.pageOffset / p.ratio);
                 dst = new Rect(0, t, p.w, t + (int) (p.pageBox.h / p.ratio));
@@ -157,7 +159,7 @@ public class PagerWidget extends ZLAndroidWidget {
                 info = new Reflow.Info(fb.pluginview.reflower, position.getElementIndex());
                 infos.put(position, info);
             } else {
-                PluginPage old = new PluginPage(fb.pluginview.current) {
+                Plugin.Page old = new Plugin.Page(fb.pluginview.current) {
                     @Override
                     public void load() {
                     }
@@ -171,7 +173,7 @@ public class PagerWidget extends ZLAndroidWidget {
                 position = new ZLTextFixedPosition(old.pageNumber, 0, 0);
             }
             Rect dst = getPageRect();
-            PluginView.Selection.Page page = fb.pluginview.selectPage(position, info, dst.width(), dst.height());
+            Plugin.View.Selection.Page page = fb.pluginview.selectPage(position, info, dst.width(), dst.height());
             FBReaderView.LinksView l = new FBReaderView.LinksView(fb, fb.pluginview.getLinks(page), info);
             FBReaderView.LinksView lold = links.put(position, l);
             if (lold != null)
@@ -331,8 +333,8 @@ public class PagerWidget extends ZLAndroidWidget {
             for (int i = 0; i < fb.pluginview.reflower.count(); i++) {
                 Reflow.Info info = new Reflow.Info(fb.pluginview.reflower, i);
                 ZLTextPosition pos = new ZLTextFixedPosition(page, i, 0);
-                PluginView.Selection.Page p = fb.pluginview.selectPage(pos, info, fb.pluginview.reflower.w, fb.pluginview.reflower.h);
-                PluginView.Search.Bounds bb = fb.search.getBounds(p);
+                Plugin.View.Selection.Page p = fb.pluginview.selectPage(pos, info, fb.pluginview.reflower.w, fb.pluginview.reflower.h);
+                Plugin.View.Search.Bounds bb = fb.search.getBounds(p);
                 if (bb.rr != null) {
                     bb.rr = fb.pluginview.boundsUpdate(bb.rr, info);
                     if (bb.highlight != null) {
@@ -347,8 +349,8 @@ public class PagerWidget extends ZLAndroidWidget {
             resetCache();
         } else {
             ZLTextPosition pos = new ZLTextFixedPosition(page, 0, 0);
-            PluginView.Selection.Page p = fb.pluginview.selectPage(pos, getInfo(), dst.width(), dst.height());
-            PluginView.Search.Bounds bb = fb.search.getBounds(p);
+            Plugin.View.Selection.Page p = fb.pluginview.selectPage(pos, getInfo(), dst.width(), dst.height());
+            Plugin.View.Search.Bounds bb = fb.search.getBounds(p);
             if (bb.rr != null) {
                 if (bb.highlight != null) {
                     HashSet hh = new HashSet(Arrays.asList(bb.highlight));
@@ -409,14 +411,14 @@ public class PagerWidget extends ZLAndroidWidget {
         if (fb.pluginview != null) {
             final Rect dst = getPageRect();
             ZLTextPosition pos = getPosition();
-            final PluginView.Selection s = fb.pluginview.select(pos, getInfo(), dst.width(), dst.height(), x - dst.left, y - dst.top);
+            final Plugin.View.Selection s = fb.pluginview.select(pos, getInfo(), dst.width(), dst.height(), x - dst.left, y - dst.top);
             if (s != null) {
                 if (fb.tts != null) {
                     fb.tts.selectionOpen(s);
                 } else {
                     selectionPage = pos;
                     fb.selectionOpen(s);
-                    final PluginView.Selection.Page page = fb.pluginview.selectPage(pos, getInfo(), dst.width(), dst.height());
+                    final Plugin.View.Selection.Page page = fb.pluginview.selectPage(pos, getInfo(), dst.width(), dst.height());
                     final Runnable run = new Runnable() {
                         @Override
                         public void run() {
@@ -427,10 +429,10 @@ public class PagerWidget extends ZLAndroidWidget {
                             fb.selection.update((SelectionView.PageView) fb.selection.getChildAt(0), x, y);
                         }
                     };
-                    PluginView.Selection.Setter setter = new PluginView.Selection.Setter() {
+                    Plugin.View.Selection.Setter setter = new Plugin.View.Selection.Setter() {
                         @Override
                         public void setStart(int x, int y) {
-                            PluginView.Selection.Point point = fb.pluginview.selectPoint(getInfo(), x - dst.left, y - dst.top);
+                            Plugin.View.Selection.Point point = fb.pluginview.selectPoint(getInfo(), x - dst.left, y - dst.top);
                             if (point != null)
                                 s.setStart(page, point);
                             run.run();
@@ -438,15 +440,15 @@ public class PagerWidget extends ZLAndroidWidget {
 
                         @Override
                         public void setEnd(int x, int y) {
-                            PluginView.Selection.Point point = fb.pluginview.selectPoint(getInfo(), x - dst.left, y - dst.top);
+                            Plugin.View.Selection.Point point = fb.pluginview.selectPoint(getInfo(), x - dst.left, y - dst.top);
                             if (point != null)
                                 s.setEnd(page, point);
                             run.run();
                         }
 
                         @Override
-                        public PluginView.Selection.Bounds getBounds() {
-                            PluginView.Selection.Bounds bounds = s.getBounds(page);
+                        public Plugin.View.Selection.Bounds getBounds() {
+                            Plugin.View.Selection.Bounds bounds = s.getBounds(page);
                             if (fb.pluginview.reflow) {
                                 bounds.rr = fb.pluginview.boundsUpdate(bounds.rr, getInfo());
                                 bounds.start = true;

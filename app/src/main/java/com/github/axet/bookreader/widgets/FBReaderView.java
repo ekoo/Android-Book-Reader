@@ -46,9 +46,8 @@ import com.github.axet.androidlibrary.widgets.PinchView;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.BookApplication;
-import com.github.axet.bookreader.app.ComicsPlugin;
-import com.github.axet.bookreader.app.DjvuPlugin;
-import com.github.axet.bookreader.app.PDFPlugin;
+import com.github.axet.bookreader.app.Plugin;
+import com.github.axet.bookreader.app.Reflow;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.services.ImagesProvider;
 import com.github.johnpersano.supertoasts.SuperActivityToast;
@@ -64,7 +63,6 @@ import org.geometerplus.android.fbreader.dict.DictionaryUtil;
 import org.geometerplus.android.fbreader.libraryService.BookCollectionShadow;
 import org.geometerplus.android.util.UIMessageUtil;
 import org.geometerplus.android.util.UIUtil;
-import org.geometerplus.fbreader.book.BookUtil;
 import org.geometerplus.fbreader.bookmodel.BookModel;
 import org.geometerplus.fbreader.bookmodel.FBHyperlinkType;
 import org.geometerplus.fbreader.bookmodel.TOCTree;
@@ -94,7 +92,6 @@ import org.geometerplus.zlibrary.text.model.ZLTextModel;
 import org.geometerplus.zlibrary.text.view.ZLTextControlElement;
 import org.geometerplus.zlibrary.text.view.ZLTextElement;
 import org.geometerplus.zlibrary.text.view.ZLTextElementArea;
-import org.geometerplus.zlibrary.text.view.ZLTextElementAreaVector;
 import org.geometerplus.zlibrary.text.view.ZLTextFixedPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextHighlighting;
 import org.geometerplus.zlibrary.text.view.ZLTextHyperlink;
@@ -106,7 +103,6 @@ import org.geometerplus.zlibrary.text.view.ZLTextPosition;
 import org.geometerplus.zlibrary.text.view.ZLTextRegion;
 import org.geometerplus.zlibrary.text.view.ZLTextSimpleHighlighting;
 import org.geometerplus.zlibrary.text.view.ZLTextView;
-import org.geometerplus.zlibrary.text.view.ZLTextWord;
 import org.geometerplus.zlibrary.text.view.ZLTextWordCursor;
 import org.geometerplus.zlibrary.text.view.ZLTextWordRegionSoul;
 import org.geometerplus.zlibrary.ui.android.view.ZLAndroidPaintContext;
@@ -133,14 +129,14 @@ public class FBReaderView extends RelativeLayout {
     public ZLViewWidget widget;
     public int battery;
     public Storage.FBook book;
-    public PluginView pluginview;
+    public Plugin.View pluginview;
     public Listener listener;
     String title;
     Window w;
     SelectionView selection;
     ZLTextPosition scrollDelayed;
     DrawerLayout drawer;
-    PluginView.Search search;
+    Plugin.View.Search search;
     public TTSPopup tts;
     int searchPagePending;
 
@@ -766,12 +762,12 @@ public class FBReaderView extends RelativeLayout {
         FBReaderView fb;
         public ArrayList<View> links = new ArrayList<>();
 
-        public LinksView(final FBReaderView view, PluginView.Link[] ll, Reflow.Info info) {
+        public LinksView(final FBReaderView view, Plugin.View.Link[] ll, Reflow.Info info) {
             this.fb = view;
             if (ll == null)
                 return;
             for (int i = 0; i < ll.length; i++) {
-                final PluginView.Link l = ll[i];
+                final Plugin.View.Link l = ll[i];
                 Rect[] rr;
                 if (fb.pluginview.reflow) {
                     rr = fb.pluginview.boundsUpdate(new Rect[]{l.rect}, info);
@@ -847,14 +843,14 @@ public class FBReaderView extends RelativeLayout {
 
             @Override
             public void draw(Canvas canvas) {
-                android.graphics.Rect c = canvas.getClipBounds();
+                Rect c = canvas.getClipBounds();
                 c.bottom = clip - getTop();
                 canvas.clipRect(c);
                 super.draw(canvas);
             }
         }
 
-        public BookmarksView(final FBReaderView view, PluginView.Selection.Page page, Storage.Bookmarks bms, Reflow.Info info) {
+        public BookmarksView(final FBReaderView view, Plugin.View.Selection.Page page, Storage.Bookmarks bms, Reflow.Info info) {
             this.fb = view;
             if (fb.widget instanceof ScrollWidget)
                 clip = ((ScrollWidget) fb.widget).getMainAreaHeight();
@@ -868,8 +864,8 @@ public class FBReaderView extends RelativeLayout {
             for (int i = 0; i < ll.size(); i++) {
                 final ArrayList<View> bmv = new ArrayList<>();
                 final Storage.Bookmark l = ll.get(i);
-                PluginView.Selection s = fb.pluginview.select(l.start, l.end);
-                PluginView.Selection.Bounds bb = s.getBounds(page);
+                Plugin.View.Selection s = fb.pluginview.select(l.start, l.end);
+                Plugin.View.Selection.Bounds bb = s.getBounds(page);
                 s.close();
                 Rect union = null;
                 Rect[] rr;
@@ -951,7 +947,7 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public static class TTSView extends BookmarksView {
-        public TTSView(final FBReaderView view, PluginView.Selection.Page page, Reflow.Info info) {
+        public TTSView(final FBReaderView view, Plugin.View.Selection.Page page, Reflow.Info info) {
             super(view, page, view.tts.marks, info);
         }
 
@@ -975,7 +971,7 @@ public class FBReaderView extends RelativeLayout {
 
             @Override
             public void draw(Canvas canvas) {
-                android.graphics.Rect c = canvas.getClipBounds();
+                Rect c = canvas.getClipBounds();
                 c.bottom = clip - getTop();
                 canvas.clipRect(c);
                 super.draw(canvas);
@@ -983,7 +979,7 @@ public class FBReaderView extends RelativeLayout {
         }
 
         @SuppressWarnings("unchecked")
-        public SearchView(FBReaderView view, PluginView.Search.Bounds bb, Reflow.Info info) {
+        public SearchView(FBReaderView view, Plugin.View.Search.Bounds bb, Reflow.Info info) {
             this.fb = view;
             if (fb.widget instanceof ScrollWidget)
                 clip = ((ScrollWidget) fb.widget).getMainAreaHeight();
@@ -1175,22 +1171,8 @@ public class FBReaderView extends RelativeLayout {
             if (book.info == null)
                 book.info = new Storage.RecentInfo();
             FormatPlugin plugin = Storage.getPlugin((Storage.Info) app.SystemInfo, fbook);
-            if (plugin instanceof PDFPlugin) {
-                pluginview = new PDFPlugin.PdfiumView(BookUtil.fileByBook(fbook.book));
-                BookModel Model = BookModel.createModel(fbook.book, plugin);
-                app.BookTextView.setModel(Model.getTextModel());
-                app.Model = Model;
-                if (book.info.position != null)
-                    gotoPluginPosition(book.info.position);
-            } else if (plugin instanceof DjvuPlugin) {
-                pluginview = new DjvuPlugin.DjvuView(BookUtil.fileByBook(fbook.book));
-                BookModel Model = BookModel.createModel(fbook.book, plugin);
-                app.BookTextView.setModel(Model.getTextModel());
-                app.Model = Model;
-                if (book.info.position != null)
-                    gotoPluginPosition(book.info.position);
-            } else if (plugin instanceof ComicsPlugin) {
-                pluginview = new ComicsPlugin.ComicsView(BookUtil.fileByBook(fbook.book));
+            if (plugin instanceof Plugin) {
+                pluginview = ((Plugin) plugin).create(fbook);
                 BookModel Model = BookModel.createModel(fbook.book, plugin);
                 app.BookTextView.setModel(Model.getTextModel());
                 app.Model = Model;
@@ -1225,9 +1207,10 @@ public class FBReaderView extends RelativeLayout {
         app.BookTextView.setModel(null);
         app.Model = null;
         book = null;
-        if (tts != null)
+        if (tts != null) {
             tts.close();
-        tts = null;
+            tts = null;
+        }
     }
 
     public ZLTextPosition getPosition() {
@@ -1238,7 +1221,7 @@ public class FBReaderView extends RelativeLayout {
                     RecyclerView.ViewHolder h = ((ScrollWidget) widget).findViewHolderForAdapterPosition(first);
                     ScrollWidget.ScrollAdapter.PageView p = (ScrollWidget.ScrollAdapter.PageView) h.itemView;
                     ScrollWidget.ScrollAdapter.PageCursor c = ((ScrollWidget) widget).adapter.pages.get(first);
-                    PluginPage info = pluginview.getPageInfo(p.getWidth(), p.getHeight(), c);
+                    Plugin.Page info = pluginview.getPageInfo(p.getWidth(), p.getHeight(), c);
                     if (p.info != null) { // reflow can be true but reflower == null
                         ArrayList<Rect> rr = new ArrayList<>(p.info.dst.keySet());
                         Collections.sort(rr, new SelectionView.UL());
@@ -1246,7 +1229,7 @@ public class FBReaderView extends RelativeLayout {
                         for (Rect r : rr) {
                             if (r.top > top || (r.top < top && r.bottom > top)) {
                                 int screen = r.top - top; // offset from top screen to top element
-                                double ratio = p.info.bm.width() / p.getWidth();
+                                double ratio = p.info.bm.width() / (float) p.getWidth();
                                 int offset = (int) (p.info.dst.get(r).top / ratio - screen); // recommended page offset (element - current screen offset)
                                 offset *= info.ratio;
                                 return new ZLTextFixedPosition(pluginview.current.pageNumber, offset, 0);
@@ -2022,7 +2005,7 @@ public class FBReaderView extends RelativeLayout {
             pluginview.reflower.index = 0;
     }
 
-    public void selectionOpen(PluginView.Selection s) {
+    public void selectionOpen(Plugin.View.Selection s) {
         selectionClose();
         selection = new SelectionView(getContext(), (CustomView) app.BookTextView, s) {
             @Override

@@ -28,7 +28,7 @@
         android:summary=""
         android:title="@string/pref_screenlock_title" />
 
-    <com.github.axet.bookreader.widgets.RotatePreferenceCompat
+    <com.github.axet.androidlibrary.preferences.RotatePreferenceCompat
         android:defaultValue="false"
         android:key="rotate"
         android:summary="@string/pref_rotate_summary"

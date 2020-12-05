@@ -14,6 +14,7 @@ import android.widget.FrameLayout;
 
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.app.PDFPlugin;
+import com.github.axet.bookreader.app.Plugin;
 
 import org.geometerplus.zlibrary.core.library.ZLibrary;
 import org.geometerplus.zlibrary.core.view.SelectionCursor;
@@ -29,7 +30,7 @@ public class SelectionView extends FrameLayout {
     public static final int SELECTION_ALPHA = 0x99;
     public static final int SELECTION_PADDING = 1; // dp
 
-    public PluginView.Selection selection;
+    public Plugin.View.Selection selection;
     PageView touch;
     HandleRect startRect = new HandleRect();
     HandleRect endRect = new HandleRect();
@@ -286,7 +287,7 @@ public class SelectionView extends FrameLayout {
     public static class PageView extends View {
         Rect bounds = new Rect(); // view size
         Rect margin = new Rect(); // absolute coords (parent of SelectionView coords)
-        PluginView.Selection.Bounds selection;
+        Plugin.View.Selection.Bounds selection;
 
         List<Rect> lines;
 
@@ -343,7 +344,7 @@ public class SelectionView extends FrameLayout {
         }
     }
 
-    public SelectionView(Context context, FBReaderView.CustomView custom, PluginView.Selection s) {
+    public SelectionView(Context context, FBReaderView.CustomView custom, Plugin.View.Selection s) {
         super(context);
 
         this.selection = s;
@@ -478,7 +479,7 @@ public class SelectionView extends FrameLayout {
 
     @Override
     public void draw(Canvas canvas) {
-        android.graphics.Rect c = canvas.getClipBounds();
+        Rect c = canvas.getClipBounds();
         c.bottom = clip - getTop();
         canvas.clipRect(c);
         super.draw(canvas);

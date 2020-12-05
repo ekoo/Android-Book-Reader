@@ -12,10 +12,6 @@ import com.github.axet.androidlibrary.app.RarSAF;
 import com.github.axet.androidlibrary.app.ZipSAF;
 import com.github.axet.androidlibrary.services.StorageProvider;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
-import com.github.axet.bookreader.widgets.PluginPage;
-import com.github.axet.bookreader.widgets.PluginRect;
-import com.github.axet.bookreader.widgets.PluginView;
-import com.github.axet.bookreader.widgets.RenderRect;
 import com.github.axet.bookreader.widgets.ScrollWidget;
 
 import net.lingala.zip4j.core.ZipFile;
@@ -52,7 +48,7 @@ import de.innosystec.unrar.NativeStorage;
 import de.innosystec.unrar.exception.RarException;
 import de.innosystec.unrar.rarfile.FileHeader;
 
-public class ComicsPlugin extends BuiltinFormatPlugin {
+public class ComicsPlugin extends BuiltinFormatPlugin implements Plugin {
     public static String TAG = ComicsPlugin.class.getSimpleName();
 
     public static final String CBZ = "cbz";
@@ -63,13 +59,13 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         return CacheImagesAdapter.isImage(f.getName());
     }
 
-    public static PluginRect getImageSize(InputStream is) {
+    public static Box getImageSize(InputStream is) {
         try {
             Rect size = CacheImagesAdapter.getImageSize(is);
             is.close();
             if (size == null)
                 return null;
-            return new PluginRect(0, 0, size.width(), size.height());
+            return new Box(0, 0, size.width(), size.height());
         } catch (IOException e) {
             Log.d(TAG, "unable to close is", e);
             return null;
@@ -165,7 +161,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
 
         long getLength();
 
-        PluginRect getRect();
+        Box getRect();
     }
 
     public static class RarDecoder extends Decoder {
@@ -186,10 +182,10 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
                         continue;
                     final FileHeader header = h;
                     ArchiveFile a = new ArchiveFile() {
-                        PluginRect r = null;
+                        Box r = null;
 
                         @Override
-                        public PluginRect getRect() {
+                        public Box getRect() {
                             try {
                                 if (r == null)
                                     r = getImageSize(open());
@@ -277,10 +273,10 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
                     if (zipEntry.isDirectory())
                         continue;
                     ArchiveFile a = new ArchiveFile() {
-                        PluginRect r = null;
+                        Box r = null;
 
                         @Override
-                        public PluginRect getRect() {
+                        public Box getRect() {
                             if (r == null)
                                 r = getImageSize(open());
                             return r;
@@ -329,7 +325,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class ComicsPage extends PluginPage {
+    public static class ComicsPage extends Page {
         public Decoder doc;
 
         public ComicsPage(ComicsPage r) {
@@ -367,7 +363,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
             ArchiveFile f = doc.pages.get(pageNumber);
             pageBox = f.getRect();
             if (pageBox == null)
-                pageBox = new PluginRect(0, 0, 100, 100);
+                pageBox = new Box(0, 0, 100, 100);
             dpi = 72;
         }
 
@@ -377,7 +373,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class ComicsView extends PluginView {
+    public static class ComicsView extends View {
         public Paint paint = new Paint();
         public Decoder doc;
 
@@ -391,7 +387,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public PluginPage getPageInfo(int w, int h, ScrollWidget.ScrollAdapter.PageCursor c) {
+        public Page getPageInfo(int w, int h, ScrollWidget.ScrollAdapter.PageCursor c) {
             int page;
             if (c.start == null)
                 page = c.end.getParagraphIndex() - 1;
@@ -510,6 +506,11 @@ public class ComicsPlugin extends BuiltinFormatPlugin {
 
     public ComicsPlugin(Storage.Info info) {
         super(info, CBZ);
+    }
+
+    @Override
+    public View create(Storage.FBook fbook) {
+        return new ComicsPlugin.ComicsView(BookUtil.fileByBook(fbook.book));
     }
 
     @Override

@@ -11,10 +11,6 @@ import android.util.SparseArray;
 import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.bookreader.widgets.FBReaderView;
-import com.github.axet.bookreader.widgets.PluginPage;
-import com.github.axet.bookreader.widgets.PluginRect;
-import com.github.axet.bookreader.widgets.PluginView;
-import com.github.axet.bookreader.widgets.RenderRect;
 import com.github.axet.bookreader.widgets.ScrollWidget;
 import com.github.axet.pdfium.Config;
 import com.github.axet.pdfium.Pdfium;
@@ -46,7 +42,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
-public class PDFPlugin extends BuiltinFormatPlugin {
+public class PDFPlugin extends BuiltinFormatPlugin implements Plugin {
     public static String TAG = PDFPlugin.class.getSimpleName();
 
     public static final String EXT = "pdf";
@@ -90,7 +86,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             sorted = s.sorted;
         }
 
-        public SelectionPage(Pdfium pdfium, PluginView.Selection.Page page) {
+        public SelectionPage(Pdfium pdfium, View.Selection.Page page) {
             this(page.page, pdfium.openPage(page.page), page.w, page.h);
         }
 
@@ -129,7 +125,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class Selection extends PluginView.Selection {
+    public static class Selection extends View.Selection {
         Pdfium pdfium;
         SelectionPage start;
         SelectionPage end;
@@ -484,7 +480,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class PdfSearch extends PluginView.Search {
+    public static class PdfSearch extends View.Search {
         Pdfium pdfium;
         ArrayList<SearchResult> all = new ArrayList<>();
         SparseArray<ArrayList<SearchResult>> pages = new SparseArray<>();
@@ -537,7 +533,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public Bounds getBounds(PluginView.Selection.Page page) {
+        public Bounds getBounds(View.Selection.Page page) {
             Bounds bounds = new Bounds();
             ArrayList<SearchResult> list = pages.get(page.page);
             if (list == null)
@@ -626,7 +622,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             if (str == null || str.isEmpty())
                 return;
             for (int i = 0; i < pdfium.getPagesCount(); i++) {
-                all.addAll(search(PluginView.Selection.odd(page, i, pdfium.getPagesCount())));
+                all.addAll(search(View.Selection.odd(page, i, pdfium.getPagesCount())));
                 if (all.size() > 0)
                     return;
             }
@@ -638,7 +634,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
     }
 
     @TargetApi(21)
-    public static class NativePage extends PluginPage {
+    public static class NativePage extends Page {
         public PdfRenderer doc;
         public PdfRenderer.Page page;
 
@@ -671,12 +667,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
             if (page != null)
                 page.close();
             page = doc.openPage(pageNumber);
-            pageBox = new PluginRect(0, 0, page.getWidth(), page.getHeight());
+            pageBox = new Box(0, 0, page.getWidth(), page.getHeight());
         }
     }
 
     @TargetApi(21)
-    public static class NativeView extends PluginView {
+    public static class NativeView extends View {
         public PdfRenderer doc;
 
         public NativeView(ZLFile f) {
@@ -713,7 +709,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     }
 
-    public static class PdfiumPage extends PluginPage {
+    public static class PdfiumPage extends Page {
         public Pdfium doc;
 
         public PdfiumPage(PdfiumPage r) {
@@ -758,12 +754,12 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
         void load(int index) {
             Pdfium.Size s = doc.getPageSize(index);
-            pageBox = new PluginRect(0, 0, s.width, s.height);
+            pageBox = new Box(0, 0, s.width, s.height);
             dpi = 72; // default Pdifium resolution
         }
     }
 
-    public static class PdfiumView extends PluginView {
+    public static class PdfiumView extends View {
         ParcelFileDescriptor fd;
         public Pdfium doc;
 
@@ -788,7 +784,7 @@ public class PDFPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public PluginPage getPageInfo(int w, int h, ScrollWidget.ScrollAdapter.PageCursor c) {
+        public Page getPageInfo(int w, int h, ScrollWidget.ScrollAdapter.PageCursor c) {
             int page;
             if (c.start == null)
                 page = c.end.getParagraphIndex() - 1;
@@ -973,6 +969,11 @@ public class PDFPlugin extends BuiltinFormatPlugin {
 
     public PDFPlugin(Storage.Info info) {
         super(info, EXT);
+    }
+
+    @Override
+    public View create(Storage.FBook fbook) {
+        return new PDFPlugin.PdfiumView(BookUtil.fileByBook(fbook.book));
     }
 
     @Override

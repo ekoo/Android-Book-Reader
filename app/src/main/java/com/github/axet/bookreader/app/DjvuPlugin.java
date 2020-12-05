@@ -8,10 +8,6 @@ import android.util.SparseArray;
 import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.bookreader.widgets.FBReaderView;
-import com.github.axet.bookreader.widgets.PluginPage;
-import com.github.axet.bookreader.widgets.PluginRect;
-import com.github.axet.bookreader.widgets.PluginView;
-import com.github.axet.bookreader.widgets.RenderRect;
 import com.github.axet.bookreader.widgets.ScrollWidget;
 import com.github.axet.djvulibre.Config;
 
@@ -41,7 +37,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class DjvuPlugin extends BuiltinFormatPlugin {
+public class DjvuPlugin extends BuiltinFormatPlugin implements Plugin {
     public static String TAG = DjvuPlugin.class.getSimpleName();
 
     public static final String EXT = "djvu";
@@ -58,17 +54,17 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         return new DjvuPlugin(info);
     }
 
-    public static PluginView.Selection.Point toPage(DjvuLibre.Page info, int w, int h, PluginView.Selection.Point point) {
-        return new PluginView.Selection.Point(point.x * info.width / w, info.height - point.y * info.height / h);
+    public static View.Selection.Point toPage(DjvuLibre.Page info, int w, int h, View.Selection.Point point) {
+        return new View.Selection.Point(point.x * info.width / w, info.height - point.y * info.height / h);
     }
 
-    public static PluginView.Selection.Point toDevice(DjvuLibre.Page info, int w, int h, PluginView.Selection.Point point) {
-        return new PluginView.Selection.Point(point.x * w / info.width, (info.height - point.y) * h / info.height);
+    public static View.Selection.Point toDevice(DjvuLibre.Page info, int w, int h, View.Selection.Point point) {
+        return new View.Selection.Point(point.x * w / info.width, (info.height - point.y) * h / info.height);
     }
 
     public static Rect toDevice(DjvuLibre.Page info, int w, int h, Rect rect) {
-        PluginView.Selection.Point p1 = toDevice(info, w, h, new PluginView.Selection.Point(rect.left, rect.top));
-        PluginView.Selection.Point p2 = toDevice(info, w, h, new PluginView.Selection.Point(rect.right, rect.bottom));
+        View.Selection.Point p1 = toDevice(info, w, h, new View.Selection.Point(rect.left, rect.top));
+        View.Selection.Point p2 = toDevice(info, w, h, new View.Selection.Point(rect.right, rect.bottom));
         return new Rect(p1.x, p2.y, p2.x, p1.y);
     }
 
@@ -114,7 +110,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
             return text.text[b];
         }
 
-        int find(PluginView.Selection.Point point) {
+        int find(View.Selection.Point point) {
             if (text == null)
                 return -1;
             for (int i = 0; i < text.bounds.length; i++) {
@@ -134,7 +130,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class DjvuSelection extends PluginView.Selection {
+    public static class DjvuSelection extends View.Selection {
         DjvuLibre doc;
 
         SelectionPage start;
@@ -157,7 +153,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
             boolean reverse;
 
-            public SelectionBounds(PluginView.Selection.Page p) {
+            public SelectionBounds(View.Selection.Page p) {
                 this(p.page);
                 start.w = p.w;
                 start.h = p.h;
@@ -453,7 +449,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class DjvuSearch extends PluginView.Search {
+    public static class DjvuSearch extends View.Search {
         DjvuLibre doc;
         ArrayList<SearchResult> all = new ArrayList<>();
         int index;
@@ -553,7 +549,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public Bounds getBounds(PluginView.Selection.Page page) {
+        public Bounds getBounds(View.Selection.Page page) {
             Bounds bounds = new Bounds();
             SearchPage p = pages.get(page.page);
             if (p == null)
@@ -647,7 +643,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class DjvuPage extends com.github.axet.bookreader.widgets.PluginPage {
+    public static class DjvuPage extends Page {
         public DjvuLibre doc;
 
         public DjvuPage(DjvuPage r) {
@@ -683,7 +679,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
         public void load() {
             DjvuLibre.Page p = doc.getPageInfo(pageNumber);
-            pageBox = new PluginRect(0, 0, p.width, p.height);
+            pageBox = new Box(0, 0, p.width, p.height);
             dpi = p.dpi;
         }
 
@@ -693,7 +689,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
     }
 
-    public static class DjvuView extends PluginView {
+    public static class DjvuView extends View {
         public DjvuLibre doc;
         FileInputStream is;
 
@@ -708,7 +704,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
         }
 
         @Override
-        public PluginPage getPageInfo(int w, int h, ScrollWidget.ScrollAdapter.PageCursor c) {
+        public Page getPageInfo(int w, int h, ScrollWidget.ScrollAdapter.PageCursor c) {
             int page;
             if (c.start == null)
                 page = c.end.getParagraphIndex() - 1;
@@ -866,6 +862,11 @@ public class DjvuPlugin extends BuiltinFormatPlugin {
 
     public DjvuPlugin(Storage.Info info) {
         super(info, EXT);
+    }
+
+    @Override
+    public View create(Storage.FBook fbook) {
+        return new DjvuPlugin.DjvuView(BookUtil.fileByBook(fbook.book));
     }
 
     @Override

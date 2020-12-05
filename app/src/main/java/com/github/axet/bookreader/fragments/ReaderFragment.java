@@ -52,10 +52,10 @@ import com.github.axet.bookreader.activities.FullscreenActivity;
 import com.github.axet.bookreader.activities.MainActivity;
 import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.ComicsPlugin;
+import com.github.axet.bookreader.app.Plugin;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.widgets.BookmarksDialog;
 import com.github.axet.bookreader.widgets.FBReaderView;
-import com.github.axet.bookreader.widgets.PluginView;
 import com.github.axet.bookreader.widgets.ScrollWidget;
 import com.github.axet.bookreader.widgets.ToolbarButtonView;
 
@@ -665,8 +665,13 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 fb.gotoPosition(pos);
         } catch (RuntimeException e) {
             ErrorDialog.Error(main, e);
-            if (!main.isFinishing())
-                main.openLibrary();
+            handler.post(new Runnable() { // or openLibrary crash with java.lang.IllegalStateException on FragmentActivity.onResume
+                @Override
+                public void run() {
+                    if (!main.isFinishing())
+                        main.openLibrary();
+                }
+            });
         }
 
         handler.post(new Runnable() {
@@ -771,8 +776,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         shared.unregisterOnSharedPreferenceChangeListener(this);
         handler.removeCallbacks(time);
         ScreenlockPreference.onUserInteractionRemove();
-        final MainActivity main = (MainActivity) getActivity();
-        main.volumeEnabled = true;
         if (fb != null) // onDestory without onCreate
             fb.closeBook();
         if (fontsPopup != null) {
@@ -958,7 +961,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         if (fb.pluginview == null) {
             search = true;
         } else {
-            PluginView.Search s = fb.pluginview.search("");
+            Plugin.View.Search s = fb.pluginview.search("");
             if (s == null) {
                 search = false;
             } else {

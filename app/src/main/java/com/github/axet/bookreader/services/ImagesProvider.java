@@ -10,6 +10,7 @@ import android.provider.OpenableColumns;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import com.github.axet.androidlibrary.app.AssetsDexLoader;
 import com.github.axet.androidlibrary.services.FileProvider;
 import com.github.axet.androidlibrary.services.StorageProvider;
 
@@ -21,7 +22,6 @@ import org.geometerplus.zlibrary.ui.android.image.ZLAndroidImageData;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.reflect.Field;
 
 public class ImagesProvider extends StorageProvider {
     public static String TAG = ImagesProvider.class.getSimpleName();
@@ -34,10 +34,7 @@ public class ImagesProvider extends StorageProvider {
 
     public static long getImageSize(ZLFileImage image) {
         try {
-            Class klass = image.getClass();
-            Field f = klass.getDeclaredField("myLengths");
-            f.setAccessible(true);
-            int[] aa = (int[]) f.get(image);
+            int[] aa = (int[]) AssetsDexLoader.getPrivateField(image.getClass(), "myLengths").get(image);
             int c = 0;
             for (int a : aa)
                 c += a;

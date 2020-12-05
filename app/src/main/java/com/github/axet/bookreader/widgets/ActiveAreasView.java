@@ -24,6 +24,7 @@ import java.util.HashMap;
 
 public class ActiveAreasView extends RelativeLayout {
     public static int PERC = 10000; // precision
+    public static int BACKGROUND = 0x22333333;
 
     HashMap<String, Rect> maps = new HashMap<>();
     HashMap<String, ZoneView> views = new HashMap<>();
@@ -51,7 +52,7 @@ public class ActiveAreasView extends RelativeLayout {
             g = new GradientDrawable();
             g.setCornerRadius(ThemeUtils.dp2px(context, 20));
             g.setGradientType(GradientDrawable.LINEAR_GRADIENT);
-            g.setColor(0x22333333);
+            g.setColor(BACKGROUND);
             setBackgroundDrawable(g);
             MarginLayoutParams lp = new MarginLayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
             setLayoutParams(lp);
@@ -66,13 +67,11 @@ public class ActiveAreasView extends RelativeLayout {
     public TapZoneMap getZoneMap(FBReaderView.FBReaderApp app) {
         final PageTurningOptions prefs = app.PageTurningOptions;
         String id = prefs.TapZoneMap.getValue();
-        if ("".equals(id)) {
+        if ("".equals(id))
             id = prefs.Horizontal.getValue() ? "right_to_left" : "up";
-        }
         TapZoneMap myZoneMap = null;
-        if (myZoneMap == null || !id.equals(myZoneMap.Name)) {
+        if (myZoneMap == null || !id.equals(myZoneMap.Name))
             myZoneMap = TapZoneMap.zoneMap(id);
-        }
         return myZoneMap;
     }
 
@@ -112,22 +111,20 @@ public class ActiveAreasView extends RelativeLayout {
             if (a.intersect(z)) {
                 int ll = a.left - z.left;
                 int rr = z.right - a.right;
-                if (ll == 0 && rr == 0) {
+                if (ll == 0 && rr == 0)
                     ;
-                } else if (ll < rr) {
+                else if (ll < rr)
                     z.left = a.right;
-                } else {
+                else
                     z.right = a.left;
-                }
                 int tt = a.top - z.top;
                 int bb = z.bottom - a.bottom;
-                if (tt == 0 && bb == 0) {
+                if (tt == 0 && bb == 0)
                     ;
-                } else if (tt < bb) {
+                else if (tt < bb)
                     z.top = a.bottom;
-                } else {
+                else
                     z.bottom = a.top;
-                }
             }
         }
     }
@@ -145,20 +142,18 @@ public class ActiveAreasView extends RelativeLayout {
                 int xx = w * x; // x offset
                 int yy = h * y; // y offset
                 Rect c = new Rect(xx, yy, xx + w, yy + h);
-                if (r == null) {
+                if (r == null)
                     maps.put(z, c);
-                } else {
+                else
                     r.union(c);
-                }
             }
         }
         if (app.MiscOptions.AllowScreenBrightnessAdjustment.getValue()) {
             int bw;
-            if (app.getViewWidget() instanceof ScrollWidget) {
+            if (app.getViewWidget() instanceof ScrollWidget)
                 bw = ((ScrollWidget) app.getViewWidget()).gesturesListener.brightness.areaWidth * PERC / ww;
-            } else {
+            else
                 bw = PERC / 10; // FBView.onFingerPress
-            }
             Rect r = new Rect(0, 0, bw, PERC);
             substract(r);
             maps.put("brightness", r);
