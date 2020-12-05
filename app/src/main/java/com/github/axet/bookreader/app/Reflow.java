@@ -1,4 +1,4 @@
-package com.github.axet.bookreader.widgets;
+package com.github.axet.bookreader.app;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -12,9 +12,7 @@ import android.support.v7.preference.PreferenceManager;
 import android.util.DisplayMetrics;
 
 import com.github.axet.androidlibrary.app.Natives;
-import com.github.axet.bookreader.app.BookApplication;
-import com.github.axet.bookreader.app.Plugin;
-import com.github.axet.bookreader.app.Storage;
+import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.k2pdfopt.Config;
 import com.github.axet.k2pdfopt.K2PdfOpt;
 

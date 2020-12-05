@@ -47,6 +47,7 @@ import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.Plugin;
+import com.github.axet.bookreader.app.Reflow;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.services.ImagesProvider;
 import com.github.johnpersano.supertoasts.SuperActivityToast;

@@ -28,6 +28,7 @@ import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.androidlibrary.widgets.TopAlwaysSmoothScroller;
 import com.github.axet.bookreader.app.PDFPlugin;
 import com.github.axet.bookreader.app.Plugin;
+import com.github.axet.bookreader.app.Reflow;
 import com.github.axet.bookreader.app.Storage;
 
 import org.geometerplus.fbreader.fbreader.FBView;

@@ -21,6 +21,7 @@ import com.github.axet.androidlibrary.widgets.ThemeUtils;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.Plugin;
+import com.github.axet.bookreader.app.Reflow;
 import com.github.axet.bookreader.app.Storage;
 
 import org.geometerplus.fbreader.fbreader.TextBuildTraverser;
@@ -37,6 +38,7 @@ import org.geometerplus.zlibrary.text.view.ZLTextWordCursor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 public class TTSPopup {
@@ -82,20 +84,24 @@ public class TTSPopup {
     }
 
     public static Rect getRect(ZLTextElementAreaVector text, Storage.Bookmark bm) {
-        Rect union = new Rect();
-        for (ZLTextElementArea a : text.areas()) {
+        int i = 0;
+        List<ZLTextElementArea> areas = text.areas();
+        ZLTextElementArea a = areas.get(i++);
+        Rect union = new Rect(a.XStart, a.YStart, a.XEnd, a.YEnd);
+        for (; i < areas.size(); i++) {
+            a = areas.get(i);
             if (bm.start.compareTo(a) <= 0 && bm.end.compareTo(a) >= 0)
                 union.union(a.XStart, a.YStart, a.XEnd, a.YEnd);
         }
         return union;
     }
 
-    public static Rect getRect(Plugin.View.Selection.Page page, Plugin.View.Selection s, Storage.Bookmark bm) {
-        Rect union = new Rect();
+    public static Rect getRect(Plugin.View pluginview, ScrollWidget.ScrollAdapter.PageView v, Storage.Bookmark bm) {
+        Plugin.View.Selection.Page page = pluginview.selectPage(bm.start, v.info, v.getWidth(), v.getHeight());
+        Plugin.View.Selection s = pluginview.select(bm.start, bm.end);
         Plugin.View.Selection.Bounds bb = s.getBounds(page);
-        for (Rect r : bb.rr)
-            union.union(r);
-        return union;
+        s.close();
+        return SelectionView.union(Arrays.asList(bb.rr));
     }
 
     public static boolean isStopSymbol(ZLTextElement e) {
@@ -796,10 +802,7 @@ public class TTSPopup {
         int bottom = fb.getTop() + ((ScrollWidget) fb.widget).getMainAreaHeight();
         Rect rect;
         if (fb.pluginview != null) {
-            Plugin.View.Selection.Page page = fb.pluginview.selectPage(bm.start, v.info, v.getWidth(), v.getHeight());
-            Plugin.View.Selection s = fb.pluginview.select(bm.start, bm.end);
-            rect = getRect(page, s, bm);
-            s.close();
+            rect = getRect(fb.pluginview, v, bm);
         } else {
             if (v.text == null)
                 return;

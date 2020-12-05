@@ -11,12 +11,12 @@ import android.support.v4.graphics.ColorUtils;
 import android.util.Log;
 
 import com.github.axet.bookreader.widgets.FBReaderView;
-import com.github.axet.bookreader.widgets.Reflow;
 import com.github.axet.bookreader.widgets.ScrollWidget;
 import com.github.axet.bookreader.widgets.SelectionView;
 
 import org.geometerplus.android.fbreader.libraryService.BookCollectionShadow;
 import org.geometerplus.fbreader.bookmodel.TOCTree;
+import org.geometerplus.fbreader.fbreader.FBReaderApp;
 import org.geometerplus.zlibrary.core.filesystem.ZLFile;
 import org.geometerplus.zlibrary.core.view.ZLView;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
@@ -416,7 +416,7 @@ public interface Plugin {
 
         public void updateTheme() {
             try {
-                org.geometerplus.fbreader.fbreader.FBReaderApp app = new org.geometerplus.fbreader.fbreader.FBReaderApp(null, new BookCollectionShadow());
+                FBReaderApp app = new FBReaderApp(null, new BookCollectionShadow());
                 ZLFile wallpaper = app.BookTextView.getWallpaperFile();
                 if (wallpaper != null)
                     this.wallpaper = BitmapFactory.decodeStream(wallpaper.getInputStream());

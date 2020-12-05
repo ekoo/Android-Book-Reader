@@ -8,6 +8,7 @@ import android.view.MotionEvent;
 import android.view.View;
 
 import com.github.axet.bookreader.app.Plugin;
+import com.github.axet.bookreader.app.Reflow;
 
 import org.geometerplus.fbreader.fbreader.options.PageTurningOptions;
 import org.geometerplus.zlibrary.core.application.ZLApplication;
