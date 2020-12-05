@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
@@ -11,7 +12,6 @@ import com.github.axet.androidlibrary.app.RarSAF;
 import com.github.axet.androidlibrary.app.ZipSAF;
 import com.github.axet.androidlibrary.services.StorageProvider;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
-import com.github.axet.bookreader.widgets.RenderRect;
 import com.github.axet.bookreader.widgets.ScrollWidget;
 
 import net.lingala.zip4j.core.ZipFile;
@@ -59,13 +59,13 @@ public class ComicsPlugin extends BuiltinFormatPlugin implements Plugin {
         return CacheImagesAdapter.isImage(f.getName());
     }
 
-    public static Plugin.Rect getImageSize(InputStream is) {
+    public static Box getImageSize(InputStream is) {
         try {
-            android.graphics.Rect size = CacheImagesAdapter.getImageSize(is);
+            Rect size = CacheImagesAdapter.getImageSize(is);
             is.close();
             if (size == null)
                 return null;
-            return new Plugin.Rect(0, 0, size.width(), size.height());
+            return new Box(0, 0, size.width(), size.height());
         } catch (IOException e) {
             Log.d(TAG, "unable to close is", e);
             return null;
@@ -161,7 +161,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin implements Plugin {
 
         long getLength();
 
-        Rect getRect();
+        Box getRect();
     }
 
     public static class RarDecoder extends Decoder {
@@ -182,10 +182,10 @@ public class ComicsPlugin extends BuiltinFormatPlugin implements Plugin {
                         continue;
                     final FileHeader header = h;
                     ArchiveFile a = new ArchiveFile() {
-                        Rect r = null;
+                        Box r = null;
 
                         @Override
-                        public Rect getRect() {
+                        public Box getRect() {
                             try {
                                 if (r == null)
                                     r = getImageSize(open());
@@ -273,10 +273,10 @@ public class ComicsPlugin extends BuiltinFormatPlugin implements Plugin {
                     if (zipEntry.isDirectory())
                         continue;
                     ArchiveFile a = new ArchiveFile() {
-                        Rect r = null;
+                        Box r = null;
 
                         @Override
-                        public Rect getRect() {
+                        public Box getRect() {
                             if (r == null)
                                 r = getImageSize(open());
                             return r;
@@ -363,7 +363,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin implements Plugin {
             ArchiveFile f = doc.pages.get(pageNumber);
             pageBox = f.getRect();
             if (pageBox == null)
-                pageBox = new Rect(0, 0, 100, 100);
+                pageBox = new Box(0, 0, 100, 100);
             dpi = 72;
         }
 

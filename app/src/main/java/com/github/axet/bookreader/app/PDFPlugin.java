@@ -11,7 +11,6 @@ import android.util.SparseArray;
 import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.bookreader.widgets.FBReaderView;
-import com.github.axet.bookreader.widgets.RenderRect;
 import com.github.axet.bookreader.widgets.ScrollWidget;
 import com.github.axet.pdfium.Config;
 import com.github.axet.pdfium.Pdfium;
@@ -56,9 +55,9 @@ public class PDFPlugin extends BuiltinFormatPlugin implements Plugin {
         return new PDFPlugin(info);
     }
 
-    public static class UL implements Comparator<android.graphics.Rect> {
+    public static class UL implements Comparator<Rect> {
         @Override
-        public int compare(android.graphics.Rect o1, android.graphics.Rect o2) {
+        public int compare(Rect o1, Rect o2) {
             int r = Integer.valueOf(o2.top).compareTo(Integer.valueOf(o1.top));
             if (r != 0)
                 return r;
@@ -74,7 +73,7 @@ public class PDFPlugin extends BuiltinFormatPlugin implements Plugin {
         int count; // total symbols
         int w;
         int h;
-        android.graphics.Rect[] sorted;
+        Rect[] sorted;
 
         public SelectionPage(SelectionPage s) {
             page = s.page;
@@ -108,8 +107,8 @@ public class PDFPlugin extends BuiltinFormatPlugin implements Plugin {
         }
 
         public int first() {
-            for (android.graphics.Rect r : sorted) {
-                android.graphics.Rect k = new android.graphics.Rect(r);
+            for (Rect r : sorted) {
+                Rect k = new Rect(r);
                 int index;
                 do {
                     index = text.getIndex(k.left, k.centerY());
@@ -340,11 +339,11 @@ public class PDFPlugin extends BuiltinFormatPlugin implements Plugin {
         }
 
         @Override
-        public android.graphics.Rect[] getBoundsAll(Page page) {
+        public Rect[] getBoundsAll(Page page) {
             SelectionPage p = open(page);
-            android.graphics.Rect[] rr = p.text.getBounds(0, p.count);
+            Rect[] rr = p.text.getBounds(0, p.count);
             for (int i = 0; i < rr.length; i++) {
-                android.graphics.Rect r = rr[i];
+                Rect r = rr[i];
                 r = p.ppage.toDevice(0, 0, p.w, p.h, 0, r);
                 rr[i] = r;
             }
@@ -360,7 +359,7 @@ public class PDFPlugin extends BuiltinFormatPlugin implements Plugin {
             bounds.end = b.last;
             bounds.rr = b.page.text.getBounds(b.ss, b.cc);
             for (int i = 0; i < bounds.rr.length; i++) {
-                android.graphics.Rect r = bounds.rr[i];
+                Rect r = bounds.rr[i];
                 r = b.page.ppage.toDevice(0, 0, b.page.w, b.page.h, 0, r);
                 bounds.rr[i] = r;
             }
@@ -541,21 +540,21 @@ public class PDFPlugin extends BuiltinFormatPlugin implements Plugin {
                 return null;
             Pdfium.Page p = pdfium.openPage(page.page);
             Pdfium.Text t = p.open();
-            ArrayList<android.graphics.Rect> rr = new ArrayList<>();
+            ArrayList<Rect> rr = new ArrayList<>();
             for (int i = 0; i < list.size(); i++) {
                 SearchResult r = list.get(i);
-                ArrayList<android.graphics.Rect> hh = new ArrayList<>();
-                android.graphics.Rect[] bb = t.getBounds(r.start, r.count());
-                for (android.graphics.Rect b : bb) {
+                ArrayList<Rect> hh = new ArrayList<>();
+                Rect[] bb = t.getBounds(r.start, r.count());
+                for (Rect b : bb) {
                     b = p.toDevice(0, 0, page.w, page.h, 0, b);
                     rr.add(b);
                     hh.add(b);
                 }
                 if (index >= 0 && r == all.get(index)) {
-                    bounds.highlight = hh.toArray(new android.graphics.Rect[0]);
+                    bounds.highlight = hh.toArray(new Rect[0]);
                 }
             }
-            bounds.rr = rr.toArray(new android.graphics.Rect[0]);
+            bounds.rr = rr.toArray(new Rect[0]);
             t.close();
             p.close();
             return bounds;
@@ -668,7 +667,7 @@ public class PDFPlugin extends BuiltinFormatPlugin implements Plugin {
             if (page != null)
                 page.close();
             page = doc.openPage(pageNumber);
-            pageBox = new Plugin.Rect(0, 0, page.getWidth(), page.getHeight());
+            pageBox = new Box(0, 0, page.getWidth(), page.getHeight());
         }
     }
 
@@ -755,7 +754,7 @@ public class PDFPlugin extends BuiltinFormatPlugin implements Plugin {
 
         void load(int index) {
             Pdfium.Size s = doc.getPageSize(index);
-            pageBox = new Plugin.Rect(0, 0, s.width, s.height);
+            pageBox = new Box(0, 0, s.width, s.height);
             dpi = 72; // default Pdifium resolution
         }
     }

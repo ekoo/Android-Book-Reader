@@ -2,12 +2,12 @@ package com.github.axet.bookreader.app;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Rect;
 import android.util.SparseArray;
 
 import com.github.axet.androidlibrary.app.Natives;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.bookreader.widgets.FBReaderView;
-import com.github.axet.bookreader.widgets.RenderRect;
 import com.github.axet.bookreader.widgets.ScrollWidget;
 import com.github.axet.djvulibre.Config;
 
@@ -62,10 +62,10 @@ public class DjvuPlugin extends BuiltinFormatPlugin implements Plugin {
         return new View.Selection.Point(point.x * w / info.width, (info.height - point.y) * h / info.height);
     }
 
-    public static android.graphics.Rect toDevice(DjvuLibre.Page info, int w, int h, android.graphics.Rect rect) {
+    public static Rect toDevice(DjvuLibre.Page info, int w, int h, Rect rect) {
         View.Selection.Point p1 = toDevice(info, w, h, new View.Selection.Point(rect.left, rect.top));
         View.Selection.Point p2 = toDevice(info, w, h, new View.Selection.Point(rect.right, rect.bottom));
-        return new android.graphics.Rect(p1.x, p2.y, p2.x, p1.y);
+        return new Rect(p1.x, p2.y, p2.x, p1.y);
     }
 
     public static class DjvuLibre extends com.github.axet.djvulibre.DjvuLibre {
@@ -114,7 +114,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin implements Plugin {
             if (text == null)
                 return -1;
             for (int i = 0; i < text.bounds.length; i++) {
-                android.graphics.Rect b = text.bounds[i];
+                Rect b = text.bounds[i];
                 if (b.contains(point.x, point.y))
                     return i;
             }
@@ -357,9 +357,9 @@ public class DjvuPlugin extends BuiltinFormatPlugin implements Plugin {
         }
 
         @Override
-        public android.graphics.Rect[] getBoundsAll(Page page) {
+        public Rect[] getBoundsAll(Page page) {
             SelectionPage pp = open(page);
-            android.graphics.Rect[] rr = new android.graphics.Rect[pp.text.bounds.length];
+            Rect[] rr = new Rect[pp.text.bounds.length];
             for (int i = 0; i < rr.length; i++)
                 rr[i] = toDevice(pp.info, page.w, page.h, pp.text.bounds[i]);
             return rr;
@@ -372,10 +372,10 @@ public class DjvuPlugin extends BuiltinFormatPlugin implements Plugin {
             bounds.reverse = b.reverse;
             bounds.start = b.first;
             bounds.end = b.last;
-            ArrayList<android.graphics.Rect> rr = new ArrayList<>();
+            ArrayList<Rect> rr = new ArrayList<>();
             for (int i = b.ss; i != b.ee; i++)
                 rr.add(toDevice(b.page.info, b.page.w, b.page.h, b.page.text.bounds[i]));
-            bounds.rr = rr.toArray(new android.graphics.Rect[0]);
+            bounds.rr = rr.toArray(new Rect[0]);
             return bounds;
         }
 
@@ -554,19 +554,19 @@ public class DjvuPlugin extends BuiltinFormatPlugin implements Plugin {
             SearchPage p = pages.get(page.page);
             if (p == null)
                 return null;
-            ArrayList<android.graphics.Rect> rr = new ArrayList<>();
+            ArrayList<Rect> rr = new ArrayList<>();
             for (int i = 0; i < p.rr.size(); i++) {
                 SearchResult r = p.rr.get(i);
-                ArrayList<android.graphics.Rect> hh = new ArrayList<>();
+                ArrayList<Rect> hh = new ArrayList<>();
                 for (int k = r.start; k < r.end; k++) {
-                    android.graphics.Rect b = toDevice(p.info, page.w, page.h, p.text.bounds[k]);
+                    Rect b = toDevice(p.info, page.w, page.h, p.text.bounds[k]);
                     rr.add(b);
                     hh.add(b);
                 }
                 if (index >= 0 && r == all.get(index))
-                    bounds.highlight = hh.toArray(new android.graphics.Rect[0]);
+                    bounds.highlight = hh.toArray(new Rect[0]);
             }
-            bounds.rr = rr.toArray(new android.graphics.Rect[0]);
+            bounds.rr = rr.toArray(new Rect[0]);
             return bounds;
         }
 
@@ -679,7 +679,7 @@ public class DjvuPlugin extends BuiltinFormatPlugin implements Plugin {
 
         public void load() {
             DjvuLibre.Page p = doc.getPageInfo(pageNumber);
-            pageBox = new Rect(0, 0, p.width, p.height);
+            pageBox = new Box(0, 0, p.width, p.height);
             dpi = p.dpi;
         }
 

@@ -59,7 +59,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
         public ArrayList<PageCursor> pages = new ArrayList<>(); // adapter items
         final Object lock = new Object();
         Thread thread;
-        Plugin.Rect size = new Plugin.Rect(); // ScrollView size, after reset
+        Plugin.Box size = new Plugin.Box(); // ScrollView size, after reset
         Set<PageHolder> invalidates = new HashSet<>(); // pending invalidates
         ArrayList<PageHolder> holders = new ArrayList<>(); // keep all active holders, including Recycler.mCachedViews
         ZLTextPosition oldTurn; // last page shown

@@ -6,12 +6,12 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.support.v4.graphics.ColorUtils;
 import android.util.Log;
 
 import com.github.axet.bookreader.widgets.FBReaderView;
 import com.github.axet.bookreader.widgets.Reflow;
-import com.github.axet.bookreader.widgets.RenderRect;
 import com.github.axet.bookreader.widgets.ScrollWidget;
 import com.github.axet.bookreader.widgets.SelectionView;
 
@@ -30,38 +30,43 @@ import java.util.Map;
 
 public interface Plugin {
 
-    class Rect {
+    class Box {
         public int x; // lower left x
         public int y; // lower left y
         public int w; // x + w = upper right x
         public int h; // y + h = upper right y
 
-        public Rect() {
+        public Box() {
         }
 
-        public Rect(Rect r) {
+        public Box(Box r) {
             this.x = r.x;
             this.y = r.y;
             this.w = r.w;
             this.h = r.h;
         }
 
-        public Rect(int x, int y, int w, int h) {
+        public Box(int x, int y, int w, int h) {
             this.x = x;
             this.y = y;
             this.w = w;
             this.h = h;
         }
 
-        public android.graphics.Rect toRect(int w, int h) {
-            return new android.graphics.Rect(x, h - this.h - y, x + this.w, h - y);
+        public Rect toRect(int w, int h) {
+            return new Rect(x, h - this.h - y, x + this.w, h - y);
         }
+    }
+
+    class RenderRect extends Box {
+        public Rect src;
+        public Rect dst;
     }
 
     abstract class Page {
         public int pageNumber;
         public int pageOffset; // pageBox sizes
-        public Rect pageBox; // pageBox sizes
+        public Box pageBox; // pageBox sizes
         public int w; // display w
         public int h; // display h
         public double hh; // pageBox sizes, visible height
@@ -81,7 +86,7 @@ public interface Plugin {
             pageNumber = r.pageNumber;
             pageOffset = r.pageOffset;
             if (r.pageBox != null)
-                pageBox = new Rect(r.pageBox);
+                pageBox = new Box(r.pageBox);
             pageStep = r.pageStep;
             pageOverlap = r.pageOverlap;
         }
@@ -179,11 +184,11 @@ public interface Plugin {
                     render.h = pageBox.h - tail;
                     render.y = tail;
                 }
-                render.dst = new android.graphics.Rect(0, (int) (-pageOffset / ratio), w, h);
+                render.dst = new Rect(0, (int) (-pageOffset / ratio), w, h);
             } else if (pageOffset == 0 && hh > pageBox.h) {  // show middle vertically
                 int t = (int) ((hh - pageBox.h) / ratio / 2);
                 render.h = pageBox.h;
-                render.dst = new android.graphics.Rect(0, t, w, h - t);
+                render.dst = new Rect(0, t, w, h - t);
             } else {
                 render.h = (int) hh;
                 render.y = pageBox.h - render.h - pageOffset - 1;
@@ -192,10 +197,10 @@ public interface Plugin {
                     h += render.y / ratio; // convert to display sizes
                     render.y = 0;
                 }
-                render.dst = new android.graphics.Rect(0, 0, w, h);
+                render.dst = new Rect(0, 0, w, h);
             }
 
-            render.src = new android.graphics.Rect(0, 0, render.w, render.h);
+            render.src = new Rect(0, 0, render.w, render.h);
 
             return render;
         }
@@ -272,7 +277,7 @@ public interface Plugin {
             }
 
             public static class Bounds {
-                public android.graphics.Rect[] rr;
+                public Rect[] rr;
                 public boolean reverse;
                 public boolean start;
                 public boolean end;
@@ -329,7 +334,7 @@ public interface Plugin {
                 return null;
             }
 
-            public android.graphics.Rect[] getBoundsAll(Page page) {
+            public Rect[] getBoundsAll(Page page) {
                 return null;
             }
 
@@ -364,12 +369,12 @@ public interface Plugin {
         public static class Link {
             public String url;
             public int index;
-            public android.graphics.Rect rect;
+            public Rect rect;
 
             public Link() {
             }
 
-            public Link(String url, int index, android.graphics.Rect rect) {
+            public Link(String url, int index, Rect rect) {
                 this.url = url;
                 this.index = index;
                 this.rect = rect;
@@ -378,8 +383,8 @@ public interface Plugin {
 
         public static class Search {
             public static class Bounds {
-                public android.graphics.Rect[] rr;
-                public android.graphics.Rect[] highlight;
+                public Rect[] rr;
+                public Rect[] highlight;
             }
 
             public int getCount() {
@@ -758,18 +763,18 @@ public interface Plugin {
         }
 
         public void drawPage(Canvas canvas, int w, int h, Bitmap bm) {
-            android.graphics.Rect src = new android.graphics.Rect(0, 0, bm.getWidth(), bm.getHeight());
+            Rect src = new Rect(0, 0, bm.getWidth(), bm.getHeight());
             float wr = w / (float) bm.getWidth();
             float hr = h / (float) bm.getHeight();
             int dh = (int) (bm.getHeight() * wr);
             int dw = (int) (bm.getWidth() * hr);
-            android.graphics.Rect dst;
+            Rect dst;
             if (dh > h) { // scaling width max makes it too high
                 int mid = (w - dw) / 2;
-                dst = new android.graphics.Rect(mid, 0, dw + mid, h); // scale it by height max and take calulated width
+                dst = new Rect(mid, 0, dw + mid, h); // scale it by height max and take calulated width
             } else { // take width
                 int mid = (h - dh) / 2;
-                dst = new android.graphics.Rect(0, mid, w, dh + mid); // scale it by width max and take calulated height
+                dst = new Rect(0, mid, w, dh + mid); // scale it by width max and take calulated height
             }
             canvas.drawBitmap(bm, src, dst, paint);
         }
@@ -809,10 +814,10 @@ public interface Plugin {
                 return new View.Selection.Page(start.getParagraphIndex(), w, h);
         }
 
-        public android.graphics.Rect selectRect(Reflow.Info info, int x, int y) {
+        public Rect selectRect(Reflow.Info info, int x, int y) {
             x = x - info.margin.left;
-            Map<android.graphics.Rect, android.graphics.Rect> dst = info.dst;
-            for (android.graphics.Rect d : dst.keySet()) {
+            Map<Rect, Rect> dst = info.dst;
+            for (Rect d : dst.keySet()) {
                 if (d.contains(x, y))
                     return dst.get(d);
             }
@@ -822,7 +827,7 @@ public interface Plugin {
         public Selection.Point selectPoint(Reflow.Info info, int x, int y) {
             if (reflow) {
                 x = x - info.margin.left;
-                for (android.graphics.Rect d : info.dst.keySet()) {
+                for (Rect d : info.dst.keySet()) {
                     if (d.contains(x, y))
                         return new Selection.Point(info.fromDst(d, x, y));
                 }
@@ -839,21 +844,21 @@ public interface Plugin {
             return null;
         }
 
-        public android.graphics.Rect[] boundsUpdate(android.graphics.Rect[] rr, Reflow.Info info) {
-            ArrayList<android.graphics.Rect> list = new ArrayList<>();
-            for (android.graphics.Rect r : rr) {
-                for (android.graphics.Rect s : info.src.keySet()) {
-                    android.graphics.Rect i = new android.graphics.Rect(r);
+        public Rect[] boundsUpdate(Rect[] rr, Reflow.Info info) {
+            ArrayList<Rect> list = new ArrayList<>();
+            for (Rect r : rr) {
+                for (Rect s : info.src.keySet()) {
+                    Rect i = new Rect(r);
                     if (i.intersect(s) && (i.height() * 100 / s.height() > SelectionView.ARTIFACT_PERCENTS || r.height() > 0 && i.height() * 100 / r.height() > SelectionView.ARTIFACT_PERCENTS)) { // ignore artifacts height less then 10%
-                        android.graphics.Rect d = info.fromSrc(s, i);
+                        Rect d = info.fromSrc(s, i);
                         list.add(d);
                     }
                 }
             }
             for (int i = list.size() - 1; i >= 0; i--) {
                 for (int j = i - 1; j >= 0; j--) {
-                    android.graphics.Rect r = list.get(i);
-                    android.graphics.Rect k = list.get(j);
+                    Rect r = list.get(i);
+                    Rect k = list.get(j);
                     if (r.intersects(k.left, k.top, k.right, k.bottom)) {
                         k.union(k);
                         list.remove(i);
@@ -861,7 +866,7 @@ public interface Plugin {
                     }
                 }
             }
-            return list.toArray(new android.graphics.Rect[0]);
+            return list.toArray(new Rect[0]);
         }
 
         public Link[] getLinks(Selection.Page page) {
