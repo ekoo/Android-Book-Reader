@@ -975,7 +975,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         grid.setVisible(false);
         homeMenu.setVisible(false);
         sort.setVisible(false);
-        tocMenu.setVisible(fb.app.Model.TOCTree != null && fb.app.Model.TOCTree.hasChildren());
+        tocMenu.setVisible(fb.app.Model != null && fb.app.Model.TOCTree != null && fb.app.Model.TOCTree.hasChildren());
         searchMenu.setVisible(search);
         reflow.setVisible(fb.pluginview != null && !(fb.pluginview instanceof ComicsPlugin.ComicsView));
 
@@ -986,7 +986,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         fontsize.setVisible(fb.pluginview == null || fb.pluginview.reflow);
         if (fb.pluginview == null)
-            ((ToolbarButtonView) MenuItemCompat.getActionView(fontsize)).text.setText("" + fb.getFontsizeFB());
+            ((ToolbarButtonView) MenuItemCompat.getActionView(fontsize)).text.setText("" + (fb.book == null ? "" : fb.getFontsizeFB())); // call before onCreateView
         else
             ((ToolbarButtonView) MenuItemCompat.getActionView(fontsize)).text.setText(String.format("%.1f", getFontsizeReflow()));
         MenuItemCompat.getActionView(fontsize).setOnClickListener(new View.OnClickListener() {
@@ -1012,7 +1012,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         });
         rtl.setTitle(fb.app.BookTextView.rtlMode ? "RTL" : "LTR");
         ((ToolbarButtonView) MenuItemCompat.getActionView(rtl)).text.setText(fb.app.BookTextView.rtlMode ? "RTL" : "LTR");
-        bookmarksMenu.setVisible(fb.book.info.bookmarks != null && fb.book.info.bookmarks.size() > 0);
+        if (fb.book != null) // call before onCreateView
+            bookmarksMenu.setVisible(fb.book.info.bookmarks != null && fb.book.info.bookmarks.size() > 0);
 
         if (fb.pluginview instanceof ComicsPlugin.ComicsView)
             theme.setVisible(false);
