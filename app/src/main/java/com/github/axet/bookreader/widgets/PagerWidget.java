@@ -58,9 +58,8 @@ public class PagerWidget extends ZLAndroidWidget {
                 if (key.getElementIndex() == 0) {
                     int p = key.getParagraphIndex() - 1;
                     for (ZLTextPosition k : keySet()) {
-                        if (k.getParagraphIndex() == p && get(k) == null) {
+                        if (k.getParagraphIndex() == p && get(k) == null)
                             super.put(k, value); // update (2,3,0) == (3,0,0)
-                        }
                     }
                 }
             }

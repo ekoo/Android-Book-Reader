@@ -1228,7 +1228,7 @@ public class FBReaderView extends RelativeLayout {
                         for (Rect r : rr) {
                             if (r.top > top || (r.top < top && r.bottom > top)) {
                                 int screen = r.top - top; // offset from top screen to top element
-                                double ratio = p.info.bm.width() / p.getWidth();
+                                double ratio = p.info.bm.width() / (float) p.getWidth();
                                 int offset = (int) (p.info.dst.get(r).top / ratio - screen); // recommended page offset (element - current screen offset)
                                 offset *= info.ratio;
                                 return new ZLTextFixedPosition(pluginview.current.pageNumber, offset, 0);
