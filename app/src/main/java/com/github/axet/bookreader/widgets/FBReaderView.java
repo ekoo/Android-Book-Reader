@@ -192,11 +192,10 @@ public class FBReaderView extends RelativeLayout {
         Rect union = null;
         for (ZLTextElementArea a : areas) {
             if (bm.start.compareTo(a) <= 0 && bm.end.compareTo(a) >= 0) {
-                Rect r = new Rect(a.XStart, a.YStart, a.XEnd, a.YEnd);
                 if (union == null)
-                    union = r;
+                    union = new Rect(a.XStart, a.YStart, a.XEnd, a.YEnd);
                 else
-                    union.union(r);
+                    union.union(a.XStart, a.YStart, a.XEnd, a.YEnd);
             }
         }
         return union;

@@ -83,19 +83,6 @@ public class TTSPopup {
         return max;
     }
 
-    public static Rect getRect(ZLTextElementAreaVector text, Storage.Bookmark bm) {
-        int i = 0;
-        List<ZLTextElementArea> areas = text.areas();
-        ZLTextElementArea a = areas.get(i++);
-        Rect union = new Rect(a.XStart, a.YStart, a.XEnd, a.YEnd);
-        for (; i < areas.size(); i++) {
-            a = areas.get(i);
-            if (bm.start.compareTo(a) <= 0 && bm.end.compareTo(a) >= 0)
-                union.union(a.XStart, a.YStart, a.XEnd, a.YEnd);
-        }
-        return union;
-    }
-
     public static Rect getRect(Plugin.View pluginview, ScrollWidget.ScrollAdapter.PageView v, Storage.Bookmark bm) {
         Plugin.View.Selection.Page page = pluginview.selectPage(bm.start, v.info, v.getWidth(), v.getHeight());
         Plugin.View.Selection s = pluginview.select(bm.start, bm.end);
@@ -806,7 +793,7 @@ public class TTSPopup {
         } else {
             if (v.text == null)
                 return;
-            rect = getRect(v.text, bm);
+            rect = FBReaderView.findUnion(v.text.areas(), bm);
         }
         rect.top += v.getTop();
         rect.bottom += v.getTop();
