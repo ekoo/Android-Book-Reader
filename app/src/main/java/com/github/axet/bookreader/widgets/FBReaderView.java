@@ -192,11 +192,10 @@ public class FBReaderView extends RelativeLayout {
         Rect union = null;
         for (ZLTextElementArea a : areas) {
             if (bm.start.compareTo(a) <= 0 && bm.end.compareTo(a) >= 0) {
-                Rect r = new Rect(a.XStart, a.YStart, a.XEnd, a.YEnd);
                 if (union == null)
-                    union = r;
+                    union = new Rect(a.XStart, a.YStart, a.XEnd, a.YEnd);
                 else
-                    union.union(r);
+                    union.union(a.XStart, a.YStart, a.XEnd, a.YEnd);
             }
         }
         return union;
@@ -672,11 +671,10 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public Integer setScreenBrightness(int percent) {
-            if (percent < 1) {
+            if (percent < 1)
                 percent = 1;
-            } else if (percent > 100) {
+            else if (percent > 100)
                 percent = 100;
-            }
 
             final float level;
             final Integer oldColorLevel = myColorLevel;
@@ -697,9 +695,8 @@ public class FBReaderView extends RelativeLayout {
         }
 
         public int getScreenBrightness() {
-            if (myColorLevel != null) {
+            if (myColorLevel != null)
                 return (myColorLevel - 0x60) * 25 / (0xFF - 0x60);
-            }
 
             float level = fb.w.getAttributes().screenBrightness;
             level = level >= 0 ? level : .5f;

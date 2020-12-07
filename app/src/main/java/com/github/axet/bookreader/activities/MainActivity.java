@@ -407,7 +407,6 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
                     }
                 });
                 try {
-                    String s = u.getScheme();
                     final Storage.Book book = storage.load(u, builder.progress);
                     runOnUiThread(new Runnable() {
                         @Override
@@ -421,7 +420,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
                     });
                 } catch (FileTypeDetector.DownloadInterrupted e) {
                     Log.d(TAG, "interrupted", e);
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     ErrorDialog.Post(MainActivity.this, e);
                 } finally {
                     runOnUiThread(new Runnable() {
