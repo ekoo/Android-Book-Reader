@@ -2,13 +2,13 @@ apply plugin: 'com.android.application'
 apply plugin: 'com.github.axet.dxplugin'
 
 android {
-    compileSdkVersion 25
+    compileSdkVersion 29
     buildToolsVersion '28.0.3'
 
     defaultConfig {
         applicationId "com.github.axet.bookreader"
         minSdkVersion 9
-        targetSdkVersion 28
+        targetSdkVersion 29
         versionCode    399
         versionName    "1.13.20"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
