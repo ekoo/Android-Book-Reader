@@ -862,20 +862,18 @@ public class FBReaderView extends RelativeLayout {
                 final ArrayList<View> bmv = new ArrayList<>();
                 final Storage.Bookmark l = ll.get(i);
                 Plugin.View.Selection s = fb.pluginview.select(l.start, l.end);
+                if (s == null)
+                    return;
                 Plugin.View.Selection.Bounds bb = s.getBounds(page);
                 s.close();
-                Rect union = null;
                 Rect[] rr;
                 if (fb.pluginview.reflow)
                     rr = fb.pluginview.boundsUpdate(bb.rr, info);
                 else
                     rr = bb.rr;
-                List<Rect> kk = SelectionView.lines(rr);
+                List<Rect> kk;
+                kk = SelectionView.lines(rr);
                 for (Rect r : kk) {
-                    if (union == null)
-                        union = new Rect(r);
-                    else
-                        union.union(r);
                     MarginLayoutParams lp = new MarginLayoutParams(r.width(), r.height());
                     WordView v = new WordView(fb.getContext());
                     v.setLayoutParams(lp);

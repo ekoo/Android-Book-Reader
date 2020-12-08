@@ -86,9 +86,13 @@ public class TTSPopup {
     public static Rect getRect(Plugin.View pluginview, ScrollWidget.ScrollAdapter.PageView v, Storage.Bookmark bm) {
         Plugin.View.Selection.Page page = pluginview.selectPage(bm.start, v.info, v.getWidth(), v.getHeight());
         Plugin.View.Selection s = pluginview.select(bm.start, bm.end);
-        Plugin.View.Selection.Bounds bb = s.getBounds(page);
-        s.close();
-        return SelectionView.union(Arrays.asList(bb.rr));
+        if (s != null) {
+            Plugin.View.Selection.Bounds bb = s.getBounds(page);
+            s.close();
+            return SelectionView.union(Arrays.asList(bb.rr));
+        } else {
+            return null;
+        }
     }
 
     public static boolean isStopSymbol(ZLTextElement e) {
@@ -100,6 +104,8 @@ public class TTSPopup {
     }
 
     public static boolean isStopSymbol(String str) {
+        if (str == null || str.isEmpty())
+            return true;
         for (String s : STOPS) {
             if (str.contains(s))
                 return true;
@@ -125,7 +131,7 @@ public class TTSPopup {
     }
 
     public static boolean stopOnLeft(String str) {
-        if (str.length() <= 1)
+        if (str == null || str.length() <= 1)
             return false;
         for (String s : STOPS) {
             if (str.startsWith(s))
@@ -143,6 +149,8 @@ public class TTSPopup {
     }
 
     public static boolean stopOnRight(String str) {
+        if (str == null || str.isEmpty())
+            return false;
         for (String s : STOPS) {
             if (str.endsWith(s))
                 return true;
@@ -179,16 +187,17 @@ public class TTSPopup {
                 ZLTextPosition start = bm.start;
                 ZLTextPosition end = bm.end;
                 PluginWordCursor k = new PluginWordCursor(start);
-                k.nextWord();
-                while (k.compareTo(end) <= 0) {
-                    Bookmark b = new Bookmark(k.getText(), new ZLTextFixedPosition(start), new ZLTextFixedPosition(k));
-                    b.strStart = str.length();
-                    str += k.getText();
-                    b.strEnd = str.length();
-                    str += " ";
-                    list.add(b);
-                    start = new ZLTextFixedPosition(k);
-                    k.nextWord();
+                if (k.nextWord()) {
+                    while (k.compareTo(end) <= 0) {
+                        Bookmark b = new Bookmark(k.getText(), new ZLTextFixedPosition(start), new ZLTextFixedPosition(k));
+                        b.strStart = str.length();
+                        str += k.getText();
+                        b.strEnd = str.length();
+                        str += " ";
+                        list.add(b);
+                        start = new ZLTextFixedPosition(k);
+                        k.nextWord();
+                    }
                 }
                 k.close();
             } else {
@@ -241,6 +250,8 @@ public class TTSPopup {
         }
 
         public boolean left() {
+            if (all == null)
+                return false;
             e--;
             if (e < 0) {
                 e = 0;
@@ -257,6 +268,8 @@ public class TTSPopup {
         }
 
         public boolean right() {
+            if (all == null)
+                return false;
             e++;
             if (e >= all.getEnd().getElementIndex()) {
                 e = 0;
@@ -275,7 +288,8 @@ public class TTSPopup {
         public void all() {
             close();
             all = fb.pluginview.select(p);
-            allText = all.getText();
+            if (all != null) // empty page
+                allText = all.getText();
         }
 
         public void close() {
@@ -288,8 +302,10 @@ public class TTSPopup {
             return allText.substring(getCurrent().getElementIndex(), getCurrent().getElementIndex() + 1);
         }
 
-        public void prevWord() {
+        public boolean prevWord() {
             all();
+            if (all == null)
+                return false;
             int sp = p;
             int se = e;
             String s;
@@ -310,8 +326,11 @@ public class TTSPopup {
             } while (isWord(s) && !stopOnLeft(s));
             e = last;
             Plugin.View.Selection m = fb.pluginview.select(new ZLTextFixedPosition(p, e, 0), new ZLTextFixedPosition(sp, k, 0));
-            text = m.getText();
-            m.close();
+            if (m != null) {
+                text = m.getText();
+                m.close();
+            }
+            return true;
         }
 
         public boolean isWord(String str) {
@@ -324,8 +343,10 @@ public class TTSPopup {
             return all.isWord(str.charAt(0));
         }
 
-        public void nextWord() {
+        public boolean nextWord() {
             all();
+            if (all == null)
+                return false;
             int sp = p;
             int se = e;
             String s;
@@ -346,8 +367,11 @@ public class TTSPopup {
             } while (isWord(s) && !stopOnRight(s));
             e = last;
             Plugin.View.Selection m = fb.pluginview.select(new ZLTextFixedPosition(sp, k, 0), new ZLTextFixedPosition(p, e, 0));
-            text = m.getText();
-            m.close();
+            if (m != null) {
+                text = m.getText();
+                m.close();
+            }
+            return true;
         }
 
         public String getText() {
@@ -711,9 +735,10 @@ public class TTSPopup {
         if (fb.pluginview != null) {
             ZLTextPosition start = bm.end;
             PluginWordCursor k = new PluginWordCursor(start);
-            k.nextWord();
-            ZLTextPosition end = expandRight(k);
-            bm = new Storage.Bookmark(k.getText(), start, end);
+            if (k.nextWord()) {
+                ZLTextPosition end = expandRight(k);
+                bm = new Storage.Bookmark(k.getText(), start, end);
+            }
             k.close();
             return bm;
         } else {
@@ -735,9 +760,10 @@ public class TTSPopup {
         if (fb.pluginview != null) {
             ZLTextPosition end = bm.start;
             PluginWordCursor k = new PluginWordCursor(end);
-            k.prevWord();
-            ZLTextPosition start = expandLeft(k);
-            bm = new Storage.Bookmark(k.getText(), start, end);
+            if (k.prevWord()) {
+                ZLTextPosition start = expandLeft(k);
+                bm = new Storage.Bookmark(k.getText(), start, end);
+            }
             k.close();
             return bm;
         } else {
@@ -790,6 +816,8 @@ public class TTSPopup {
         Rect rect;
         if (fb.pluginview != null) {
             rect = getRect(fb.pluginview, v, bm);
+            if (rect == null)
+                return;
         } else {
             if (v.text == null)
                 return;
@@ -878,23 +906,28 @@ public class TTSPopup {
                 info = ((PagerWidget) fb.widget).getInfo();
             }
             Plugin.View.Selection s = fb.pluginview.select(fragment.fragment.start, fragment.fragment.end);
-            Plugin.View.Selection.Page page = fb.pluginview.selectPage(fragment.fragment.start, info, view.getWidth(), view.getHeight());
-            Plugin.View.Selection.Bounds bounds = s.getBounds(page);
-            Rect r = SelectionView.union(Arrays.asList(bounds.rr));
-            if (((View) fb.widget).getHeight() / 2 < view.getTop() + r.centerY())
-                updateGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP);
-            else
-                updateGravity(Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM);
-            s.close();
+            if (s != null) {
+                Plugin.View.Selection.Page page = fb.pluginview.selectPage(fragment.fragment.start, info, view.getWidth(), view.getHeight());
+                Plugin.View.Selection.Bounds bounds = s.getBounds(page);
+                Rect r = SelectionView.union(Arrays.asList(bounds.rr));
+                s.close();
+                if (((View) fb.widget).getHeight() / 2 < view.getTop() + r.centerY())
+                    updateGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP);
+                else
+                    updateGravity(Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM);
+            }
         }
     }
 
     public String getText(ZLTextPosition start, ZLTextPosition end) {
         if (fb.pluginview != null) {
             Plugin.View.Selection s = fb.pluginview.select(start, end);
-            String str = s.getText();
-            s.close();
-            return str;
+            if (s != null) {
+                String str = s.getText();
+                s.close();
+                return str;
+            }
+            return null;
         } else {
             TextBuildTraverser tt = new TextBuildTraverser(fb.app.BookTextView);
             tt.traverse(start, end);
