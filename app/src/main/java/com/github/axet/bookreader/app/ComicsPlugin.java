@@ -374,7 +374,6 @@ public class ComicsPlugin extends BuiltinFormatPlugin implements Plugin {
     }
 
     public static class ComicsView extends View {
-        public Paint paint = new Paint();
         public Decoder doc;
 
         public ComicsView(ZLFile f) {

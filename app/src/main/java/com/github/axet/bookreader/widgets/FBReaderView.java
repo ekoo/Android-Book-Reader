@@ -772,11 +772,15 @@ public class FBReaderView extends RelativeLayout {
                     super.dispatchDraw(canvas);
                 }
             };
-            int wallpaperColor = (0xff << 24) | fb.app.BookTextView.getBackgroundColor().intValue();
-            if (ColorUtils.calculateLuminance(wallpaperColor) < 0.5f)
-                pinch.image.setColorFilter(new ColorMatrixColorFilter(Plugin.View.NEGATIVE));
-            else
-                pinch.image.setColorFilter(null);
+            if (fb.pluginview != null) {
+                pinch.image.setColorFilter(fb.pluginview.paint.getColorFilter());
+            } else {
+                int wallpaperColor = (0xff << 24) | fb.app.BookTextView.getBackgroundColor().intValue();
+                if (ColorUtils.calculateLuminance(wallpaperColor) < 0.5f)
+                    pinch.image.setColorFilter(new ColorMatrixColorFilter(Plugin.View.NEGATIVE));
+                else
+                    pinch.image.setColorFilter(null);
+            }
             fb.addView(pinch, new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         }
 
