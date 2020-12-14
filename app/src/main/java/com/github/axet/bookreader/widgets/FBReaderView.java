@@ -15,12 +15,14 @@ import android.content.pm.ResolveInfo;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.PowerManager;
+import android.support.v4.graphics.ColorUtils;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AlertDialog;
@@ -770,6 +772,11 @@ public class FBReaderView extends RelativeLayout {
                     super.dispatchDraw(canvas);
                 }
             };
+            int wallpaperColor = (0xff << 24) | fb.app.BookTextView.getBackgroundColor().intValue();
+            if (ColorUtils.calculateLuminance(wallpaperColor) < 0.5f)
+                pinch.image.setColorFilter(new ColorMatrixColorFilter(Plugin.View.NEGATIVE));
+            else
+                pinch.image.setColorFilter(null);
             fb.addView(pinch, new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         }
 
