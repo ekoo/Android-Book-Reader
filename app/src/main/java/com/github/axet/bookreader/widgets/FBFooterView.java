@@ -233,7 +233,7 @@ public class FBFooterView extends LinearLayout {
         footer = customview.getFooter();
         pagePosition = customview.pagePosition();
         family = fb.app.ViewOptions.getFooterOptions().Font.getValue();
-        tf = AndroidFontUtil.typeface(fb.app.SystemInfo, FontEntry.systemEntry(family), true, false);
+        tf = AndroidFontUtil.typeface(fb.app.SystemInfo, FontEntry.systemEntry(family), footer.getHeight() > 10, false);
         for (int i = 0; i < getChildCount(); i++) {
             View v = getChildAt(i);
             if (v instanceof FontTextView)
