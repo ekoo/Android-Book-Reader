@@ -15,12 +15,14 @@ import android.content.pm.ResolveInfo;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.PowerManager;
+import android.support.v4.graphics.ColorUtils;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AlertDialog;
@@ -133,6 +135,7 @@ public class FBReaderView extends RelativeLayout {
     public Listener listener;
     String title;
     Window w;
+    FBFooterView footer;
     SelectionView selection;
     ZLTextPosition scrollDelayed;
     DrawerLayout drawer;
@@ -294,6 +297,21 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public class CustomView extends FBView {
+
+        public class FooterNew extends FooterNewStyle {
+            @Override
+            protected String buildInfoString(PagePosition pagePosition, String separator) {
+                return "";
+            }
+        }
+
+        public class FooterOld extends FooterOldStyle {
+            @Override
+            protected String buildInfoString(PagePosition pagePosition, String separator) {
+                return "";
+            }
+        }
+
         public CustomView(FBReaderApp reader) {
             super(reader);
         }
@@ -312,6 +330,15 @@ public class FBReaderView extends RelativeLayout {
                     ),
                     getVerticalScrollbarWidth()
             );
+        }
+
+        public Footer getFooter() {
+            int type = SCROLLBAR_SHOW_AS_FOOTER; // app.ViewOptions.ScrollbarType.getValue();
+            if (type == SCROLLBAR_SHOW_AS_FOOTER)
+                return new FooterNew();
+            if (type == SCROLLBAR_SHOW_AS_FOOTER_OLD_STYLE)
+                return new FooterOld();
+            return null;
         }
 
         public ZLAndroidPaintContext setContext() {
@@ -745,6 +772,15 @@ public class FBReaderView extends RelativeLayout {
                     super.dispatchDraw(canvas);
                 }
             };
+            if (fb.pluginview != null) {
+                pinch.image.setColorFilter(fb.pluginview.paint.getColorFilter());
+            } else {
+                int wallpaperColor = (0xff << 24) | fb.app.BookTextView.getBackgroundColor().intValue();
+                if (ColorUtils.calculateLuminance(wallpaperColor) < 0.5f)
+                    pinch.image.setColorFilter(new ColorMatrixColorFilter(Plugin.View.NEGATIVE));
+                else
+                    pinch.image.setColorFilter(null);
+            }
             fb.addView(pinch, new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         }
 
@@ -862,20 +898,18 @@ public class FBReaderView extends RelativeLayout {
                 final ArrayList<View> bmv = new ArrayList<>();
                 final Storage.Bookmark l = ll.get(i);
                 Plugin.View.Selection s = fb.pluginview.select(l.start, l.end);
+                if (s == null)
+                    return;
                 Plugin.View.Selection.Bounds bb = s.getBounds(page);
                 s.close();
-                Rect union = null;
                 Rect[] rr;
                 if (fb.pluginview.reflow)
                     rr = fb.pluginview.boundsUpdate(bb.rr, info);
                 else
                     rr = bb.rr;
-                List<Rect> kk = SelectionView.lines(rr);
+                List<Rect> kk;
+                kk = SelectionView.lines(rr);
                 for (Rect r : kk) {
-                    if (union == null)
-                        union = new Rect(r);
-                    else
-                        union.union(r);
                     MarginLayoutParams lp = new MarginLayoutParams(r.width(), r.height());
                     WordView v = new WordView(fb.getContext());
                     v.setLayoutParams(lp);
@@ -1099,6 +1133,8 @@ public class FBReaderView extends RelativeLayout {
         app.BookTextView = new CustomView(app);
         app.setView(app.BookTextView);
 
+        footer = new FBFooterView(getContext(), this);
+
         setWidget(Widgets.PAGING);
     }
 
@@ -1129,7 +1165,7 @@ public class FBReaderView extends RelativeLayout {
         config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption, f);
 
         config.setValue(app.MiscOptions.AllowScreenBrightnessAdjustment, false);
-        config.setValue(app.ViewOptions.ScrollbarType, FBView.SCROLLBAR_SHOW_AS_FOOTER);
+        config.setValue(app.ViewOptions.ScrollbarType, 0); // FBView.SCROLLBAR_SHOW_AS_FOOTER
         config.setValue(app.ViewOptions.getFooterOptions().ShowProgress, FooterOptions.ProgressDisplayType.asPages);
 
         config.setValue(app.ImageOptions.TapAction, ImageOptions.TapActionEnum.openImageView);
@@ -1157,9 +1193,16 @@ public class FBReaderView extends RelativeLayout {
             removeView((View) widget);
         }
         widget = v;
-        addView((View) v, 0, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        lp.addRule(RelativeLayout.ABOVE, footer.getId());
+        addView((View) v, 0, lp);
         if (pos != null)
             gotoPosition(pos);
+        if (footer != null)
+            removeView(footer);
+        lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+        addView(footer, lp);
     }
 
     public void loadBook(Storage.FBook fbook) {
@@ -1990,10 +2033,14 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void invalidateFooter() {
-        if (widget instanceof ScrollWidget)
-            ((ScrollWidget) widget).invalidate();
-        else
-            widget.repaint();
+        if (footer == null) {
+            if (widget instanceof ScrollWidget)
+                ((ScrollWidget) widget).invalidate();
+            else
+                widget.repaint();
+        } else {
+            footer.invalidate();
+        }
     }
 
     public void clearReflowPage() {

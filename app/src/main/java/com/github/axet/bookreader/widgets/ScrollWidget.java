@@ -938,9 +938,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
         DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(fb.getContext(), DividerItemDecoration.VERTICAL);
         addItemDecoration(dividerItemDecoration);
 
-        FBView.Footer footer = fb.app.BookTextView.getFooterArea();
-        if (footer != null)
-            setPadding(0, 0, 0, footer.getHeight());
+        setPadding(0, 0, 0, getHeight() - getMainAreaHeight()); // footer height
 
         setItemAnimator(null);
 
@@ -1137,6 +1135,7 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
         super.draw(c);
         updatePosition();
         drawFooter(c);
+        fb.invalidateFooter();
     }
 
     void updatePosition() { // position can vary depend on which page drawn, restore it after every draw

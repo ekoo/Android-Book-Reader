@@ -212,6 +212,7 @@ public class PagerWidget extends ZLAndroidWidget {
     }
 
     public void updateOverlays() {
+        fb.invalidateFooter();
         if (fb.pluginview != null) {
             final Rect dst = getPageRect();
             int x = dst.left;

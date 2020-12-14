@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
@@ -323,6 +324,8 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
                     f = f.getParentFile();
                 if (f != null)
                     old = Uri.fromFile(f);
+            } else {
+                old = Uri.parse(ContentResolver.SCHEME_CONTENT + Storage.CSS); // show SAF default
             }
             choicer = new OpenChoicer(OpenFileDialog.DIALOG_TYPE.FILE_DIALOG, true) {
                 @Override

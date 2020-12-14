@@ -423,7 +423,7 @@ public interface Plugin {
                 else
                     this.wallpaper = null;
                 wallpaperColor = (0xff << 24) | app.BookTextView.getBackgroundColor().intValue();
-                if (ColorUtils.calculateLuminance(wallpaperColor) < 0.5f)
+                if (ColorUtils.calculateLuminance(wallpaperColor) < 0.5f && ! (this instanceof ComicsPlugin.ComicsView))
                     paint.setColorFilter(new ColorMatrixColorFilter(NEGATIVE));
                 else
                     paint.setColorFilter(null);

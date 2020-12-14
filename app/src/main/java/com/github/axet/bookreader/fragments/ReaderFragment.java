@@ -968,8 +968,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 s.close();
                 search = true;
             }
-            if (fb.pluginview.reflow)
-                tts.setVisible(false); // TODO possible and can be very practical
+            if (fb.pluginview.reflow || fb.pluginview instanceof ComicsPlugin.ComicsView)
+                tts.setVisible(false); // TODO reflow - possible and can be very practical
         }
 
         grid.setVisible(false);
