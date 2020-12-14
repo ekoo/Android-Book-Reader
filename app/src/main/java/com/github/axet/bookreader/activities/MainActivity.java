@@ -8,6 +8,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -202,9 +203,10 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
 
         registerReceiver(receiver, new IntentFilter(FBReaderView.ACTION_MENU));
 
-        openLibrary();
-
-        openIntent(getIntent());
+        if (savedInstanceState == null && getIntent().getParcelableExtra(SAVE_INSTANCE_STATE) == null) {
+            openLibrary();
+            openIntent(getIntent());
+        }
 
         RotatePreferenceCompat.onCreate(this, BookApplication.PREFERENCE_ROTATE);
     }
@@ -213,11 +215,14 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
     @Override
     public void onBackPressed() {
         FragmentManager fm = getSupportFragmentManager();
-        for (Fragment f : fm.getFragments()) {
-            if (f != null && f.isVisible() && f instanceof OnBackPressed) {
-                OnBackPressed s = (OnBackPressed) f;
-                if (s.onBackPressed())
-                    return;
+        List<Fragment> ff = fm.getFragments();
+        if (ff != null) {
+            for (Fragment f : ff) {
+                if (f != null && f.isVisible() && f instanceof OnBackPressed) {
+                    OnBackPressed s = (OnBackPressed) f;
+                    if (s.onBackPressed())
+                        return;
+                }
             }
         }
         super.onBackPressed();
@@ -581,7 +586,10 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
     @SuppressLint("RestrictedApi")
     public Fragment getCurrentFragment() {
         FragmentManager fm = getSupportFragmentManager();
-        for (Fragment f : fm.getFragments()) {
+        List<Fragment> ff = fm.getFragments();
+        if (ff == null)
+            return null;
+        for (Fragment f : ff) {
             if (f != null && f.isVisible())
                 return f;
         }

@@ -8,6 +8,7 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v7.app.ActionBar;
 import android.support.v7.preference.PreferenceFragmentCompat;
 import android.view.MenuItem;
@@ -18,6 +19,8 @@ import com.github.axet.androidlibrary.preferences.StoragePathPreferenceCompat;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.Storage;
+
+import java.util.Set;
 
 public class SettingsActivity extends AppCompatSettingsThemeActivity {
     public static final int RESULT_STORAGE = 1;
@@ -45,14 +48,8 @@ public class SettingsActivity extends AppCompatSettingsThemeActivity {
         storage = new Storage(this);
         RotatePreferenceCompat.onCreate(this, BookApplication.PREFERENCE_ROTATE);
         setupActionBar();
-        getSupportFragmentManager().beginTransaction().replace(android.R.id.content, new GeneralPreferenceFragment()).commit();
-    }
-
-    private void setupActionBar() {
-        ActionBar actionBar = getSupportActionBar();
-        if (actionBar != null) {
-            actionBar.setDisplayHomeAsUpEnabled(true);
-        }
+        if (savedInstanceState == null && getIntent().getParcelableExtra(SAVE_INSTANCE_STATE) == null)
+            showSettingsFragment(new GeneralPreferenceFragment());
     }
 
     @Override
