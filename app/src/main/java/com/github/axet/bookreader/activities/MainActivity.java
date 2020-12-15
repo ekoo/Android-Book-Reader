@@ -8,9 +8,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.pm.ActivityInfo;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
@@ -697,16 +695,5 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         isRunning = true;
         RotatePreferenceCompat.onResume(this, BookApplication.PREFERENCE_ROTATE);
         CacheImagesAdapter.cacheClear(this);
-    }
-
-    @Override
-    public void restartActivity() {
-        Fragment f = getCurrentFragment();
-        if (f instanceof ReaderFragment) {
-            ((ReaderFragment) f).updateTheme();
-            invalidateOptionsMenu();
-        } else if (f instanceof LibraryFragment) {
-            super.restartActivity();
-        }
     }
 }
