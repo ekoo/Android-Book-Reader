@@ -672,6 +672,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                         main.openLibrary();
                 }
             });
+            return v; // ignore post called
         }
 
         handler.post(new Runnable() {
