@@ -672,11 +672,14 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                         main.openLibrary();
                 }
             });
+            return v; // ignore post called
         }
 
         handler.post(new Runnable() {
             @Override
             public void run() {
+                if (getActivity().isFinishing())
+                    return;
                 updateToolbar(); // update toolbar after page been drawn to detect RTL
                 fb.showControls(); //  update toolbar after page been drawn, getWidth() == 0
             }

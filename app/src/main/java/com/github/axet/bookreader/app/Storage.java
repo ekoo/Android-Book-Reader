@@ -775,7 +775,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             try {
                 book.info = new RecentInfo(context, r);
             } catch (RuntimeException e) {
-                Log.d(TAG, "Unable to load info", e);
+                Log.e(TAG, "Unable to load info", e);
             }
         }
         if (book.info == null) {
@@ -986,7 +986,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 try {
                     book.info = new RecentInfo(context, r);
                 } catch (RuntimeException e) {
-                    Log.d(TAG, "Unable to load info", e);
+                    Log.e(TAG, "Unable to load info", e);
                 }
         }
         if (book.info == null) {
@@ -1116,7 +1116,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                         if (size > 0) {
                             t = t.toLowerCase();
                             String n = Storage.getNameNoExt(t);
-                            if (n.length() != MD5_SIZE)
+                            if (n.length() != MD5_SIZE) // prevent scan *.fb2 and other books but only sync related files
                                 continue;
                             FileTypeDetector.Detector[] dd = supported();
                             for (FileTypeDetector.Detector d : dd) {
@@ -1133,7 +1133,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                                         try {
                                             b.info = new RecentInfo(context, r);
                                         } catch (RuntimeException e) {
-                                            Log.d(TAG, "Unable to load info", e);
+                                            Log.e(TAG, "Unable to load info", e);
                                         }
                                     }
                                     if (b.info == null) {
@@ -1163,7 +1163,6 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         delete(context, book.url);
         if (book.cover != null)
             book.cover.delete();
-
         try {
             delete(context, recentUri(book));
         } catch (RuntimeException e) {

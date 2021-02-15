@@ -822,6 +822,8 @@ public class TTSPopup {
             if (v.text == null)
                 return;
             rect = FBReaderView.findUnion(v.text.areas(), bm);
+            if (rect == null)
+                return;
         }
         rect.top += v.getTop();
         rect.bottom += v.getTop();
