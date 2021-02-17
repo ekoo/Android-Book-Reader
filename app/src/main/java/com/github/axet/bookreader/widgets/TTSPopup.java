@@ -3,6 +3,8 @@ package com.github.axet.bookreader.widgets;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Rect;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.os.Build;
 import android.os.Handler;
 import android.preference.PreferenceManager;
@@ -18,6 +20,7 @@ import android.widget.RelativeLayout;
 
 import com.github.axet.androidlibrary.sound.TTS;
 import com.github.axet.androidlibrary.widgets.ThemeUtils;
+import com.github.axet.androidlibrary.widgets.Toast;
 import com.github.axet.bookreader.R;
 import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.Plugin;
@@ -46,6 +49,7 @@ public class TTSPopup {
     public static String[] STOPS = {".", ";"}; // ",", "\"", "'", "!", "?", "“", "”", ":", "(", ")"};
     public static int MAX_COUNT = getMaxSpeechInputLength(200);
     public static int TTS_BG_COLOR = 0xaaaaaa00;
+    public static int TTS_BG_ERROR_COLOR = 0xaaff0000;
     public static int TTS_WORD_COLOR = 0x33333333;
 
     public Context context;
@@ -71,6 +75,12 @@ public class TTSPopup {
         @Override
         public void run() {
             selectNext();
+            speakNext();
+        }
+    };
+    Runnable speakRetry = new Runnable() {
+        @Override
+        public void run() {
             speakNext();
         }
     };
@@ -169,6 +179,8 @@ public class TTSPopup {
         public String fragmentText;
         public ArrayList<Bookmark> fragmentWords;
         public Storage.Bookmark word = new Storage.Bookmark();
+        public int retry; // retry count
+        public long last; // last time text was played
 
         public class Bookmark extends Storage.Bookmark {
             public int strStart;
@@ -230,6 +242,12 @@ public class TTSPopup {
                     return bm;
             }
             return null;
+        }
+
+        public boolean isEmpty() {
+            if (fragment == null || fragmentText == null)
+                return true;
+            return fragmentText.trim().length() == 0;
         }
     }
 
@@ -456,6 +474,20 @@ public class TTSPopup {
                 }
                 fb.ttsUpdate();
             }
+
+            @Override
+            public void onError(String utteranceId, Runnable done) {
+                if (!fragment.isEmpty() && fragment.retry < 2) {
+                    dones.remove(delayed);
+                    handler.removeCallbacks(delayed);
+                    delayed = null;
+                    dones.remove(speakNext); // remove done
+                    fragment.retry++;
+                    ttsShowError("TTS Unknown error", 2000, speakRetry);
+                } else {
+                    done.run(); // speakNext
+                }
+            }
         };
         tts.ttsCreate();
         LayoutInflater inflater = LayoutInflater.from(getContext());
@@ -521,6 +553,7 @@ public class TTSPopup {
         Runnable r = new Runnable() {
             @Override
             public void run() {
+                fragment.last = System.currentTimeMillis();
                 tts.playSpeech(new TTS.Speak(tts.getTTSLocale(), fragment.fragmentText), speakNext);
                 updatePlay();
             }
@@ -1078,5 +1111,21 @@ public class TTSPopup {
         ZLTextPosition start = expandLeft(bm.start);
         ZLTextPosition end = expandRight(bm.end);
         return new Storage.Bookmark(getText(start, end), start, end);
+    }
+
+    public void ttsShowError(String text, int delay, final Runnable done) {
+        for (Storage.Bookmark m : marks)
+            m.color = TTS_BG_ERROR_COLOR;
+        fb.ttsUpdate();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                for (Storage.Bookmark m : marks)
+                    m.color = TTS_BG_COLOR;
+                fb.ttsUpdate();
+                done.run();
+            }
+        }, delay);
+        Toast.makeText(getContext(), text, Toast.LENGTH_LONG).show();
     }
 }
