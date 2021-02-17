@@ -477,15 +477,16 @@ public class TTSPopup {
 
             @Override
             public void onError(String utteranceId, Runnable done) {
-                dones.remove(delayed);
-                handler.removeCallbacks(delayed);
-                delayed = null;
-                dones.remove(speakNext); // remove done
-                fragment.retry++;
-                if (fragment.retry < 2)
+                if (!fragment.isEmpty() && fragment.retry < 2) {
+                    dones.remove(delayed);
+                    handler.removeCallbacks(delayed);
+                    delayed = null;
+                    dones.remove(speakNext); // remove done
+                    fragment.retry++;
                     ttsShowError("TTS Unknown error", 2000, speakRetry);
-                else
+                } else {
                     done.run(); // speakNext
+                }
             }
         };
         tts.ttsCreate();
