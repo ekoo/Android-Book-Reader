@@ -2168,7 +2168,6 @@ public class FBReaderView extends RelativeLayout {
         }
         if (widget instanceof PagerWidget)
             ((PagerWidget) widget).updateOverlaysReset();
-
         tts.view.bringToFront();
     }
 
