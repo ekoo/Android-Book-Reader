@@ -78,12 +78,7 @@ public class TTSPopup {
             speakNext();
         }
     };
-    Runnable speakRetry = new Runnable() {
-        @Override
-        public void run() {
-            speakNext();
-        }
-    };
+    Runnable speakRetry = null;
 
     public static int getMaxSpeechInputLength(int max) {
         if (Build.VERSION.SDK_INT >= 18) {
@@ -483,7 +478,12 @@ public class TTSPopup {
                     delayed = null;
                     dones.remove(speakNext); // remove done
                     fragment.retry++;
-                    ttsShowError("TTS Unknown error", 2000, speakRetry);
+                    ttsShowError("TTS Unknown error", 2000, new Runnable() {
+                        @Override
+                        public void run() {
+                            speakNext();
+                        }
+                    });
                 } else {
                     done.run(); // speakNext
                 }
@@ -512,7 +512,7 @@ public class TTSPopup {
         play.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (tts.dones.contains(speakNext))
+                if (tts.dones.contains(speakNext) || speakRetry != null)
                     stop();
                 else
                     speakNext();
@@ -540,6 +540,8 @@ public class TTSPopup {
     void stop() {
         tts.close();
         tts.dones.remove(speakNext);
+        handler.removeCallbacks(speakRetry);
+        speakRetry = null;
         updatePlay();
     }
 
@@ -569,7 +571,7 @@ public class TTSPopup {
     }
 
     public void updatePlay() {
-        boolean p = tts.dones.contains(speakNext);
+        boolean p = tts.dones.contains(speakNext) || speakRetry != null;
         play.setImageResource(p ? R.drawable.ic_outline_pause_24 : R.drawable.ic_outline_play_arrow_24);
         fb.listener.ttsStatus(p);
     }
@@ -1117,15 +1119,18 @@ public class TTSPopup {
         for (Storage.Bookmark m : marks)
             m.color = TTS_BG_ERROR_COLOR;
         fb.ttsUpdate();
-        handler.postDelayed(new Runnable() {
+        handler.removeCallbacks(speakRetry);
+        speakRetry = new Runnable() {
             @Override
             public void run() {
                 for (Storage.Bookmark m : marks)
                     m.color = TTS_BG_COLOR;
                 fb.ttsUpdate();
                 done.run();
+                speakRetry = null;
             }
-        }, delay);
+        };
+        handler.postDelayed(speakRetry, delay);
         Toast.makeText(getContext(), text, Toast.LENGTH_LONG).show();
     }
 }
