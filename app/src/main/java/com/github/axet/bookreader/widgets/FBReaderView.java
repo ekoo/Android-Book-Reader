@@ -2145,6 +2145,8 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public void ttsUpdate() {
+        if (tts == null)
+            return; // already closed, run from handler
         if (pluginview == null) {
             app.BookTextView.removeHighlightings(ZLTTSMark.class);
             if (tts != null) {
@@ -2216,7 +2218,7 @@ public class FBReaderView extends RelativeLayout {
     public void showControls() {
         ActiveAreasView areas = new ActiveAreasView(getContext());
         int w = getWidth();
-        if( w == 0)
+        if (w == 0)
             return; // activity closed
         areas.create(app, w);
         showControls(this, areas);
