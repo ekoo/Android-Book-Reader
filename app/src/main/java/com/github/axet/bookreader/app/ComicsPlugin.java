@@ -14,7 +14,7 @@ import com.github.axet.androidlibrary.services.StorageProvider;
 import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
 import com.github.axet.bookreader.widgets.ScrollWidget;
 
-import net.lingala.zip4j.core.ZipFile;
+import net.lingala.zip4j.ZipFile;
 
 import org.apache.commons.io.IOUtils;
 import org.geometerplus.fbreader.book.AbstractBook;
@@ -265,7 +265,7 @@ public class ComicsPlugin extends BuiltinFormatPlugin implements Plugin {
         public ArrayList<ArchiveFile> list(File file) {
             try {
                 ArrayList<ArchiveFile> ff = new ArrayList<>();
-                final ZipFile zip = new ZipFile(new net.lingala.zip4j.core.NativeStorage(file));
+                final ZipFile zip = new ZipFile(new net.lingala.zip4j.NativeStorage(file));
                 aa.add(zip);
                 List list = zip.getFileHeaders();
                 for (Object o : list) {
