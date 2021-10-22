@@ -4,6 +4,7 @@ apply plugin: 'com.github.axet.dxplugin'
 android {
     compileSdkVersion 29
     buildToolsVersion '28.0.3'
+    ndkVersion '16.1.4479499' // stripReleaseDebugSymbols
     defaultConfig {
         applicationId "com.github.axet.bookreader"
         minSdkVersion 9
