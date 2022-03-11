@@ -66,8 +66,8 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
     public static final int RESULT_ADD_CATALOG = 2;
 
     Storage storage;
-    OpenChoicer choicer;
     boolean isRunning;
+    OpenChoicer choicer;
     String lastSearch;
     LibraryFragment libraryFragment = LibraryFragment.newInstance();
     public boolean volumeEnabled = true; // tmp enabled / disable volume keys
@@ -135,6 +135,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         public ProgressBar load;
         public ProgressBar v;
         public TextView text;
+        public AlertDialog dialog;
         public Storage.Progress progress = new Storage.Progress() {
             @Override
             public void progress(final long bytes, final long total) {
@@ -191,6 +192,10 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
             str += String.format(" (%s%s)", BookApplication.formatSize(getContext(), progress.info.getCurrentSpeed()), getContext().getString(R.string.per_second));
             text.setText(str);
             text.setVisibility(View.VISIBLE);
+        }
+
+        public void build() {
+            dialog = super.create();
         }
     }
 
