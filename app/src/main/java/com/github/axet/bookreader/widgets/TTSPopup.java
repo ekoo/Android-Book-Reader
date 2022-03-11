@@ -512,10 +512,12 @@ public class TTSPopup {
         play.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (tts.dones.contains(speakNext) || speakRetry != null)
+                if (tts.dones.contains(speakNext) || speakRetry != null) {
                     stop();
-                else
+                } else {
+                    resetColor();
                     speakNext();
+                }
             }
         });
         View close = view.findViewById(R.id.tts_close);
@@ -1123,14 +1125,18 @@ public class TTSPopup {
         speakRetry = new Runnable() {
             @Override
             public void run() {
-                for (Storage.Bookmark m : marks)
-                    m.color = TTS_BG_COLOR;
-                fb.ttsUpdate();
+                resetColor();
                 done.run();
                 speakRetry = null;
             }
         };
         handler.postDelayed(speakRetry, delay);
         Toast.makeText(getContext(), text, Toast.LENGTH_LONG).show();
+    }
+
+    public void resetColor() {
+        for (Storage.Bookmark m : marks)
+            m.color = TTS_BG_COLOR;
+        fb.ttsUpdate();
     }
 }

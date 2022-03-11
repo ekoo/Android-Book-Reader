@@ -39,6 +39,5 @@ public class BookApplication extends MainApplication {
                 onCreate();
             }
         };
-        new HttpClient.SpongyLoader(this, false);
     }
 }
