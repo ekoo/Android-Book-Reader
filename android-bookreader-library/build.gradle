@@ -129,7 +129,7 @@ dependencies {
 
 project.afterEvaluate {
     project(':app').configurations.resolvableImpl.resolvedConfiguration.resolvedArtifacts.each { artifact ->
-        dependencies.add("compile", artifact.moduleVersion.id.toString())
+        dependencies.add("api", artifact.moduleVersion.id.toString())
     }
 }
 
