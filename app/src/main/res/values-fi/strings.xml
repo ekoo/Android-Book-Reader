@@ -2,6 +2,7 @@
     <string name="app_name">Lukija</string>
 
     <string-array name="theme_text">
+        <item>@string/system_default</item>
         <item>Vaalea</item>
         <item>Tumma</item>
     </string-array>

@@ -2,6 +2,7 @@
     <string name="app_name">Book Reader</string>
 
 	<string-array name="theme_text">
+        <item>@string/system_default</item>
 		<item>Jasny motyw</item>
 		<item>Ciemny motyw</item>
 	</string-array>

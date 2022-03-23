@@ -2,6 +2,7 @@
     <string name="app_name">Leitor de livros</string>
 
     <string-array name="theme_text">
+        <item>@string/system_default</item>
         <item>Tema claro</item>
         <item>Tema escuro</item>
     </string-array>

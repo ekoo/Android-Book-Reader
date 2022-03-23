@@ -2,13 +2,9 @@
     <string name="app_name">Book Reader</string>
 
     <string-array name="theme_text">
+        <item>@string/system_default</item>
         <item>亮色佈景主題</item>
         <item>暗色佈景主題</item>
-    </string-array>
-
-    <string-array name="theme_value" translatable="false">
-        <item>@string/Theme_Light</item>
-        <item>@string/Theme_Dark</item>
     </string-array>
 
     <string name="loading_book">正在載入書本</string>

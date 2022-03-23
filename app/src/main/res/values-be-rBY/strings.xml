@@ -3,6 +3,7 @@
     <string name="app_name">Book Reader</string>
 
     <string-array name="theme_text">
+        <item>@string/system_default</item>
         <item>Светлая тэма</item>
         <item>Цёмная тэма</item>
     </string-array>

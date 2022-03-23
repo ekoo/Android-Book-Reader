@@ -2,6 +2,7 @@
     <string name="app_name">Книги</string>
 
     <string-array name="theme_text">
+        <item>@string/system_default</item>
         <item>Светлая тема</item>
         <item>Темная тема</item>
     </string-array>

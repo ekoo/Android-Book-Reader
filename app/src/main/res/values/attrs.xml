@@ -12,6 +12,7 @@
     <attr name="side_nav_bar" format="reference" />
 
     <string-array name="theme_value" translatable="false">
+        <item>@string/Theme_System</item>
         <item>@string/Theme_Light</item>
         <item>@string/Theme_Dark</item>
     </string-array>

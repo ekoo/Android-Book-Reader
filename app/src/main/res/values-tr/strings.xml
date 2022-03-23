@@ -2,6 +2,7 @@
     <string name="app_name">Kitap Okuyucu</string>
 
     <string-array name="theme_text">
+        <item>@string/system_default</item>
         <item>Aydınlık Gövde</item>
         <item>Karanlık Gövde</item>
     </string-array>
