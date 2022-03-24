@@ -251,7 +251,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
             theme.setVisible(true);
             String d = getString(R.string.Theme_Dark);
             theme.setIcon(t.equals(d) ? R.drawable.ic_brightness_night_white_24dp : R.drawable.ic_brightness_day_white_24dp);
-            ResourcesMap map = new ResourcesMap(this, R.array.theme_value, R.array.theme_text);
+            ResourcesMap map = new ResourcesMap(this, R.array.themes_values, R.array.themes_text);
             theme.setTitle(map.get(getString(t.equals(d) ? R.string.Theme_Dark : R.string.Theme_Light)));
         }
 
