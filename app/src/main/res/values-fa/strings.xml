@@ -1,11 +1,6 @@
 <resources>
     <string name="app_name">Book Reader</string>
 
-    <string-array name="theme_text">
-        <item>پوسته روشن</item>
-        <item>پوسته تاریک</item>
-    </string-array>
-
     <string name="loading_book">در حال بارگذاری کتاب</string>
     <string name="open_file">باز کردن پرونده</string>
     <string name="catalog_home">خانه</string>

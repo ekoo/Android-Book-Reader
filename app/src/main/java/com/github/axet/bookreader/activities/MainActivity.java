@@ -59,7 +59,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 
-public class MainActivity extends FullscreenActivity implements NavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends FullscreenActivity implements NavigationView.OnNavigationItemSelectedListener, SharedPreferences.OnSharedPreferenceChangeListener {
     public static final String TAG = MainActivity.class.getSimpleName();
 
     public static final int RESULT_FILE = 1;
@@ -212,6 +212,9 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         }
 
         RotatePreferenceCompat.onCreate(this, BookApplication.PREFERENCE_ROTATE);
+
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
+        shared.registerOnSharedPreferenceChangeListener(this);
     }
 
     @SuppressLint("RestrictedApi")
@@ -242,10 +245,15 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
         MenuItem theme = menu.findItem(R.id.action_theme);
         String t = shared.getString(BookApplication.PREFERENCE_THEME, "");
-        String d = getString(R.string.Theme_Dark);
-        theme.setIcon(t.equals(d) ? R.drawable.ic_brightness_night_white_24dp : R.drawable.ic_brightness_day_white_24dp);
-        ResourcesMap map = new ResourcesMap(this, R.array.theme_value, R.array.theme_text);
-        theme.setTitle(map.get(getString(t.equals(d) ? R.string.Theme_Dark : R.string.Theme_Light)));
+        if (t.equals(getString(R.string.Theme_System))) {
+            theme.setVisible(false);
+        } else {
+            theme.setVisible(true);
+            String d = getString(R.string.Theme_Dark);
+            theme.setIcon(t.equals(d) ? R.drawable.ic_brightness_night_white_24dp : R.drawable.ic_brightness_day_white_24dp);
+            ResourcesMap map = new ResourcesMap(this, R.array.themes_values, R.array.themes_text);
+            theme.setTitle(map.get(getString(t.equals(d) ? R.string.Theme_Dark : R.string.Theme_Light)));
+        }
 
         final SearchView searchView = (SearchView) MenuItemCompat.getActionView(searchMenu);
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
@@ -630,6 +638,8 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         super.onDestroy();
         unregisterReceiver(receiver);
         RotatePreferenceCompat.onDestroy(this);
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
+        shared.unregisterOnSharedPreferenceChangeListener(this);
     }
 
     @Override
@@ -700,5 +710,11 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         isRunning = true;
         RotatePreferenceCompat.onResume(this, BookApplication.PREFERENCE_ROTATE);
         CacheImagesAdapter.cacheClear(this);
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        if (key.equals(BookApplication.PREFERENCE_THEME))
+            invalidateOptionsMenu();
     }
 }

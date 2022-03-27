@@ -27,7 +27,7 @@ public class BookApplication extends MainApplication {
     public ZLAndroidApplication zlib;
 
     public static int getTheme(Context context, int light, int dark) {
-        return MainApplication.getTheme(context, PREFERENCE_THEME, light, dark, context.getString(R.string.Theme_Dark));
+        return MainApplication.getTheme(context, PREFERENCE_THEME, light, dark);
     }
 
     @Override
