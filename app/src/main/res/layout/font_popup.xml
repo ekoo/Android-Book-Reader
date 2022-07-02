@@ -65,4 +65,10 @@
             android:src="@drawable/ic_add_black_24dp"
             android:tint="?attr/colorAccent" />
     </LinearLayout>
+
+    <CheckBox
+        android:id="@+id/ignore_embedded_fonts"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/ignore_embedded_fonts"/>
 </LinearLayout>
