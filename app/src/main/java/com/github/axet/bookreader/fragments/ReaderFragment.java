@@ -12,6 +12,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.BatteryManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -159,6 +160,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             fontsFrame = fontsize_popup.findViewById(R.id.fonts_frame);
             fontsText = (TextView) fontsize_popup.findViewById(R.id.fonts_text);
             fontsText.setText(context.getString(R.string.add_more_fonts_to, FONTS.toString()));
+            if (Build.VERSION.SDK_INT >= 31)
+                fontsText.setVisibility(View.GONE); // Android 12+ no longer have default system wide shared Fonts folder
             fontsList = (RecyclerView) fontsize_popup.findViewById(R.id.fonts_list);
             fontsList.setLayoutManager(new LinearLayoutManager(context));
 
