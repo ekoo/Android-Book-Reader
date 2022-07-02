@@ -772,8 +772,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                     if (save.fontsize == null || info.fontsize != null && save.fontsize.equals(info.fontsize)) {
                         if (save.equals(info.fontsizes))
                             if (save.bookmarks == null || info.bookmarks != null && save.bookmarks.equals(info.bookmarks))
-                                if (save.ignoreCSSFonts == null || info.ignoreCSSFonts != null && save.ignoreCSSFonts.equals(info.ignoreCSSFonts))
-                                    return; // nothing to save
+                                return; // nothing to save
                     }
                 }
                 if (book.info.last != info.last) // file changed between saves?

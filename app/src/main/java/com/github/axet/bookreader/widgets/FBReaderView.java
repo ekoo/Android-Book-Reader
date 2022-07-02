@@ -1232,8 +1232,6 @@ public class FBReaderView extends RelativeLayout {
                     config.setValue(app.ImageOptions.FitToScreen, book.info.scale);
                 if (book.info.fontsize != null)
                     config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption, book.info.fontsize);
-                if (book.info.ignoreCSSFonts != null)
-                    config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().UseCSSFontFamilyOption, !book.info.ignoreCSSFonts);
                 bookmarksUpdate();
             }
             widget.repaint();
@@ -2262,13 +2260,10 @@ public class FBReaderView extends RelativeLayout {
     }
 
     public boolean getIgnoreCssFonts() {
-        if (book.info.ignoreCSSFonts != null)
-            return book.info.ignoreCSSFonts;
         return !app.ViewOptions.getTextStyleCollection().getBaseStyle().UseCSSFontFamilyOption.getValue();
     }
 
     public void setIgnoreCssFonts(boolean b) {
-        book.info.ignoreCSSFonts = b;
         config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().UseCSSFontFamilyOption, !b);
         resetCaches();
     }
