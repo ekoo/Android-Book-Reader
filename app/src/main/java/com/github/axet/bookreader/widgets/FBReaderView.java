@@ -1164,6 +1164,9 @@ public class FBReaderView extends RelativeLayout {
         String f = shared.getString(BookApplication.PREFERENCE_FONTFAMILY_FBREADER, app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
         config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption, f);
 
+        boolean ignoreCSSFonts = shared.getBoolean(BookApplication.PREFERENCE_IGNORE_EMBEDDED_FONTS, false);
+        config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().UseCSSFontFamilyOption, !ignoreCSSFonts);
+
         config.setValue(app.MiscOptions.AllowScreenBrightnessAdjustment, false);
         config.setValue(app.ViewOptions.ScrollbarType, 0); // FBView.SCROLLBAR_SHOW_AS_FOOTER
         config.setValue(app.ViewOptions.getFooterOptions().ShowProgress, FooterOptions.ProgressDisplayType.asPages);
@@ -1229,6 +1232,8 @@ public class FBReaderView extends RelativeLayout {
                     config.setValue(app.ImageOptions.FitToScreen, book.info.scale);
                 if (book.info.fontsize != null)
                     config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption, book.info.fontsize);
+                if (book.info.ignoreCSSFonts != null)
+                    config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().UseCSSFontFamilyOption, !book.info.ignoreCSSFonts);
                 bookmarksUpdate();
             }
             widget.repaint();
@@ -2253,6 +2258,18 @@ public class FBReaderView extends RelativeLayout {
     public void setFontsizeFB(int p) {
         book.info.fontsize = p;
         config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption, p);
+        resetCaches();
+    }
+
+    public boolean getIgnoreCssFonts() {
+        if (book.info.ignoreCSSFonts != null)
+            return book.info.ignoreCSSFonts;
+        return !app.ViewOptions.getTextStyleCollection().getBaseStyle().UseCSSFontFamilyOption.getValue();
+    }
+
+    public void setIgnoreCssFonts(boolean b) {
+        book.info.ignoreCSSFonts = b;
+        config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().UseCSSFontFamilyOption, !b);
         resetCaches();
     }
 

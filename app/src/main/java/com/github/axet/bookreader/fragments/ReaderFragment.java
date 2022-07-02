@@ -32,7 +32,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.CheckBox;
 import android.widget.CheckedTextView;
+import android.widget.CompoundButton;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.PopupWindow;
@@ -138,6 +140,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         SeekBar fontsizepopup_seek;
         View fontsizepopup_minus;
         View fontsizepopup_plus;
+        CheckBox ignore_embedded_fonts;
 
         public FontsPopup(Context context) {
             fontsize_popup = LayoutInflater.from(context).inflate(R.layout.font_popup, new FrameLayout(context), false);
@@ -158,6 +161,16 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             fontsText.setText(context.getString(R.string.add_more_fonts_to, FONTS.toString()));
             fontsList = (RecyclerView) fontsize_popup.findViewById(R.id.fonts_list);
             fontsList.setLayoutManager(new LinearLayoutManager(context));
+
+            ignore_embedded_fonts = (CheckBox) fontsize_popup.findViewById(R.id.ignore_embedded_fonts);
+            ignore_embedded_fonts.setOnCheckedChangeListener(
+                    new CompoundButton.OnCheckedChangeListener() {
+                        @Override
+                        public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                            setIgnoreEmbeddedFonts(isChecked);
+                        }
+                    }
+            );
             setContentView(fontsize_popup);
         }
 
@@ -165,6 +178,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         }
 
         public void setFontsize(int f) {
+        }
+
+        public void setIgnoreEmbeddedFonts(boolean f) {
         }
 
         public void updateFontsize(int f) {
@@ -756,7 +772,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                     if (save.fontsize == null || info.fontsize != null && save.fontsize.equals(info.fontsize)) {
                         if (save.equals(info.fontsizes))
                             if (save.bookmarks == null || info.bookmarks != null && save.bookmarks.equals(info.bookmarks))
-                                return; // nothing to save
+                                if (save.ignoreCSSFonts == null || info.ignoreCSSFonts != null && save.ignoreCSSFonts.equals(info.ignoreCSSFonts))
+                                    return; // nothing to save
                     }
                 }
                 if (book.info.last != info.last) // file changed between saves?
@@ -872,12 +889,23 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                     }
 
                     @Override
+                    public void setIgnoreEmbeddedFonts(boolean f) {
+                        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
+                        SharedPreferences.Editor edit = shared.edit();
+                        edit.putBoolean(BookApplication.PREFERENCE_IGNORE_EMBEDDED_FONTS, f);
+                        edit.apply();
+                        fb.setIgnoreCssFonts(f);
+                        updateToolbar();
+                    }
+
+                    @Override
                     public void updateFontsize(int f) {
                         fontsizepopup_text.setText(Integer.toString(f));
                     }
                 };
                 fontsPopup.loadFonts();
                 fontsPopup.fonts.select(fb.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
+                fontsPopup.ignore_embedded_fonts.setChecked(fb.getIgnoreCssFonts());
                 fontsPopup.fontsList.scrollToPosition(fontsPopup.fonts.selected);
                 fontsPopup.updateFontsize(FONT_START, FONT_END, fb.getFontsizeFB());
             } else {

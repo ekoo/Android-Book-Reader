@@ -23,6 +23,7 @@ public class BookApplication extends MainApplication {
     public static String PREFERENCE_STORAGE = "storage_path";
     public static String PREFERENCE_SORT = "sort";
     public static String PREFERENCE_LANGUAGE = "tts_pref";
+    public static String PREFERENCE_IGNORE_EMBEDDED_FONTS = "ignore_embedded_fonts";
 
     public ZLAndroidApplication zlib;
 

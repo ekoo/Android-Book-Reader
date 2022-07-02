@@ -360,6 +360,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
         public Integer fontsize; // FBView size or Reflow / 100
         public Map<String, Integer> fontsizes = new TreeMap<>(); // per device fontsize
         public Bookmarks bookmarks;
+        public Boolean ignoreCSSFonts;
 
         public RecentInfo() {
         }
@@ -376,6 +377,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             fontsize = info.fontsize;
             if (info.bookmarks != null)
                 bookmarks = new Bookmarks(info.bookmarks);
+            ignoreCSSFonts = info.ignoreCSSFonts;
         }
 
         public RecentInfo(Context context, File f) {
@@ -421,6 +423,10 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             last = o.getLong("last");
             authors = o.optString("authors", null);
             title = o.optString("title", null);
+            if (!o.has("ignore_css_fonts") || o.isNull("ignore_css_fonts"))
+                ignoreCSSFonts = null;
+            else
+                ignoreCSSFonts = o.optBoolean("ignore_css_fonts");
             position = loadPosition(o.optJSONArray("position"));
             String scale = o.optString("scale");
             if (scale != null && !scale.isEmpty())
@@ -454,6 +460,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
             o.put("last", last);
             o.put("authors", authors);
             o.put("title", title);
+            o.put("ignore_css_fonts", ignoreCSSFonts);
             JSONArray p = savePosition(position);
             if (p != null)
                 o.put("position", p);
@@ -481,6 +488,8 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
                 title = info.title;
             if (scale == null || last < info.last)
                 scale = info.scale;
+            if (ignoreCSSFonts == null || last < info.last)
+                ignoreCSSFonts = info.ignoreCSSFonts;
             for (String k : info.scales.keySet()) {
                 ZLPaintContext.ScalingType v = info.scales.get(k);
                 if (last < info.last) // replace with new values
