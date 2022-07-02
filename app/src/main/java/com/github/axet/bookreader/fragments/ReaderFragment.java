@@ -73,6 +73,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.TreeSet;
@@ -80,7 +81,8 @@ import java.util.TreeSet;
 public class ReaderFragment extends Fragment implements MainActivity.SearchListener, SharedPreferences.OnSharedPreferenceChangeListener, FullscreenActivity.FullscreenListener, MainActivity.OnBackPressed {
     public static final String TAG = ReaderFragment.class.getSimpleName();
 
-    public static final File FONTS = new File(Environment.getExternalStorageDirectory(), "Fonts");
+    public static final File USER_FONTS = new File(Environment.getExternalStorageDirectory(), "Fonts");
+    public static final File[] SYSTEM_FONTS = {new File("/system/fonts"), new File("/system/font"), new File("/data/fonts")};
 
     public static final int FONT_START = 15;
     public static final int FONT_END = 100;
@@ -159,7 +161,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             };
             fontsFrame = fontsize_popup.findViewById(R.id.fonts_frame);
             fontsText = (TextView) fontsize_popup.findViewById(R.id.fonts_text);
-            fontsText.setText(context.getString(R.string.add_more_fonts_to, FONTS.toString()));
+            fontsText.setText(context.getString(R.string.add_more_fonts_to, USER_FONTS.toString()));
             if (Build.VERSION.SDK_INT >= 31)
                 fontsText.setVisibility(View.GONE); // Android 12+ no longer have default system wide shared Fonts folder
             fontsList = (RecyclerView) fontsize_popup.findViewById(R.id.fonts_list);
@@ -194,8 +196,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             fontsList.setAdapter(fonts);
             fonts.addBasics();
             List<File> files = new ArrayList<>();
-            for (String f : enumerateFonts().keySet())
-                files.add(new File(f));
+            for (File f : enumerateFonts(fonts.context).keySet())
+                files.add(f);
             AndroidFontUtil.ourFileSet = new TreeSet<>();
             AndroidFontUtil.ourFontFileMap = new ZLTTFInfoDetector().collectFonts(files);
             for (String s : AndroidFontUtil.ourFontFileMap.keySet()) {
@@ -297,18 +299,17 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
 
         public void loadTTF() {
             addBasics();
-            HashMap<String, String> hh = enumerateFonts();
-            for (String k : hh.keySet()) {
+            HashMap<File, String> hh = enumerateFonts(context);
+            for (File k : hh.keySet()) {
                 String v = hh.get(k);
-                ff.add(new FontView(v, new File(k)));
+                ff.add(new FontView(v, k));
             }
         }
 
         public void select(String f) {
             for (int i = 0; i < ff.size(); i++) {
-                if (ff.get(i).name.equals(f)) {
+                if (ff.get(i).name.equals(f))
                     selected = i;
-                }
             }
             notifyDataSetChanged();
         }
@@ -565,32 +566,32 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         }
     }
 
-    public ReaderFragment() {
-    }
-
-    static public HashMap<String, String> enumerateFonts() {
-        String[] fontdirs = {"/system/fonts", "/system/font", "/data/fonts", FONTS.toString()};
-        HashMap<String, String> fonts = new HashMap<>();
+    static public HashMap<File, String> enumerateFonts(Context context) {
+        ArrayList<File> ff = new ArrayList<>(Arrays.asList(SYSTEM_FONTS));
+        File fl = context.getFilesDir();
+        if (fl != null) {
+            fl = new File(fl, "Fonts");
+            ff.add(fl);
+        }
+        if (Build.VERSION.SDK_INT >= 19) {
+            File[] fl2 = context.getExternalFilesDirs("Fonts");
+            if (fl2 != null)
+                ff.addAll(Arrays.asList(fl2));
+        }
+        HashMap<File, String> fonts = new HashMap<>();
         TTFAnalyzer a = new TTFAnalyzer();
-
-        for (String fontdir : fontdirs) {
-            File dir = new File(fontdir);
-
+        for (File dir : ff) {
             if (!dir.exists())
                 continue;
-
             File[] files = dir.listFiles();
-
             if (files == null)
                 continue;
-
             for (File file : files) {
                 String n = a.getTtfFontName(file);
                 if (n != null)
-                    fonts.put(file.getAbsolutePath(), n);
+                    fonts.put(file, n);
             }
         }
-
         return fonts.isEmpty() ? null : fonts;
     }
 
@@ -609,6 +610,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         args.putParcelable("pos", pos);
         fragment.setArguments(args);
         return fragment;
+    }
+
+    public ReaderFragment() {
     }
 
     @Override
