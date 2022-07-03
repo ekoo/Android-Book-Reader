@@ -1,5 +1,6 @@
 package com.github.axet.bookreader.fragments;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -263,11 +264,20 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         public String name;
         public Typeface font;
         public File file;
+        public int index; // ttc index
 
         public FontView(String name, File f) {
             this.name = name;
             this.file = f;
             this.font = Typeface.createFromFile(file);
+        }
+
+        @TargetApi(26)
+        public FontView(String name, File f, int index) {
+            this.name = name;
+            this.file = f;
+            this.index = index;
+            this.font = new Typeface.Builder(file).setTtcIndex(index).build();
         }
 
         public FontView(String name) {

@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
-public class TTFManager {
+public class TTFManager { // .ttf *.otf *.ttc
 
     public static final File USER_FONTS = new File(Environment.getExternalStorageDirectory(), "Fonts");
     public static final File[] SYSTEM_FONTS = {new File("/system/fonts"), new File("/system/font"), new File("/data/fonts")};
@@ -23,20 +23,11 @@ public class TTFManager {
 
     // http://www.ulduzsoft.com/2012/01/enumerating-the-fonts-on-android-platform/
     public static class TTFAnalyzer {
+        private RandomAccessFile m_file = null; // Font file; must be seekable
+
         // This function parses the TTF file and returns the font name specified in the file
-        public String getTtfFontName(File fontFilename) {
+        public String getTtfFontName() {
             try {
-                // Parses the TTF file format.
-                // See http://developer.apple.com/fonts/ttrefman/rm06/Chap6.html
-                m_file = new RandomAccessFile(fontFilename, "r");
-
-                // Read the version first
-                int version = readDword();
-
-                // The version must be either 'true' (0x74727565) or 0x00010000
-                if (version != 0x74727565 && version != 0x00010000 && version != 0x4f54544f)
-                    return null;
-
                 // The TTF file consist of several sections called "tables", and we need to know how many of them are there.
                 int numTables = readWord();
 
@@ -102,7 +93,66 @@ public class TTFManager {
             }
         }
 
-        private RandomAccessFile m_file = null; // Font file; must be seekable
+        public String getTtfFontName(File file) {
+            int tag = 0;
+            try {
+                m_file = new RandomAccessFile(file, "r");
+                tag = readDword();
+            } catch (IOException e) {
+                return null;
+            }
+            switch (tag) {
+                case 0x74727565:
+                case 0x00010000:
+                case 0x4f54544f:
+                    return getTtfFontName();
+            }
+            return null;
+        }
+
+        public String[] getTTCFontNames() {
+            try {
+                int major = readWord();
+                int min = readWord();
+                int num = readDword();
+                int[] nn = new int[num];
+                for (int i = 0; i < num; i++)
+                    nn[i] = readDword();
+                String[] ss = new String[num];
+                for (int i = 0; i < num; i++) {
+                    m_file.seek(nn[i]);
+                    int tag = readDword();
+                    switch (tag) {
+                        case 0x74727565:
+                        case 0x00010000:
+                        case 0x4f54544f:
+                            ss[i] = getTtfFontName();
+                            break;
+                    }
+                }
+                return ss;
+            } catch (Exception e) {
+                return null;
+            }
+        }
+
+        public String[] getNames(File file) {
+            try {
+                m_file = new RandomAccessFile(file, "r");
+                int tag = readDword();
+                switch (tag) {
+                    case 0x74746366: //'ttcf':
+                        return getTTCFontNames();
+                    case 0x74727565:
+                    case 0x00010000:
+                    case 0x4f54544f:
+                        return new String[]{getTtfFontName()};
+                }
+            } catch (Exception e) {
+                return null;
+            }
+            return null;
+        }
 
         private int readByte() throws IOException { // Helper I/O functions
             return m_file.read() & 0xFF;
@@ -145,7 +195,7 @@ public class TTFManager {
             if (files == null)
                 continue;
             for (File file : files) {
-                String n = a.getTtfFontName(file);
+                String n = a.getTtfFontName(file); // FBView does not support ttc
                 if (n != null)
                     ff.put(file, n);
             }
