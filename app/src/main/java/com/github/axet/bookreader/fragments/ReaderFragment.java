@@ -1,6 +1,5 @@
 package com.github.axet.bookreader.fragments;
 
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -15,15 +14,12 @@ import android.net.Uri;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -33,14 +29,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.CheckBox;
-import android.widget.CheckedTextView;
-import android.widget.CompoundButton;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.PopupWindow;
-import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.github.axet.androidlibrary.preferences.ScreenlockPreference;
@@ -61,6 +50,7 @@ import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.app.TTFManager;
 import com.github.axet.bookreader.widgets.BookmarksDialog;
 import com.github.axet.bookreader.widgets.FBReaderView;
+import com.github.axet.bookreader.widgets.FontsPopup;
 import com.github.axet.bookreader.widgets.ScrollWidget;
 import com.github.axet.bookreader.widgets.ToolbarButtonView;
 
@@ -71,11 +61,7 @@ import org.geometerplus.zlibrary.core.view.ZLViewEnums;
 import org.geometerplus.zlibrary.ui.android.view.AndroidFontUtil;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.TreeSet;
@@ -95,6 +81,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     FBReaderView fb;
     AlertDialog tocdialog;
     boolean showRTL;
+    TTFManager ttf;
     FontsPopup fontsPopup;
     MenuItem searchMenu;
     BroadcastReceiver battery;
@@ -130,236 +117,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             }
         }
         return null;
-    }
-
-    public static class FontsPopup extends PopupWindow {
-        FontAdapter fonts;
-        View fontsFrame;
-        RecyclerView fontsList;
-        TextView fontsText;
-        View fontsize_popup;
-        TextView fontsizepopup_text;
-        SeekBar fontsizepopup_seek;
-        View fontsizepopup_minus;
-        View fontsizepopup_plus;
-        CheckBox ignore_embedded_fonts;
-        TTFManager ttf;
-
-        public FontsPopup(Context context) {
-            ttf = new TTFManager(context);
-            fontsize_popup = LayoutInflater.from(context).inflate(R.layout.font_popup, new FrameLayout(context), false);
-            fontsizepopup_text = (TextView) fontsize_popup.findViewById(R.id.fontsize_text);
-            fontsizepopup_plus = fontsize_popup.findViewById(R.id.fontsize_plus);
-            fontsizepopup_minus = fontsize_popup.findViewById(R.id.fontsize_minus);
-            fontsizepopup_seek = (SeekBar) fontsize_popup.findViewById(R.id.fontsize_seek);
-            fonts = new FontAdapter(context);
-            fonts.clickListener = new AdapterView.OnItemClickListener() {
-                @Override
-                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                    fonts.select(position);
-                    setFont(fonts.ff.get(position).name);
-                }
-            };
-            fontsFrame = fontsize_popup.findViewById(R.id.fonts_frame);
-            fontsText = (TextView) fontsize_popup.findViewById(R.id.fonts_text);
-            fontsText.setText(context.getString(R.string.add_more_fonts_to, TTFManager.USER_FONTS.toString()));
-            if (Build.VERSION.SDK_INT >= 30) {
-                fontsText.setVisibility(View.GONE); // unless device rooted you can't add files to side apps even using adb
-            } else if (Build.VERSION.SDK_INT >= 21) {
-                if (!Storage.permitted(context, Storage.PERMISSIONS_RO))
-                    fontsText.setText(context.getString(R.string.add_more_fonts_to, ttf.appFonts.toString()));
-            }
-            fontsList = (RecyclerView) fontsize_popup.findViewById(R.id.fonts_list);
-            fontsList.setLayoutManager(new LinearLayoutManager(context));
-
-            ignore_embedded_fonts = (CheckBox) fontsize_popup.findViewById(R.id.ignore_embedded_fonts);
-            ignore_embedded_fonts.setOnCheckedChangeListener(
-                    new CompoundButton.OnCheckedChangeListener() {
-                        @Override
-                        public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                            setIgnoreEmbeddedFonts(isChecked);
-                        }
-                    }
-            );
-            setContentView(fontsize_popup);
-        }
-
-        public void setFont(String str) {
-        }
-
-        public void setFontsize(int f) {
-        }
-
-        public void setIgnoreEmbeddedFonts(boolean f) {
-        }
-
-        public void updateFontsize(int f) {
-        }
-
-        public void loadFonts() {
-            fontsFrame.setVisibility(View.VISIBLE);
-            fontsList.setAdapter(fonts);
-            fonts.addBasics();
-            List<File> files = new ArrayList<>();
-            for (File f : ttf.enumerateFonts().keySet())
-                files.add(f);
-            AndroidFontUtil.ourFileSet = new TreeSet<>();
-            AndroidFontUtil.ourFontFileMap = new ZLTTFInfoDetector().collectFonts(files);
-            for (String s : AndroidFontUtil.ourFontFileMap.keySet()) {
-                File[] ff = AndroidFontUtil.ourFontFileMap.get(s);
-                for (File f : ff) {
-                    if (f != null) {
-                        fonts.ff.add(new FontView(s, f));
-                        break; // regular first
-                    }
-                }
-            }
-        }
-
-        public void updateFontsize(final int start, final int end, int f) {
-            fontsizepopup_seek.setMax(end - start);
-            fontsizepopup_seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-                @Override
-                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                    updateFontsize(progress + start);
-                }
-
-                @Override
-                public void onStartTrackingTouch(SeekBar seekBar) {
-                }
-
-                @Override
-                public void onStopTrackingTouch(SeekBar seekBar) {
-                    int p = fontsizepopup_seek.getProgress();
-                    setFontsize(start + p);
-                }
-            });
-            fontsizepopup_seek.setProgress(f - start);
-            fontsizepopup_minus.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    int p = fontsizepopup_seek.getProgress();
-                    p--;
-                    if (p < 0)
-                        p = 0;
-                    fontsizepopup_seek.setProgress(p);
-                    setFontsize(start + p);
-                }
-            });
-            fontsizepopup_plus.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    int p = fontsizepopup_seek.getProgress();
-                    p++;
-                    if (p >= end - start)
-                        p = end - start;
-                    fontsizepopup_seek.setProgress(p);
-                    setFontsize(start + p);
-                }
-            });
-        }
-    }
-
-    public static class FontView {
-        public String name;
-        public Typeface font;
-        public File file;
-        public int index; // ttc index
-
-        public FontView(String name, File f) {
-            this.name = name;
-            this.file = f;
-            this.font = Typeface.createFromFile(file);
-        }
-
-        @TargetApi(26)
-        public FontView(String name, File f, int index) {
-            this.name = name;
-            this.file = f;
-            this.index = index;
-            this.font = new Typeface.Builder(file).setTtcIndex(index).build();
-        }
-
-        public FontView(String name) {
-            this.name = name;
-            this.font = Typeface.create(name, Typeface.NORMAL);
-        }
-    }
-
-    public static class FontHolder extends RecyclerView.ViewHolder {
-        public CheckedTextView tv;
-
-        public FontHolder(View itemView) {
-            super(itemView);
-            tv = (CheckedTextView) itemView.findViewById(android.R.id.text1);
-        }
-    }
-
-    public static class FontAdapter extends RecyclerView.Adapter<FontHolder> {
-        Context context;
-        public ArrayList<FontView> ff = new ArrayList<>();
-        public int selected;
-        public AdapterView.OnItemClickListener clickListener;
-
-        public FontAdapter(Context context) {
-            this.context = context;
-        }
-
-        public void addBasics() {
-            add("sans-serif"); // "normal"
-            add("serif");
-            add("monospace");
-        }
-
-        public void loadTTF(HashMap<File, String> hh) {
-            addBasics();
-            for (File k : hh.keySet()) {
-                String v = hh.get(k);
-                ff.add(new FontView(v, k));
-            }
-        }
-
-        public void select(String f) {
-            for (int i = 0; i < ff.size(); i++) {
-                if (ff.get(i).name.equals(f))
-                    selected = i;
-            }
-            notifyDataSetChanged();
-        }
-
-        public void select(int i) {
-            selected = i;
-            notifyDataSetChanged();
-        }
-
-        public void add(String f) {
-            ff.add(new FontView(f));
-        }
-
-        @Override
-        public int getItemCount() {
-            return ff.size();
-        }
-
-        @Override
-        public FontHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            final LayoutInflater inflater = LayoutInflater.from(context);
-            View view = inflater.inflate(android.R.layout.select_dialog_singlechoice, parent, false);
-            return new FontHolder(view);
-        }
-
-        @Override
-        public void onBindViewHolder(final FontHolder holder, int position) {
-            holder.itemView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    clickListener.onItemClick(null, null, holder.getAdapterPosition(), -1);
-                }
-            });
-            holder.tv.setChecked(selected == position);
-            holder.tv.setTypeface(ff.get(position).font);
-            holder.tv.setText(ff.get(position).name);
-        }
     }
 
     public static class TOCHolder extends TreeRecyclerView.TreeHolder {
@@ -485,6 +242,27 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         setHasOptionsMenu(true);
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         shared.registerOnSharedPreferenceChangeListener(this);
+        ttf = new TTFManager(getContext());
+        preloadFonts();
+    }
+
+    public void preloadFonts() {
+        List<File> files = new ArrayList<>();
+        HashMap<TTFManager.Font, File> ttc = new HashMap<>();
+        for (TTFManager.Font f : ttf.enumerateFonts()) {
+            if (f.index == -1)
+                files.add(f.file);
+            else
+                ttc.put(f, f.file);
+        }
+        AndroidFontUtil.ourFileSet = new TreeSet<>();
+        AndroidFontUtil.ourFontFileMap = new ZLTTFInfoDetector().collectFonts(files);
+        if (Build.VERSION.SDK_INT >= 26) { // ttc index support API26
+            for (TTFManager.Font f : ttc.keySet()) {
+                AndroidFontUtil.ourFontFileMap.put(f.name, new FontsPopup.TTCFile[]{new FontsPopup.TTCFile(f.file, f.index), null, null, null});
+                AndroidFontUtil.ourTypefaces.put(f.name, new Typeface[]{new Typeface.Builder(f.file).setTtcIndex(f.index).build(), null, null, null});
+            }
+        }
     }
 
     @Override
@@ -736,7 +514,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         }
         if (id == R.id.action_fontsize) {
             if (fb.pluginview == null) {
-                fontsPopup = new FontsPopup(getContext()) {
+                fontsPopup = new FontsPopup(ttf) {
                     @Override
                     public void setFont(String f) {
                         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
@@ -778,7 +556,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 fontsPopup.fontsList.scrollToPosition(fontsPopup.fonts.selected);
                 fontsPopup.updateFontsize(FONT_START, FONT_END, fb.getFontsizeFB());
             } else {
-                fontsPopup = new FontsPopup(getContext()) {
+                fontsPopup = new FontsPopup(ttf) {
                     @Override
                     public void setFontsize(int f) {
                         float p = f / 10f;

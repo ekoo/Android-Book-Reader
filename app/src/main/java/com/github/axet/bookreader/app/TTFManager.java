@@ -11,6 +11,7 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 
 public class TTFManager { // .ttf *.otf *.ttc
 
@@ -20,6 +21,23 @@ public class TTFManager { // .ttf *.otf *.ttc
     public Context context;
     public ArrayList<File> fonts; // font dirs
     public File appFonts; // app home folder, /sdcard/Android/data/.../files/Fonts
+
+    public static class Font {
+        public String name;
+        public File file;
+        public int index; // ttc index
+
+        public Font(String n, File f) {
+            name = n;
+            file = f;
+            index = -1;
+        }
+
+        public Font(String n, File f, int i) {
+            this(n, f);
+            index = i;
+        }
+    }
 
     // http://www.ulduzsoft.com/2012/01/enumerating-the-fonts-on-android-platform/
     public static class TTFAnalyzer {
@@ -185,8 +203,8 @@ public class TTFManager { // .ttf *.otf *.ttc
         }
     }
 
-    public HashMap<File, String> enumerateFonts() {
-        HashMap<File, String> ff = new HashMap<>();
+    public List<Font> enumerateFonts() {
+        ArrayList<Font> ff = new ArrayList<>();
         TTFAnalyzer a = new TTFAnalyzer();
         for (File dir : fonts) {
             if (!dir.exists())
@@ -195,9 +213,15 @@ public class TTFManager { // .ttf *.otf *.ttc
             if (files == null)
                 continue;
             for (File file : files) {
-                String n = a.getTtfFontName(file); // FBView does not support ttc
-                if (n != null)
-                    ff.put(file, n);
+                String[] nn = a.getNames(file);
+                if (nn != null) {
+                    if (nn.length == 1) {
+                        ff.add(new Font(nn[0], file));
+                    } else {
+                        for (int i = 0; i < nn.length; i++)
+                            ff.add(new Font(nn[i], file, i));
+                    }
+                }
             }
         }
         return ff.isEmpty() ? null : ff;
