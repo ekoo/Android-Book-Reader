@@ -14,19 +14,35 @@
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/fonts_list"
-            android:scrollbars="vertical"
             android:layout_width="match_parent"
-            android:layout_height="200dp" />
+            android:layout_height="200dp"
+            android:scrollbars="vertical" />
 
-        <TextView
-            android:id="@+id/fonts_text"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom|center_horizontal"
+            android:layout_gravity="center_horizontal"
+            android:orientation="horizontal"
             android:paddingLeft="5dp"
-            android:paddingRight="5dp"
-            android:text="@string/add_more_fonts_to"
-            android:textSize="12sp" />
+            android:paddingRight="5dp">
+
+            <TextView
+                android:layout_weight="1"
+                android:id="@+id/fonts_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="@string/add_more_fonts_to"
+                android:textSize="12sp" />
+
+            <ImageButton
+                android:id="@+id/fonts_browse"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="10dp"
+                android:src="@drawable/ic_baseline_folder_open_24"
+                android:tint="?attr/colorAccent" />
+        </LinearLayout>
     </LinearLayout>
 
     <TextView
@@ -41,7 +57,9 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:paddingLeft="5dp"
+        android:paddingRight="5dp">
 
         <ImageButton
             android:id="@+id/fontsize_minus"
@@ -71,5 +89,7 @@
         android:id="@+id/ignore_embedded_fonts"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/ignore_embedded_fonts"/>
+        android:paddingLeft="5dp"
+        android:paddingRight="5dp"
+        android:text="@string/ignore_embedded_fonts" />
 </LinearLayout>

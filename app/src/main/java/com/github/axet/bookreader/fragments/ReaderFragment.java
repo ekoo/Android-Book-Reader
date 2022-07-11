@@ -12,7 +12,6 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.BatteryManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
@@ -56,15 +55,9 @@ import com.github.axet.bookreader.widgets.ToolbarButtonView;
 
 import org.geometerplus.fbreader.bookmodel.TOCTree;
 import org.geometerplus.fbreader.fbreader.ActionCode;
-import org.geometerplus.zlibrary.core.util.ZLTTFInfoDetector;
 import org.geometerplus.zlibrary.core.view.ZLViewEnums;
-import org.geometerplus.zlibrary.ui.android.view.AndroidFontUtil;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.TreeSet;
 
 public class ReaderFragment extends Fragment implements MainActivity.SearchListener, SharedPreferences.OnSharedPreferenceChangeListener, FullscreenActivity.FullscreenListener, MainActivity.OnBackPressed {
     public static final String TAG = ReaderFragment.class.getSimpleName();
@@ -73,6 +66,8 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     public static final int FONT_END = 100;
     public static final int REFLOW_START = 3;
     public static final int REFLOW_END = 15;
+
+    public static final int RESULT_FONTS = 1;
 
     Handler handler = new Handler();
     Storage storage;
@@ -243,26 +238,9 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         shared.registerOnSharedPreferenceChangeListener(this);
         ttf = new TTFManager(getContext());
-        preloadFonts();
-    }
-
-    public void preloadFonts() {
-        List<File> files = new ArrayList<>();
-        HashMap<TTFManager.Font, File> ttc = new HashMap<>();
-        for (TTFManager.Font f : ttf.enumerateFonts()) {
-            if (f.index == -1)
-                files.add(f.file);
-            else
-                ttc.put(f, f.file);
-        }
-        AndroidFontUtil.ourFileSet = new TreeSet<>();
-        AndroidFontUtil.ourFontFileMap = new ZLTTFInfoDetector().collectFonts(files);
-        if (Build.VERSION.SDK_INT >= 26) { // ttc index support API26
-            for (TTFManager.Font f : ttc.keySet()) {
-                AndroidFontUtil.ourFontFileMap.put(f.name, new FontsPopup.TTCFile[]{new FontsPopup.TTCFile(f.file, f.index), null, null, null});
-                AndroidFontUtil.ourTypefaces.put(f.name, new Typeface[]{new Typeface.Builder(f.file).setTtcIndex(f.index).build(), null, null, null});
-            }
-        }
+        String fonts = shared.getString(BookApplication.PREFERENCE_FONTS_FOLDER, "");
+        ttf.setFolder(Uri.parse(fonts));
+        ttf.preloadFonts();
     }
 
     @Override
@@ -514,7 +492,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         }
         if (id == R.id.action_fontsize) {
             if (fb.pluginview == null) {
-                fontsPopup = new FontsPopup(ttf) {
+                fontsPopup = new FontsPopup(getContext(), ttf) {
                     @Override
                     public void setFont(String f) {
                         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
@@ -550,13 +528,15 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                         fontsizepopup_text.setText(Integer.toString(f));
                     }
                 };
+                fontsPopup.fragment = this;
+                fontsPopup.code = RESULT_FONTS;
                 fontsPopup.loadFonts();
                 fontsPopup.fonts.select(fb.app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
                 fontsPopup.ignore_embedded_fonts.setChecked(fb.getIgnoreCssFonts());
                 fontsPopup.fontsList.scrollToPosition(fontsPopup.fonts.selected);
                 fontsPopup.updateFontsize(FONT_START, FONT_END, fb.getFontsizeFB());
             } else {
-                fontsPopup = new FontsPopup(ttf) {
+                fontsPopup = new FontsPopup(getContext(), ttf) {
                     @Override
                     public void setFontsize(int f) {
                         float p = f / 10f;
@@ -784,5 +764,11 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
             return true;
         }
         return false;
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (fontsPopup != null && fontsPopup.choicer != null)
+            fontsPopup.choicer.onActivityResult(resultCode, data);
     }
 }

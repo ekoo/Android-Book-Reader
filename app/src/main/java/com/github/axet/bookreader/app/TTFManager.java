@@ -1,47 +1,76 @@
 package com.github.axet.bookreader.app;
 
+import android.content.ContentResolver;
 import android.content.Context;
+import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
+import android.os.ParcelFileDescriptor;
+import android.support.annotation.NonNull;
+import android.util.Log;
+
+import com.github.axet.androidlibrary.widgets.CacheImagesAdapter;
+
+import org.geometerplus.zlibrary.core.util.ZLTTFInfoDetector;
+import org.geometerplus.zlibrary.ui.android.view.AndroidFontUtil;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.TreeSet;
 
 public class TTFManager { // .ttf *.otf *.ttc
+    public static String TAG = TTFManager.class.getSimpleName();
 
     public static final File USER_FONTS = new File(Environment.getExternalStorageDirectory(), "Fonts");
     public static final File[] SYSTEM_FONTS = {new File("/system/fonts"), new File("/system/font"), new File("/data/fonts")};
 
     public Context context;
-    public ArrayList<File> fonts; // font dirs
     public File appFonts; // app home folder, /sdcard/Android/data/.../files/Fonts
+    public ArrayList<Uri> uris = new ArrayList<>(); // files and context://
 
     public static class Font {
         public String name;
-        public File file;
+        public Uri uri;
         public int index; // ttc index
 
-        public Font(String n, File f) {
+        public Font(String n, Uri f) {
             name = n;
-            file = f;
+            uri = f;
             index = -1;
         }
 
-        public Font(String n, File f, int i) {
+        public Font(String n, Uri f, int i) {
             this(n, f);
+            index = i;
+        }
+    }
+
+    public static class TTCFile extends File {
+        public Uri uri;
+        public int index;
+
+        public TTCFile(@NonNull String pathname) {
+            super(pathname);
+        }
+
+        public TTCFile(Uri f, int i) {
+            super(f.getPath());
+            uri = f;
             index = i;
         }
     }
 
     // http://www.ulduzsoft.com/2012/01/enumerating-the-fonts-on-android-platform/
     public static class TTFAnalyzer {
-        private RandomAccessFile m_file = null; // Font file; must be seekable
+        private CacheImagesAdapter.SeekInputStream m_file = null; // Font file; must be seekable
 
         // This function parses the TTF file and returns the font name specified in the file
         public String getTtfFontName() {
@@ -114,7 +143,7 @@ public class TTFManager { // .ttf *.otf *.ttc
         public String getTtfFontName(File file) {
             int tag = 0;
             try {
-                m_file = new RandomAccessFile(file, "r");
+                m_file = new CacheImagesAdapter.SeekInputStream(new FileInputStream(file));
                 tag = readDword();
             } catch (IOException e) {
                 return null;
@@ -156,7 +185,15 @@ public class TTFManager { // .ttf *.otf *.ttc
 
         public String[] getNames(File file) {
             try {
-                m_file = new RandomAccessFile(file, "r");
+                return getNames(new FileInputStream(file));
+            } catch (Exception e) {
+                return null;
+            }
+        }
+
+        public String[] getNames(InputStream is) {
+            try {
+                m_file = new CacheImagesAdapter.SeekInputStream(is);
                 int tag = readDword();
                 switch (tag) {
                     case 0x74746366: //'ttcf':
@@ -206,20 +243,43 @@ public class TTFManager { // .ttf *.otf *.ttc
     public List<Font> enumerateFonts() {
         ArrayList<Font> ff = new ArrayList<>();
         TTFAnalyzer a = new TTFAnalyzer();
-        for (File dir : fonts) {
-            if (!dir.exists())
-                continue;
-            File[] files = dir.listFiles();
-            if (files == null)
-                continue;
-            for (File file : files) {
-                String[] nn = a.getNames(file);
-                if (nn != null) {
-                    if (nn.length == 1) {
-                        ff.add(new Font(nn[0], file));
-                    } else {
-                        for (int i = 0; i < nn.length; i++)
-                            ff.add(new Font(nn[i], file, i));
+        for (Uri uri : uris) {
+            String s = uri.getScheme();
+            if (s.equals(ContentResolver.SCHEME_FILE)) {
+                File dir = Storage.getFile(uri);
+                if (!dir.exists())
+                    continue;
+                File[] files = dir.listFiles();
+                if (files == null)
+                    continue;
+                for (File file : files) {
+                    String[] nn = a.getNames(file);
+                    if (nn != null) {
+                        if (nn.length == 1) {
+                            ff.add(new Font(nn[0], Uri.fromFile(file)));
+                        } else {
+                            for (int i = 0; i < nn.length; i++)
+                                ff.add(new Font(nn[i], Uri.fromFile(file), i));
+                        }
+                    }
+                }
+            } else if (s.equals(ContentResolver.SCHEME_CONTENT)) {
+                ContentResolver resolver = context.getContentResolver();
+                ArrayList<Storage.Node> nn = Storage.list(context, uri);
+                for (Storage.Node n : nn) {
+                    try {
+                        InputStream is = resolver.openInputStream(n.uri);
+                        String[] names = a.getNames(is);
+                        if (names != null) {
+                            if (names.length == 1) {
+                                ff.add(new Font(names[0], n.uri));
+                            } else {
+                                for (int i = 0; i < names.length; i++)
+                                    ff.add(new Font(names[i], n.uri, i));
+                            }
+                        }
+                    } catch (IOException e) {
+                        Log.w(TAG, e);
                     }
                 }
             }
@@ -229,7 +289,11 @@ public class TTFManager { // .ttf *.otf *.ttc
 
     public TTFManager(Context context) {
         this.context = context;
-        fonts = new ArrayList<>(Arrays.asList(SYSTEM_FONTS));
+        init();
+    }
+
+    public void init() {
+        ArrayList<File> fonts = new ArrayList<>(Arrays.asList(SYSTEM_FONTS));
         fonts.add(USER_FONTS);
         File fl = context.getFilesDir(); // /data/.../files/Fonts
         if (fl != null) {
@@ -245,5 +309,44 @@ public class TTFManager { // .ttf *.otf *.ttc
         }
         if (appFonts == null)
             appFonts = fl;
+        uris.clear();
+        for (File f : fonts)
+            uris.add(Uri.fromFile(f));
+    }
+
+    public void setFolder(Uri uri) {
+        init();
+        uris.add(uri);
+    }
+
+    public void preloadFonts() {
+        List<File> files = new ArrayList<>();
+        HashMap<TTFManager.Font, File> ttc = new HashMap<>();
+        for (TTFManager.Font f : enumerateFonts()) {
+            if (f.index == -1 && f.uri.getScheme().equals(ContentResolver.SCHEME_FILE))
+                files.add(Storage.getFile(f.uri));
+            else
+                ttc.put(f, Storage.getFile(f.uri));
+        }
+        AndroidFontUtil.ourFileSet = new TreeSet<>();
+        AndroidFontUtil.ourFontFileMap = new ZLTTFInfoDetector().collectFonts(files);
+        if (Build.VERSION.SDK_INT >= 26) { // ttc index support API26
+            for (TTFManager.Font f : ttc.keySet()) {
+                String s = f.uri.getScheme();
+                if (s.equals(ContentResolver.SCHEME_FILE)) {
+                    AndroidFontUtil.ourTypefaces.put(f.name, new Typeface[]{new Typeface.Builder(Storage.getFile(f.uri)).setTtcIndex(f.index).build(), null, null, null});
+                    AndroidFontUtil.ourFontFileMap.put(f.name, new TTCFile[]{new TTCFile(f.uri, f.index), null, null, null});
+                } else if (s.equals(ContentResolver.SCHEME_CONTENT)) {
+                    ContentResolver resolver = context.getContentResolver();
+                    try {
+                        ParcelFileDescriptor fd = resolver.openFileDescriptor(f.uri, "r");
+                        AndroidFontUtil.ourTypefaces.put(f.name, new Typeface[]{new Typeface.Builder(fd.getFileDescriptor()).setTtcIndex(f.index).build(), null, null, null});
+                        AndroidFontUtil.ourFontFileMap.put(f.name, new TTCFile[]{new TTCFile(f.uri, f.index), null, null, null});
+                    } catch (Exception e) {
+                        Log.w(TAG, e);
+                    }
+                }
+            }
+        }
     }
 }

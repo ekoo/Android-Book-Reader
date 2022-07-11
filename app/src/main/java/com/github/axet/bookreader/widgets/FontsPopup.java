@@ -1,10 +1,15 @@
 package com.github.axet.bookreader.widgets;
 
 import android.annotation.TargetApi;
+import android.content.ContentResolver;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Build;
-import android.support.annotation.NonNull;
+import android.os.ParcelFileDescriptor;
+import android.preference.PreferenceManager;
+import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -19,27 +24,29 @@ import android.widget.PopupWindow;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.github.axet.androidlibrary.widgets.OpenChoicer;
+import com.github.axet.androidlibrary.widgets.OpenFileDialog;
 import com.github.axet.bookreader.R;
+import com.github.axet.bookreader.app.BookApplication;
 import com.github.axet.bookreader.app.Storage;
 import com.github.axet.bookreader.app.TTFManager;
 
-import org.geometerplus.zlibrary.core.util.ZLTTFInfoDetector;
 import org.geometerplus.zlibrary.ui.android.view.AndroidFontUtil;
 
 import java.io.File;
+import java.io.FileDescriptor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.List;
-import java.util.TreeSet;
 
 public class FontsPopup extends PopupWindow {
     public FontAdapter fonts;
     public View fontsFrame;
     public RecyclerView fontsList;
     TextView fontsText;
+    View fontsBrowse;
     public View fontsize_popup;
     public TextView fontsizepopup_text;
     public SeekBar fontsizepopup_seek;
@@ -47,19 +54,9 @@ public class FontsPopup extends PopupWindow {
     public View fontsizepopup_plus;
     public CheckBox ignore_embedded_fonts;
     TTFManager ttf;
-
-    public static class TTCFile extends File {
-        public int index;
-
-        public TTCFile(@NonNull String pathname) {
-            super(pathname);
-        }
-
-        public TTCFile(File f, int i) {
-            super(f.getAbsolutePath());
-            index = i;
-        }
-    }
+    public OpenChoicer choicer;
+    public Fragment fragment;
+    public int code;
 
     public static class FontView {
         public String name;
@@ -79,6 +76,12 @@ public class FontsPopup extends PopupWindow {
             this.file = f;
             this.index = index;
             this.font = new Typeface.Builder(file).setTtcIndex(index).build();
+        }
+
+        @TargetApi(26)
+        public FontView(String name, FileDescriptor fd, int index) {
+            this.name = name;
+            this.font = new Typeface.Builder(fd).setTtcIndex(index).build();
         }
 
         public FontView(String name) {
@@ -190,8 +193,7 @@ public class FontsPopup extends PopupWindow {
         }
     }
 
-    public FontsPopup(TTFManager ttf) {
-        Context context = ttf.context;
+    public FontsPopup(Context context, final TTFManager ttf) {
         this.ttf = ttf;
         fontsize_popup = LayoutInflater.from(context).inflate(R.layout.font_popup, new FrameLayout(context), false);
         fontsizepopup_text = (TextView) fontsize_popup.findViewById(R.id.fontsize_text);
@@ -208,9 +210,30 @@ public class FontsPopup extends PopupWindow {
         };
         fontsFrame = fontsize_popup.findViewById(R.id.fonts_frame);
         fontsText = (TextView) fontsize_popup.findViewById(R.id.fonts_text);
+        fontsBrowse = fontsize_popup.findViewById(R.id.fonts_browse);
+        fontsBrowse.setVisibility(View.GONE);
         fontsText.setText(context.getString(R.string.add_more_fonts_to, TTFManager.USER_FONTS.toString()));
+        final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
         if (Build.VERSION.SDK_INT >= 30) {
-            fontsText.setVisibility(View.GONE); // unless device rooted you can't add files to side apps even using adb
+            fontsBrowse.setVisibility(View.VISIBLE);
+            fontsBrowse.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    choicer = new OpenChoicer(OpenFileDialog.DIALOG_TYPE.FOLDER_DIALOG, true) {
+                        @Override
+                        public void onResult(Uri uri) {
+                            shared.edit().putString(BookApplication.PREFERENCE_FONTS_FOLDER, uri.toString()).commit();
+                            updatePath();
+                            ttf.setFolder(uri);
+                            ttf.preloadFonts();
+                            loadFonts();
+                        }
+                    };
+                    choicer.setStorageAccessFramework(fragment, code);
+                    choicer.show(null);
+                }
+            });
+            updatePath();
         } else if (Build.VERSION.SDK_INT >= 21) {
             if (!Storage.permitted(context, Storage.PERMISSIONS_RO))
                 fontsText.setText(context.getString(R.string.add_more_fonts_to, ttf.appFonts.toString()));
@@ -230,6 +253,17 @@ public class FontsPopup extends PopupWindow {
         setContentView(fontsize_popup);
     }
 
+    public void updatePath() {
+        Context context = ttf.context;
+        final SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
+        String uri = shared.getString(BookApplication.PREFERENCE_FONTS_FOLDER, "");
+        if (uri.equals(""))
+            uri = ttf.appFonts.toString();
+        else
+            uri = Storage.getDisplayName(context, Uri.parse(uri));
+        fontsText.setText(context.getString(R.string.add_more_fonts_to, uri));
+    }
+
     public void setFont(String str) {
     }
 
@@ -243,17 +277,29 @@ public class FontsPopup extends PopupWindow {
     }
 
     public void loadFonts() {
+        fonts.ff.clear();
         fontsFrame.setVisibility(View.VISIBLE);
         fontsList.setAdapter(fonts);
         fonts.addBasics();
-        for (String s : AndroidFontUtil.ourFontFileMap.keySet()) {
-            File[] ff = AndroidFontUtil.ourFontFileMap.get(s);
+        for (String name : AndroidFontUtil.ourFontFileMap.keySet()) {
+            File[] ff = AndroidFontUtil.ourFontFileMap.get(name);
             for (File f : ff) {
-                if (f instanceof TTCFile) {
-                    fonts.ff.add(new FontView(s, f, ((TTCFile) f).index));
+                if (f instanceof TTFManager.TTCFile) {
+                    String s = ((TTFManager.TTCFile) f).uri.getScheme();
+                    if (s.equals(ContentResolver.SCHEME_FILE)) {
+                        fonts.ff.add(new FontView(name, f, ((TTFManager.TTCFile) f).index));
+                    } else if (s.equals(ContentResolver.SCHEME_CONTENT)) {
+                        ContentResolver resolver = ttf.context.getContentResolver();
+                        try {
+                            ParcelFileDescriptor fd = resolver.openFileDescriptor(((TTFManager.TTCFile) f).uri, "r");
+                            fonts.ff.add(new FontView(name, fd.getFileDescriptor(), ((TTFManager.TTCFile) f).index));
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
                     break; // regular first
                 } else if (f != null) {
-                    fonts.ff.add(new FontView(s, f));
+                    fonts.ff.add(new FontView(name, f));
                     break; // regular first
                 }
             }
