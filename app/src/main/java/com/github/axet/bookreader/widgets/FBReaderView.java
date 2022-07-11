@@ -1321,7 +1321,6 @@ public class FBReaderView extends RelativeLayout {
 
     public void setWindow(Window w) {
         this.w = w;
-        config.setValue(app.MiscOptions.AllowScreenBrightnessAdjustment, true);
     }
 
     public void setActivity(final Activity a) {
