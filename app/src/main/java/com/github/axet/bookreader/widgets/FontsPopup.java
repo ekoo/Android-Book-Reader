@@ -1,17 +1,15 @@
 package com.github.axet.bookreader.widgets;
 
-import android.annotation.TargetApi;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
-import android.os.ParcelFileDescriptor;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,14 +32,14 @@ import com.github.axet.bookreader.app.TTFManager;
 import org.geometerplus.zlibrary.ui.android.view.AndroidFontUtil;
 
 import java.io.File;
-import java.io.FileDescriptor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 
 public class FontsPopup extends PopupWindow {
+    private static final String TAG = FontsPopup.class.getSimpleName();
+
     public FontAdapter fonts;
     public View fontsFrame;
     public RecyclerView fontsList;
@@ -64,29 +62,14 @@ public class FontsPopup extends PopupWindow {
         public File file;
         public int index; // ttc index
 
-        public FontView(String name, File f) {
-            this.name = name;
-            this.file = f;
-            this.font = Typeface.createFromFile(file);
-        }
-
-        @TargetApi(26)
-        public FontView(String name, File f, int index) {
-            this.name = name;
-            this.file = f;
-            this.index = index;
-            this.font = new Typeface.Builder(file).setTtcIndex(index).build();
-        }
-
-        @TargetApi(26)
-        public FontView(String name, FileDescriptor fd, int index) {
-            this.name = name;
-            this.font = new Typeface.Builder(fd).setTtcIndex(index).build();
-        }
-
         public FontView(String name) {
             this.name = name;
             this.font = Typeface.create(name, Typeface.NORMAL);
+        }
+
+        public FontView(String name, Typeface f) {
+            this.name = name;
+            this.font = f;
         }
     }
 
@@ -113,14 +96,6 @@ public class FontsPopup extends PopupWindow {
         public void addBasics() {
             for (String s : DEFAULT)
                 add(s);
-        }
-
-        public void loadTTF(HashMap<File, String> hh) {
-            addBasics();
-            for (File k : hh.keySet()) {
-                String v = hh.get(k);
-                ff.add(new FontView(v, k));
-            }
         }
 
         public void sort() {
@@ -284,23 +259,13 @@ public class FontsPopup extends PopupWindow {
         for (String name : AndroidFontUtil.ourFontFileMap.keySet()) {
             File[] ff = AndroidFontUtil.ourFontFileMap.get(name);
             for (File f : ff) {
-                if (f instanceof TTFManager.TTCFile) {
-                    String s = ((TTFManager.TTCFile) f).uri.getScheme();
-                    if (s.equals(ContentResolver.SCHEME_FILE)) {
-                        fonts.ff.add(new FontView(name, f, ((TTFManager.TTCFile) f).index));
-                    } else if (s.equals(ContentResolver.SCHEME_CONTENT)) {
-                        ContentResolver resolver = ttf.context.getContentResolver();
-                        try {
-                            ParcelFileDescriptor fd = resolver.openFileDescriptor(((TTFManager.TTCFile) f).uri, "r");
-                            fonts.ff.add(new FontView(name, fd.getFileDescriptor(), ((TTFManager.TTCFile) f).index));
-                        } catch (Exception e) {
-                            throw new RuntimeException(e);
-                        }
+                if (f != null) {
+                    try {
+                        fonts.ff.add(new FontView(name, ttf.load(f)));
+                    } catch (Exception e) {
+                        Log.w(TAG, e);
                     }
-                    break; // regular first
-                } else if (f != null) {
-                    fonts.ff.add(new FontView(name, f));
-                    break; // regular first
+                    break; // regular first, ignore rest
                 }
             }
         }

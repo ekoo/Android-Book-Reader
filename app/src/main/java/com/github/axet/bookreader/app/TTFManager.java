@@ -332,21 +332,36 @@ public class TTFManager { // .ttf *.otf *.ttc
         AndroidFontUtil.ourFontFileMap = new ZLTTFInfoDetector().collectFonts(files);
         if (Build.VERSION.SDK_INT >= 26) { // ttc index support API26
             for (TTFManager.Font f : ttc.keySet()) {
-                String s = f.uri.getScheme();
-                if (s.equals(ContentResolver.SCHEME_FILE)) {
-                    AndroidFontUtil.ourTypefaces.put(f.name, new Typeface[]{new Typeface.Builder(Storage.getFile(f.uri)).setTtcIndex(f.index).build(), null, null, null});
-                    AndroidFontUtil.ourFontFileMap.put(f.name, new TTCFile[]{new TTCFile(f.uri, f.index), null, null, null});
-                } else if (s.equals(ContentResolver.SCHEME_CONTENT)) {
-                    ContentResolver resolver = context.getContentResolver();
-                    try {
-                        ParcelFileDescriptor fd = resolver.openFileDescriptor(f.uri, "r");
-                        AndroidFontUtil.ourTypefaces.put(f.name, new Typeface[]{new Typeface.Builder(fd.getFileDescriptor()).setTtcIndex(f.index).build(), null, null, null});
-                        AndroidFontUtil.ourFontFileMap.put(f.name, new TTCFile[]{new TTCFile(f.uri, f.index), null, null, null});
-                    } catch (Exception e) {
-                        Log.w(TAG, e);
-                    }
+                try {
+                    TTCFile tf = new TTCFile(f.uri, f.index);
+                    AndroidFontUtil.ourTypefaces.put(f.name, new Typeface[]{load(tf), null, null, null});
+                    AndroidFontUtil.ourFontFileMap.put(f.name, new TTCFile[]{tf, null, null, null});
+                } catch (Exception e) {
+                    Log.w(TAG, e);
                 }
             }
+        }
+    }
+
+    public Typeface load(File file) {
+        if (Build.VERSION.SDK_INT >= 26 && file instanceof TTCFile) {
+            TTCFile tc = (TTCFile) file;
+            String s = tc.uri.getScheme();
+            if (s.equals(ContentResolver.SCHEME_FILE)) {
+                return new Typeface.Builder(Storage.getFile(tc.uri)).setTtcIndex(tc.index).build();
+            } else if (s.equals(ContentResolver.SCHEME_CONTENT)) {
+                ContentResolver resolver = context.getContentResolver();
+                try {
+                    ParcelFileDescriptor fd = resolver.openFileDescriptor(tc.uri, "r");
+                    return new Typeface.Builder(fd.getFileDescriptor()).setTtcIndex(tc.index).build();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                throw new Storage.UnknownUri();
+            }
+        } else {
+            return Typeface.createFromFile(file);
         }
     }
 }
