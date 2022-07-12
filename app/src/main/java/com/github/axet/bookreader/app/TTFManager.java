@@ -23,10 +23,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 import java.util.TreeSet;
 
 public class TTFManager { // .ttf *.otf *.ttc
@@ -39,7 +37,7 @@ public class TTFManager { // .ttf *.otf *.ttc
     public File appFonts; // app home folder, /sdcard/Android/data/.../files/Fonts
     public ArrayList<Uri> uris = new ArrayList<>(); // files and context://
     public ArrayList<Font> old = new ArrayList<>();
-    public HashMap<TTCFile, Typeface> ourFontFileMap = new HashMap<>();
+    public HashMap<File, Typeface> ourFontFileMap = new HashMap<>();
 
     public static class Font implements Comparable<Font> {
         public String name;
@@ -70,12 +68,12 @@ public class TTFManager { // .ttf *.otf *.ttc
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             Font font = (Font) o;
-            return index == font.index && Objects.equals(uri, font.uri);
+            return index == font.index && uri.equals(font.uri);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(uri, index);
+            return Arrays.hashCode(new Object[]{uri, index});
         }
     }
 
@@ -98,12 +96,12 @@ public class TTFManager { // .ttf *.otf *.ttc
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             TTCFile ttcFile = (TTCFile) o;
-            return index == ttcFile.index && Objects.equals(uri, ttcFile.uri);
+            return index == ttcFile.index && uri.equals(ttcFile.uri);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(super.hashCode(), uri, index);
+            return Arrays.hashCode(new Object[]{super.hashCode(), uri, index});
         }
     }
 
@@ -406,9 +404,11 @@ public class TTFManager { // .ttf *.otf *.ttc
                 try {
                     ParcelFileDescriptor fd = resolver.openFileDescriptor(tc.uri, "r");
                     if (tc.index == -1)
-                        return new Typeface.Builder(fd.getFileDescriptor()).build();
+                        tf = new Typeface.Builder(fd.getFileDescriptor()).build();
                     else
-                        return new Typeface.Builder(fd.getFileDescriptor()).setTtcIndex(tc.index).build();
+                        tf = new Typeface.Builder(fd.getFileDescriptor()).setTtcIndex(tc.index).build();
+                    ourFontFileMap.put(tc, tf);
+                    return tf;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -416,7 +416,9 @@ public class TTFManager { // .ttf *.otf *.ttc
                 throw new Storage.UnknownUri();
             }
         } else {
-            return Typeface.createFromFile(file);
+            tf = Typeface.createFromFile(file);
+            ourFontFileMap.put(file, tf);
+            return tf;
         }
     }
 }
