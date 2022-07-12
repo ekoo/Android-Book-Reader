@@ -2,6 +2,7 @@ package com.github.axet.bookreader.app;
 
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
@@ -85,6 +86,7 @@ public class Storage extends com.github.axet.androidlibrary.app.Storage {
     public static final int MD5_SIZE = 32;
     public static final String JSON_EXT = "json";
     public static final String ZIP_EXT = "zip";
+    public static final int SAF_RW = Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
 
     public static FileTypeDetector.Detector[] supported() {
         return new FileTypeDetector.Detector[]{new FileTypeDetector.FileFB2(), new FileTypeDetector.FileFB2Zip(),

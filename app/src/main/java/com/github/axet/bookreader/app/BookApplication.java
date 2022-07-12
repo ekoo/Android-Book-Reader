@@ -1,10 +1,13 @@
 package com.github.axet.bookreader.app;
 
+import android.content.ContentResolver;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.net.Uri;
+import android.os.Build;
+import android.preference.PreferenceManager;
 
 import com.github.axet.androidlibrary.app.MainApplication;
-import com.github.axet.androidlibrary.net.HttpClient;
-import com.github.axet.bookreader.R;
 
 import org.geometerplus.zlibrary.ui.android.library.ZLAndroidApplication;
 
@@ -23,8 +26,15 @@ public class BookApplication extends MainApplication {
     public static String PREFERENCE_STORAGE = "storage_path";
     public static String PREFERENCE_SORT = "sort";
     public static String PREFERENCE_LANGUAGE = "tts_pref";
+    public static String PREFERENCE_IGNORE_EMBEDDED_FONTS = "ignore_embedded_fonts";
+    public static String PREFERENCE_FONTS_FOLDER = "fonts_folder";
 
     public ZLAndroidApplication zlib;
+    public TTFManager ttf;
+
+    public static BookApplication from(Context context) {
+        return (BookApplication) MainApplication.from(context);
+    }
 
     public static int getTheme(Context context, int light, int dark) {
         return MainApplication.getTheme(context, PREFERENCE_THEME, light, dark);
@@ -39,5 +49,17 @@ public class BookApplication extends MainApplication {
                 onCreate();
             }
         };
+        ttf = new TTFManager(this);
+        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
+        String fonts = shared.getString(BookApplication.PREFERENCE_FONTS_FOLDER, "");
+        if (fonts != null && !fonts.isEmpty()) {
+            Uri u = Uri.parse(fonts);
+            if (Build.VERSION.SDK_INT >= 19) {
+                ContentResolver resolver = getContentResolver();
+                resolver.takePersistableUriPermission(u, Storage.SAF_RW); // refresh perms
+            }
+            ttf.setFolder(u);
+        }
+        ttf.preloadFonts();
     }
 }

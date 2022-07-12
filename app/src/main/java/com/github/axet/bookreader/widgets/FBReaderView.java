@@ -1120,7 +1120,7 @@ public class FBReaderView extends RelativeLayout {
                     View t = myWindow.findViewById(org.geometerplus.zlibrary.ui.android.R.id.selection_panel_translate);
                     PackageManager packageManager = getContext().getPackageManager();
                     List<ResolveInfo> rr = packageManager.queryIntentActivities(translateIntent(null), 0);
-                    if (rr.isEmpty())
+                    if (rr == null || rr.isEmpty())
                         t.setVisibility(View.GONE);
                     else
                         t.setVisibility(View.VISIBLE);
@@ -1163,6 +1163,9 @@ public class FBReaderView extends RelativeLayout {
 
         String f = shared.getString(BookApplication.PREFERENCE_FONTFAMILY_FBREADER, app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption.getValue());
         config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontFamilyOption, f);
+
+        boolean ignoreCSSFonts = shared.getBoolean(BookApplication.PREFERENCE_IGNORE_EMBEDDED_FONTS, false);
+        config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().UseCSSFontFamilyOption, !ignoreCSSFonts);
 
         config.setValue(app.MiscOptions.AllowScreenBrightnessAdjustment, false);
         config.setValue(app.ViewOptions.ScrollbarType, 0); // FBView.SCROLLBAR_SHOW_AS_FOOTER
@@ -1318,7 +1321,6 @@ public class FBReaderView extends RelativeLayout {
 
     public void setWindow(Window w) {
         this.w = w;
-        config.setValue(app.MiscOptions.AllowScreenBrightnessAdjustment, true);
     }
 
     public void setActivity(final Activity a) {
@@ -2253,6 +2255,15 @@ public class FBReaderView extends RelativeLayout {
     public void setFontsizeFB(int p) {
         book.info.fontsize = p;
         config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().FontSizeOption, p);
+        resetCaches();
+    }
+
+    public boolean getIgnoreCssFonts() {
+        return !app.ViewOptions.getTextStyleCollection().getBaseStyle().UseCSSFontFamilyOption.getValue();
+    }
+
+    public void setIgnoreCssFonts(boolean b) {
+        config.setValue(app.ViewOptions.getTextStyleCollection().getBaseStyle().UseCSSFontFamilyOption, !b);
         resetCaches();
     }
 

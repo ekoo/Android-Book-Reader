@@ -48,4 +48,5 @@
     <string name="sort_by_opened_asc">Открыто по возрастанию</string>
     <string name="sort_by_opened_desc">Открыто по убыванию</string>
     <string name="pref_tts_title">TTS язык</string>
+    <string name="ignore_embedded_fonts">Игнорировать встроенные в книгу шрифты</string>
 </resources>
