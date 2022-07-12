@@ -246,6 +246,8 @@ public class FBFooterView extends LinearLayout {
     @Override
     public void invalidate() {
         super.invalidate();
+        if (fb == null)
+            return; // old android (API10) calls invalidate within constructor
         update();
     }
 }
