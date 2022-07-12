@@ -93,6 +93,10 @@ public class FontsPopup extends PopupWindow {
             this.context = context;
         }
 
+        public void clear() {
+            ff.clear();
+        }
+
         public void addBasics() {
             for (String s : DEFAULT)
                 add(s);
@@ -102,17 +106,14 @@ public class FontsPopup extends PopupWindow {
             Collections.sort(ff, new Comparator<FontView>() {
                 @Override
                 public int compare(FontView o1, FontView o2) {
-                    if (DEFAULT.contains(o1.name) && DEFAULT.contains(o2.name)) {
-                        int i1 = DEFAULT.indexOf(o1.name);
-                        int i2 = DEFAULT.indexOf(o2.name);
+                    int i1 = DEFAULT.indexOf(o1.name);
+                    int i2 = DEFAULT.indexOf(o2.name);
+                    if (i1 != -1 && i2 != -1)
                         return Integer.compare(i1, i2);
-                    }
-                    for (String s : DEFAULT) {
-                        if (o1.name.equals(s))
-                            return -1;
-                        if (o2.name.equals(s))
-                            return 1;
-                    }
+                    if (i1 != -1)
+                        return -1;
+                    if (i2 != -1)
+                        return 1;
                     int r = o1.name.compareTo(o2.name);
                     if (r != 0)
                         return r;
@@ -252,7 +253,7 @@ public class FontsPopup extends PopupWindow {
     }
 
     public void loadFonts() {
-        fonts.ff.clear();
+        fonts.clear();
         fontsFrame.setVisibility(View.VISIBLE);
         fontsList.setAdapter(fonts);
         fonts.addBasics();

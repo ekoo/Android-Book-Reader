@@ -22,8 +22,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.TreeSet;
 
 public class TTFManager { // .ttf *.otf *.ttc
@@ -35,8 +38,10 @@ public class TTFManager { // .ttf *.otf *.ttc
     public Context context;
     public File appFonts; // app home folder, /sdcard/Android/data/.../files/Fonts
     public ArrayList<Uri> uris = new ArrayList<>(); // files and context://
+    public ArrayList<Font> old = new ArrayList<>();
+    public HashMap<TTCFile, Typeface> ourFontFileMap = new HashMap<>();
 
-    public static class Font {
+    public static class Font implements Comparable<Font> {
         public String name;
         public Uri uri;
         public int index; // ttc index
@@ -50,6 +55,27 @@ public class TTFManager { // .ttf *.otf *.ttc
         public Font(String n, Uri f, int i) {
             this(n, f);
             index = i;
+        }
+
+        @Override
+        public int compareTo(Font o) {
+            int i = uri.compareTo(o.uri);
+            if (i != 0)
+                return i;
+            return Integer.compare(index, o.index);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Font font = (Font) o;
+            return index == font.index && Objects.equals(uri, font.uri);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(uri, index);
         }
     }
 
@@ -65,6 +91,19 @@ public class TTFManager { // .ttf *.otf *.ttc
             super(f.getPath());
             uri = f;
             index = i;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            TTCFile ttcFile = (TTCFile) o;
+            return index == ttcFile.index && Objects.equals(uri, ttcFile.uri);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(super.hashCode(), uri, index);
         }
     }
 
@@ -240,7 +279,7 @@ public class TTFManager { // .ttf *.otf *.ttc
         }
     }
 
-    public List<Font> enumerateFonts() {
+    public ArrayList<Font> enumerateFonts() {
         ArrayList<Font> ff = new ArrayList<>();
         TTFAnalyzer a = new TTFAnalyzer();
         for (Uri uri : uris) {
@@ -284,6 +323,7 @@ public class TTFManager { // .ttf *.otf *.ttc
                 }
             }
         }
+        Collections.sort(ff);
         return ff.isEmpty() ? null : ff;
     }
 
@@ -322,7 +362,13 @@ public class TTFManager { // .ttf *.otf *.ttc
     public void preloadFonts() {
         List<File> files = new ArrayList<>();
         HashMap<TTFManager.Font, File> ttc = new HashMap<>();
-        for (TTFManager.Font f : enumerateFonts()) {
+        ArrayList<Font> ff = enumerateFonts();
+        if (old.equals(ff)) {
+            Log.d(TAG, "preloadFonts - no new items");
+            return;
+        }
+        old = ff;
+        for (TTFManager.Font f : ff) {
             if (f.index == -1 && f.uri.getScheme().equals(ContentResolver.SCHEME_FILE))
                 files.add(Storage.getFile(f.uri));
             else
@@ -330,12 +376,15 @@ public class TTFManager { // .ttf *.otf *.ttc
         }
         AndroidFontUtil.ourFileSet = new TreeSet<>();
         AndroidFontUtil.ourFontFileMap = new ZLTTFInfoDetector().collectFonts(files);
+        ourFontFileMap = new HashMap<>();
         if (Build.VERSION.SDK_INT >= 26) { // ttc index support API26
             for (TTFManager.Font f : ttc.keySet()) {
                 try {
                     TTCFile tf = new TTCFile(f.uri, f.index);
-                    AndroidFontUtil.ourTypefaces.put(f.name, new Typeface[]{load(tf), null, null, null});
+                    Typeface ttf = load(tf);
+                    AndroidFontUtil.ourTypefaces.put(f.name, new Typeface[]{ttf, null, null, null});
                     AndroidFontUtil.ourFontFileMap.put(f.name, new TTCFile[]{tf, null, null, null});
+                    ourFontFileMap.put(tf, ttf);
                 } catch (Exception e) {
                     Log.w(TAG, e);
                 }
@@ -344,6 +393,9 @@ public class TTFManager { // .ttf *.otf *.ttc
     }
 
     public Typeface load(File file) {
+        Typeface tf = ourFontFileMap.get(file);
+        if (tf != null)
+            return tf;
         if (Build.VERSION.SDK_INT >= 26 && file instanceof TTCFile) {
             TTCFile tc = (TTCFile) file;
             String s = tc.uri.getScheme();
@@ -353,7 +405,10 @@ public class TTFManager { // .ttf *.otf *.ttc
                 ContentResolver resolver = context.getContentResolver();
                 try {
                     ParcelFileDescriptor fd = resolver.openFileDescriptor(tc.uri, "r");
-                    return new Typeface.Builder(fd.getFileDescriptor()).setTtcIndex(tc.index).build();
+                    if (tc.index == -1)
+                        return new Typeface.Builder(fd.getFileDescriptor()).build();
+                    else
+                        return new Typeface.Builder(fd.getFileDescriptor()).setTtcIndex(tc.index).build();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }

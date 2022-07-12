@@ -710,6 +710,7 @@ public class MainActivity extends FullscreenActivity implements NavigationView.O
         isRunning = true;
         RotatePreferenceCompat.onResume(this, BookApplication.PREFERENCE_ROTATE);
         CacheImagesAdapter.cacheClear(this);
+        BookApplication.from(this).ttf.preloadFonts();
     }
 
     @Override

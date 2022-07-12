@@ -76,7 +76,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
     FBReaderView fb;
     AlertDialog tocdialog;
     boolean showRTL;
-    TTFManager ttf;
     FontsPopup fontsPopup;
     MenuItem searchMenu;
     BroadcastReceiver battery;
@@ -237,10 +236,6 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         setHasOptionsMenu(true);
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
         shared.registerOnSharedPreferenceChangeListener(this);
-        ttf = new TTFManager(getContext());
-        String fonts = shared.getString(BookApplication.PREFERENCE_FONTS_FOLDER, "");
-        ttf.setFolder(Uri.parse(fonts));
-        ttf.preloadFonts();
     }
 
     @Override
@@ -492,7 +487,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
         }
         if (id == R.id.action_fontsize) {
             if (fb.pluginview == null) {
-                fontsPopup = new FontsPopup(getContext(), ttf) {
+                fontsPopup = new FontsPopup(getContext(), BookApplication.from(getContext()).ttf) {
                     @Override
                     public void setFont(String f) {
                         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(getContext());
@@ -536,7 +531,7 @@ public class ReaderFragment extends Fragment implements MainActivity.SearchListe
                 fontsPopup.fontsList.scrollToPosition(fontsPopup.fonts.selected);
                 fontsPopup.updateFontsize(FONT_START, FONT_END, fb.getFontsizeFB());
             } else {
-                fontsPopup = new FontsPopup(getContext(), ttf) {
+                fontsPopup = new FontsPopup(getContext(), BookApplication.from(getContext()).ttf) {
                     @Override
                     public void setFontsize(int f) {
                         float p = f / 10f;
