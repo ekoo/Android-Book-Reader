@@ -53,12 +53,11 @@ public class BookApplication extends MainApplication {
         SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
         String fonts = shared.getString(BookApplication.PREFERENCE_FONTS_FOLDER, "");
         if (fonts != null && !fonts.isEmpty()) {
-            Uri u = Uri.parse(fonts);
-            if (Build.VERSION.SDK_INT >= 19) {
-                ContentResolver resolver = getContentResolver();
-                resolver.takePersistableUriPermission(u, Storage.SAF_RW); // refresh perms
+            if (Build.VERSION.SDK_INT >= 21) {
+                Uri u = Uri.parse(fonts);
+                Storage.takePersistableUriPermission(this, u, Storage.SAF_RW);
+                ttf.setFolder(u);
             }
-            ttf.setFolder(u);
         }
         ttf.preloadFonts();
     }
