@@ -50,10 +50,10 @@ public class BookApplication extends MainApplication {
             }
         };
         ttf = new TTFManager(this);
-        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
-        String fonts = shared.getString(BookApplication.PREFERENCE_FONTS_FOLDER, "");
-        if (fonts != null && !fonts.isEmpty()) {
-            if (Build.VERSION.SDK_INT >= 21) {
+        if (Build.VERSION.SDK_INT >= 21) {
+            SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
+            String fonts = shared.getString(BookApplication.PREFERENCE_FONTS_FOLDER, "");
+            if (fonts != null && !fonts.isEmpty()) {
                 Uri u = Uri.parse(fonts);
                 Storage.takePersistableUriPermission(this, u, Storage.SAF_RW);
                 ttf.setFolder(u);
