@@ -7,8 +7,8 @@ android {
         applicationId "com.github.axet.bookreader"
         minSdkVersion 9
         targetSdkVersion 30
-        versionCode 413
-        versionName "1.15.0"
+        versionCode 414
+        versionName "1.15.1"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
     }
@@ -50,7 +50,7 @@ configurations { // TODO fix library dependency copy
 
 dependencies {
     testImplementation 'junit:junit:4.12'
-    implementation 'com.github.axet:android-library:1.35.20' // implementation project(':android-library')
+    implementation 'com.github.axet:android-library:1.35.21' // implementation project(':android-library')
     implementation 'com.android.support:design:25.3.1'
     implementation 'com.android.support:support-vector-drawable:25.3.1'
     implementation 'com.android.support.constraint:constraint-layout:1.1.3'
