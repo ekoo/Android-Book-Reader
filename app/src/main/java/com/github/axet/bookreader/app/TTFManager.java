@@ -30,7 +30,7 @@ import java.util.TreeSet;
 public class TTFManager { // .ttf *.otf *.ttc
     public static String TAG = TTFManager.class.getSimpleName();
 
-    public static final File USER_FONTS = new File(Environment.getExternalStorageDirectory(), "Fonts");
+    public static File USER_FONTS; // /sdcard/Fonts
     public static final File[] SYSTEM_FONTS = {new File("/system/fonts"), new File("/system/font"), new File("/data/fonts")};
 
     public Context context;
@@ -38,6 +38,12 @@ public class TTFManager { // .ttf *.otf *.ttc
     public ArrayList<Uri> uris = new ArrayList<>(); // files and context://
     public ArrayList<Font> old = new ArrayList<>();
     public HashMap<File, Typeface> ourFontFileMap = new HashMap<>();
+
+    static {
+        File ext = Environment.getExternalStorageDirectory();
+        if (ext != null)
+            USER_FONTS = new File(ext, "Fonts");
+    }
 
     public static class Font implements Comparable<Font> {
         public String name;
@@ -293,10 +299,15 @@ public class TTFManager { // .ttf *.otf *.ttc
                     String[] nn = a.getNames(file);
                     if (nn != null) {
                         if (nn.length == 1) {
-                            ff.add(new Font(nn[0], Uri.fromFile(file)));
+                            String name = nn[0];
+                            if (name != null && !name.isEmpty())
+                                ff.add(new Font(name, Uri.fromFile(file)));
                         } else {
-                            for (int i = 0; i < nn.length; i++)
-                                ff.add(new Font(nn[i], Uri.fromFile(file), i));
+                            for (int i = 0; i < nn.length; i++) {
+                                String name = nn[i];
+                                if (name != null && !name.isEmpty())
+                                    ff.add(new Font(name, Uri.fromFile(file), i));
+                            }
                         }
                     }
                 }
@@ -309,10 +320,15 @@ public class TTFManager { // .ttf *.otf *.ttc
                         String[] names = a.getNames(is);
                         if (names != null) {
                             if (names.length == 1) {
-                                ff.add(new Font(names[0], n.uri));
+                                String name = names[0];
+                                if (name != null && !name.isEmpty())
+                                    ff.add(new Font(name, n.uri));
                             } else {
-                                for (int i = 0; i < names.length; i++)
-                                    ff.add(new Font(names[i], n.uri, i));
+                                for (int i = 0; i < names.length; i++) {
+                                    String name = names[i];
+                                    if (name != null && !name.isEmpty())
+                                        ff.add(new Font(name, n.uri, i));
+                                }
                             }
                         }
                     } catch (IOException e) {
@@ -332,7 +348,8 @@ public class TTFManager { // .ttf *.otf *.ttc
 
     public void init() {
         ArrayList<File> fonts = new ArrayList<>(Arrays.asList(SYSTEM_FONTS));
-        fonts.add(USER_FONTS);
+        if (USER_FONTS != null)
+            fonts.add(USER_FONTS);
         File fl = context.getFilesDir(); // /data/.../files/Fonts
         if (fl != null) {
             fl = new File(fl, "Fonts");
@@ -341,7 +358,10 @@ public class TTFManager { // .ttf *.otf *.ttc
         if (Build.VERSION.SDK_INT >= 19) {
             File[] fl2 = context.getExternalFilesDirs("Fonts");
             if (fl2 != null) {
-                fonts.addAll(Arrays.asList(fl2));
+                for (File f : fl2) {
+                    if (f != null)
+                        fonts.add(f);
+                }
                 appFonts = fl2[0];
             }
         }
