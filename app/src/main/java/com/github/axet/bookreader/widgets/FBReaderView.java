@@ -2290,5 +2290,7 @@ public class FBReaderView extends RelativeLayout {
     public void onScrollingFinished(ZLViewEnums.PageIndex pageIndex) {
         if (listener != null)
             listener.onScrollingFinished(pageIndex);
+        if (tts != null)
+            tts.onScrollingFinished(pageIndex);
     }
 }

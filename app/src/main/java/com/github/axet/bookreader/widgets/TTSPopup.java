@@ -10,6 +10,7 @@ import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.speech.tts.TextToSpeech;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -45,6 +46,8 @@ import java.util.List;
 import java.util.Locale;
 
 public class TTSPopup {
+    public static final String TAG = TTSPopup.class.getSimpleName();
+
     public static String[] EOL = {"\n", "\r"};
     public static String[] STOPS = {".", ";"}; // ",", "\"", "'", "!", "?", "“", "”", ":", "(", ")"};
     public static int MAX_COUNT = getMaxSpeechInputLength(200);
@@ -74,6 +77,7 @@ public class TTSPopup {
     Runnable speakNext = new Runnable() {
         @Override
         public void run() {
+            Log.d(TAG, "speakNext");
             selectNext();
             speakNext();
         }
@@ -472,6 +476,7 @@ public class TTSPopup {
 
             @Override
             public void onError(String utteranceId, Runnable done) {
+                Log.d(TAG, "onError");
                 if (!fragment.isEmpty() && fragment.retry < 2) {
                     dones.remove(delayed);
                     handler.removeCallbacks(delayed);
@@ -487,6 +492,12 @@ public class TTSPopup {
                 } else {
                     done.run(); // speakNext
                 }
+            }
+
+            @Override
+            public void onDone(String utteranceId, Runnable done) {
+                Log.d(TAG, "onDone");
+                super.onDone(utteranceId, done);
             }
         };
         tts.ttsCreate();
