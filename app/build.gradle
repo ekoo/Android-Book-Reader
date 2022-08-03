@@ -7,8 +7,8 @@ android {
         applicationId "com.github.axet.bookreader"
         minSdkVersion 9
         targetSdkVersion 30
-        versionCode 415
-        versionName "1.15.2"
+        versionCode 416
+        versionName "1.15.3"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
     }
