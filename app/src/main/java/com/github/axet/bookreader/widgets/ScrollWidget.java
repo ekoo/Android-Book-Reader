@@ -1195,8 +1195,6 @@ public class ScrollWidget extends RecyclerView implements ZLViewWidget {
         if (!pos.equals(adapter.oldTurn) && getScrollState() == SCROLL_STATE_IDLE) {
             fb.onScrollingFinished(ZLViewEnums.PageIndex.current);
             adapter.oldTurn = pos;
-            if (fb.tts != null)
-                fb.tts.onScrollingFinished(ZLViewEnums.PageIndex.current);
         }
     }
 
